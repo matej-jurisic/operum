@@ -9,7 +9,7 @@ namespace Operum.API.Controllers
         [HttpGet]
         public IActionResult PlaceholderGetProjects()
         {
-            return Ok();
+            return Ok("Project response");
         }
     }
 }

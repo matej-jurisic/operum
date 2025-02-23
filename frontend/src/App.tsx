@@ -1,8 +1,9 @@
 import { useEffect } from "react";
+import api from "./api/Api";
 
 function App() {
     useEffect(() => {
-        fetch("https://localhost:7129/api/projects", { method: "GET" });
+        api.get("/projects");
     }, []);
 
     return <></>;
