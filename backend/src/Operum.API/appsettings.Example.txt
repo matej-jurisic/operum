@@ -1,0 +1,10 @@
+﻿{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "ClientUrl": "localhost:3000",
+  "AllowedHosts": "localhost;https://localhost:3000"
+}
