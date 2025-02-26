@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore;
+using Operum.Model;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
@@ -22,6 +25,15 @@ builder.Services.AddCors(opt =>
            .WithOrigins(origins);
     });
 });
+
+string connectionString = builder.Configuration.GetConnectionString("Operum") ?? throw new Exception("Missing database connection configuration");
+
+builder.Services.AddDbContext<OperumContext>(opt =>
+{
+    opt.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+    opt.UseNpgsql(connectionString, x => x.MigrationsHistoryTable("__EFMigrationsHistory", "backend"));
+});
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
