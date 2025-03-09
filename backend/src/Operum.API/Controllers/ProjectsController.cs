@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Operum.Model.Common;
 
 namespace Operum.API.Controllers
 {
@@ -9,7 +10,7 @@ namespace Operum.API.Controllers
         [HttpGet]
         public IActionResult PlaceholderGetProjects()
         {
-            return Ok("Project response");
+            return GetApiResponse(ServiceResponse.Success());
         }
     }
 }

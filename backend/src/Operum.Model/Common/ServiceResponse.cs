@@ -1,20 +1,26 @@
-﻿namespace Operum.Model.Common
+﻿using Operum.Model.Enums;
+
+namespace Operum.Model.Common
 {
     public class ServiceResponse
     {
-        public string? Message { get; set; }
-        public bool? Success { get; set; }
+        public IEnumerable<string>? Messages { get; set; }
+        public StatusCodeEnum StatusCode { get; set; }
+
+        public static ServiceResponse Success() => new() { StatusCode = StatusCodeEnum.Ok };
+        public static ServiceResponse Failure(StatusCodeEnum statusCode, IEnumerable<string>? messages = null) => new() { StatusCode = statusCode, Messages = messages };
+        public static ServiceResponse<T> Success<T>(T data) => new() { Data = data, StatusCode = StatusCodeEnum.Ok };
     }
 
     public class ServiceResponse<T>
     {
-        public bool? Success { get; set; }
-        public string? Message { get; set; }
+        public IEnumerable<string>? Messages { get; set; }
         public T Data { get; set; } = default!;
+        public StatusCodeEnum StatusCode { get; set; }
 
         public static implicit operator ServiceResponse<T>(ServiceResponse response)
         {
-            return new ServiceResponse<T> { Success = response.Success, Message = response.Message, Data = default! };
+            return new ServiceResponse<T> { Messages = response.Messages, Data = default! };
         }
     }
 }
