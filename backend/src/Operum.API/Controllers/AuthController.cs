@@ -22,6 +22,7 @@ namespace Operum.API.Controllers
             return GetApiResponse(await _authenticationService.Register(registerRequest));
         }
 
+        [AllowAnonymous]
         [HttpPost("logout")]
         public IActionResult Logout()
         {

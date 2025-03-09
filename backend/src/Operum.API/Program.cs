@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Operum.API.Configuration;
+using Operum.API.Middleware;
 using Operum.Model;
 using Operum.Model.Models;
 using System.Text;
@@ -127,6 +128,8 @@ app.UseHttpsRedirection();
 app.UseCors("CorsPolicy");
 
 app.UseAuthentication();
+
+app.UseMiddleware<SecurityStampMidleware>();
 
 app.UseAuthorization();
 

@@ -1,5 +1,6 @@
 ﻿using Operum.Model.Common;
 using Operum.Model.DTOs;
+using Operum.Model.Models;
 
 namespace Operum.Service.Services.Auth
 {
@@ -10,5 +11,6 @@ namespace Operum.Service.Services.Auth
         ServiceResponse Logout();
         ServiceResponse<ApplicationUserDto> GetCurrentApplicationUser();
         Task<ServiceResponse> UpdateUserName(string newUsername);
+        ServiceResponse SetAuthCookie(ApplicationUser? user = null, bool valid = true, DateTime? expires = null);
     }
 }

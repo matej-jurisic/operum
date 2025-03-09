@@ -53,9 +53,9 @@ namespace Operum.Service.Services.Auth
             return ServiceResponse.Success();
         }
 
-        private ServiceResponse SetAuthCookie(ApplicationUser? user = null, bool valid = true)
+        public ServiceResponse SetAuthCookie(ApplicationUser? user = null, bool valid = true, DateTime? expires = null)
         {
-            string? token = user == null ? "" : _tokenService.CreateToken(user);
+            string? token = user == null ? "" : _tokenService.CreateToken(user, expires);
 
             var httpContext = _httpContextAccessor.HttpContext;
 

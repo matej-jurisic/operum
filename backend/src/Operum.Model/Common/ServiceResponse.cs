@@ -7,9 +7,9 @@ namespace Operum.Model.Common
         public IEnumerable<string>? Messages { get; set; }
         public StatusCodeEnum StatusCode { get; set; }
 
-        public static ServiceResponse Success() => new() { StatusCode = StatusCodeEnum.Ok };
+        public static ServiceResponse Success() => new() { StatusCode = StatusCodeEnum.Ok, Messages = ["Success!"] };
         public static ServiceResponse Failure(StatusCodeEnum statusCode, IEnumerable<string>? messages = null) => new() { StatusCode = statusCode, Messages = messages };
-        public static ServiceResponse<T> Success<T>(T data) => new() { Data = data, StatusCode = StatusCodeEnum.Ok };
+        public static ServiceResponse<T> Success<T>(T data) => new() { Data = data, StatusCode = StatusCodeEnum.Ok, Messages = ["Success!"] };
     }
 
     public class ServiceResponse<T>

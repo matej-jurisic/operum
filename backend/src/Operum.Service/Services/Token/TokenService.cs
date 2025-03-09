@@ -11,7 +11,7 @@ namespace Operum.Service.Services.Token
     {
         private readonly IConfiguration _configuration = configuration;
 
-        public string CreateToken(ApplicationUser user)
+        public string CreateToken(ApplicationUser user, DateTime? expires = null)
         {
             if (user.UserName == null || user.Email == null) throw new Exception("User info is missing!");
 
@@ -21,6 +21,11 @@ namespace Operum.Service.Services.Token
                 new(ClaimTypes.NameIdentifier, user.Id),
                 new(ClaimTypes.Email, user.Email),
             };
+
+            if (user.SecurityStamp != null)
+            {
+                claims.Add(new(CustomClaimTypes.SecurityStamp, user.SecurityStamp));
+            }
 
             var secretKey = _configuration["JwtSettings:Key"] ?? throw new Exception("Missing jwt configuration!");
 
@@ -32,7 +37,7 @@ namespace Operum.Service.Services.Token
                 Subject = new ClaimsIdentity(claims),
                 Issuer = _configuration["JwtSettings:Issuer"],
                 Audience = _configuration["JwtSettings:Audience"],
-                Expires = DateTime.UtcNow.AddHours(6),
+                Expires = expires ?? DateTime.UtcNow.AddHours(6),
                 SigningCredentials = creds,
             };
 
