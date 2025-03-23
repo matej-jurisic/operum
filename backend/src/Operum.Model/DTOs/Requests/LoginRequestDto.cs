@@ -1,4 +1,4 @@
-﻿namespace Operum.Model.DTOs
+﻿namespace Operum.Model.DTOs.Requests
 {
     public class LoginRequestDto
     {

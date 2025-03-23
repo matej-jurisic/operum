@@ -5,9 +5,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Operum.API.Configuration;
 using Operum.API.Middleware;
+using Operum.API.Seed;
 using Operum.Model;
+using Operum.Model.Common;
+using Operum.Model.Enums;
 using Operum.Model.Models;
 using System.Text;
+using YourProject.Service.Mappings;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,6 +42,8 @@ builder.Services.AddCors(opt =>
 });
 
 string connectionString = builder.Configuration.GetConnectionString("Operum") ?? throw new Exception("Missing database connection configuration");
+
+builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
 
 builder.Services.AddDbContext<OperumContext>(opt =>
 {
@@ -86,10 +92,16 @@ builder.Services.AddAuthentication(options =>
             Console.WriteLine("Token validated successfully.");
             return Task.CompletedTask;
         },
-        OnChallenge = context =>
+        OnChallenge = async context =>
         {
             Console.WriteLine("Challenge issued.");
-            return Task.CompletedTask;
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            context.HandleResponse();
+            await context.Response.WriteAsJsonAsync(new ApiResponse()
+            {
+                Messages = ["Unauthorized."],
+                StatusCode = StatusCodeEnum.Unauthorized
+            });
         }
     };
 });
@@ -102,6 +114,8 @@ builder.Services.AddIdentityApiEndpoints<IdentityUser>()
     .AddEntityFrameworkStores<OperumContext>();
 
 builder.Services.AddIdentityCore<ApplicationUser>()
+    .AddRoles<IdentityRole>()
+    .AddRoleManager<RoleManager<IdentityRole>>()
     .AddEntityFrameworkStores<OperumContext>()
     .AddDefaultTokenProviders();
 builder.Services.AddHttpContextAccessor();
@@ -114,6 +128,15 @@ builder.Services.Configure<IdentityOptions>(options =>
 DependencyInjectionRegistrations.RegisterDependencyInjections(builder.Services);
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+    var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+
+    await RoleSeeder.SeedRolesAsync(userManager, roleManager);
+}
 
 if (app.Environment.IsDevelopment())
 {

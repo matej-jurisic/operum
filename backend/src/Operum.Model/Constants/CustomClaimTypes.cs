@@ -1,4 +1,4 @@
-﻿namespace Operum.Service.Services.Token
+﻿namespace Operum.Model.Constants
 {
     public static class CustomClaimTypes
     {

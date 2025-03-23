@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Operum.Model.DTOs;
+using Operum.Model.DTOs.Requests;
 using Operum.Service.Services.Auth;
 
 namespace Operum.API.Controllers
@@ -8,37 +8,23 @@ namespace Operum.API.Controllers
     [ApiController, Route("api/[controller]")]
     public class AuthController(IAuthenticationService authenticationService) : BaseController
     {
-        private readonly IAuthenticationService _authenticationService = authenticationService;
-
         [AllowAnonymous, HttpPost("login")]
-        public async Task<IActionResult> Login(LoginRequestDto loginRequest)
+        public async Task<IActionResult> Login([FromBody] LoginRequestDto loginRequest)
         {
-            return GetApiResponse(await _authenticationService.Login(loginRequest));
+            return GetApiResponse(await authenticationService.Login(loginRequest));
         }
 
         [AllowAnonymous, HttpPost("register")]
-        public async Task<IActionResult> Register(RegisterRequestDto registerRequest)
+        public async Task<IActionResult> Register([FromBody] RegisterRequestDto registerRequest)
         {
-            return GetApiResponse(await _authenticationService.Register(registerRequest));
+            return GetApiResponse(await authenticationService.Register(registerRequest));
         }
 
         [AllowAnonymous]
         [HttpPost("logout")]
         public IActionResult Logout()
         {
-            return GetApiResponse(_authenticationService.Logout());
-        }
-
-        [HttpGet]
-        public IActionResult GetCurrentApplicationUser()
-        {
-            return GetApiResponse(_authenticationService.GetCurrentApplicationUser());
-        }
-
-        [HttpPost("username")]
-        public async Task<IActionResult> UpdateUserName(string newUsername)
-        {
-            return GetApiResponse(await _authenticationService.UpdateUserName(newUsername));
+            return GetApiResponse(authenticationService.Logout());
         }
     }
 }

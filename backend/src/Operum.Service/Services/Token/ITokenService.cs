@@ -4,6 +4,6 @@ namespace Operum.Service.Services.Token
 {
     public interface ITokenService
     {
-        string CreateToken(ApplicationUser user, DateTime? expires = null);
+        Task<string> CreateToken(ApplicationUser user, DateTime? expires = null);
     }
 }
