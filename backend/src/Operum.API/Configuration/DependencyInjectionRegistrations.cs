@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using Operum.API.Middleware;
 using Operum.Model.Models;
-using Operum.Service.Services.Auth;
+using Operum.Service.Services.Authentication;
 using Operum.Service.Services.Authorization;
 using Operum.Service.Services.Roles;
 using Operum.Service.Services.Token;
