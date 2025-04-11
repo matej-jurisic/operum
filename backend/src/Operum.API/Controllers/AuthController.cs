@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Operum.Model.DTOs.Requests;
-using Operum.Service.Services.Auth;
+using Operum.Service.Services.Authentication;
 
 namespace Operum.API.Controllers
 {
@@ -20,11 +20,16 @@ namespace Operum.API.Controllers
             return GetApiResponse(await authenticationService.Register(registerRequest));
         }
 
-        [AllowAnonymous]
-        [HttpPost("logout")]
-        public IActionResult Logout()
+        [AllowAnonymous, HttpPost("logout")]
+        public async Task<IActionResult> Logout()
         {
-            return GetApiResponse(authenticationService.Logout());
+            return GetApiResponse(await authenticationService.Logout());
+        }
+
+        [AllowAnonymous, HttpGet("refresh")]
+        public async Task<IActionResult> RefreshToken()
+        {
+            return GetApiResponse(await authenticationService.RefreshToken());
         }
     }
 }

@@ -16,14 +16,31 @@ namespace Operum.API.Middleware
 
                 var apiResponse = new ApiResponse
                 {
-                    Messages = new[] { "Unauthorized." },
+                    Messages = ["Unauthorized."],
                     StatusCode = StatusCodeEnum.Forbidden
                 };
 
                 await context.Response.WriteAsJsonAsync(apiResponse);
                 return;
             }
+
+            if (authorizeResult.Challenged)
+            {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                context.Response.ContentType = "application/json";
+
+                var apiResponse = new ApiResponse
+                {
+                    Messages = ["Unauthenticated."],
+                    StatusCode = StatusCodeEnum.Unauthorized
+                };
+
+                await context.Response.WriteAsJsonAsync(apiResponse);
+                return;
+            }
+
             await next(context);
         }
+
     }
 }

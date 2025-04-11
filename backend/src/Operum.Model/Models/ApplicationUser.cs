@@ -10,5 +10,7 @@ namespace Operum.Model.Models
             Email = email;
             UserName = userName;
         }
+
+        public virtual List<RefreshToken> RefreshTokens { get; set; } = [];
     }
 }

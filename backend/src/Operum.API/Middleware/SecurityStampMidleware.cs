@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using Operum.Model.Constants;
 using Operum.Model.Models;
-using Operum.Service.Services.Auth;
+using Operum.Service.Services.Authentication;
 using Operum.Service.Services.Token;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -70,7 +70,7 @@ namespace Operum.API.Middleware
                     }
 
                     string newToken = await tokenService.CreateToken(user);
-                    authenticationService.SetAuthCookie(newToken, user, expires: expirationTime);
+                    await tokenService.SetAuthTokenCookie(user, token, expires: expirationTime);
 
                     if (!string.IsNullOrEmpty(newToken) && context.User.Identities.FirstOrDefault() is { } identity)
                     {

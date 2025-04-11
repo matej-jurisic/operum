@@ -152,7 +152,7 @@ app.UseCors("CorsPolicy");
 
 app.UseAuthentication();
 
-app.UseMiddleware<SecurityStampMidleware>();
+//app.UseMiddleware<SecurityStampMidleware>();
 
 app.UseAuthorization();
 

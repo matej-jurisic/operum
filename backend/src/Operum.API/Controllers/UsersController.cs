@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Operum.Model.DTOs.Requests;
-using Operum.Service.Services.Auth;
+using Operum.Service.Services.Authentication;
 using Operum.Service.Services.Roles;
 using Operum.Service.Services.Users;
 
@@ -22,8 +22,7 @@ namespace Operum.API.Controllers
             return GetApiResponse(rolesService.GetCurrentUserRoles());
         }
 
-        [AllowAnonymous]
-        [HttpGet]
+        [AllowAnonymous, HttpGet]
         public async Task<IActionResult> GetAllUsers()
         {
             return GetApiResponse(await usersService.GetAllUsers());
