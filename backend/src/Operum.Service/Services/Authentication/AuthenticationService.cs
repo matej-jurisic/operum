@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Operum.Model;
 using Operum.Model.Common;
 using Operum.Model.DTOs;
 using Operum.Model.DTOs.Requests;
@@ -9,21 +10,22 @@ using Operum.Model.Models;
 using Operum.Service.Services.Authorization;
 using Operum.Service.Services.Token;
 
-namespace Operum.Service.Services.Auth
+namespace Operum.Service.Services.Authentication
 {
-    public class AuthenticationService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IHttpContextAccessor httpContextAccessor, ITokenService tokenService, IAuthorizationService authorizationService) : IAuthenticationService
+    public class AuthenticationService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, OperumContext dbContext, ITokenService tokenService, IAuthorizationService authorizationService) : IAuthenticationService
     {
         public async Task<ServiceResponse> Login(LoginRequestDto loginRequest)
         {
             var normalizedCredentials = loginRequest.Credentials.ToUpper();
-            ApplicationUser? existingUser = await userManager.Users.FirstOrDefaultAsync(x => x.NormalizedEmail == normalizedCredentials || x.NormalizedUserName == normalizedCredentials);
+            var user = await userManager.Users.FirstOrDefaultAsync(x => x.NormalizedEmail == normalizedCredentials || x.NormalizedUserName == normalizedCredentials);
 
-            if (existingUser == null)
+            if (user == null)
             {
                 return ServiceResponse.Failure(StatusCodeEnum.Forbidden, ["Invalid login attempt."]);
             }
 
-            SignInResult? signInResult = await signInManager.CheckPasswordSignInAsync(existingUser, loginRequest.Password, true);
+            var signInResult = await signInManager.CheckPasswordSignInAsync(user, loginRequest.Password, true);
+
             if (signInResult.IsLockedOut)
             {
                 return ServiceResponse.Failure(StatusCodeEnum.Forbidden);
@@ -33,13 +35,27 @@ namespace Operum.Service.Services.Auth
                 return ServiceResponse.Failure(StatusCodeEnum.Forbidden, ["Invalid login attempt."]);
             }
 
-            await GenerateAndSetAuthCookie(existingUser);
+            await AuthenticateUser(user);
             return ServiceResponse.Success();
         }
 
-        public ServiceResponse Logout()
+        public async Task<ServiceResponse> Logout()
         {
-            return ClearAuthCookie();
+            var token = tokenService.GetRefreshToken();
+            if (token != null)
+            {
+                var existingToken = await dbContext.RefreshTokens
+                    .AsTracking()
+                    .FirstOrDefaultAsync(rt => rt.Token == token);
+                if (existingToken != null)
+                {
+                    existingToken.IsRevoked = true;
+                    await dbContext.SaveChangesAsync();
+                }
+            }
+
+            tokenService.ClearAuthCookies();
+            return ServiceResponse.Success();   
         }
 
         public async Task<ServiceResponse> Register(RegisterRequestDto registerRequest)
@@ -77,37 +93,36 @@ namespace Operum.Service.Services.Auth
             return ServiceResponse.Success(authorizationService.GetCurrentApplicationUserDto());
         }
 
-        public ServiceResponse SetAuthCookie(string token, ApplicationUser? user = null, bool valid = true, DateTime? expires = null)
+        public async Task<ServiceResponse> RefreshToken()
         {
-            var httpContext = httpContextAccessor.HttpContext;
+            var token = tokenService.GetRefreshToken();
 
-            if (token == null || httpContext == null)
+            if (string.IsNullOrWhiteSpace(token))
             {
-                return ServiceResponse.Failure(StatusCodeEnum.InternalServerError);
+                return ServiceResponse.Failure(StatusCodeEnum.Unauthorized);
             }
 
-            var cookieOptions = new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Strict,
-                Expires = valid ? DateTime.UtcNow.AddHours(6) : DateTime.UtcNow.AddDays(-1),
-            };
+            var storedToken = await dbContext.RefreshTokens
+                .AsTracking()
+                .Include(rt => rt.User)
+                .FirstOrDefaultAsync(rt => rt.Token == token && !rt.IsRevoked);
 
-            httpContext.Response.Cookies.Delete("AuthToken");
-            httpContext.Response.Cookies.Append("AuthToken", token, cookieOptions);
+            if(storedToken == null || storedToken.ExpiresAt < DateTime.UtcNow)
+            {
+                return ServiceResponse.Failure(StatusCodeEnum.Unauthorized);
+            }
+
+            await AuthenticateUser(storedToken.User);
+
+            storedToken.IsRevoked = true;
+            await dbContext.SaveChangesAsync();
+
             return ServiceResponse.Success();
         }
-
-        public async Task<ServiceResponse> GenerateAndSetAuthCookie(ApplicationUser? user = null, bool valid = true, DateTime? expires = null)
+        private async Task AuthenticateUser(ApplicationUser user)
         {
-            string? token = user == null ? "" : await tokenService.CreateToken(user, expires);
-            return SetAuthCookie(token, user, valid, expires);
-        }
-
-        public ServiceResponse ClearAuthCookie()
-        {
-            return SetAuthCookie("", valid: false);
+            await tokenService.SetAuthTokenCookie(user);
+            await tokenService.SetRefreshTokenCookie(user);
         }
     }
 }
