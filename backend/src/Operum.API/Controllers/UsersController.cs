@@ -37,12 +37,14 @@ namespace Operum.API.Controllers
             return GetApiResponse(await usersService.UpdateApplicationUser(request));
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost("{userId}/roles")]
         public async Task<IActionResult> AddUserToRoles([FromRoute] string userId, [FromBody] ModifyUserRoleRequestDto request)
         {
             return GetApiResponse(await rolesService.AddUserToRole(userId, request));
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{userId}/roles")]
         public async Task<IActionResult> RemoveUserFromRoles([FromRoute] string userId, [FromBody] ModifyUserRoleRequestDto request)
         {
