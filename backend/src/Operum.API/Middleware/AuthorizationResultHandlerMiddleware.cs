@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization.Policy;
 using Operum.Model.Common;
 using Operum.Model.Enums;
+using System.Net;
 
 namespace Operum.API.Middleware
 {
@@ -11,18 +12,35 @@ namespace Operum.API.Middleware
         {
             if (authorizeResult.Forbidden)
             {
-                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
                 context.Response.ContentType = "application/json";
 
                 var apiResponse = new ApiResponse
                 {
-                    Messages = new[] { "Unauthorized." },
+                    Messages = ["Forbidden. You do not have the necessary permissions."],
                     StatusCode = StatusCodeEnum.Forbidden
                 };
 
                 await context.Response.WriteAsJsonAsync(apiResponse);
                 return;
             }
+
+            if (!authorizeResult.Succeeded)
+            {
+                context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                context.Response.ContentType = "application/json";
+
+                var apiResponse = new ApiResponse
+                {
+                    Messages = ["Unauthorized."],
+                    StatusCode = StatusCodeEnum.Unauthorized
+                };
+
+                await context.Response.WriteAsJsonAsync(apiResponse);
+                return;
+            }
+
+
             await next(context);
         }
     }
