@@ -66,7 +66,6 @@ namespace Operum.Service.Services.Roles
             {
                 return ServiceResponse.Failure(StatusCodeEnum.BadRequest, result.Errors.Select(e => e.Description));
             }
-            await userManager.UpdateSecurityStampAsync(user);
             return ServiceResponse.Success();
         }
 
@@ -77,7 +76,6 @@ namespace Operum.Service.Services.Roles
             {
                 return ServiceResponse.Failure(StatusCodeEnum.BadRequest, result.Errors.Select(e => e.Description));
             }
-            await userManager.UpdateSecurityStampAsync(user);
             return ServiceResponse.Success();
         }
 
