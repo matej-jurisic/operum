@@ -5,16 +5,19 @@ using Operum.Service.Services.Auth;
 
 namespace Operum.API.Controllers
 {
-    [ApiController, Route("api/[controller]")]
+    [ApiController]
+    [Route("api/[controller]")]
     public class AuthController(IAuthenticationService authenticationService) : BaseController
     {
-        [AllowAnonymous, HttpPost("login")]
+        [AllowAnonymous]
+        [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto loginRequest)
         {
             return GetApiResponse(await authenticationService.Login(loginRequest));
         }
 
-        [AllowAnonymous, HttpPost("register")]
+        [AllowAnonymous]
+        [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDto registerRequest)
         {
             return GetApiResponse(await authenticationService.Register(registerRequest));

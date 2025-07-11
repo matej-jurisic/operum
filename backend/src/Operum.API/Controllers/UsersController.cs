@@ -7,10 +7,12 @@ using Operum.Service.Services.Users;
 
 namespace Operum.API.Controllers
 {
-    [ApiController, Route("api/[controller]")]
+    [ApiController]
+    [Route("api/[controller]")]
     public class UsersController(IRolesService rolesService, IUsersService usersService, IAuthenticationService authenticationService) : BaseController
     {
         [HttpGet("me")]
+        [Authorize]
         public IActionResult GetCurrentApplicationUser()
         {
             return GetApiResponse(authenticationService.GetCurrentApplicationUser());
