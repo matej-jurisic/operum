@@ -8,5 +8,6 @@ namespace Operum.Service.Services.Roles
         Task<ServiceResponse> AddUserToRole(string userId, ModifyUserRoleRequestDto request);
         Task<ServiceResponse> RemoveUserFromRole(string userId, ModifyUserRoleRequestDto request);
         ServiceResponse<List<string>> GetCurrentUserRoles();
+        Task<ServiceResponse<List<string?>>> GetAllRoles();
     }
 }

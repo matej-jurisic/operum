@@ -110,7 +110,7 @@ namespace Operum.API.Configuration
             services.AddAuthorizationBuilder()
                 .SetFallbackPolicy(new AuthorizationPolicyBuilder()
                 .RequireAuthenticatedUser()
-                .Build());
+                .Build()).SetInvokeHandlersAfterFailure(false);
             services.AddAuthorization();
             services.AddIdentityApiEndpoints<IdentityUser>()
                 .AddEntityFrameworkStores<OperumContext>();

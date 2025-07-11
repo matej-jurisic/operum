@@ -12,7 +12,6 @@ namespace Operum.API.Controllers
     public class UsersController(IRolesService rolesService, IUsersService usersService, IAuthenticationService authenticationService) : BaseController
     {
         [HttpGet("me")]
-        [Authorize]
         public IActionResult GetCurrentApplicationUser()
         {
             return GetApiResponse(authenticationService.GetCurrentApplicationUser());
@@ -24,7 +23,8 @@ namespace Operum.API.Controllers
             return GetApiResponse(rolesService.GetCurrentUserRoles());
         }
 
-        [AllowAnonymous, HttpGet]
+        [AllowAnonymous]
+        [HttpGet]
         public async Task<IActionResult> GetAllUsers()
         {
             return GetApiResponse(await usersService.GetAllUsers());
@@ -34,6 +34,13 @@ namespace Operum.API.Controllers
         public async Task<IActionResult> UpdateUser([FromBody] UpdateApplicationUserRequestDto request)
         {
             return GetApiResponse(await usersService.UpdateApplicationUser(request));
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet("roles")]
+        public async Task<IActionResult> GetAllRoles()
+        {
+            return GetApiResponse(await rolesService.GetAllRoles());
         }
 
         [Authorize(Roles = "Admin")]

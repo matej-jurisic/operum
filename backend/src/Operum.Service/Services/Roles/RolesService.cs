@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Operum.Model.Common;
 using Operum.Model.DTOs.Requests;
 using Operum.Model.Enums;
@@ -82,6 +83,12 @@ namespace Operum.Service.Services.Roles
         public ServiceResponse<List<string>> GetCurrentUserRoles()
         {
             var roles = authorizationService.GetCurrentApplicationUserRoles();
+            return ServiceResponse.Success(roles);
+        }
+
+        public async Task<ServiceResponse<List<string?>>> GetAllRoles()
+        {
+            var roles = await roleManager.Roles.Select(x => x.Name).ToListAsync() ?? [];
             return ServiceResponse.Success(roles);
         }
     }
