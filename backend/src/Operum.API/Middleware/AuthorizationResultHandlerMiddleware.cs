@@ -17,7 +17,7 @@ namespace Operum.API.Middleware
 
                 var apiResponse = new ApiResponse
                 {
-                    Messages = ["Forbidden. You do not have the necessary permissions."],
+                    Messages = [StatusCodeEnum.Forbidden.ToString()],
                     StatusCode = StatusCodeEnum.Forbidden
                 };
 
@@ -32,7 +32,7 @@ namespace Operum.API.Middleware
 
                 var apiResponse = new ApiResponse
                 {
-                    Messages = ["Unauthorized."],
+                    Messages = [StatusCodeEnum.Unauthorized.ToString()],
                     StatusCode = StatusCodeEnum.Unauthorized
                 };
 
