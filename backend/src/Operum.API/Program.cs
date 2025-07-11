@@ -11,13 +11,15 @@ public partial class Program
     {
         var builder = WebApplication.CreateBuilder(args);
         var configuration = builder.Configuration;
+        configuration.AddEnvironmentVariables();
 
         builder.Services.RegisterServices(configuration);
         builder.Services.RegisterAuthServices(configuration);
         builder.Services.RegisterDependencyInjections();
 
-        string connectionString = builder.Configuration.GetConnectionString("Operum") ?? throw new Exception("Missing database connection configuration");
-        builder.Services.RegisterDatabase(connectionString);
+        string? connectionString = builder.Configuration.GetConnectionString("Operum");
+        if (connectionString != null)
+            builder.Services.RegisterDatabase(connectionString);
 
         var app = builder.Build();
 
