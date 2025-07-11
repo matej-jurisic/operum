@@ -23,13 +23,15 @@ namespace Operum.API.Controllers
             return GetApiResponse(await authenticationService.Register(registerRequest));
         }
 
-        [AllowAnonymous, HttpPost("logout")]
+        [AllowAnonymous]
+        [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {
             return GetApiResponse(await authenticationService.Logout());
         }
 
-        [AllowAnonymous, HttpGet("refresh")]
+        [AllowAnonymous]
+        [HttpGet("refresh")]
         public async Task<IActionResult> RefreshToken()
         {
             return GetApiResponse(await authenticationService.RefreshToken());

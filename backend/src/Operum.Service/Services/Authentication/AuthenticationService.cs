@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Operum.Model;
 using Operum.Model.Common;
@@ -21,18 +20,18 @@ namespace Operum.Service.Services.Authentication
 
             if (user == null)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.Forbidden, ["Invalid login attempt."]);
+                return ServiceResponse.Failure(StatusCodeEnum.Unauthorized, ["Invalid login attempt."]);
             }
 
             var signInResult = await signInManager.CheckPasswordSignInAsync(user, loginRequest.Password, true);
 
             if (signInResult.IsLockedOut)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.Forbidden);
+                return ServiceResponse.Failure(StatusCodeEnum.Unauthorized);
             }
             if (!signInResult.Succeeded)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.Forbidden, ["Invalid login attempt."]);
+                return ServiceResponse.Failure(StatusCodeEnum.Unauthorized, ["Invalid login attempt."]);
             }
 
             await AuthenticateUser(user);
@@ -55,7 +54,7 @@ namespace Operum.Service.Services.Authentication
             }
 
             tokenService.ClearAuthCookies();
-            return ServiceResponse.Success();   
+            return ServiceResponse.Success();
         }
 
         public async Task<ServiceResponse> Register(RegisterRequestDto registerRequest)
@@ -107,7 +106,7 @@ namespace Operum.Service.Services.Authentication
                 .Include(rt => rt.User)
                 .FirstOrDefaultAsync(rt => rt.Token == token && !rt.IsRevoked);
 
-            if(storedToken == null || storedToken.ExpiresAt < DateTime.UtcNow)
+            if (storedToken == null || storedToken.ExpiresAt < DateTime.UtcNow)
             {
                 return ServiceResponse.Failure(StatusCodeEnum.Unauthorized);
             }
