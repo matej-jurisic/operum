@@ -8,7 +8,6 @@ using Operum.Model.Common;
 using Operum.Model.Enums;
 using Operum.Model.Models;
 using System.Text;
-using YourProject.Service.Mappings;
 
 namespace Operum.API.Configuration
 {
@@ -38,7 +37,6 @@ namespace Operum.API.Configuration
                        .WithOrigins(origins);
                 });
             });
-            services.AddAutoMapper(typeof(AutoMapperProfile));
             services.AddHttpContextAccessor();
         }
 
