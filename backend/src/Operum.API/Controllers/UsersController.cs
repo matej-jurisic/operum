@@ -12,9 +12,9 @@ namespace Operum.API.Controllers
     public class UsersController(IRolesService rolesService, IUsersService usersService, IAuthenticationService authenticationService) : BaseController
     {
         [HttpGet("me")]
-        public IActionResult GetCurrentApplicationUser()
+        public async Task<IActionResult> GetCurrentApplicationUser()
         {
-            return GetApiResponse(authenticationService.GetCurrentApplicationUser());
+            return GetApiResponse(await authenticationService.GetCurrentApplicationUser());
         }
 
         [HttpGet("me/roles")]

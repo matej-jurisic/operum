@@ -6,12 +6,13 @@ using Operum.Model.DTOs;
 using Operum.Model.DTOs.Requests;
 using Operum.Model.Enums;
 using Operum.Model.Models;
+using Operum.Service.Mappings.Mapper;
 using Operum.Service.Services.Authorization;
 using Operum.Service.Services.Token;
 
 namespace Operum.Service.Services.Authentication
 {
-    public class AuthenticationService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, OperumContext dbContext, ITokenService tokenService, IAuthorizationService authorizationService) : IAuthenticationService
+    public class AuthenticationService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, OperumContext dbContext, ITokenService tokenService, IAuthorizationService authorizationService, IMapper mapper) : IAuthenticationService
     {
         public async Task<ServiceResponse> Login(LoginRequestDto loginRequest)
         {
@@ -87,9 +88,13 @@ namespace Operum.Service.Services.Authentication
             return ServiceResponse.Success();
         }
 
-        public ServiceResponse<ApplicationUserDto> GetCurrentApplicationUser()
+        public async Task<ServiceResponse<ApplicationUserDto>> GetCurrentApplicationUser()
         {
-            return ServiceResponse.Success(authorizationService.GetCurrentApplicationUserDto());
+            var userId = authorizationService.GetCurrentApplicationUserDto().Id;
+            var foundUser = await userManager.FindByIdAsync(userId);
+            if (foundUser == null) return ServiceResponse.Failure(StatusCodeEnum.BadRequest, ["User not found!"]);
+            var user = mapper.Map<ApplicationUser, ApplicationUserDto>(foundUser);
+            return ServiceResponse.Success(user);
         }
 
         public async Task<ServiceResponse> RefreshToken()

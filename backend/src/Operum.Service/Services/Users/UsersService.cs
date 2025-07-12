@@ -1,11 +1,11 @@
-﻿using AutoMapper;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Operum.Model.Common;
 using Operum.Model.DTOs;
 using Operum.Model.DTOs.Requests;
 using Operum.Model.Enums;
 using Operum.Model.Models;
+using Operum.Service.Mappings.Mapper;
 using Operum.Service.Services.Authorization;
 
 namespace Operum.Service.Services.Users
@@ -14,7 +14,7 @@ namespace Operum.Service.Services.Users
     {
         public async Task<ServiceResponse<List<ApplicationUserDto>>> GetAllUsers()
         {
-            var users = mapper.Map<List<ApplicationUserDto>>(await userManager.Users.ToListAsync());
+            var users = mapper.Map<List<ApplicationUser>, List<ApplicationUserDto>>(await userManager.Users.ToListAsync());
             return ServiceResponse.Success(users);
         }
 

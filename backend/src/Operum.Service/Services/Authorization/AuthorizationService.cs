@@ -61,6 +61,5 @@ namespace Operum.Service.Services.Authorization
 
             return roleClaims.Select(claim => claim.Value).ToList();
         }
-
     }
 }

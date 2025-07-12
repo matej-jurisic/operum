@@ -1,0 +1,14 @@
+﻿using Operum.Model.Common;
+using Operum.Model.DTOs.Trackers;
+
+namespace Operum.Service.Services.Trackers
+{
+    public interface ITrackersService
+    {
+        public Task<ServiceResponse<TrackerDto>> CreateTracker(CreateTrackerDto tracker);
+        public Task<ServiceResponse<TrackerDto>> GetTracker(string id);
+        public Task<ServiceResponse<List<TrackerDto>>> GetTrackerList();
+        public Task<ServiceResponse<TrackerDto>> UpdateTracker(UpdateTrackerDto tracker);
+        public Task<ServiceResponse> DeleteTracker(string id);
+    }
+}
