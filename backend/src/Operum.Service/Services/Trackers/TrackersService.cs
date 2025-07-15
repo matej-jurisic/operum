@@ -14,22 +14,27 @@ namespace Operum.Service.Services.Trackers
         public async Task<ServiceResponse<TrackerDto>> CreateTracker(CreateTrackerDto tracker)
         {
             var user = authorizationService.GetCurrentApplicationUserDto();
-            var createTracker = mapper.Map<CreateTrackerDto, Tracker>(tracker);
-            createTracker.OwnerId = user.Id;
-            var created = await db.Trackers.AddAsync(createTracker);
+            var trackerModel = mapper.Map<CreateTrackerDto, Tracker>(tracker);
+            trackerModel.OwnerId = user.Id;
+
+            await db.Trackers.AddAsync(trackerModel);
             await db.SaveChangesAsync();
-            return ServiceResponse.Success(mapper.Map<Tracker, TrackerDto>(created.Entity));
+
+            var created = await GetTracker(trackerModel.Id);
+            return ServiceResponse.Success(created.Data);
         }
 
         public async Task<ServiceResponse> DeleteTracker(string id)
         {
             var user = authorizationService.GetCurrentApplicationUserDto();
             var tracker = await db.Trackers.FindAsync(id);
+
             if (tracker == null || tracker.OwnerId != user.Id)
             {
                 return ServiceResponse.Failure(StatusCodeEnum.NotFound);
             }
-            db.Remove(tracker);
+
+            db.Trackers.Remove(tracker);
             await db.SaveChangesAsync();
             return ServiceResponse.Success();
         }
@@ -38,10 +43,12 @@ namespace Operum.Service.Services.Trackers
         {
             var user = authorizationService.GetCurrentApplicationUserDto();
             var tracker = await db.Trackers.FindAsync(id);
+
             if (tracker == null || tracker.OwnerId != user.Id)
             {
                 return ServiceResponse.Failure(StatusCodeEnum.NotFound);
             }
+
             return ServiceResponse.Success(mapper.Map<Tracker, TrackerDto>(tracker));
         }
 
@@ -52,20 +59,22 @@ namespace Operum.Service.Services.Trackers
             return ServiceResponse.Success(mapper.Map<List<Tracker>, List<TrackerDto>>(trackers));
         }
 
-        public async Task<ServiceResponse<TrackerDto>> UpdateTracker(UpdateTrackerDto tracker)
+        public async Task<ServiceResponse<TrackerDto>> UpdateTracker(string id, UpdateTrackerDto tracker)
         {
             var user = authorizationService.GetCurrentApplicationUserDto();
-            var originalTracker = await db.Trackers
-                .Include(x => x.Owner)
-                .FirstOrDefaultAsync(x => x.Id == tracker.Id);
-            if (originalTracker == null || originalTracker.OwnerId != user.Id)
+            var originalTracker = await db.Trackers.FindAsync(id);
+
+            if (originalTracker?.OwnerId != user.Id)
             {
                 return ServiceResponse.Failure(StatusCodeEnum.NotFound);
             }
+
             mapper.Map(tracker, originalTracker);
-            var updated = db.Update(originalTracker);
+            db.Trackers.Update(originalTracker);
             await db.SaveChangesAsync();
-            return ServiceResponse.Success(mapper.Map<Tracker, TrackerDto>(updated.Entity));
+
+            var updatedTracker = await GetTracker(originalTracker.Id);
+            return ServiceResponse.Success(updatedTracker.Data);
         }
     }
 }
