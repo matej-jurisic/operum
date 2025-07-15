@@ -8,7 +8,7 @@ namespace Operum.Service.Services.Trackers
         public Task<ServiceResponse<TrackerDto>> CreateTracker(CreateTrackerDto tracker);
         public Task<ServiceResponse<TrackerDto>> GetTracker(string id);
         public Task<ServiceResponse<List<TrackerDto>>> GetTrackerList();
-        public Task<ServiceResponse<TrackerDto>> UpdateTracker(UpdateTrackerDto tracker);
+        public Task<ServiceResponse<TrackerDto>> UpdateTracker(string id, UpdateTrackerDto tracker);
         public Task<ServiceResponse> DeleteTracker(string id);
     }
 }

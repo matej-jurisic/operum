@@ -1,12 +1,16 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Operum.Model.DTOs.Entry;
+using Operum.Model.DTOs.Fields;
 using Operum.Model.DTOs.Trackers;
+using Operum.Service.Services.Entries;
+using Operum.Service.Services.Fields;
 using Operum.Service.Services.Trackers;
 
 namespace Operum.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class TrackersController(ITrackersService trackerService) : BaseController
+    public class TrackersController(ITrackersService trackerService, IFieldsService fieldsService, IEntriesService entriesService) : BaseController
     {
         [HttpGet]
         public async Task<IActionResult> GetTrackerList()
@@ -15,7 +19,7 @@ namespace Operum.API.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GeTracker(string id)
+        public async Task<IActionResult> GetTracker(string id)
         {
             return GetApiResponse(await trackerService.GetTracker(id));
         }
@@ -26,16 +30,64 @@ namespace Operum.API.Controllers
             return GetApiResponse(await trackerService.CreateTracker(tracker));
         }
 
-        [HttpPut]
-        public async Task<IActionResult> UpdateTracker(UpdateTrackerDto tracker)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateTracker([FromRoute] string id, UpdateTrackerDto tracker)
         {
-            return GetApiResponse(await trackerService.UpdateTracker(tracker));
+            return GetApiResponse(await trackerService.UpdateTracker(id, tracker));
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTracker(string id)
         {
             return GetApiResponse(await trackerService.DeleteTracker(id));
+        }
+
+        [HttpGet("{trackerId}/fields")]
+        public async Task<IActionResult> GetFieldList(string trackerId)
+        {
+            return GetApiResponse(await fieldsService.GetFieldList(trackerId));
+        }
+
+        [HttpGet("fields/{fieldId}")]
+        public async Task<IActionResult> GetField(string fieldId)
+        {
+            return GetApiResponse(await fieldsService.GetField(fieldId));
+        }
+
+        [HttpPost("{trackerId}/fields")]
+        public async Task<IActionResult> CreateField([FromRoute] string trackerId, CreateFieldDto field)
+        {
+            return GetApiResponse(await fieldsService.CreateField(trackerId, field));
+        }
+
+        [HttpPut("fields/{fieldId}")]
+        public async Task<IActionResult> UpdateField([FromRoute] string fieldId, UpdateFieldDto field)
+        {
+            return GetApiResponse(await fieldsService.UpdateField(fieldId, field));
+        }
+
+        [HttpPost("{trackerId}/entries")]
+        public async Task<IActionResult> CreateEntry([FromRoute] string trackerId, CreateEntryDto entry)
+        {
+            return GetApiResponse(await entriesService.CreateEntry(trackerId, entry));
+        }
+
+        [HttpGet("{trackerId}/entries")]
+        public async Task<IActionResult> GetEntries([FromRoute] string trackerId)
+        {
+            return GetApiResponse(await entriesService.GetEntries(trackerId));
+        }
+
+        [HttpGet("{trackerId}/entries/{entryId}")]
+        public async Task<IActionResult> GetEntry([FromRoute] string trackerId, [FromRoute] string entryId)
+        {
+            return GetApiResponse(await entriesService.GetEntry(trackerId, entryId));
+        }
+
+        [HttpPut("{trackerId}/entries/{entryId}")]
+        public async Task<IActionResult> UpdateEntry([FromRoute] string trackerId, [FromRoute] string entryId, UpdateEntryDto entry)
+        {
+            return GetApiResponse(await entriesService.UpdateEntry(trackerId, entryId, entry));
         }
     }
 }

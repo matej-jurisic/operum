@@ -6,6 +6,8 @@ using Operum.Service.Mappings.Mapper;
 using Operum.Service.Mappings.Profiles;
 using Operum.Service.Services.Authentication;
 using Operum.Service.Services.Authorization;
+using Operum.Service.Services.Entries;
+using Operum.Service.Services.Fields;
 using Operum.Service.Services.Roles;
 using Operum.Service.Services.Token;
 using Operum.Service.Services.Trackers;
@@ -24,6 +26,8 @@ namespace Operum.API.Configuration
             services.AddScoped<IUsersService, UsersService>();
             services.AddScoped<IRolesService, RolesService>();
             services.AddScoped<ITrackersService, TrackersService>();
+            services.AddScoped<IFieldsService, FieldService>();
+            services.AddScoped<IEntriesService, EntriesService>();
             services.AddScoped<SignInManager<ApplicationUser>>();
             services.AddScoped<UserManager<ApplicationUser>>();
 

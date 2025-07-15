@@ -14,5 +14,8 @@ namespace Operum.Model
         public DbSet<ApplicationUser> ApplicationUsers { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<Tracker> Trackers { get; set; }
+        public DbSet<Field> Fields { get; set; }
+        public DbSet<Entry> Entries { get; set; }
+        public DbSet<FieldValue> FieldValues { get; set; }
     }
 }

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Operum.Model;
@@ -11,9 +12,11 @@ using Operum.Model;
 namespace Operum.Model.Migrations
 {
     [DbContext(typeof(OperumContext))]
-    partial class OperumContextModelSnapshot : ModelSnapshot
+    [Migration("20250713115153_AddFields")]
+    partial class AddFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -218,31 +221,6 @@ namespace Operum.Model.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("Operum.Model.Models.Entry", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("OwnerId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("TrackerId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OwnerId");
-
-                    b.HasIndex("TrackerId");
-
-                    b.ToTable("Entries");
-                });
-
             modelBuilder.Entity("Operum.Model.Models.Field", b =>
                 {
                     b.Property<string>("Id")
@@ -260,7 +238,6 @@ namespace Operum.Model.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("Type")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("Id");
@@ -268,43 +245,6 @@ namespace Operum.Model.Migrations
                     b.HasIndex("TrackerId");
 
                     b.ToTable("Fields");
-                });
-
-            modelBuilder.Entity("Operum.Model.Models.FieldValue", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
-
-                    b.Property<bool?>("BooleanValue")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime?>("DateTimeValue")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("EntryId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("FieldId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<double?>("NumberValue")
-                        .HasColumnType("double precision");
-
-                    b.Property<string>("StringValue")
-                        .HasColumnType("text");
-
-                    b.Property<TimeSpan?>("TimeSpanValue")
-                        .HasColumnType("interval");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EntryId");
-
-                    b.HasIndex("FieldId");
-
-                    b.ToTable("FieldValues");
                 });
 
             modelBuilder.Entity("Operum.Model.Models.RefreshToken", b =>
@@ -414,25 +354,6 @@ namespace Operum.Model.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Operum.Model.Models.Entry", b =>
-                {
-                    b.HasOne("Operum.Model.Models.ApplicationUser", "Owner")
-                        .WithMany()
-                        .HasForeignKey("OwnerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Operum.Model.Models.Tracker", "Tracker")
-                        .WithMany()
-                        .HasForeignKey("TrackerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Owner");
-
-                    b.Navigation("Tracker");
-                });
-
             modelBuilder.Entity("Operum.Model.Models.Field", b =>
                 {
                     b.HasOne("Operum.Model.Models.Tracker", "Tracker")
@@ -442,25 +363,6 @@ namespace Operum.Model.Migrations
                         .IsRequired();
 
                     b.Navigation("Tracker");
-                });
-
-            modelBuilder.Entity("Operum.Model.Models.FieldValue", b =>
-                {
-                    b.HasOne("Operum.Model.Models.Entry", "Entry")
-                        .WithMany("FieldValues")
-                        .HasForeignKey("EntryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Operum.Model.Models.Field", "Field")
-                        .WithMany()
-                        .HasForeignKey("FieldId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Entry");
-
-                    b.Navigation("Field");
                 });
 
             modelBuilder.Entity("Operum.Model.Models.RefreshToken", b =>
@@ -488,11 +390,6 @@ namespace Operum.Model.Migrations
             modelBuilder.Entity("Operum.Model.Models.ApplicationUser", b =>
                 {
                     b.Navigation("RefreshTokens");
-                });
-
-            modelBuilder.Entity("Operum.Model.Models.Entry", b =>
-                {
-                    b.Navigation("FieldValues");
                 });
 #pragma warning restore 612, 618
         }

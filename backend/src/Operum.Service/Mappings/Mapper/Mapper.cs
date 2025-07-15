@@ -108,7 +108,7 @@ namespace Operum.Service.Mappings.Mapper
             return destination;
         }
 
-        private void MapPropertiesToExisting<TSource, TDestination>(TSource source, TDestination destination)
+        private static void MapPropertiesToExisting<TSource, TDestination>(TSource source, TDestination destination)
         {
             var sourceProps = GetCachedProperties(typeof(TSource));
             var destProps = GetCachedProperties(typeof(TDestination));
@@ -136,7 +136,7 @@ namespace Operum.Service.Mappings.Mapper
             }
         }
 
-        private Func<TSource, TDestination> CreateMappingFunction<TSource, TDestination>(Action<TSource, TDestination>? manualMap)
+        private static Func<TSource, TDestination> CreateMappingFunction<TSource, TDestination>(Action<TSource, TDestination>? manualMap)
             where TDestination : new()
         {
             var sourceProps = GetCachedProperties(typeof(TSource));
@@ -344,6 +344,16 @@ namespace Operum.Service.Mappings.Mapper
 
                 return dest;
             };
+        }
+
+        public void RegisterCrud<TModel, TDto, TCreateDto, TUpdateDto>()
+            where TModel : new()
+            where TDto : new()
+        {
+            Register<TModel, TDto>();
+            Register<TDto, TModel>();
+            Register<TCreateDto, TModel>();
+            Register<TUpdateDto, TModel>();
         }
     }
 }
