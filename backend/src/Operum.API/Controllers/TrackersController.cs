@@ -2,6 +2,7 @@
 using Operum.Model.DTOs.Entry;
 using Operum.Model.DTOs.Fields;
 using Operum.Model.DTOs.Trackers;
+using Operum.Service.Services.Analytics;
 using Operum.Service.Services.Entries;
 using Operum.Service.Services.Fields;
 using Operum.Service.Services.Trackers;
@@ -10,7 +11,7 @@ namespace Operum.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class TrackersController(ITrackersService trackerService, IFieldsService fieldsService, IEntriesService entriesService) : BaseController
+    public class TrackersController(ITrackersService trackerService, IFieldsService fieldsService, IEntriesService entriesService, IAnalyticsService analyticsService) : BaseController
     {
         [HttpGet]
         public async Task<IActionResult> GetTrackerList()
@@ -88,6 +89,12 @@ namespace Operum.API.Controllers
         public async Task<IActionResult> UpdateEntry([FromRoute] string trackerId, [FromRoute] string entryId, UpdateEntryDto entry)
         {
             return GetApiResponse(await entriesService.UpdateEntry(trackerId, entryId, entry));
+        }
+
+        [HttpGet("{trackerId}/fields/{fieldId}/analytics/numeric")]
+        public async Task<IActionResult> GetSingleFieldNumericAnalytics([FromRoute] string trackerId, [FromRoute] string fieldId)
+        {
+            return GetApiResponse(await analyticsService.GetSingleFieldNumericAnalytics(trackerId, fieldId));
         }
     }
 }
