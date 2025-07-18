@@ -14,10 +14,6 @@ namespace Operum.Model.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        public string OwnerId { get; set; } = string.Empty;
-        [ForeignKey(nameof(OwnerId))]
-        public virtual ApplicationUser Owner { get; set; } = null!;
-
         public virtual ICollection<FieldValue> FieldValues { get; set; } = [];
     }
 }

@@ -13,7 +13,7 @@ namespace Operum.Service.Services.Trackers
     {
         public async Task<ServiceResponse<TrackerDto>> CreateTracker(CreateTrackerDto tracker)
         {
-            var user = authorizationService.GetCurrentApplicationUserDto();
+            var user = authorizationService.GetCurrentUserDto();
             var trackerModel = mapper.Map<CreateTrackerDto, Tracker>(tracker);
             trackerModel.OwnerId = user.Id;
 
@@ -26,7 +26,7 @@ namespace Operum.Service.Services.Trackers
 
         public async Task<ServiceResponse> DeleteTracker(string id)
         {
-            var user = authorizationService.GetCurrentApplicationUserDto();
+            var user = authorizationService.GetCurrentUserDto();
             var tracker = await db.Trackers.FindAsync(id);
 
             if (tracker == null || tracker.OwnerId != user.Id)
@@ -41,7 +41,7 @@ namespace Operum.Service.Services.Trackers
 
         public async Task<ServiceResponse<TrackerDto>> GetTracker(string id)
         {
-            var user = authorizationService.GetCurrentApplicationUserDto();
+            var user = authorizationService.GetCurrentUserDto();
             var tracker = await db.Trackers.FindAsync(id);
 
             if (tracker == null || tracker.OwnerId != user.Id)
@@ -54,14 +54,14 @@ namespace Operum.Service.Services.Trackers
 
         public async Task<ServiceResponse<List<TrackerDto>>> GetTrackerList()
         {
-            var user = authorizationService.GetCurrentApplicationUserDto();
+            var user = authorizationService.GetCurrentUserDto();
             var trackers = await db.Trackers.Where(x => x.OwnerId == user.Id).ToListAsync();
             return ServiceResponse.Success(mapper.Map<List<Tracker>, List<TrackerDto>>(trackers));
         }
 
         public async Task<ServiceResponse<TrackerDto>> UpdateTracker(string id, UpdateTrackerDto tracker)
         {
-            var user = authorizationService.GetCurrentApplicationUserDto();
+            var user = authorizationService.GetCurrentUserDto();
             var originalTracker = await db.Trackers.FindAsync(id);
 
             if (originalTracker?.OwnerId != user.Id)

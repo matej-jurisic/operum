@@ -82,7 +82,7 @@ namespace Operum.Service.Services.Roles
 
         public ServiceResponse<List<string>> GetCurrentUserRoles()
         {
-            var roles = authorizationService.GetCurrentApplicationUserRoles();
+            var roles = authorizationService.GetCurrentUserRoles();
             return ServiceResponse.Success(roles);
         }
 

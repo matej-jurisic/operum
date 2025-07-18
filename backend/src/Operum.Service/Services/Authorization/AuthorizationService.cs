@@ -7,9 +7,9 @@ namespace Operum.Service.Services.Authorization
 {
     public class AuthorizationService(IHttpContextAccessor httpContextAccessor) : IAuthorizationService
     {
-        public ApplicationUserDto GetCurrentApplicationUserDto()
+        public ApplicationUserDto GetCurrentUserDto()
         {
-            var applicationUser = GetCurrentApplicationUser();
+            var applicationUser = GetCurrentUser();
             return new()
             {
                 Email = applicationUser.Email,
@@ -18,13 +18,13 @@ namespace Operum.Service.Services.Authorization
             };
         }
 
-        public ApplicationUser GetCurrentApplicationUser()
+        public ApplicationUser GetCurrentUser()
         {
-            var applicationUser = GetCurrentApplicationUserOptional();
+            var applicationUser = GetCurrentUserOptional();
             return applicationUser ?? throw new UnauthorizedAccessException("User not found or token is invalid.");
         }
 
-        public ApplicationUser? GetCurrentApplicationUserOptional()
+        public ApplicationUser? GetCurrentUserOptional()
         {
             var httpContext = httpContextAccessor.HttpContext;
             if (httpContext == null || httpContext.User == null)
@@ -46,7 +46,7 @@ namespace Operum.Service.Services.Authorization
             };
         }
 
-        public List<string> GetCurrentApplicationUserRoles()
+        public List<string> GetCurrentUserRoles()
         {
             var httpContext = httpContextAccessor.HttpContext;
             if (httpContext == null || httpContext.User == null)
@@ -59,7 +59,7 @@ namespace Operum.Service.Services.Authorization
             if (roleClaims == null || roleClaims.Count == 0)
                 return [];
 
-            return roleClaims.Select(claim => claim.Value).ToList();
+            return [.. roleClaims.Select(claim => claim.Value)];
         }
     }
 }

@@ -5,9 +5,8 @@ namespace Operum.Service.Services.Authorization
 {
     public interface IAuthorizationService
     {
-        ApplicationUser GetCurrentApplicationUser();
-        ApplicationUser? GetCurrentApplicationUserOptional();
-        ApplicationUserDto GetCurrentApplicationUserDto();
-        List<string> GetCurrentApplicationUserRoles();
+        ApplicationUser GetCurrentUser();
+        public ApplicationUserDto GetCurrentUserDto();
+        List<string> GetCurrentUserRoles();
     }
 }

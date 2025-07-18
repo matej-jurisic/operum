@@ -20,7 +20,7 @@ namespace Operum.Service.Services.Users
 
         public async Task<ServiceResponse> UpdateApplicationUser(UpdateApplicationUserRequestDto request)
         {
-            var currentApplicationUser = authorizationService.GetCurrentApplicationUser();
+            var currentApplicationUser = authorizationService.GetCurrentUser();
             var applicationUser = await userManager.FindByIdAsync(currentApplicationUser.Id) ?? throw new UnauthorizedAccessException();
             applicationUser.UserName = request.UserName;
 

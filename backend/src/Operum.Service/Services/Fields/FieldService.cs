@@ -14,7 +14,7 @@ namespace Operum.Service.Services.Fields
     {
         public async Task<ServiceResponse<FieldDto>> CreateField(string trackerId, CreateFieldDto field)
         {
-            var user = authorizationService.GetCurrentApplicationUserDto();
+            var user = authorizationService.GetCurrentUserDto();
             var tracker = await db.Trackers.FindAsync(trackerId);
             if (tracker == null || tracker.OwnerId != user.Id)
             {
@@ -36,7 +36,7 @@ namespace Operum.Service.Services.Fields
 
         public async Task<ServiceResponse> DeleteField(string id)
         {
-            var user = authorizationService.GetCurrentApplicationUserDto();
+            var user = authorizationService.GetCurrentUserDto();
             var field = await db.Fields
                 .Include(x => x.Tracker)
                 .FirstOrDefaultAsync(x => x.Id == id);
@@ -53,7 +53,7 @@ namespace Operum.Service.Services.Fields
 
         public async Task<ServiceResponse<FieldDto>> GetField(string id)
         {
-            var user = authorizationService.GetCurrentApplicationUserDto();
+            var user = authorizationService.GetCurrentUserDto();
             var field = await db.Fields
                  .Include(x => x.Tracker)
                  .FirstOrDefaultAsync(x => x.Id == id);
@@ -68,7 +68,7 @@ namespace Operum.Service.Services.Fields
 
         public async Task<ServiceResponse<List<FieldDto>>> GetFieldList(string trackerId)
         {
-            var user = authorizationService.GetCurrentApplicationUserDto();
+            var user = authorizationService.GetCurrentUserDto();
             var tracker = await db.Trackers.FindAsync(trackerId);
 
             if (tracker == null || tracker.OwnerId != user.Id)
@@ -82,7 +82,7 @@ namespace Operum.Service.Services.Fields
 
         public async Task<ServiceResponse<FieldDto>> UpdateField(string id, UpdateFieldDto field)
         {
-            var user = authorizationService.GetCurrentApplicationUserDto();
+            var user = authorizationService.GetCurrentUserDto();
             var originalField = await db.Fields
                 .Include(x => x.Tracker)
                 .FirstOrDefaultAsync(x => x.Id == id);

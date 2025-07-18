@@ -90,7 +90,7 @@ namespace Operum.Service.Services.Authentication
 
         public async Task<ServiceResponse<ApplicationUserDto>> GetCurrentApplicationUser()
         {
-            var userId = authorizationService.GetCurrentApplicationUserDto().Id;
+            var userId = authorizationService.GetCurrentUserDto().Id;
             var foundUser = await userManager.FindByIdAsync(userId);
             if (foundUser == null) return ServiceResponse.Failure(StatusCodeEnum.BadRequest, ["User not found!"]);
             var user = mapper.Map<ApplicationUser, ApplicationUserDto>(foundUser);

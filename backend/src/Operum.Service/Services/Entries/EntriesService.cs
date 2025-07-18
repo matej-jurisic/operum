@@ -5,6 +5,7 @@ using Operum.Model.DTOs.Entry;
 using Operum.Model.Enums;
 using Operum.Model.Extensions;
 using Operum.Model.Models;
+using Operum.Service.Helpers;
 using Operum.Service.Mappings.Mapper;
 using Operum.Service.Services.Authorization;
 
@@ -14,9 +15,9 @@ namespace Operum.Service.Services.Entries
     {
         public async Task<ServiceResponse<EntryDto>> CreateEntry(string trackerId, CreateEntryDto entry)
         {
-            var user = authorizationService.GetCurrentApplicationUserDto();
+            var user = authorizationService.GetCurrentUserDto();
             var tracker = await db.Trackers.FindAsync(trackerId);
-            if (tracker == null || tracker.OwnerId != user.Id)
+            if (tracker == null || !user.Owns(tracker))
             {
                 return ServiceResponse.Failure(StatusCodeEnum.NotFound);
             }
@@ -26,7 +27,6 @@ namespace Operum.Service.Services.Entries
             Entry newEntry = new()
             {
                 TrackerId = trackerId,
-                OwnerId = user.Id,
                 CreatedAt = DateTime.UtcNow,
             };
             await db.Entries.AddAsync(newEntry);
@@ -58,9 +58,9 @@ namespace Operum.Service.Services.Entries
 
         public async Task<ServiceResponse<List<EntryDto>>> GetEntries(string trackerId)
         {
-            var user = authorizationService.GetCurrentApplicationUserDto();
+            var user = authorizationService.GetCurrentUserDto();
             var tracker = await db.Trackers.FindAsync(trackerId);
-            if (tracker == null || tracker.OwnerId != user.Id)
+            if (tracker == null || !user.Owns(tracker))
             {
                 return ServiceResponse.Failure(StatusCodeEnum.NotFound);
             }
@@ -76,9 +76,9 @@ namespace Operum.Service.Services.Entries
 
         public async Task<ServiceResponse<EntryDto>> GetEntry(string trackerId, string entryId)
         {
-            var user = authorizationService.GetCurrentApplicationUserDto();
+            var user = authorizationService.GetCurrentUserDto();
             var tracker = await db.Trackers.FindAsync(trackerId);
-            if (tracker == null || tracker.OwnerId != user.Id)
+            if (tracker == null || !user.Owns(tracker))
             {
                 return ServiceResponse.Failure(StatusCodeEnum.NotFound);
             }
@@ -86,7 +86,7 @@ namespace Operum.Service.Services.Entries
             var entry = await db.Entries
                 .Include(x => x.FieldValues)
                 .ThenInclude(x => x.Field)
-                .FirstOrDefaultAsync(x => x.Id == entryId);
+                .FirstOrDefaultAsync(x => x.Id == entryId && x.TrackerId == trackerId);
 
             if (entry == null)
             {
@@ -98,16 +98,12 @@ namespace Operum.Service.Services.Entries
 
         public async Task<ServiceResponse<EntryDto>> UpdateEntry(string trackerId, string entryId, UpdateEntryDto updateEntry)
         {
-            var user = authorizationService.GetCurrentApplicationUserDto();
+            var user = authorizationService.GetCurrentUserDto();
+            var entry = await db.Entries
+                .Include(x => x.Tracker)
+                .FirstOrDefaultAsync(x => x.Id == entryId);
 
-            var entry = await db.Entries.FindAsync(entryId);
-            if (entry == null || entry.TrackerId != trackerId)
-            {
-                return ServiceResponse.Failure(StatusCodeEnum.NotFound);
-            }
-
-            var tracker = await db.Trackers.FindAsync(trackerId);
-            if (tracker == null || tracker.OwnerId != user.Id)
+            if (entry == null || !user.Owns(entry))
             {
                 return ServiceResponse.Failure(StatusCodeEnum.NotFound);
             }
