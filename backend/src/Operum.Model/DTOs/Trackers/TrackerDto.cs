@@ -1,4 +1,6 @@
-﻿namespace Operum.Model.DTOs.Trackers
+﻿using Operum.Model.DTOs.Fields;
+
+namespace Operum.Model.DTOs.Trackers
 {
     public class TrackerDto
     {
@@ -6,5 +8,6 @@
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string? Color { get; set; }
+        public List<FieldDto> Fields { get; set; } = [];
     }
 }

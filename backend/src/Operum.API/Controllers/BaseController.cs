@@ -12,7 +12,7 @@ namespace Operum.API.Controllers
             if (apiResponse.StatusCode == StatusCodeEnum.Ok)
                 return Ok(apiResponse);
 
-            if (!Enum.IsDefined(typeof(StatusCodeEnum), apiResponse.StatusCode) || apiResponse.StatusCode == 0)
+            if (!Enum.IsDefined(apiResponse.StatusCode) || apiResponse.StatusCode == 0)
             {
                 apiResponse.StatusCode = StatusCodeEnum.InternalServerError;
                 return StatusCode((int)StatusCodeEnum.InternalServerError, apiResponse);

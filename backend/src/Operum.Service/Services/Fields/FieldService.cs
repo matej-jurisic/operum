@@ -22,7 +22,7 @@ namespace Operum.Service.Services.Fields
                 return ServiceResponse.Failure(StatusCodeEnum.NotFound);
             }
 
-            if (!DataTypes.IsValid(field.Type)) return ServiceResponse.Failure(StatusCodeEnum.BadRequest, ["Field type is not allowed."]);
+            if (!DataTypes.IsValid(field.Type)) return ServiceResponse.Failure(StatusCodeEnum.BadRequest, $"Field type {field.Type} is not allowed.");
 
             var newField = mapper.Map<CreateFieldDto, Field>(field);
 
@@ -93,7 +93,7 @@ namespace Operum.Service.Services.Fields
                 return ServiceResponse.Failure(StatusCodeEnum.NotFound);
             }
 
-            if (!DataTypes.IsValid(field.Type)) return ServiceResponse.Failure(StatusCodeEnum.BadRequest, ["Field type is not allowed."]);
+            if (!DataTypes.IsValid(field.Type)) return ServiceResponse.Failure(StatusCodeEnum.BadRequest, $"Field type {field.Type} is not allowed.");
 
             mapper.Map(field, originalField);
             db.Fields.Update(originalField);
