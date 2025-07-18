@@ -43,7 +43,7 @@ namespace Operum.Service.Services.Analytics
             {
                 Max = analyticsData.Max,
                 Min = analyticsData.Min,
-                Average = analyticsData.Average,
+                Average = Math.Round(analyticsData.Average ?? 0, 2),
                 Count = analyticsData.Count
             };
 
@@ -54,7 +54,7 @@ namespace Operum.Service.Services.Analytics
                     .Select(x => x.NumberValue ?? 0)
                     .ToListAsync();
 
-                analytics.StdDev = Math.Sqrt(fieldValues.Average(v => Math.Pow(v - analytics.Average.Value, 2)));
+                analytics.StdDev = Math.Round(Math.Sqrt(fieldValues.Average(v => Math.Pow(v - analytics.Average.Value, 2))), 2);
             }
 
             return ServiceResponse.Success(analytics);

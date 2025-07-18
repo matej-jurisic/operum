@@ -21,22 +21,22 @@ namespace Operum.Service.Services.Authentication
 
             if (user == null)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.Unauthorized, ["Invalid login attempt."]);
+                return ServiceResponse.Failure(StatusCodeEnum.Unauthorized, "Invalid login attempt.");
             }
 
             var signInResult = await signInManager.CheckPasswordSignInAsync(user, loginRequest.Password, true);
 
             if (signInResult.IsLockedOut)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.Unauthorized);
+                return ServiceResponse.Failure(StatusCodeEnum.Unauthorized, "You are currently locked out.");
             }
             if (!signInResult.Succeeded)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.Unauthorized, ["Invalid login attempt."]);
+                return ServiceResponse.Failure(StatusCodeEnum.Unauthorized, "Invalid login attempt.");
             }
 
             await AuthenticateUser(user);
-            return ServiceResponse.Success();
+            return ServiceResponse.Success("Successfully logged in!");
         }
 
         public async Task<ServiceResponse> Logout()
@@ -63,12 +63,12 @@ namespace Operum.Service.Services.Authentication
             var normalizedUserNameRequest = registerRequest.UserName.ToUpper();
             if (await userManager.Users.AnyAsync(x => x.NormalizedUserName == normalizedUserNameRequest))
             {
-                return ServiceResponse.Failure(StatusCodeEnum.Conflict, [$"User with username {registerRequest.UserName} already exists!"]);
+                return ServiceResponse.Failure(StatusCodeEnum.Conflict, $"User with username {registerRequest.UserName} already exists!");
             }
             var normalizedEmailRequest = registerRequest.Email.ToUpper();
             if (await userManager.Users.AnyAsync(x => x.NormalizedEmail == normalizedEmailRequest))
             {
-                return ServiceResponse.Failure(StatusCodeEnum.Conflict, [$"User with email {registerRequest.Email} already exists!"]);
+                return ServiceResponse.Failure(StatusCodeEnum.Conflict, $"User with email {registerRequest.Email} already exists!");
             }
 
             ApplicationUser newUser = new(registerRequest.Email, registerRequest.UserName);
@@ -92,7 +92,7 @@ namespace Operum.Service.Services.Authentication
         {
             var userId = authorizationService.GetCurrentUserDto().Id;
             var foundUser = await userManager.FindByIdAsync(userId);
-            if (foundUser == null) return ServiceResponse.Failure(StatusCodeEnum.BadRequest, ["User not found!"]);
+            if (foundUser == null) return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "User not found!");
             var user = mapper.Map<ApplicationUser, ApplicationUserDto>(foundUser);
             return ServiceResponse.Success(user);
         }

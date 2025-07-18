@@ -15,7 +15,14 @@ namespace Operum.Service.Mappings.Profiles
         {
             mapper.Register<ApplicationUser, ApplicationUserDto>();
 
-            mapper.RegisterCrud<Tracker, TrackerDto, CreateTrackerDto, UpdateTrackerDto>();
+            mapper.Register<Tracker, TrackerDto>((s, d) =>
+            {
+                d.Fields = mapper.Map<ICollection<Field>, List<FieldDto>>(s.Fields);
+            });
+            mapper.Register<TrackerDto, Tracker>();
+            mapper.Register<CreateTrackerDto, Tracker>();
+            mapper.Register<UpdateTrackerDto, Tracker>();
+
             mapper.RegisterCrud<Field, FieldDto, CreateFieldDto, UpdateFieldDto>();
 
             mapper.Register<FieldValue, FieldValueDto>((s, d) =>
@@ -27,7 +34,8 @@ namespace Operum.Service.Mappings.Profiles
 
             mapper.Register<Entry, EntryDto>((s, d) =>
             {
-                foreach (var v in s.FieldValues)
+                var sortedByName = s.FieldValues.OrderBy(x => x.Field.Name);
+                foreach (var v in sortedByName)
                 {
                     d.FieldValues.Add(mapper.Map<FieldValue, FieldValueDto>(v));
                 }

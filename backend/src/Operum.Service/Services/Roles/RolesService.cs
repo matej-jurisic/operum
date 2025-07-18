@@ -15,19 +15,19 @@ namespace Operum.Service.Services.Roles
             var user = await userManager.FindByIdAsync(userId);
             if (user == null)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.NotFound, [$"User with ID: '{userId}' does not exist."]);
+                return ServiceResponse.Failure(StatusCodeEnum.NotFound, $"User with ID: '{userId}' does not exist.");
             }
 
             var roleExists = await roleManager.RoleExistsAsync(request.RoleName);
             if (!roleExists)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.NotFound, [$"Role '{request.RoleName}' does not exist."]);
+                return ServiceResponse.Failure(StatusCodeEnum.NotFound, $"Role '{request.RoleName}' does not exist.");
             }
 
             var userInRole = await userManager.IsInRoleAsync(user, request.RoleName);
             if (userInRole)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, [$"User is already in role '{request.RoleName}'"]);
+                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, $"User is already in role '{request.RoleName}'");
             }
 
             return await HandleRoleAddition(user, request.RoleName);
@@ -38,24 +38,24 @@ namespace Operum.Service.Services.Roles
             var user = await userManager.FindByIdAsync(userId);
             if (user == null)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.NotFound, [$"User with ID: '{userId}' does not exist."]);
+                return ServiceResponse.Failure(StatusCodeEnum.NotFound, $"User with ID: '{userId}' does not exist.");
             }
 
             var roleExists = await roleManager.RoleExistsAsync(request.RoleName);
             if (!roleExists)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.NotFound, [$"Role '{request.RoleName}' does not exist."]);
+                return ServiceResponse.Failure(StatusCodeEnum.NotFound, $"Role '{request.RoleName}' does not exist.");
             }
 
             if (request.RoleName.Equals("user", StringComparison.CurrentCultureIgnoreCase))
             {
-                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, [$"Role '{request.RoleName}' cannot be removed."]);
+                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, $"Role '{request.RoleName}' cannot be removed.");
             }
 
             var userInRole = await userManager.IsInRoleAsync(user, request.RoleName);
             if (!userInRole)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, [$"User is not in role '{request.RoleName}'."]);
+                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, $"User is not in role '{request.RoleName}'.");
             }
             return await HandleRoleRemoval(user, request.RoleName);
         }

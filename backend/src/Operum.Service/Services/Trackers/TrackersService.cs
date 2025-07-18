@@ -55,7 +55,9 @@ namespace Operum.Service.Services.Trackers
         public async Task<ServiceResponse<List<TrackerDto>>> GetTrackerList()
         {
             var user = authorizationService.GetCurrentUserDto();
-            var trackers = await db.Trackers.Where(x => x.OwnerId == user.Id).ToListAsync();
+            var trackers = await db.Trackers
+                .Include(x => x.Fields)
+                .Where(x => x.OwnerId == user.Id).ToListAsync();
             return ServiceResponse.Success(mapper.Map<List<Tracker>, List<TrackerDto>>(trackers));
         }
 

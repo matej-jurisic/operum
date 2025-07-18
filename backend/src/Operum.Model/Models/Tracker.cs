@@ -14,5 +14,7 @@ namespace Operum.Model.Models
         public string OwnerId { get; set; } = string.Empty;
         [ForeignKey(nameof(OwnerId))]
         public virtual ApplicationUser Owner { get; set; } = null!;
+
+        public virtual ICollection<Field> Fields { get; set; } = [];
     }
 }
