@@ -5,6 +5,7 @@ using Operum.Model.Constants;
 using Operum.Model.DTOs.Fields;
 using Operum.Model.Enums;
 using Operum.Model.Models;
+using Operum.Service.Helpers;
 using Operum.Service.Mappings.Mapper;
 using Operum.Service.Services.Authorization;
 
@@ -16,7 +17,7 @@ namespace Operum.Service.Services.Fields
         {
             var user = authorizationService.GetCurrentUserDto();
             var tracker = await db.Trackers.FindAsync(trackerId);
-            if (tracker == null || tracker.OwnerId != user.Id)
+            if (tracker == null || !user.Owns(tracker))
             {
                 return ServiceResponse.Failure(StatusCodeEnum.NotFound);
             }
@@ -41,7 +42,7 @@ namespace Operum.Service.Services.Fields
                 .Include(x => x.Tracker)
                 .FirstOrDefaultAsync(x => x.Id == id);
 
-            if (field == null || field.Tracker.OwnerId != user.Id)
+            if (field == null || !user.Owns(field))
             {
                 return ServiceResponse.Failure(StatusCodeEnum.NotFound);
             }
@@ -58,7 +59,7 @@ namespace Operum.Service.Services.Fields
                  .Include(x => x.Tracker)
                  .FirstOrDefaultAsync(x => x.Id == id);
 
-            if (field == null || field.Tracker.OwnerId != user.Id)
+            if (field == null || !user.Owns(field))
             {
                 return ServiceResponse.Failure(StatusCodeEnum.NotFound);
             }
@@ -71,7 +72,7 @@ namespace Operum.Service.Services.Fields
             var user = authorizationService.GetCurrentUserDto();
             var tracker = await db.Trackers.FindAsync(trackerId);
 
-            if (tracker == null || tracker.OwnerId != user.Id)
+            if (tracker == null || !user.Owns(tracker))
             {
                 return ServiceResponse.Failure(StatusCodeEnum.NotFound);
             }
@@ -87,7 +88,7 @@ namespace Operum.Service.Services.Fields
                 .Include(x => x.Tracker)
                 .FirstOrDefaultAsync(x => x.Id == id);
 
-            if (originalField == null || originalField.Tracker.OwnerId != user.Id)
+            if (originalField == null || !user.Owns(originalField))
             {
                 return ServiceResponse.Failure(StatusCodeEnum.NotFound);
             }
