@@ -36,6 +36,13 @@ const useAuth = () => {
         localStorage.setItem("exp", (Date.now() + 1000 * 60 * 20).toString());
     };
 
+    const clearUserData = () => {
+        globalStore.setCurrentUser(undefined);
+        localStorage.removeItem(USERNAME_KEY);
+        localStorage.removeItem(ID_KEY);
+        localStorage.removeItem("exp");
+    };
+
     const authenticate = async (loginRequest: LoginRequestDto) => {
         const user = await api.post("/auth/login", loginRequest);
         setUserData(user.data.data);
@@ -48,6 +55,7 @@ const useAuth = () => {
 
     const logout = async () => {
         await api.post("/auth/logout");
+        clearUserData();
     };
 
     return {

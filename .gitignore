@@ -101,10 +101,7 @@ dist-ssr/
 
 # Ignore environment variables
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
 
 # Ignore local history and IDE configs
 .localhistory/
