@@ -73,6 +73,7 @@ export function AddFieldDialog({
                         label="Type"
                         placeholder="Choose field type"
                         data={fieldTypes}
+                        required
                         {...form.getInputProps("type")}
                     />
 

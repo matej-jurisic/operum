@@ -78,7 +78,7 @@ export default function Tracker() {
     return (
         <>
             <Stack style={{ padding: "20px" }} align="flex-end">
-                <Group style={{ width: "100%" }} justify="space-between">
+                <Group style={{ width: "100%" }} justify="flex-start">
                     <Group>
                         <Button onClick={() => navigate("/")} variant="subtle">
                             <Group gap={10}>

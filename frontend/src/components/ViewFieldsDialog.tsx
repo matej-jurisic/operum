@@ -57,10 +57,16 @@ export default function ViewFieldsDialog({
                                     {field.description || "No description"}
                                 </Text>
                             </div>
-
-                            <Badge variant="light" color="blue">
-                                {field.type}
-                            </Badge>
+                            <Group>
+                                {field.required && (
+                                    <Badge variant="light" color="red">
+                                        Required
+                                    </Badge>
+                                )}
+                                <Badge variant="light" color="blue">
+                                    {field.type}
+                                </Badge>
+                            </Group>
                         </Group>
                     </Card>
                 ))}

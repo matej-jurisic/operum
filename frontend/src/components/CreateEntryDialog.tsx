@@ -6,7 +6,7 @@ import {
     Stack,
     TextInput,
 } from "@mantine/core";
-import { DatePicker, TimeInput } from "@mantine/dates";
+import { DatePickerInput, TimeInput } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import api from "../api/api";
@@ -71,7 +71,10 @@ export default function CreateEntryDialog(props: CreateEntryDialogProps) {
             <Modal centered opened onClose={props.onClose}>
                 <>
                     <form onSubmit={form.onSubmit(handleSubmit)}>
-                        <Stack>
+                        <Stack
+                            align="stretch"
+                            style={{ maxWidth: 400, margin: "0 auto" }}
+                        >
                             {fields.map((field) => {
                                 const fieldProps = {
                                     label: field.name,
@@ -98,7 +101,12 @@ export default function CreateEntryDialog(props: CreateEntryDialogProps) {
                                             />
                                         );
                                     case "date":
-                                        return <DatePicker {...fieldProps} />;
+                                        return (
+                                            <DatePickerInput
+                                                placeholder="Pick date"
+                                                {...fieldProps}
+                                            />
+                                        );
                                     case "timespan":
                                         return (
                                             <TimeInput

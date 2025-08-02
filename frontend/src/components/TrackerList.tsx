@@ -36,7 +36,7 @@ export default function TrackerList() {
                     flexGrow: 1,
                 }}
             >
-                <Group justify="flex-end" style={{ width: "100%" }}>
+                <Group justify="flex-start" style={{ width: "100%" }}>
                     <Button
                         onClick={() =>
                             setOpenDialogType(OpenDialogType.CreateTracker)

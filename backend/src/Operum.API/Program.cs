@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Operum.API.Configuration;
 using Operum.API.Seed;
+using Operum.Model;
 
 namespace Operum.API;
 
@@ -26,6 +27,10 @@ public partial class Program
         if (!app.Environment.IsEnvironment("Testing"))
         {
             using var scope = app.Services.CreateScope();
+
+            var db = scope.ServiceProvider.GetRequiredService<OperumContext>();
+            db.Database.Migrate();
+
             var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
             await DataSeeder.SeedRolesAsync(roleManager);
         }
@@ -35,8 +40,6 @@ public partial class Program
             app.UseSwagger();
             app.UseSwaggerUI();
         }
-
-        //app.MapGroup("/api/auth").MapIdentityApi<IdentityUser>();
 
         app.UseHttpsRedirection();
 
