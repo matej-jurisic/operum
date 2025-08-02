@@ -21,7 +21,8 @@ namespace Operum.Service.Services.Authentication
 
             if (user == null)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.Unauthorized, "Invalid login attempt.");
+                var result = ServiceResponse.Failure(StatusCodeEnum.Unauthorized, "Invalid login attempt.");
+                return result;
             }
 
             var signInResult = await signInManager.CheckPasswordSignInAsync(user, loginRequest.Password, true);

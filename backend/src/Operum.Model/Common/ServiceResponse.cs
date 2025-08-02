@@ -21,7 +21,7 @@ namespace Operum.Model.Common
 
         public static implicit operator ServiceResponse<T>(ServiceResponse response)
         {
-            return new ServiceResponse<T> { Messages = response.Messages, Data = default! };
+            return new ServiceResponse<T> { Messages = response.Messages, Data = default!, StatusCode = response.StatusCode };
         }
     }
 }

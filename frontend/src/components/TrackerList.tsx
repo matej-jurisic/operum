@@ -2,6 +2,7 @@ import { Button, Group, Stack, Text } from "@mantine/core";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/api";
+import useAuth from "../hooks/useAuth";
 import { TrackerDto } from "../model/TrackerDto";
 import CreateTrackerDialog from "./CreateTrackerDialog";
 import ViewFieldsDialog from "./ViewFieldsDialog";
@@ -23,6 +24,7 @@ export default function TrackerList() {
     const [selectedTracker, setSelectedTracker] = useState<TrackerDto>();
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
     const navigate = useNavigate();
+    const auth = useAuth();
 
     useEffect(() => {
         GetTrackers(setTrackers);
@@ -43,6 +45,15 @@ export default function TrackerList() {
                         }
                     >
                         Create Tracker
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={() => {
+                            auth.logout();
+                            window.location.reload();
+                        }}
+                    >
+                        Logout
                     </Button>
                 </Group>
                 {trackers.map((x) => (

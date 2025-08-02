@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Operum.API.Configuration;
 using Operum.API.Seed;
 using Operum.Model;
+using Operum.Model.Models;
 
 namespace Operum.API;
 
@@ -33,6 +34,8 @@ public partial class Program
 
             var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
             await DataSeeder.SeedRolesAsync(roleManager);
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            await DataSeeder.SeedUsersAsync(userManager, configuration);
         }
 
         if (app.Environment.IsDevelopment())

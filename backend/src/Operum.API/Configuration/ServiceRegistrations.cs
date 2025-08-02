@@ -24,7 +24,7 @@ namespace Operum.API.Configuration
             services.AddRouting(options => options.LowercaseUrls = true);
             services.AddCors(opt =>
             {
-                var allowedHosts = configuration.GetValue<string?>("AllowedHosts");
+                var allowedHosts = configuration.GetValue<string?>("ASPNETCORE_ALLOWEDHOSTS");
                 var origins = allowedHosts?.Split(';', StringSplitOptions.RemoveEmptyEntries)
                   ?? [];
 
