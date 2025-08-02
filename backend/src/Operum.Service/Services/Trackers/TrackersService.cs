@@ -42,7 +42,9 @@ namespace Operum.Service.Services.Trackers
         public async Task<ServiceResponse<TrackerDto>> GetTracker(string id)
         {
             var user = authorizationService.GetCurrentUserDto();
-            var tracker = await db.Trackers.FindAsync(id);
+            var tracker = await db.Trackers
+                .Include(x => x.Fields)
+                .FirstOrDefaultAsync(x => x.Id == id);
 
             if (tracker == null || tracker.OwnerId != user.Id)
             {
@@ -57,7 +59,8 @@ namespace Operum.Service.Services.Trackers
             var user = authorizationService.GetCurrentUserDto();
             var trackers = await db.Trackers
                 .Include(x => x.Fields)
-                .Where(x => x.OwnerId == user.Id).ToListAsync();
+                .Where(x => x.OwnerId == user.Id)
+                .ToListAsync();
             return ServiceResponse.Success(mapper.Map<List<Tracker>, List<TrackerDto>>(trackers));
         }
 

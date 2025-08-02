@@ -6,10 +6,10 @@ namespace Operum.Service.Services.Authentication
 {
     public interface IAuthenticationService
     {
-        Task<ServiceResponse> Login(LoginRequestDto loginRequest);
+        Task<ServiceResponse<ApplicationUserDto>> Login(LoginRequestDto loginRequest);
         Task<ServiceResponse> Logout();
         Task<ServiceResponse> Register(RegisterRequestDto registerRequest);
         Task<ServiceResponse<ApplicationUserDto>> GetCurrentApplicationUser();
-        Task<ServiceResponse> RefreshToken();
+        Task<ServiceResponse<ApplicationUserDto>> RefreshToken();
     }
 }

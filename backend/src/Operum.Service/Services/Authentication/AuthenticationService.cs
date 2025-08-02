@@ -14,7 +14,7 @@ namespace Operum.Service.Services.Authentication
 {
     public class AuthenticationService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, OperumContext dbContext, ITokenService tokenService, IAuthorizationService authorizationService, IMapper mapper) : IAuthenticationService
     {
-        public async Task<ServiceResponse> Login(LoginRequestDto loginRequest)
+        public async Task<ServiceResponse<ApplicationUserDto>> Login(LoginRequestDto loginRequest)
         {
             var normalizedCredentials = loginRequest.Credentials.ToUpper();
             var user = await userManager.Users.FirstOrDefaultAsync(x => x.NormalizedEmail == normalizedCredentials || x.NormalizedUserName == normalizedCredentials);
@@ -36,7 +36,14 @@ namespace Operum.Service.Services.Authentication
             }
 
             await AuthenticateUser(user);
-            return ServiceResponse.Success("Successfully logged in!");
+
+            ApplicationUserDto userDto = new()
+            {
+                Id = user.Id,
+                UserName = user.UserName
+            };
+
+            return ServiceResponse.Success(userDto, "Successfully logged in!");
         }
 
         public async Task<ServiceResponse> Logout()
@@ -97,7 +104,7 @@ namespace Operum.Service.Services.Authentication
             return ServiceResponse.Success(user);
         }
 
-        public async Task<ServiceResponse> RefreshToken()
+        public async Task<ServiceResponse<ApplicationUserDto>> RefreshToken()
         {
             var token = tokenService.GetRefreshToken();
 
@@ -121,7 +128,15 @@ namespace Operum.Service.Services.Authentication
             storedToken.IsRevoked = true;
             await dbContext.SaveChangesAsync();
 
-            return ServiceResponse.Success();
+            var user = storedToken.User;
+
+            ApplicationUserDto userDto = new()
+            {
+                Id = user.Id,
+                UserName = user.UserName
+            };
+
+            return ServiceResponse.Success(userDto, "Successfully refreshed!");
         }
         private async Task AuthenticateUser(ApplicationUser user)
         {

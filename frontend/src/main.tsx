@@ -8,7 +8,7 @@ import "./index.css";
 createRoot(document.getElementById("root")!).render(
     <StrictMode>
         <MantineProvider>
-            <Notifications />
+            <Notifications position="top-right" />
             <App />
         </MantineProvider>
     </StrictMode>

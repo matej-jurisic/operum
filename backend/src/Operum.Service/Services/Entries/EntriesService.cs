@@ -32,19 +32,23 @@ namespace Operum.Service.Services.Entries
             await db.Entries.AddAsync(newEntry);
 
             var entryFieldValues = new List<FieldValue>();
-            var fieldDict = fields.ToDictionary(f => f.Name);
+            var fieldDict = entry.FieldValues;
 
-            foreach (var field in entry.FieldValues)
+            foreach (var field in fields)
             {
-                if (fieldDict.TryGetValue(field.Key, out var currentField))
+                if (fieldDict.TryGetValue(field.Name, out string? value))
                 {
                     FieldValue fieldValue = new()
                     {
                         EntryId = newEntry.Id,
-                        FieldId = currentField.Id,
+                        FieldId = field.Id,
                     };
-                    fieldValue.SetFieldValue(currentField, field.Value);
+                    fieldValue.SetFieldValue(field, value);
                     entryFieldValues.Add(fieldValue);
+                }
+                else if (field.Required)
+                {
+                    return ServiceResponse.Failure(StatusCodeEnum.BadRequest, $"Field {field.Name} is required!");
                 }
             }
 
@@ -53,7 +57,7 @@ namespace Operum.Service.Services.Entries
 
             var created = await GetEntry(trackerId, newEntry.Id);
 
-            return ServiceResponse.Success(created.Data);
+            return ServiceResponse.Success(created.Data, "Entry created successfully!");
         }
 
         public async Task<ServiceResponse<List<EntryDto>>> GetEntries(string trackerId)
@@ -69,6 +73,7 @@ namespace Operum.Service.Services.Entries
                 .Include(x => x.FieldValues)
                 .ThenInclude(x => x.Field)
                 .Where(x => x.TrackerId == trackerId)
+                .OrderByDescending(x => x.CreatedAt)
                 .ToListAsync();
 
             return ServiceResponse.Success(mapper.Map<List<Entry>, List<EntryDto>>(entries));

@@ -3,4 +3,5 @@ export interface FieldDto {
     name: string;
     description?: string;
     type?: string;
+    required: boolean;
 }
