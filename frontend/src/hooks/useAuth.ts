@@ -14,7 +14,7 @@ const useAuth = () => {
 
         if (username !== null && id !== null && exp !== null) {
             if (Date.now() > parseInt(exp, 10)) {
-                globalStore.setCurrentUser(undefined);
+                refresh();
                 return;
             }
             globalStore.setCurrentUser({
@@ -33,7 +33,7 @@ const useAuth = () => {
         });
         localStorage.setItem(USERNAME_KEY, user.userName);
         localStorage.setItem(ID_KEY, user.id);
-        localStorage.setItem("exp", (Date.now() + 1000 * 60 * 20).toString());
+        localStorage.setItem("exp", (Date.now() + 1000 * 60 * 2).toString());
     };
 
     const clearUserData = () => {

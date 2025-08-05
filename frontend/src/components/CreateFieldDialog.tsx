@@ -1,7 +1,6 @@
 import {
     Button,
     Checkbox,
-    Group,
     Modal,
     Select,
     Stack,
@@ -9,6 +8,7 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import api from "../api/api";
+import { TrackerDto } from "../model/TrackerDto";
 
 interface CreateFieldDto {
     name: string;
@@ -17,8 +17,8 @@ interface CreateFieldDto {
     required: boolean;
 }
 
-interface AddFieldDialogProps {
-    trackerId: string;
+interface CreateFieldDialogProps {
+    tracker: TrackerDto;
     onClose: () => void;
     onFieldAdded?: () => void;
 }
@@ -32,11 +32,11 @@ const fieldTypes = [
     { value: "datetime", label: "Datetime" },
 ];
 
-export function AddFieldDialog({
-    trackerId,
+export function CreateFieldDialog({
+    tracker,
     onClose,
     onFieldAdded,
-}: AddFieldDialogProps) {
+}: CreateFieldDialogProps) {
     const form = useForm<CreateFieldDto>({
         initialValues: {
             name: "",
@@ -53,7 +53,7 @@ export function AddFieldDialog({
     });
 
     const handleSubmit = async (values: CreateFieldDto) => {
-        await api.post(`/trackers/${trackerId}/fields`, values);
+        await api.post(`/trackers/${tracker.id}/fields`, values);
         onClose();
         form.reset();
         onFieldAdded?.();
@@ -62,7 +62,7 @@ export function AddFieldDialog({
     return (
         <Modal opened onClose={onClose} title="Add Field to Tracker" centered>
             <form onSubmit={form.onSubmit(handleSubmit)}>
-                <Stack>
+                <Stack align="stretch">
                     <TextInput
                         label="Field Name"
                         placeholder="Enter field name"
@@ -70,6 +70,7 @@ export function AddFieldDialog({
                     />
 
                     <Select
+                        allowDeselect={false}
                         label="Type"
                         placeholder="Choose field type"
                         data={fieldTypes}
@@ -88,9 +89,9 @@ export function AddFieldDialog({
                         {...form.getInputProps("required")}
                     />
 
-                    <Group mt="md">
-                        <Button type="submit">Add Field</Button>
-                    </Group>
+                    <Button color={tracker.color} type="submit">
+                        Create
+                    </Button>
                 </Stack>
             </form>
         </Modal>

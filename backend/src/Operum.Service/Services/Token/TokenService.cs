@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Operum.Model;
@@ -19,7 +18,8 @@ namespace Operum.Service.Services.Token
         private static readonly JwtSecurityTokenHandler tokenHandler = new();
         private const string AuthTokenKey = "AuthToken";
         private const string RefreshTokenKey = "RefreshToken";
-        public async Task<string> CreateToken(ApplicationUser user, DateTime? expires = null)
+
+        private async Task<string> CreateToken(ApplicationUser user, DateTime expires)
         {
             if (user.UserName == null || user.Email == null) throw new Exception("User info is missing!");
             var claims = new List<Claim>
@@ -48,8 +48,7 @@ namespace Operum.Service.Services.Token
 
             var issuer = configuration["JwtSettings:Issuer"] ?? throw new Exception("Missing JWT Issuer!");
             var audience = configuration["JwtSettings:Audience"] ?? throw new Exception("Missing JWT Audience!");
-
-            var expiresAt = expires ?? GetAuthTokenExpiry();
+            var expiresAt = expires;
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
@@ -89,11 +88,11 @@ namespace Operum.Service.Services.Token
             SetCookie(key, "", DateTime.UtcNow.AddDays(-1));
         }
 
-        public async Task<ServiceResponse> SetAuthTokenCookie(ApplicationUser user, string? token = null, DateTime? expires = null)
+        public async Task<ServiceResponse> SetAuthTokenCookie(ApplicationUser user)
         {
-            var expiry = expires ?? GetAuthTokenExpiry();
-            var createdToken = token ?? await CreateToken(user, expires: expiry);
-            SetCookie(AuthTokenKey, createdToken, expiry);
+            var expires = GetAuthTokenExpiry();
+            var createdToken = await CreateToken(user, expires);
+            SetCookie(AuthTokenKey, createdToken, expires);
             return ServiceResponse.Success();
         }
         public async Task<ServiceResponse> SetRefreshTokenCookie(ApplicationUser user)

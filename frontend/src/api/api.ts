@@ -1,8 +1,31 @@
 import { notifications } from "@mantine/notifications";
-import axios, { AxiosError } from "axios";
+import axios, { AxiosError, AxiosRequestConfig } from "axios";
 import { ApiResponse } from "../model/common/ApiResponse";
 
 axios.defaults.withCredentials = true;
+
+const refreshToken = async (): Promise<void> => {
+    await axios.get(`${import.meta.env.VITE_REACT_API_URL}/auth/refresh`, {
+        withCredentials: true,
+    });
+};
+
+let isRefreshing = false;
+let failedQueue: {
+    resolve: (value?: unknown) => void;
+    reject: (reason?: unknown) => void;
+}[] = [];
+
+const processQueue = (error: unknown, token: string | null = null) => {
+    failedQueue.forEach((prom) => {
+        if (token) {
+            prom.resolve(token);
+        } else {
+            prom.reject(error);
+        }
+    });
+    failedQueue = [];
+};
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_REACT_API_URL,
@@ -24,19 +47,55 @@ api.interceptors.response.use(
                     title: "Success",
                     message: m,
                     color: "teal",
+                    withBorder: true,
                 });
             });
         }
         return response;
     },
-    (error: AxiosError<ApiResponse>) => {
+    async (error: AxiosError<ApiResponse>) => {
+        const originalRequest = error.config as AxiosRequestConfig & {
+            _retry?: boolean;
+        };
+
+        // Handle 401 Unauthorized
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            if (isRefreshing) {
+                return new Promise((resolve, reject) => {
+                    failedQueue.push({ resolve, reject });
+                }).then(() => api(originalRequest));
+            }
+
+            originalRequest._retry = true;
+            isRefreshing = true;
+
+            try {
+                await refreshToken();
+                processQueue(null);
+                return api(originalRequest);
+            } catch (refreshError) {
+                processQueue(refreshError);
+                notifications.show({
+                    title: "Session Expired",
+                    message: "Please log in again.",
+                    color: "red",
+                    withBorder: true,
+                });
+                return Promise.reject(refreshError);
+            } finally {
+                isRefreshing = false;
+            }
+        }
+
+        // Handle other errors
         const messages = error.response?.data?.messages;
-        if (messages && messages.length > 0) {
-            messages.forEach((m) => {
+        if (messages?.length) {
+            messages.forEach((m: string) => {
                 notifications.show({
                     title: "Error",
                     message: m,
                     color: "red",
+                    withBorder: true,
                 });
             });
         } else {
@@ -44,6 +103,7 @@ api.interceptors.response.use(
                 title: "Error",
                 message: "An unknown error occurred. Please try again.",
                 color: "red",
+                withBorder: true,
             });
         }
 

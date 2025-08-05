@@ -61,6 +61,12 @@ namespace Operum.API.Controllers
             return GetApiResponse(await fieldsService.CreateField(trackerId, field));
         }
 
+        [HttpDelete("fields/{fieldId}")]
+        public async Task<IActionResult> DeleteField([FromRoute] string fieldId)
+        {
+            return GetApiResponse(await fieldsService.DeleteField(fieldId));
+        }
+
         [HttpPut("fields/{fieldId}")]
         public async Task<IActionResult> UpdateField([FromRoute] string fieldId, UpdateFieldDto field)
         {
@@ -89,6 +95,12 @@ namespace Operum.API.Controllers
         public async Task<IActionResult> UpdateEntry([FromRoute] string trackerId, [FromRoute] string entryId, UpdateEntryDto entry)
         {
             return GetApiResponse(await entriesService.UpdateEntry(trackerId, entryId, entry));
+        }
+
+        [HttpDelete("{trackerId}/entries/{entryId}")]
+        public async Task<IActionResult> DeleteEntry([FromRoute] string trackerId, [FromRoute] string entryId)
+        {
+            return GetApiResponse(await entriesService.DeleteEntry(trackerId, entryId));
         }
 
         [HttpGet("{trackerId}/fields/{fieldId}/analytics/numeric")]

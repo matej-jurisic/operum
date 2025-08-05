@@ -9,6 +9,7 @@ import {
     Title,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import api from "../api/api";
 import useAuth from "../hooks/useAuth";
 import { LoginRequestDto } from "../model/requests/LoginRequestDto";
 
@@ -21,6 +22,10 @@ export default function Auth() {
             password: "",
         },
     });
+
+    const GetTrackers = async () => {
+        await api.get("/trackers");
+    };
 
     const onSubmit = (values: LoginRequestDto) => {
         auth.authenticate(values);
@@ -59,6 +64,9 @@ export default function Auth() {
                                 onClick={() => auth.refresh()}
                             >
                                 Refresh
+                            </Button>
+                            <Button fullWidth onClick={() => GetTrackers()}>
+                                Find Out
                             </Button>
                         </Group>
                     </Stack>

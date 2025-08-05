@@ -21,7 +21,7 @@ namespace Operum.Service.Services.Authentication
 
             if (user == null)
             {
-                var result = ServiceResponse.Failure(StatusCodeEnum.Unauthorized, "Invalid login attempt.");
+                var result = ServiceResponse.Failure(StatusCodeEnum.BadRequest, "Invalid login attempt.");
                 return result;
             }
 
@@ -29,11 +29,11 @@ namespace Operum.Service.Services.Authentication
 
             if (signInResult.IsLockedOut)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.Unauthorized, "You are currently locked out.");
+                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "You are currently locked out.");
             }
             if (!signInResult.Succeeded)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.Unauthorized, "Invalid login attempt.");
+                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "Invalid login attempt.");
             }
 
             await AuthenticateUser(user);
@@ -137,7 +137,7 @@ namespace Operum.Service.Services.Authentication
                 UserName = user.UserName
             };
 
-            return ServiceResponse.Success(userDto, "Successfully refreshed!");
+            return ServiceResponse.Success(userDto);
         }
         private async Task AuthenticateUser(ApplicationUser user)
         {

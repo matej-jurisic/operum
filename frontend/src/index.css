@@ -13,3 +13,10 @@ body {
     min-height: 100%;
     width: 100%;
 }
+
+.truncated-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-wrap: nowrap;
+}

@@ -6,14 +6,15 @@ import {
     Stack,
     TextInput,
 } from "@mantine/core";
-import { DatePickerInput, TimeInput } from "@mantine/dates";
+import { DatePickerInput, DateTimePicker, TimeInput } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import api from "../api/api";
 import { FieldDto } from "../model/FieldDto";
+import { TrackerDto } from "../model/TrackerDto";
 
 interface CreateEntryDialogProps {
-    trackerId: string;
+    tracker: TrackerDto;
     onClose: () => void;
     onEntryCreated?: () => void;
 }
@@ -34,22 +35,23 @@ export default function CreateEntryDialog(props: CreateEntryDialogProps) {
         const fieldValues: Record<string, string> = {};
 
         fields.forEach((field) => {
-            const value = values[field.name];
+            let value = values[field.name];
 
-            if (value != null) {
+            if (field.type === "bool") {
+                value = value ?? false;
+                fieldValues[field.name] = value ? "true" : "false";
+            } else if (value != null) {
                 if (field.type === "date" && value instanceof Date) {
                     fieldValues[field.name] = value.toISOString();
                 } else if (field.type === "timespan") {
                     fieldValues[field.name] = String(value);
-                } else if (field.type === "bool") {
-                    fieldValues[field.name] = value ? "true" : "false";
                 } else {
                     fieldValues[field.name] = String(value);
                 }
             }
         });
 
-        await api.post(`/trackers/${props.trackerId}/entries`, {
+        await api.post(`/trackers/${props.tracker.id}/entries`, {
             fieldValues,
         });
 
@@ -59,8 +61,8 @@ export default function CreateEntryDialog(props: CreateEntryDialogProps) {
     };
 
     useEffect(() => {
-        GetFields(props.trackerId, setFields);
-    }, [props.trackerId]);
+        GetFields(props.tracker.id, setFields);
+    }, [props.tracker.id]);
 
     if (fields.length === 0) {
         return <></>;
@@ -68,7 +70,7 @@ export default function CreateEntryDialog(props: CreateEntryDialogProps) {
 
     return (
         <>
-            <Modal centered opened onClose={props.onClose}>
+            <Modal title="Create Entry" centered opened onClose={props.onClose}>
                 <>
                     <form onSubmit={form.onSubmit(handleSubmit)}>
                         <Stack
@@ -78,7 +80,7 @@ export default function CreateEntryDialog(props: CreateEntryDialogProps) {
                             {fields.map((field) => {
                                 const fieldProps = {
                                     label: field.name,
-                                    required: false,
+                                    required: field.required,
                                     key: field.id,
                                     ...form.getInputProps(field.name),
                                 };
@@ -91,9 +93,13 @@ export default function CreateEntryDialog(props: CreateEntryDialogProps) {
                                     case "bool":
                                         return (
                                             <Checkbox
-                                                label={field.description}
+                                                label={`${field.name}${
+                                                    field.description
+                                                        ? " - " +
+                                                          field.description
+                                                        : ""
+                                                }`}
                                                 key={field.id}
-                                                defaultValue={false}
                                                 {...form.getInputProps(
                                                     field.name,
                                                     { type: "checkbox" }
@@ -114,12 +120,21 @@ export default function CreateEntryDialog(props: CreateEntryDialogProps) {
                                                 {...fieldProps}
                                             />
                                         );
+                                    case "datetime":
+                                        return (
+                                            <DateTimePicker
+                                                placeholder="Pick date/time"
+                                                {...fieldProps}
+                                            />
+                                        );
                                     default:
                                         return null;
                                 }
                             })}
 
-                            <Button type="submit">Submit</Button>
+                            <Button color={props.tracker.color} type="submit">
+                                Create
+                            </Button>
                         </Stack>
                     </form>
                 </>

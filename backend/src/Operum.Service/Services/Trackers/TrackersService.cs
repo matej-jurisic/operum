@@ -15,7 +15,9 @@ namespace Operum.Service.Services.Trackers
         {
             var user = authorizationService.GetCurrentUserDto();
             var trackerModel = mapper.Map<CreateTrackerDto, Tracker>(tracker);
+
             trackerModel.OwnerId = user.Id;
+            trackerModel.Color = trackerModel.Color?.ToLower();
 
             await db.Trackers.AddAsync(trackerModel);
             await db.SaveChangesAsync();

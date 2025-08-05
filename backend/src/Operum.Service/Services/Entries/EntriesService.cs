@@ -160,7 +160,24 @@ namespace Operum.Service.Services.Entries
             await db.SaveChangesAsync();
             var updatedEntry = await GetEntry(trackerId, entryId);
             return ServiceResponse.Success(updatedEntry.Data);
+        }
 
+        public async Task<ServiceResponse<EntryDto>> DeleteEntry(string trackerId, string entryId)
+        {
+            var user = authorizationService.GetCurrentUserDto();
+            var entry = await db.Entries
+                .Include(x => x.Tracker)
+                .FirstOrDefaultAsync(x => x.Id == entryId && x.TrackerId == trackerId);
+
+            if (entry == null || !user.Owns(entry))
+            {
+                return ServiceResponse.Failure(StatusCodeEnum.NotFound);
+            }
+
+            db.Entries.Remove(entry);
+            await db.SaveChangesAsync();
+
+            return ServiceResponse.Success();
         }
     }
 }

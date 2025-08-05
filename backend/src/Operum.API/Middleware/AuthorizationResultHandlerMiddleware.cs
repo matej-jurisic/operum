@@ -8,8 +8,17 @@ namespace Operum.API.Middleware
 {
     public class AuthorizationResultHandlerMiddleware : IAuthorizationMiddlewareResultHandler
     {
+        private readonly AuthorizationMiddlewareResultHandler _defaultHandler = new();
+
         public async Task HandleAsync(RequestDelegate next, HttpContext context, AuthorizationPolicy policy, PolicyAuthorizationResult authorizeResult)
         {
+            var endpoint = context.GetEndpoint();
+            if (endpoint?.Metadata?.GetMetadata<IAllowAnonymous>() is not null)
+            {
+                await _defaultHandler.HandleAsync(next, context, policy, authorizeResult);
+                return;
+            }
+
             if (authorizeResult.Forbidden)
             {
                 context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
@@ -40,9 +49,7 @@ namespace Operum.API.Middleware
                 return;
             }
 
-
             await next(context);
         }
-
     }
 }
