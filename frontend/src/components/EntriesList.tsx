@@ -41,20 +41,30 @@ const renderValue = (v: FieldValueDto) => {
     return "Unexpected data type";
 };
 
+enum OpenDialogType {
+    CreateEntry,
+    DeleteEntry,
+}
+
 export default function EntriesList(props: EntriesListProps) {
-    const [entryToDelete, setEntryToDelete] = useState<EntryDto>();
+    const [selectedEntry, setSelectedEntry] = useState<EntryDto>();
+    const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
 
     return (
         <>
             <Stack gap="md">
-                {props.entries.map((entry) => (
-                    <Paper
-                        key={entry.id}
-                        shadow="xs"
-                        p="md"
-                        radius="md"
-                        withBorder
+                <Group justify="space-between" w="100%">
+                    <Button
+                        color={props.tracker.color}
+                        onClick={() =>
+                            setOpenDialogType(OpenDialogType.CreateEntry)
+                        }
                     >
+                        Create Entry
+                    </Button>
+                </Group>
+                {props.entries.map((entry) => (
+                    <Paper key={entry.id} p="md" radius="md" withBorder>
                         <Stack gap={"md"} align="stretch">
                             <SimpleGrid
                                 cols={{ base: 1, sm: 2, md: 3, lg: 4 }}
@@ -78,9 +88,9 @@ export default function EntriesList(props: EntriesListProps) {
                                     {new Date(entry.createdAt).toLocaleString()}
                                 </Text>
                                 <Button
-                                    variant="light"
+                                    variant="outline"
                                     color="red"
-                                    onClick={() => setEntryToDelete(entry)}
+                                    onClick={() => setSelectedEntry(entry)}
                                 >
                                     <MdDelete size={18} />
                                 </Button>
@@ -89,14 +99,15 @@ export default function EntriesList(props: EntriesListProps) {
                     </Paper>
                 ))}
             </Stack>
-            {entryToDelete && (
+
+            {selectedEntry && openDialogType === OpenDialogType.DeleteEntry && (
                 <ConfirmationDialog
-                    isOpen={!!entryToDelete}
-                    onClose={() => setEntryToDelete(undefined)}
+                    isOpen={selectedEntry !== undefined}
+                    onClose={() => setSelectedEntry(undefined)}
                     onConfirm={async () => {
-                        await DeleteEntry(props.tracker.id, entryToDelete.id);
+                        await DeleteEntry(props.tracker.id, selectedEntry.id);
                         props.refreshEntries();
-                        setEntryToDelete(undefined);
+                        setSelectedEntry(undefined);
                     }}
                     severity="warning"
                     message="Are you sure you want to delete this entry?"

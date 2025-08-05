@@ -1,13 +1,13 @@
-import { Button, Group, Stack, Title } from "@mantine/core";
+import { Button, Container, Group, Stack, Tabs, Title } from "@mantine/core";
 import { useEffect, useState } from "react";
-import { CiFolderOn } from "react-icons/ci";
 import { IoMdReturnLeft } from "react-icons/io";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../api/api";
+import AnalyiticsList from "../components/AnalyticsList";
 import CreateEntryDialog from "../components/CreateEntryDialog";
 import { CreateFieldDialog } from "../components/CreateFieldDialog";
 import EntriesList from "../components/EntriesList";
-import ViewFieldsDialog from "../components/ViewFieldsDialog";
+import FieldsList from "../components/FieldsList";
 import { EntryDto } from "../model/EntryDto";
 import { TrackerDto } from "../model/TrackerDto";
 
@@ -24,7 +24,6 @@ const GetEntries = async (trackerId: string) => {
 enum OpenDialogType {
     CreateEntry,
     AddField,
-    ViewFields,
 }
 
 export default function Tracker() {
@@ -51,6 +50,13 @@ export default function Tracker() {
         <>
             <Stack gap="lg">
                 <Group align="center" justify="space-between" w="100%">
+                    <Title
+                        c={tracker.color}
+                        className="truncated-text"
+                        order={2}
+                    >
+                        {tracker.name}
+                    </Title>
                     <Button
                         onClick={() => navigate("/")}
                         variant="outline"
@@ -59,54 +65,50 @@ export default function Tracker() {
                     >
                         Back
                     </Button>
-
-                    <Title
-                        c={tracker.color}
-                        className="truncated-text"
-                        ta="right"
-                        order={2}
-                    >
-                        {tracker.name}
-                    </Title>
-                </Group>
-                <Group justify="flex-end">
-                    {tracker.fields.length > 0 && (
-                        <Button
-                            color={tracker.color}
-                            onClick={() =>
-                                setOpenDialogType(OpenDialogType.CreateEntry)
-                            }
-                        >
-                            Create Entry
-                        </Button>
-                    )}
-                    <Button
-                        color={tracker.color}
-                        onClick={() =>
-                            setOpenDialogType(OpenDialogType.AddField)
-                        }
-                    >
-                        Create Field
-                    </Button>
-                    <Button
-                        color={tracker.color}
-                        variant="outline"
-                        onClick={() =>
-                            setOpenDialogType(OpenDialogType.ViewFields)
-                        }
-                        leftSection={<CiFolderOn size={18} />}
-                    >
-                        {`Fields: ${tracker.fields.length}`}
-                    </Button>
                 </Group>
 
-                <EntriesList
-                    tracker={tracker}
-                    entries={entries}
-                    refreshEntries={async () => {
-                        setEntries(await GetEntries(tracker.id));
-                    }}
-                />
+                <Tabs
+                    variant="outline"
+                    color={tracker.color}
+                    defaultValue="entries"
+                >
+                    <Tabs.List>
+                        <Tabs.Tab value="entries">Entries</Tabs.Tab>
+                        <Tabs.Tab value="fields">{`Fields (${tracker.fields.length})`}</Tabs.Tab>
+                        <Tabs.Tab value="analytics">Analytics</Tabs.Tab>
+                    </Tabs.List>
+
+                    <Container
+                        p={"xl"}
+                        fluid
+                        style={{
+                            border: "1px solid var(--mantine-color-gray-3)",
+                            borderRadius: 0,
+                            borderTop: "none",
+                        }}
+                    >
+                        <Tabs.Panel value="entries">
+                            <EntriesList
+                                tracker={tracker}
+                                entries={entries}
+                                refreshEntries={async () => {
+                                    setEntries(await GetEntries(tracker.id));
+                                }}
+                            />
+                        </Tabs.Panel>
+                        <Tabs.Panel value="fields">
+                            <FieldsList
+                                tracker={tracker}
+                                refreshTracker={async () => {
+                                    setTracker(await GetTracker(tracker.id));
+                                }}
+                            />
+                        </Tabs.Panel>
+                        <Tabs.Panel value="analytics">
+                            <AnalyiticsList tracker={tracker} />
+                        </Tabs.Panel>
+                    </Container>
+                </Tabs>
             </Stack>
 
             {openDialogType === OpenDialogType.CreateEntry && (
@@ -125,17 +127,6 @@ export default function Tracker() {
                     onFieldAdded={async () =>
                         setTracker(await GetTracker(tracker.id))
                     }
-                />
-            )}
-            {openDialogType === OpenDialogType.ViewFields && (
-                <ViewFieldsDialog
-                    tracker={tracker}
-                    onClose={async (withReload: boolean) => {
-                        setOpenDialogType(undefined);
-                        if (withReload) {
-                            setEntries(await GetEntries(tracker.id));
-                        }
-                    }}
                 />
             )}
         </>

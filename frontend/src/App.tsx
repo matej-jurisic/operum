@@ -1,4 +1,4 @@
-import { Container } from "@mantine/core";
+import { Container, ScrollArea } from "@mantine/core";
 import { observer } from "mobx-react";
 import { useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
@@ -24,25 +24,30 @@ const App = observer(() => {
 
     return (
         <>
-            <Container size="lg" pt="xl">
-                <BrowserRouter>
-                    <Routes>
-                        <Route
-                            path="auth"
-                            element={<PublicRoute page={<Auth />} />}
-                        />
-                        <Route
-                            path="home"
-                            element={<PrivateRoute page={<Home />} />}
-                        />
-                        <Route
-                            path="trackers/:trackerId"
-                            element={<PrivateRoute page={<Tracker />} />}
-                        />
-                        <Route path="*" element={<Navigate to={"/home"} />} />
-                    </Routes>
-                </BrowserRouter>
-            </Container>
+            <ScrollArea h={"100vh"}>
+                <Container p="xl" size={"xl"}>
+                    <BrowserRouter>
+                        <Routes>
+                            <Route
+                                path="auth"
+                                element={<PublicRoute page={<Auth />} />}
+                            />
+                            <Route
+                                path="home"
+                                element={<PrivateRoute page={<Home />} />}
+                            />
+                            <Route
+                                path="trackers/:trackerId"
+                                element={<PrivateRoute page={<Tracker />} />}
+                            />
+                            <Route
+                                path="*"
+                                element={<Navigate to={"/home"} />}
+                            />
+                        </Routes>
+                    </BrowserRouter>
+                </Container>
+            </ScrollArea>
         </>
     );
 });
