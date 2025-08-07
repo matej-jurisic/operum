@@ -33,6 +33,7 @@ export default function Tracker() {
     const [tracker, setTracker] = useState<TrackerDto>();
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
     const [entries, setEntries] = useState<EntryDto[]>([]);
+    const [activeTab, setActiveTab] = useState<string | null>("entries");
 
     useEffect(() => {
         const fetchData = async () => {
@@ -70,7 +71,8 @@ export default function Tracker() {
                 <Tabs
                     variant="outline"
                     color={tracker.color}
-                    defaultValue="entries"
+                    value={activeTab}
+                    onChange={setActiveTab}
                 >
                     <Tabs.List>
                         <Tabs.Tab value="entries">Entries</Tabs.Tab>

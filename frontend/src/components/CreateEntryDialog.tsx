@@ -41,8 +41,16 @@ export default function CreateEntryDialog(props: CreateEntryDialogProps) {
                 value = value ?? false;
                 fieldValues[field.name] = value ? "true" : "false";
             } else if (value != null) {
-                if (field.type === "date" && value instanceof Date) {
-                    fieldValues[field.name] = value.toISOString();
+                if (field.type === "date") {
+                    const parsed = new Date(value as string);
+                    const utcMidnight = new Date(
+                        Date.UTC(
+                            parsed.getFullYear(),
+                            parsed.getMonth(),
+                            parsed.getDate()
+                        )
+                    );
+                    fieldValues[field.name] = utcMidnight.toISOString();
                 } else if (field.type === "timespan") {
                     fieldValues[field.name] = String(value);
                 } else {
@@ -118,6 +126,10 @@ export default function CreateEntryDialog(props: CreateEntryDialogProps) {
                                             <TimeInput
                                                 withSeconds
                                                 {...fieldProps}
+                                                label={
+                                                    fieldProps.label +
+                                                    " (hh:mm:ss)"
+                                                }
                                             />
                                         );
                                     case "datetime":

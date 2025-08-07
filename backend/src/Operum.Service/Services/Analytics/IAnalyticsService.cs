@@ -5,6 +5,6 @@ namespace Operum.Service.Services.Analytics
 {
     public interface IAnalyticsService
     {
-        public Task<ServiceResponse<SingleFieldNumericAnalyticsDto>> GetSingleFieldNumericAnalytics(string trackerId, string fieldId);
+        public Task<ServiceResponse<SingleFieldAnalyticsDto>> GetSingleFieldAnalytics(string trackerId, string fieldId);
     }
 }

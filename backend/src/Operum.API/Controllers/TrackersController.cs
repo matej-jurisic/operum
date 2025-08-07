@@ -106,7 +106,7 @@ namespace Operum.API.Controllers
         [HttpGet("{trackerId}/fields/{fieldId}/analytics/numeric")]
         public async Task<IActionResult> GetSingleFieldNumericAnalytics([FromRoute] string trackerId, [FromRoute] string fieldId)
         {
-            return GetApiResponse(await analyticsService.GetSingleFieldNumericAnalytics(trackerId, fieldId));
+            return GetApiResponse(await analyticsService.GetSingleFieldAnalytics(trackerId, fieldId));
         }
     }
 }

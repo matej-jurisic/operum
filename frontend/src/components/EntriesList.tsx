@@ -13,7 +13,13 @@ import api from "../api/api";
 import { EntryDto } from "../model/EntryDto";
 import { FieldValueDto } from "../model/FieldValueDto";
 import { TrackerDto } from "../model/TrackerDto";
+import {
+    formatDateOnly,
+    formatDateTime,
+    formatTimeSpan,
+} from "../util/TypeFormatter";
 import ConfirmationDialog from "./ConfirmationDialog";
+import CreateEntryDialog from "./CreateEntryDialog";
 
 interface EntriesListProps {
     tracker: TrackerDto;
@@ -28,12 +34,9 @@ const DeleteEntry = async (trackerId: string, entryId: string) => {
 const renderValue = (v: FieldValueDto) => {
     if (v.value === null) return "Value not set.";
     if (typeof v.value === "string") {
-        if (v.fieldType === "date")
-            return new Date(v.value).toLocaleDateString();
-        if (v.fieldType === "datetime")
-            return new Date(v.value).toLocaleString();
-        if (v.fieldType === "time")
-            return new Date(`1970-01-01T${v.value}`).toLocaleTimeString();
+        if (v.fieldType === "date") return formatDateOnly(v.value);
+        if (v.fieldType === "datetime") return formatDateTime(v.value);
+        if (v.fieldType === "timespan") return formatTimeSpan(v.value);
         return v.value;
     }
     if (typeof v.value === "number") return v.value;
@@ -90,7 +93,12 @@ export default function EntriesList(props: EntriesListProps) {
                                 <Button
                                     variant="outline"
                                     color="red"
-                                    onClick={() => setSelectedEntry(entry)}
+                                    onClick={() => {
+                                        setSelectedEntry(entry);
+                                        setOpenDialogType(
+                                            OpenDialogType.DeleteEntry
+                                        );
+                                    }}
                                 >
                                     <MdDelete size={18} />
                                 </Button>
@@ -111,6 +119,16 @@ export default function EntriesList(props: EntriesListProps) {
                     }}
                     severity="warning"
                     message="Are you sure you want to delete this entry?"
+                />
+            )}
+
+            {openDialogType === OpenDialogType.CreateEntry && (
+                <CreateEntryDialog
+                    tracker={props.tracker}
+                    onClose={() => {
+                        props.refreshEntries();
+                        setOpenDialogType(undefined);
+                    }}
                 />
             )}
         </>
