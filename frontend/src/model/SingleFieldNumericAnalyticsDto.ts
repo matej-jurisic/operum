@@ -7,6 +7,7 @@ export interface SingleFieldAnalyticsDto {
     min?: number;
     max?: number;
     stdDev?: number;
+    sum?: number;
 
     // For DateTime
     minDateTime?: string; // ISO string (e.g. "2025-08-07T12:34:56.789Z")

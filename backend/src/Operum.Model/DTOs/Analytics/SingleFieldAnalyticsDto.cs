@@ -10,6 +10,7 @@
         public double? Min { get; set; }
         public double? Max { get; set; }
         public double? StdDev { get; set; }
+        public double? Sum { get; set; }
 
         // For DateTime
         public DateTime? MinDateTime { get; set; }

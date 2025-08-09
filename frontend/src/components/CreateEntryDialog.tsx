@@ -117,6 +117,7 @@ export default function CreateEntryDialog(props: CreateEntryDialogProps) {
                                     case "date":
                                         return (
                                             <DatePickerInput
+                                                valueFormat="DD/MM/YYYY"
                                                 placeholder="Pick date"
                                                 {...fieldProps}
                                             />
@@ -135,6 +136,8 @@ export default function CreateEntryDialog(props: CreateEntryDialogProps) {
                                     case "datetime":
                                         return (
                                             <DateTimePicker
+                                                valueFormat="DD/MM/YYYY hh:mm:ss"
+                                                withSeconds
                                                 placeholder="Pick date/time"
                                                 {...fieldProps}
                                             />

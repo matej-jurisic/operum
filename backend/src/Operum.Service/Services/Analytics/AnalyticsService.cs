@@ -46,7 +46,8 @@ namespace Operum.Service.Services.Analytics
                     Min = g.Min(x => x.NumberValue),
                     Max = g.Max(x => x.NumberValue),
                     Average = g.Average(x => x.NumberValue),
-                    SumOfSquares = g.Sum(x => x.NumberValue * x.NumberValue)
+                    SumOfSquares = g.Sum(x => x.NumberValue * x.NumberValue),
+                    Sum = g.Sum(x => x.NumberValue)
                 })
                 .FirstOrDefaultAsync();
 
@@ -64,6 +65,7 @@ namespace Operum.Service.Services.Analytics
                 Count = analyticsData.Count,
                 Min = analyticsData.Min,
                 Max = analyticsData.Max,
+                Sum = analyticsData.Sum,
                 Average = Math.Round(avg, 2),
                 StdDev = Math.Round(stdDev, 2)
             };

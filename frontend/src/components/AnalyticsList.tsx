@@ -125,6 +125,12 @@ export default function AnalyticsList(props: AnalyticsListProps) {
                                 value={analytics.average.toFixed(2)}
                             />
                         )}
+                        {analytics.sum != null && (
+                            <StatCard
+                                label="Sum"
+                                value={analytics.sum.toFixed(2)}
+                            />
+                        )}
                         {analytics.stdDev != null && (
                             <StatCard
                                 label="Standard Deviation"
