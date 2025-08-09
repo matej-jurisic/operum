@@ -63,7 +63,6 @@ public partial class Program
         app.MapControllers()
             .RequireRateLimiting("fixed");
 
-        app.UseHttpMetrics();
         app.MapMetrics().AllowAnonymous();
 
         try
