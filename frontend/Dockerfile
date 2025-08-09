@@ -1,6 +1,9 @@
 # Step 1: Build React app
 FROM node:20-alpine AS build
 
+RUN apk update && apk upgrade
+RUN npm install -g npm@11.5.2
+
 WORKDIR /app
 
 COPY package*.json ./
