@@ -45,8 +45,6 @@ services:
     image: prom/prometheus
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
-    ports:
-      - "9090:9090"
 
   grafana:
     image: grafana/grafana
@@ -61,15 +59,11 @@ services:
 
   node_exporter:
     image: prom/node-exporter
-    ports:
-      - "9100:9100"
 
   postgres_exporter:
     image: prometheuscommunity/postgres-exporter
     environment:
       DATA_SOURCE_NAME: "postgresql://postgres:secret@postgres:5432/operumdb?sslmode=disable"
-    ports:
-      - "9187:9187"
 
 volumes:
   pgdata:
