@@ -1,40 +1,75 @@
 services:
-    postgres:
-        image: postgres:15-alpine
-        restart: always
-        environment:
-            POSTGRES_USER: postgres
-            POSTGRES_PASSWORD: secret
-            POSTGRES_DB: operumdb
-        volumes:
-            - pgdata:/var/lib/postgresql/data
-        ports:
-            - "5432:5432"
+  postgres:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: operumdb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-    backend:
-        build:
-            context: ./backend
-            dockerfile: Dockerfile
-        env_file:
-            - .env
-        depends_on:
-            - postgres
-        ports:
-            - "5000:5000"
-        volumes:
-            - backend-logs:/app/Logs
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    volumes:
+      - backend-logs:/app/Logs
 
-    frontend:
-        build:
-            context: ./frontend
-            dockerfile: Dockerfile
-            args:
-                VITE_REACT_API_URL: ${VITE_REACT_API_URL}
-        depends_on:
-            - backend
-        ports:
-            - "3000:80"
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_REACT_API_URL: ${VITE_REACT_API_URL}
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+
+  node_exporter:
+    image: prom/node-exporter
+    ports:
+      - "9100:9100"
+
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:secret@postgres:5432/operumdb?sslmode=disable"
+    ports:
+      - "9187:9187"
 
 volumes:
-    pgdata:
-    backend-logs:
+  pgdata:
+  backend-logs:
+  grafana-data:

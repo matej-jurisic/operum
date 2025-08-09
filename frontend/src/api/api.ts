@@ -2,6 +2,7 @@ import { notifications } from "@mantine/notifications";
 import axios, { AxiosError, AxiosRequestConfig } from "axios";
 import { setGlobalLoading } from "../context/LoadingContext";
 import { ApiResponse } from "../model/common/ApiResponse"; // import setter
+import globalStore from "../stores/GlobalStore";
 
 axios.defaults.withCredentials = true;
 
@@ -10,6 +11,9 @@ const refreshToken = async (): Promise<void> => {
         withCredentials: true,
     });
 };
+
+const USERNAME_KEY = "username";
+const ID_KEY = "id";
 
 let isRefreshing = false;
 let failedQueue: {
@@ -95,6 +99,10 @@ api.interceptors.response.use(
                     color: "red",
                     withBorder: true,
                 });
+                globalStore.setCurrentUser(undefined);
+                localStorage.removeItem(USERNAME_KEY);
+                localStorage.removeItem(ID_KEY);
+                localStorage.removeItem("exp");
                 return Promise.reject(refreshError);
             } finally {
                 isRefreshing = false;

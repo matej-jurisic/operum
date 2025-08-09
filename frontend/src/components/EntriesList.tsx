@@ -73,7 +73,7 @@ export default function EntriesList(props: EntriesListProps) {
                     >
                         Create Entry
                     </Button>
-                    <Group miw={192}>
+                    <Group>
                         <Pagination
                             onChange={setCurrentPage}
                             total={totalPages}

@@ -4,6 +4,7 @@ using Operum.API.Configuration;
 using Operum.API.Seed;
 using Operum.Model;
 using Operum.Model.Models;
+using Prometheus;
 using Serilog;
 
 namespace Operum.API;
@@ -61,6 +62,9 @@ public partial class Program
 
         app.MapControllers()
             .RequireRateLimiting("fixed");
+
+        app.UseHttpMetrics();
+        app.MapMetrics().AllowAnonymous();
 
         try
         {
