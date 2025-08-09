@@ -1,16 +1,5 @@
-import {
-    Button,
-    Group,
-    Modal,
-    Select,
-    SelectProps,
-    Stack,
-    Text,
-    TextInput,
-    useMantineTheme,
-} from "@mantine/core";
+import { Button, Modal, Select, Stack, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { FaCheck, FaCircle } from "react-icons/fa";
 import api from "../api/api";
 import { CreateTrackerDto } from "../model/requests/CreateTrackerDto";
 
@@ -36,26 +25,25 @@ const colorOptions = [
     { value: "violet", label: "Violet" },
 ];
 
-const renderColorOption = (
-    theme: ReturnType<typeof useMantineTheme>
-): SelectProps["renderOption"] => {
-    return ({ option, checked }) => (
-        <Group wrap="nowrap" gap="sm">
-            <FaCircle
-                size={16}
-                color={theme.colors[option.value]?.[6] ?? option.value}
-            />
-            <Text>{option.label}</Text>
-            {checked && <FaCheck color="gray" />}
-        </Group>
-    );
-};
+// const renderColorOption = (
+//     theme: ReturnType<typeof useMantineTheme>
+// ): SelectProps["renderOption"] => {
+//     return ({ option, checked }) => (
+//         <Group wrap="nowrap" gap="sm">
+//             <FaCircle
+//                 size={16}
+//                 color={theme.colors[option.value]?.[6] ?? option.value}
+//             />
+//             <Text>{option.label}</Text>
+//             {checked && <FaCheck color="gray" />}
+//         </Group>
+//     );
+// };
 
 export default function CreateTrackerDialog({
     onClose,
     onCreate,
 }: CreateTrackerDialogProps) {
-    const theme = useMantineTheme();
     const form = useForm<CreateTrackerDto>({
         initialValues: {
             name: "",
@@ -105,7 +93,6 @@ export default function CreateTrackerDialog({
                         data={colorOptions}
                         allowDeselect={false}
                         {...form.getInputProps("color")}
-                        renderOption={renderColorOption(theme)}
                     />
                     <Button type="submit">Create Tracker</Button>
                 </Stack>
