@@ -96,17 +96,14 @@ namespace Operum.API.Configuration
                     },
                     OnAuthenticationFailed = context =>
                     {
-                        Console.WriteLine("Authentication failed: " + context.Exception.Message);
                         return Task.CompletedTask;
                     },
                     OnTokenValidated = context =>
                     {
-                        Console.WriteLine("Token validated successfully.");
                         return Task.CompletedTask;
                     },
                     OnChallenge = async context =>
                     {
-                        Console.WriteLine("Challenge issued.");
                         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                         context.HandleResponse();
                         await context.Response.WriteAsJsonAsync(new ApiResponse()

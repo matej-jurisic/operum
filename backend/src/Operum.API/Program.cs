@@ -4,6 +4,7 @@ using Operum.API.Configuration;
 using Operum.API.Seed;
 using Operum.Model;
 using Operum.Model.Models;
+using Serilog;
 
 namespace Operum.API;
 
@@ -24,7 +25,12 @@ public partial class Program
         if (connectionString != null)
             builder.Services.RegisterDatabase(connectionString);
 
+        builder.Host.UseSerilog((context, configuration) =>
+            configuration.ReadFrom.Configuration(context.Configuration));
+
         var app = builder.Build();
+
+        app.UseSerilogRequestLogging();
 
         if (!app.Environment.IsEnvironment("Testing"))
         {
@@ -56,6 +62,18 @@ public partial class Program
         app.MapControllers()
             .RequireRateLimiting("fixed");
 
-        app.Run();
+        try
+        {
+            Log.Information("Starting web application");
+            app.Run();
+        }
+        catch (Exception ex)
+        {
+            Log.Fatal(ex, "Application terminated unexpectedly");
+        }
+        finally
+        {
+            Log.CloseAndFlush();
+        }
     }
 }

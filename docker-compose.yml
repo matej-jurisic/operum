@@ -21,6 +21,8 @@ services:
             - postgres
         ports:
             - "5000:5000"
+        volumes:
+            - backend-logs:/app/Logs
 
     frontend:
         build:

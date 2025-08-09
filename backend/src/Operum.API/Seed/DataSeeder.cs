@@ -19,12 +19,12 @@ namespace Operum.API.Seed
             }
         }
 
-        public async static Task SeedUsersAsync(UserManager<ApplicationUser> userManager, IConfiguration configuration)
+        public async static Task SeedUsersAsync(UserManager<ApplicationUser> userManager, IConfiguration? configuration = null)
         {
             ApplicationUser adminUser = new(DefaultUsers.AdminUserData.Email, DefaultUsers.AdminUserData.UserName);
             if (!userManager.Users.Any(x => x.NormalizedUserName == adminUser.NormalizedUserName || x.NormalizedEmail == adminUser.NormalizedEmail))
             {
-                var adminPassword = configuration.GetValue<string>("ASPNETCORE_ADMINUSERPASSWORD");
+                var adminPassword = configuration?.GetValue<string>("ASPNETCORE_ADMINUSERPASSWORD");
                 await userManager.CreateAsync(adminUser, adminPassword ?? DefaultUsers.AdminUserData.Password);
                 await userManager.AddToRoleAsync(adminUser, "Admin");
             }

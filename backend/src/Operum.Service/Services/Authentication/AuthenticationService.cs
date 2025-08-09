@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Operum.Model;
 using Operum.Model.Common;
 using Operum.Model.DTOs;
@@ -12,7 +13,7 @@ using Operum.Service.Services.Token;
 
 namespace Operum.Service.Services.Authentication
 {
-    public class AuthenticationService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, OperumContext dbContext, ITokenService tokenService, IAuthorizationService authorizationService, IMapper mapper) : IAuthenticationService
+    public class AuthenticationService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, OperumContext dbContext, ITokenService tokenService, IAuthorizationService authorizationService, IMapper mapper, ILogger<AuthenticationService> logger) : IAuthenticationService
     {
         public async Task<ServiceResponse<ApplicationUserDto>> Login(LoginRequestDto loginRequest)
         {
@@ -21,6 +22,7 @@ namespace Operum.Service.Services.Authentication
 
             if (user == null)
             {
+                logger.LogWarning("Failed login attempt for credentials {credentials}. Reason: User not found.", loginRequest.Credentials);
                 var result = ServiceResponse.Failure(StatusCodeEnum.BadRequest, "Invalid login attempt.");
                 return result;
             }
@@ -29,10 +31,12 @@ namespace Operum.Service.Services.Authentication
 
             if (signInResult.IsLockedOut)
             {
+                logger.LogWarning("Failed login attempt for credentials {credentials}. Reason: User is locked out.", loginRequest.Credentials);
                 return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "You are currently locked out.");
             }
             if (!signInResult.Succeeded)
             {
+                logger.LogWarning("Failed login attempt for credentials {credentials}. Reason: Wrong password.", loginRequest.Credentials);
                 return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "Invalid login attempt.");
             }
 
@@ -44,6 +48,7 @@ namespace Operum.Service.Services.Authentication
                 UserName = user.UserName
             };
 
+            logger.LogInformation("User {userId} logged in successfully.", loginRequest.Credentials);
             return ServiceResponse.Success(userDto, "Successfully logged in!");
         }
 
