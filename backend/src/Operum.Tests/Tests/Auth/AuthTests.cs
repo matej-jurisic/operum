@@ -2,7 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Operum.Model;
 using Operum.Model.Constants;
-using Operum.Model.DTOs.Requests;
+using Operum.Model.DTOs.Auth.Requests;
 using Operum.Tests.Extensions;
 using Operum.Tests.Util;
 using System.Net;

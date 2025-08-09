@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Operum.Model;
@@ -8,6 +9,7 @@ using Operum.Model.Common;
 using Operum.Model.Enums;
 using Operum.Model.Models;
 using System.Text;
+using System.Threading.RateLimiting;
 
 namespace Operum.API.Configuration
 {
@@ -38,6 +40,16 @@ namespace Operum.API.Configuration
                 });
             });
             services.AddHttpContextAccessor();
+            services.AddRateLimiter(options =>
+            {
+                options.AddFixedWindowLimiter("fixed", config =>
+                {
+                    config.Window = TimeSpan.FromMinutes(1);
+                    config.PermitLimit = 120;
+                    config.QueueLimit = 10;
+                    config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                });
+            });
         }
 
         public static void RegisterDatabase(this IServiceCollection services, string connectionString)

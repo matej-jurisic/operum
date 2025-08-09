@@ -1,5 +1,6 @@
 ﻿using Operum.Model.Common;
 using Operum.Model.DTOs.Fields;
+using Operum.Model.DTOs.Fields.Requests;
 
 namespace Operum.Service.Services.Fields
 {

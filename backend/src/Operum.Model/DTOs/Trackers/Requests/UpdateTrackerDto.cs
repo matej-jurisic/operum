@@ -1,0 +1,29 @@
+﻿using FluentValidation;
+
+namespace Operum.Model.DTOs.Trackers.Requests
+{
+    public class UpdateTrackerDto
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? Color { get; set; }
+    }
+
+    public class UpdateTrackerDtoValidator : AbstractValidator<UpdateTrackerDto>
+    {
+        public UpdateTrackerDtoValidator()
+        {
+            RuleFor(x => x.Name)
+                .NotEmpty().WithMessage("Tracker name is required.")
+                .MaximumLength(100).WithMessage("Tracker name cannot exceed 100 characters.");
+
+            RuleFor(x => x.Description)
+                .MaximumLength(500).WithMessage("Description cannot exceed 500 characters.")
+                .When(x => !string.IsNullOrEmpty(x.Description));
+
+            RuleFor(x => x.Color)
+                .MaximumLength(50)
+                .WithMessage("Color cannot exceed 50 characters.");
+        }
+    }
+}

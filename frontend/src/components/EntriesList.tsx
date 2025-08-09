@@ -1,8 +1,9 @@
 import {
     Button,
+    Card,
     Group,
     Input,
-    Paper,
+    Pagination,
     SimpleGrid,
     Stack,
     Text,
@@ -52,11 +53,18 @@ enum OpenDialogType {
 export default function EntriesList(props: EntriesListProps) {
     const [selectedEntry, setSelectedEntry] = useState<EntryDto>();
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 3;
+    const totalPages = Math.ceil(props.entries.length / pageSize);
+    const paginatedEntries = props.entries.slice(
+        (currentPage - 1) * pageSize,
+        currentPage * pageSize
+    );
 
     return (
         <>
             <Stack gap="md">
-                <Group justify="space-between" w="100%">
+                <Group justify={"space-between"} w="100%">
                     <Button
                         color={props.tracker.color}
                         onClick={() =>
@@ -65,12 +73,20 @@ export default function EntriesList(props: EntriesListProps) {
                     >
                         Create Entry
                     </Button>
+                    <Group miw={192}>
+                        <Pagination
+                            onChange={setCurrentPage}
+                            total={totalPages}
+                            color={props.tracker.color}
+                        />
+                    </Group>
                 </Group>
-                {props.entries.map((entry) => (
-                    <Paper key={entry.id} p="md" radius="md" withBorder>
+
+                {paginatedEntries.map((entry) => (
+                    <Card key={entry.id} p="md" radius="md" withBorder>
                         <Stack gap={"md"} align="stretch">
                             <SimpleGrid
-                                cols={{ base: 1, sm: 2, md: 3, lg: 4 }}
+                                cols={{ base: 2, sm: 2, md: 3, lg: 4 }}
                                 spacing="md"
                                 verticalSpacing="sm"
                             >
@@ -104,7 +120,7 @@ export default function EntriesList(props: EntriesListProps) {
                                 </Button>
                             </Group>
                         </Stack>
-                    </Paper>
+                    </Card>
                 ))}
             </Stack>
 

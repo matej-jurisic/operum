@@ -1,4 +1,4 @@
-﻿using Operum.Model.DTOs.Requests;
+﻿using Operum.Model.DTOs.Auth.Requests;
 
 namespace Operum.Tests.Util
 {

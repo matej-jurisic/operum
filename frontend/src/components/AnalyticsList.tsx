@@ -1,5 +1,4 @@
 import {
-    Button,
     Group,
     Paper,
     Select,
@@ -21,6 +20,7 @@ import {
 
 interface AnalyticsListProps {
     tracker: TrackerDto;
+    isActive: boolean;
 }
 
 const GetSingleFieldAnalytics = async (trackerId: string, fieldId: string) => {
@@ -54,6 +54,10 @@ export default function AnalyticsList(props: AnalyticsListProps) {
     const [selectedField, setSelectedField] = useState<string | null>(null);
 
     useEffect(() => {
+        if (props.isActive) setSelectedField(null);
+    }, [props.isActive]);
+
+    useEffect(() => {
         const GetData = async () => {
             if (!selectedField) return;
             setAnalytics(
@@ -85,7 +89,6 @@ export default function AnalyticsList(props: AnalyticsListProps) {
                     searchable
                     clearable
                 />
-                <Button color={props.tracker.color}>Refresh</Button>
             </Stack>
 
             {analytics && (

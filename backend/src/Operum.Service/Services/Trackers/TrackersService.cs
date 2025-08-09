@@ -2,6 +2,7 @@
 using Operum.Model;
 using Operum.Model.Common;
 using Operum.Model.DTOs.Trackers;
+using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Model.Enums;
 using Operum.Model.Models;
 using Operum.Service.Mappings.Mapper;

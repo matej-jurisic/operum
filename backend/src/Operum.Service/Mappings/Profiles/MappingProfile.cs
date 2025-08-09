@@ -1,8 +1,10 @@
 ﻿using Operum.Model.DTOs;
 using Operum.Model.DTOs.Entry;
 using Operum.Model.DTOs.Fields;
+using Operum.Model.DTOs.Fields.Requests;
 using Operum.Model.DTOs.FieldValue;
 using Operum.Model.DTOs.Trackers;
+using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Model.Extensions;
 using Operum.Model.Models;
 using Operum.Service.Mappings.Mapper;

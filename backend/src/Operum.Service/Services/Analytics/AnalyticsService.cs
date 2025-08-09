@@ -25,11 +25,11 @@ namespace Operum.Service.Services.Analytics
 
             return field.Type switch
             {
-                DataTypes.Number => await GetSingleFieldNumberAnalytics(fieldId),
-                DataTypes.DateTime => await GetSingleFieldDateTimeAnalytics(fieldId),
-                DataTypes.Date => await GetSingleFieldDateAnalytics(fieldId),
-                DataTypes.TimeSpan => await GetSingleFieldTimeSpanAnalytics(fieldId),
-                DataTypes.Bool => await GetSingleFieldBoolAnalytics(fieldId),
+                OperumTypes.Number => await GetSingleFieldNumberAnalytics(fieldId),
+                OperumTypes.DateTime => await GetSingleFieldDateTimeAnalytics(fieldId),
+                OperumTypes.Date => await GetSingleFieldDateAnalytics(fieldId),
+                OperumTypes.TimeSpan => await GetSingleFieldTimeSpanAnalytics(fieldId),
+                OperumTypes.Bool => await GetSingleFieldBoolAnalytics(fieldId),
                 _ => ServiceResponse.Failure(StatusCodeEnum.BadRequest, $"Type {field.Type} does not support single field analytics.")
             };
         }

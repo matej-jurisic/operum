@@ -2,6 +2,7 @@
 using Operum.Model;
 using Operum.Model.Common;
 using Operum.Model.DTOs.Entry;
+using Operum.Model.DTOs.Entry.Requests;
 using Operum.Model.Enums;
 using Operum.Model.Extensions;
 using Operum.Model.Models;

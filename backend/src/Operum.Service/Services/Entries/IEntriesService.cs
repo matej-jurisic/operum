@@ -1,5 +1,6 @@
 ﻿using Operum.Model.Common;
 using Operum.Model.DTOs.Entry;
+using Operum.Model.DTOs.Entry.Requests;
 
 namespace Operum.Service.Services.Entries
 {

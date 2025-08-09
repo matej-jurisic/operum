@@ -1,5 +1,5 @@
 ﻿using AwesomeAssertions;
-using Operum.Model.DTOs.Requests;
+using Operum.Model.DTOs.Auth.Requests;
 using System.Net;
 using System.Net.Http.Json;
 

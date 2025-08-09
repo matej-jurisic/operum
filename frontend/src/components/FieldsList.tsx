@@ -1,4 +1,4 @@
-import { Badge, Button, Group, Paper, Stack, Text } from "@mantine/core";
+import { Badge, Button, Card, Group, Stack, Text } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { MdDelete } from "react-icons/md";
 import api from "../api/api";
@@ -39,10 +39,6 @@ export default function FieldsList(props: FieldsListProps) {
         GetData();
     }, [props.tracker.id]);
 
-    if (fields.length === 0) {
-        return <></>;
-    }
-
     return (
         <>
             <Stack gap="md">
@@ -57,7 +53,7 @@ export default function FieldsList(props: FieldsListProps) {
                     </Button>
                 </Group>
                 {fields.map((field) => (
-                    <Paper key={field.id} p="md" radius="md" withBorder>
+                    <Card key={field.id} p="md" radius="md" withBorder>
                         <Group p="apart" align="center" justify="flex-end">
                             <Stack gap={2} style={{ flex: 1 }} miw={"150px"}>
                                 <Text fw={600} size="md" lineClamp={1}>
@@ -101,7 +97,7 @@ export default function FieldsList(props: FieldsListProps) {
                                 </Button>
                             </Group>
                         </Group>
-                    </Paper>
+                    </Card>
                 ))}
             </Stack>
             {selectedField && openDialogType === OpenDialogType.DeleteField && (

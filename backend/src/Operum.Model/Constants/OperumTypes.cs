@@ -1,6 +1,6 @@
 ﻿namespace Operum.Model.Constants
 {
-    public static class DataTypes
+    public static class OperumTypes
     {
         public const string String = "string";
         public const string Number = "number";

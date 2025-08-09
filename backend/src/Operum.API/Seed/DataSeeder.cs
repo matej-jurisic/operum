@@ -28,12 +28,12 @@ namespace Operum.API.Seed
                 await userManager.CreateAsync(adminUser, adminPassword ?? DefaultUsers.AdminUserData.Password);
                 await userManager.AddToRoleAsync(adminUser, "Admin");
             }
-            ApplicationUser testUser = new(DefaultUsers.TestUserData.Email, DefaultUsers.TestUserData.UserName);
-            if (!userManager.Users.Any(x => x.NormalizedUserName == testUser.NormalizedUserName || x.NormalizedEmail == testUser.NormalizedEmail))
-            {
-                await userManager.CreateAsync(testUser, DefaultUsers.TestUserData.Password);
-                await userManager.AddToRoleAsync(testUser, "User");
-            }
+            //ApplicationUser testUser = new(DefaultUsers.TestUserData.Email, DefaultUsers.TestUserData.UserName);
+            //if (!userManager.Users.Any(x => x.NormalizedUserName == testUser.NormalizedUserName || x.NormalizedEmail == testUser.NormalizedEmail))
+            //{
+            //    await userManager.CreateAsync(testUser, DefaultUsers.TestUserData.Password);
+            //    await userManager.AddToRoleAsync(testUser, "User");
+            //}
         }
     }
 }

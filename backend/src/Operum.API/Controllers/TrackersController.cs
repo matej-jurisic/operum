@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Operum.Model.DTOs.Entry;
-using Operum.Model.DTOs.Fields;
-using Operum.Model.DTOs.Trackers;
+using Operum.Model.DTOs.Entry.Requests;
+using Operum.Model.DTOs.Fields.Requests;
+using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Service.Services.Analytics;
 using Operum.Service.Services.Entries;
 using Operum.Service.Services.Fields;

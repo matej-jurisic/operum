@@ -1,6 +1,7 @@
 import { notifications } from "@mantine/notifications";
 import axios, { AxiosError, AxiosRequestConfig } from "axios";
-import { ApiResponse } from "../model/common/ApiResponse";
+import { setGlobalLoading } from "../context/LoadingContext";
+import { ApiResponse } from "../model/common/ApiResponse"; // import setter
 
 axios.defaults.withCredentials = true;
 
@@ -35,8 +36,20 @@ const api = axios.create({
     timeout: 10000,
 });
 
+api.interceptors.request.use(
+    (config) => {
+        setGlobalLoading(true);
+        return config;
+    },
+    (error) => {
+        setGlobalLoading(false);
+        return Promise.reject(error);
+    }
+);
+
 api.interceptors.response.use(
     (response) => {
+        setGlobalLoading(false);
         if (
             response.data &&
             response.data.messages &&
@@ -54,11 +67,12 @@ api.interceptors.response.use(
         return response;
     },
     async (error: AxiosError<ApiResponse>) => {
+        setGlobalLoading(false);
+
         const originalRequest = error.config as AxiosRequestConfig & {
             _retry?: boolean;
         };
 
-        // Handle 401 Unauthorized
         if (error.response?.status === 401 && !originalRequest._retry) {
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
@@ -87,7 +101,6 @@ api.interceptors.response.use(
             }
         }
 
-        // Handle other errors
         const messages = error.response?.data?.messages;
         if (messages?.length) {
             messages.forEach((m: string) => {

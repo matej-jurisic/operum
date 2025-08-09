@@ -1,5 +1,5 @@
 ﻿using Operum.Model.Constants;
-using Operum.Model.DTOs.Trackers;
+using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Tests.Extensions;
 using Operum.Tests.Util;
 using System.Net;

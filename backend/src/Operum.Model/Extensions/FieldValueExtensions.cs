@@ -12,12 +12,12 @@ namespace Operum.Model.Extensions
             {
                 return fieldValue.Field.Type.ToLowerInvariant() switch
                 {
-                    DataTypes.String => fieldValue.StringValue,
-                    DataTypes.Number => fieldValue.NumberValue,
-                    DataTypes.Date => fieldValue.DateTimeValue,
-                    DataTypes.DateTime => fieldValue.DateTimeValue,
-                    DataTypes.TimeSpan => fieldValue.TimeSpanValue,
-                    DataTypes.Bool => fieldValue.BooleanValue,
+                    OperumTypes.String => fieldValue.StringValue,
+                    OperumTypes.Number => fieldValue.NumberValue,
+                    OperumTypes.Date => fieldValue.DateTimeValue,
+                    OperumTypes.DateTime => fieldValue.DateTimeValue,
+                    OperumTypes.TimeSpan => fieldValue.TimeSpanValue,
+                    OperumTypes.Bool => fieldValue.BooleanValue,
                     _ => null,
                 };
             }
@@ -30,14 +30,14 @@ namespace Operum.Model.Extensions
             {
                 switch (currentField.Type.ToLowerInvariant())
                 {
-                    case DataTypes.String:
+                    case OperumTypes.String:
                         fieldValue.StringValue = value;
                         break;
-                    case DataTypes.Number:
+                    case OperumTypes.Number:
                         fieldValue.NumberValue = value == null ? null : Convert.ToDouble(value);
                         break;
-                    case DataTypes.Date:
-                    case DataTypes.DateTime:
+                    case OperumTypes.Date:
+                    case OperumTypes.DateTime:
                         if (!string.IsNullOrWhiteSpace(value))
                         {
                             fieldValue.DateTimeValue = DateTime.Parse(value, null, System.Globalization.DateTimeStyles.RoundtripKind).ToUniversalTime();
@@ -51,7 +51,7 @@ namespace Operum.Model.Extensions
                             throw new FormatException($"Invalid format for {currentField.Type} field '{currentField.Name}'.");
                         }
                         break;
-                    case DataTypes.TimeSpan:
+                    case OperumTypes.TimeSpan:
                         if (!string.IsNullOrWhiteSpace(value))
                         {
                             fieldValue.TimeSpanValue = TimeSpan.Parse(value);
@@ -65,7 +65,7 @@ namespace Operum.Model.Extensions
                             throw new FormatException($"Invalid format for {currentField.Type} field '{currentField.Name}'.");
                         }
                         break;
-                    case DataTypes.Bool:
+                    case OperumTypes.Bool:
                         fieldValue.BooleanValue = value == null ? null : Convert.ToBoolean(value);
                         break;
                     default:
@@ -82,11 +82,11 @@ namespace Operum.Model.Extensions
 
         private static void ClearOtherFieldValues(FieldValue fieldValue, string currentType)
         {
-            if (currentType != DataTypes.String) fieldValue.StringValue = null;
-            if (currentType != DataTypes.Number) fieldValue.NumberValue = null;
-            if (currentType != DataTypes.Date && currentType != DataTypes.DateTime) fieldValue.DateTimeValue = null;
-            if (currentType != DataTypes.TimeSpan) fieldValue.TimeSpanValue = null;
-            if (currentType != DataTypes.Bool) fieldValue.BooleanValue = null;
+            if (currentType != OperumTypes.String) fieldValue.StringValue = null;
+            if (currentType != OperumTypes.Number) fieldValue.NumberValue = null;
+            if (currentType != OperumTypes.Date && currentType != OperumTypes.DateTime) fieldValue.DateTimeValue = null;
+            if (currentType != OperumTypes.TimeSpan) fieldValue.TimeSpanValue = null;
+            if (currentType != OperumTypes.Bool) fieldValue.BooleanValue = null;
         }
 
         private static object? ExtractValueFromJsonElement(JsonElement jsonElement, string targetFieldType)

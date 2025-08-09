@@ -18,6 +18,7 @@ public partial class Program
         builder.Services.RegisterServices(configuration);
         builder.Services.RegisterAuthServices(configuration);
         builder.Services.RegisterDependencyInjections();
+        builder.Services.RegisterValidations();
 
         string? connectionString = builder.Configuration.GetConnectionString("Operum");
         if (connectionString != null)
@@ -52,7 +53,8 @@ public partial class Program
 
         app.UseAuthorization();
 
-        app.MapControllers();
+        app.MapControllers()
+            .RequireRateLimiting("fixed");
 
         app.Run();
     }

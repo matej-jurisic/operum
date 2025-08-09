@@ -1,5 +1,5 @@
 ﻿using Operum.Model.Common;
-using Operum.Model.DTOs.Requests;
+using Operum.Model.DTOs.Auth.Requests;
 
 namespace Operum.Service.Services.Roles
 {

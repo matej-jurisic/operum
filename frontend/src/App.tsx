@@ -1,10 +1,11 @@
-import { Container, ScrollArea } from "@mantine/core";
+import { Container, LoadingOverlay, ScrollArea } from "@mantine/core";
 import { observer } from "mobx-react";
 import { useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import "./App.css";
 import { PrivateRoute } from "./components/routing/PrivateRoute";
 import PublicRoute from "./components/routing/PublicRoute";
+import { useLoading } from "./context/LoadingContext";
 import useAuth from "./hooks/useAuth";
 import Auth from "./pages/Auth";
 import Home from "./pages/Home";
@@ -13,6 +14,7 @@ import globalStore from "./stores/GlobalStore";
 
 const App = observer(() => {
     const auth = useAuth();
+    const { loading } = useLoading();
 
     useEffect(() => {
         auth.handleUserLoggedInCheck();
@@ -24,6 +26,12 @@ const App = observer(() => {
 
     return (
         <>
+            <LoadingOverlay
+                visible={loading}
+                overlayProps={{
+                    opacity: 0.3,
+                }}
+            />
             <ScrollArea h={"100vh"}>
                 <Container p="xl" size={"xl"}>
                     <BrowserRouter>

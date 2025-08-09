@@ -6,10 +6,14 @@ import {
     Stack,
     Text,
     Title,
+    useComputedColorScheme,
+    useMantineColorScheme,
     useMantineTheme,
 } from "@mantine/core";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { CiLogout, CiUser } from "react-icons/ci";
+import { GoSun } from "react-icons/go";
+import { IoMoonOutline } from "react-icons/io5";
 import { MdDelete } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import api from "../api/api";
@@ -42,6 +46,8 @@ export default function Home() {
     const navigate = useNavigate();
     const theme = useMantineTheme();
     const auth = useAuth();
+    const { colorScheme, setColorScheme } = useMantineColorScheme();
+    const computedColorScheme = useComputedColorScheme("light");
 
     useEffect(() => {
         GetTrackers(setTrackers);
@@ -85,6 +91,23 @@ export default function Home() {
                                 </Menu.Item>
                             </Menu.Dropdown>
                         </Menu>
+                        <Button
+                            variant="outline"
+                            color={theme.primaryColor}
+                            onClick={() => {
+                                setColorScheme(
+                                    computedColorScheme === "dark"
+                                        ? "light"
+                                        : "dark"
+                                );
+                            }}
+                        >
+                            {colorScheme === "light" ? (
+                                <IoMoonOutline size={16} />
+                            ) : (
+                                <GoSun size={16} />
+                            )}
+                        </Button>
                     </Group>
                 </Group>
 

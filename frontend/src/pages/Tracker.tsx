@@ -69,7 +69,7 @@ export default function Tracker() {
                 </Group>
 
                 <Tabs
-                    variant="outline"
+                    variant="default"
                     color={tracker.color}
                     value={activeTab}
                     onChange={setActiveTab}
@@ -80,15 +80,7 @@ export default function Tracker() {
                         <Tabs.Tab value="analytics">Analytics</Tabs.Tab>
                     </Tabs.List>
 
-                    <Container
-                        p={"xl"}
-                        fluid
-                        style={{
-                            border: "1px solid var(--mantine-color-gray-3)",
-                            borderRadius: 0,
-                            borderTop: "none",
-                        }}
-                    >
+                    <Container px={0} pt={"xl"} fluid>
                         <Tabs.Panel value="entries">
                             <EntriesList
                                 tracker={tracker}
@@ -107,7 +99,10 @@ export default function Tracker() {
                             />
                         </Tabs.Panel>
                         <Tabs.Panel value="analytics">
-                            <AnalyiticsList tracker={tracker} />
+                            <AnalyiticsList
+                                tracker={tracker}
+                                isActive={activeTab === "analytics"}
+                            />
                         </Tabs.Panel>
                     </Container>
                 </Tabs>

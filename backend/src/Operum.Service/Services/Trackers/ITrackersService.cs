@@ -1,5 +1,6 @@
 ﻿using Operum.Model.Common;
 using Operum.Model.DTOs.Trackers;
+using Operum.Model.DTOs.Trackers.Requests;
 
 namespace Operum.Service.Services.Trackers
 {
