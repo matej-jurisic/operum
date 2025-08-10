@@ -58,12 +58,13 @@ public partial class Program
 
         app.UseAuthentication();
 
+        app.UseHttpMetrics();
+
         app.UseAuthorization();
 
         app.MapControllers()
             .RequireRateLimiting("fixed");
 
-        app.UseHttpMetrics();
         app.MapMetrics().AllowAnonymous();
 
         try
