@@ -12,6 +12,7 @@ using Operum.Service.Integrations.MailSender;
 using Operum.Service.Mappings.Mapper;
 using Operum.Service.Services.Authorization;
 using Operum.Service.Services.Token;
+using RestSharp;
 using System.Web;
 
 namespace Operum.Service.Services.Authentication
@@ -26,8 +27,13 @@ namespace Operum.Service.Services.Authentication
             if (user == null)
             {
                 logger.LogWarning("Failed login attempt for credentials {credentials}. Reason: User not found.", loginRequest.Credentials);
-                var result = ServiceResponse.Failure(StatusCodeEnum.BadRequest, "Invalid login attempt.");
-                return result;
+                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "Invalid login attempt.");
+            }
+
+            if (!user.EmailConfirmed)
+            {
+                logger.LogWarning("Failed login attempt for credentials {credentials}. Reason: Email not confirmed.", loginRequest.Credentials);
+                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "Email address has not been confirmed.");
             }
 
             var signInResult = await signInManager.CheckPasswordSignInAsync(user, loginRequest.Password, true);
@@ -120,11 +126,11 @@ namespace Operum.Service.Services.Authentication
             }
             var confirmationLink = $"?userId={encodedId}&token={encodedToken}";
 
-            HttpResponseMessage mailSenderResult = await mailSender.SendMailConfirmationMail(registerRequest.UserName, registerRequest.Email, confirmationLink);
+            RestResponse mailSenderResult = await mailSender.SendMailConfirmationMail(registerRequest.UserName, registerRequest.Email, confirmationLink);
             if (!mailSenderResult.IsSuccessStatusCode)
             {
                 await transaction.RollbackAsync();
-                var responseContent = await mailSenderResult.Content.ReadAsStringAsync();
+                var responseContent = mailSenderResult.Content;
                 logger.LogError("Failed to send confirmation mail. StatusCode: {StatusCode}, Response: {ResponseContent}",
                                 mailSenderResult.StatusCode,
                                 responseContent);

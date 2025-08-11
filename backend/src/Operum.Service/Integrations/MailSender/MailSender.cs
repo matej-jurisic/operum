@@ -1,50 +1,42 @@
 ﻿using Microsoft.Extensions.Configuration;
-using System.Net.Http.Headers;
-using System.Text;
+using RestSharp;
+using RestSharp.Authenticators;
 using System.Text.Json;
 
 namespace Operum.Service.Integrations.MailSender
 {
     public class MailSender(IConfiguration configuration) : IMailSender
     {
-        public async Task<HttpResponseMessage> SendMailConfirmationMail(string userName, string email, string callbackUrl)
+        public async Task<RestResponse> SendMailConfirmationMail(string userName, string email, string callbackUrl)
         {
-            var apiUrl = configuration.GetValue<string?>("MailerSend:BaseUrl");
-            var apiKey = configuration.GetValue<string?>("MailerSend:ApiKey");
-            if (string.IsNullOrWhiteSpace(apiKey) || string.IsNullOrWhiteSpace(apiUrl))
-                throw new Exception("Missing mail sender configuration!");
+            var apiKey = configuration.GetValue<string?>("Mailgun:ApiKey");
+            var apiBase = configuration.GetValue<string?>("Mailgun:ApiBase");
+            var apiRoute = configuration.GetValue<string?>("Mailgun:ApiRoute");
+            if (string.IsNullOrWhiteSpace(apiKey) || string.IsNullOrWhiteSpace(apiBase) || string.IsNullOrWhiteSpace(apiRoute))
+                throw new Exception("Missing Mailgun configuration!");
 
-            var payload = new
+            var options = new RestClientOptions(apiBase)
             {
-                from = new { email = "confirm@operum.app" },
-                to = new[]
-                {
-                    new { email }
-                },
-                personalization = new[]
-                {
-                    new
-                    {
-                        email,
-                        data = new
-                        {
-                            callback_url = callbackUrl,
-                            name = userName
-                        }
-                    }
-                },
-                subject = "Confirm your email",
-                template_id = "0r83ql3j93zgzw1j"
+                Authenticator = new HttpBasicAuthenticator("api", apiKey)
             };
 
-            using var client = new HttpClient();
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-            client.DefaultRequestHeaders.Add("X-Requested-With", "XMLHttpRequest");
+            var variables = new
+            {
+                name = userName,
+                callback_url = callbackUrl
+            };
 
-            var json = JsonSerializer.Serialize(payload);
-            using var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            return (await client.PostAsync(apiUrl, content));
+            var client = new RestClient(options);
+            var request = new RestRequest(apiRoute, Method.Post)
+            {
+                AlwaysMultipartFormData = true
+            };
+            request.AddParameter("from", "Mailgun Sandbox <postmaster@operum.app>");
+            request.AddParameter("to", $"{userName} <{email}>");
+            request.AddParameter("subject", "Mail confirmation");
+            request.AddParameter("template", "mail confirmation");
+            request.AddParameter("h:X-Mailgun-Variables", JsonSerializer.Serialize(variables));
+            return await client.ExecuteAsync(request);
         }
     }
 }
