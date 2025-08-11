@@ -120,10 +120,14 @@ namespace Operum.Service.Services.Authentication
             }
             var confirmationLink = $"?userId={encodedId}&token={encodedToken}";
 
-            var mailSenderResult = await mailSender.SendMailConfirmationMail(registerRequest.UserName, registerRequest.Email, confirmationLink);
+            HttpResponseMessage mailSenderResult = await mailSender.SendMailConfirmationMail(registerRequest.UserName, registerRequest.Email, confirmationLink);
             if (!mailSenderResult.IsSuccessStatusCode)
             {
                 await transaction.RollbackAsync();
+                var responseContent = await mailSenderResult.Content.ReadAsStringAsync();
+                logger.LogError("Failed to send confirmation mail. StatusCode: {StatusCode}, Response: {ResponseContent}",
+                                mailSenderResult.StatusCode,
+                                responseContent);
                 return ServiceResponse.Failure(StatusCodeEnum.InternalServerError, "Error sending confirmation mail.");
             }
 

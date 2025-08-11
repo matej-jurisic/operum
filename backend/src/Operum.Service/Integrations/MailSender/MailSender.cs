@@ -33,7 +33,7 @@ namespace Operum.Service.Integrations.MailSender
                         }
                     }
                 },
-                subject = "Hello from MailerSend!",
+                subject = "Confirm your email",
                 template_id = "0r83ql3j93zgzw1j"
             };
 
