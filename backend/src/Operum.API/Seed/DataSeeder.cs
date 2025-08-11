@@ -24,7 +24,7 @@ namespace Operum.API.Seed
             ApplicationUser adminUser = new(DefaultUsers.AdminUserData.Email, DefaultUsers.AdminUserData.UserName);
             if (!userManager.Users.Any(x => x.NormalizedUserName == adminUser.NormalizedUserName || x.NormalizedEmail == adminUser.NormalizedEmail))
             {
-                var adminPassword = configuration?.GetValue<string>("ASPNETCORE_ADMINUSERPASSWORD");
+                var adminPassword = configuration?.GetValue<string>("AdminUserPassword");
                 await userManager.CreateAsync(adminUser, adminPassword ?? DefaultUsers.AdminUserData.Password);
                 await userManager.AddToRoleAsync(adminUser, "Admin");
             }

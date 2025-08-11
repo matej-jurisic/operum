@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using Operum.API.Middleware;
 using Operum.Model.Models;
+using Operum.Service.Integrations.MailSender;
 using Operum.Service.Mappings.Mapper;
 using Operum.Service.Mappings.Profiles;
 using Operum.Service.Services.Analytics;
@@ -40,6 +41,7 @@ namespace Operum.API.Configuration
                 var profiles = provider.GetServices<IMappingProfile>();
                 return new Mapper(profiles);
             });
+            services.AddSingleton<IMailSender, MailSender>();
 
             return services;
         }

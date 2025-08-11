@@ -1,6 +1,7 @@
 import api from "../api/api";
 import { ApplicationUserDto } from "../model/ApplicationUserDto";
 import { LoginRequestDto } from "../model/requests/LoginRequestDto";
+import { RegisterRequestDto } from "../model/requests/RegisterRequestDto";
 import globalStore from "../stores/GlobalStore";
 
 const USERNAME_KEY = "username";
@@ -43,9 +44,13 @@ const useAuth = () => {
         localStorage.removeItem("exp");
     };
 
-    const authenticate = async (loginRequest: LoginRequestDto) => {
+    const login = async (loginRequest: LoginRequestDto) => {
         const user = await api.post("/auth/login", loginRequest);
         setUserData(user.data.data);
+    };
+
+    const register = async (registerRequest: RegisterRequestDto) => {
+        await api.post("/auth/register", registerRequest);
     };
 
     const refresh = async () => {
@@ -59,10 +64,11 @@ const useAuth = () => {
     };
 
     return {
-        authenticate,
+        login,
         logout,
         handleUserLoggedInCheck,
         refresh,
+        register,
     };
 };
 
