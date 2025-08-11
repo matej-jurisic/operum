@@ -13,7 +13,6 @@ using Operum.Service.Mappings.Mapper;
 using Operum.Service.Services.Authorization;
 using Operum.Service.Services.Token;
 using RestSharp;
-using System.Web;
 
 namespace Operum.Service.Services.Authentication
 {
@@ -115,8 +114,6 @@ namespace Operum.Service.Services.Authentication
             }
 
             var token = await userManager.GenerateEmailConfirmationTokenAsync(newUser);
-            var encodedToken = HttpUtility.UrlEncode(token);
-            var encodedId = HttpUtility.UrlEncode(newUser.Id);
 
             var baseUrl = configuration.GetValue<string?>("ServerUrl");
             if (baseUrl == null)
@@ -124,7 +121,7 @@ namespace Operum.Service.Services.Authentication
                 await transaction.RollbackAsync();
                 return ServiceResponse.Failure(StatusCodeEnum.InternalServerError, "Missing configuration for mail sender.");
             }
-            var confirmationLink = $"?userId={encodedId}&token={encodedToken}";
+            var confirmationLink = $"?userId={newUser.Id}&token={token}";
 
             RestResponse mailSenderResult = await mailSender.SendMailConfirmationMail(registerRequest.UserName, registerRequest.Email, confirmationLink);
             if (!mailSenderResult.IsSuccessStatusCode)

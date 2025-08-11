@@ -50,7 +50,7 @@ const App = observer(() => {
                                 element={<PrivateRoute page={<Tracker />} />}
                             />
                             <Route
-                                path="confirm-email/:userId/:token"
+                                path="confirm-email"
                                 element={
                                     <PublicRoute page={<ConfirmEmail />} />
                                 }

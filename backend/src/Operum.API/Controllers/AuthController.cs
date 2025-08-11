@@ -6,7 +6,6 @@ using Operum.Model.DTOs.Auth.Requests;
 using Operum.Model.Enums;
 using Operum.Model.Models;
 using Operum.Service.Services.Authentication;
-using System.Web;
 
 namespace Operum.API.Controllers
 {
@@ -53,13 +52,11 @@ namespace Operum.API.Controllers
             if (user == null)
                 return NotFound("User not found");
 
-            var decodedToken = HttpUtility.UrlDecode(token);
-
-            var result = await userManager.ConfirmEmailAsync(user, decodedToken);
+            var result = await userManager.ConfirmEmailAsync(user, token.Replace(' ', '+'));
             if (result.Succeeded)
                 return GetApiResponse(ServiceResponse.Success(StatusCodeEnum.Ok, "Email confirmed successfully!"));
 
-            return GetApiResponse(ServiceResponse.Success(StatusCodeEnum.BadRequest, "Error while confirming mail address!"));
+            return GetApiResponse(ServiceResponse.Failure(StatusCodeEnum.BadRequest, "Error while confirming mail address!"));
         }
     }
 }
