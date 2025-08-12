@@ -15,7 +15,7 @@ const useAuth = () => {
 
         if (username !== null && id !== null && exp !== null) {
             if (Date.now() > parseInt(exp, 10)) {
-                refresh();
+                getUser();
                 return;
             }
             globalStore.setCurrentUser({
@@ -34,7 +34,13 @@ const useAuth = () => {
         });
         localStorage.setItem(USERNAME_KEY, user.userName);
         localStorage.setItem(ID_KEY, user.id);
-        localStorage.setItem("exp", (Date.now() + 1000 * 60 * 2).toString());
+        if (user.tokenExpiry) {
+            const expiryDate = new Date(user.tokenExpiry);
+            localStorage.setItem(
+                "exp",
+                (expiryDate.getTime() + 1000 * 60 * 2).toString()
+            );
+        }
     };
 
     const clearUserData = () => {
@@ -51,6 +57,11 @@ const useAuth = () => {
 
     const register = async (registerRequest: RegisterRequestDto) => {
         await api.post("/auth/register", registerRequest);
+    };
+
+    const getUser = async () => {
+        const user = await api.get("/auth/me");
+        setUserData(user.data.data);
     };
 
     const refresh = async () => {

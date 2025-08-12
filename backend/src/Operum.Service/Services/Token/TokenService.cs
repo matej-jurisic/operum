@@ -88,12 +88,12 @@ namespace Operum.Service.Services.Token
             SetCookie(key, "", DateTime.UtcNow.AddDays(-1));
         }
 
-        public async Task<ServiceResponse> SetAuthTokenCookie(ApplicationUser user)
+        public async Task<ServiceResponse<DateTime>> SetAuthTokenCookie(ApplicationUser user)
         {
             var expires = GetAuthTokenExpiry();
             var createdToken = await CreateToken(user, expires);
             SetCookie(AuthTokenKey, createdToken, expires);
-            return ServiceResponse.Success();
+            return ServiceResponse.Success(expires);
         }
         public async Task<ServiceResponse> SetRefreshTokenCookie(ApplicationUser user)
         {

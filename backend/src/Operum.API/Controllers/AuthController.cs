@@ -41,6 +41,12 @@ namespace Operum.API.Controllers
             return GetApiResponse(await authenticationService.RefreshToken());
         }
 
+        [HttpGet("me")]
+        public async Task<IActionResult> GetCurrentUser()
+        {
+            return GetApiResponse(await authenticationService.GetCurrentApplicationUser());
+        }
+
         [AllowAnonymous]
         [HttpGet("confirm-email")]
         public async Task<IActionResult> ConfirmEmail(string userId, string token)

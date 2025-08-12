@@ -48,13 +48,7 @@ namespace Operum.Service.Services.Authentication
                 return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "Invalid login attempt.");
             }
 
-            await AuthenticateUser(user);
-
-            ApplicationUserDto userDto = new()
-            {
-                Id = user.Id,
-                UserName = user.UserName
-            };
+            var userDto = await AuthenticateUser(user);
 
             logger.LogInformation("User {userId} logged in successfully.", loginRequest.Credentials);
 
@@ -166,25 +160,26 @@ namespace Operum.Service.Services.Authentication
                 return ServiceResponse.Failure(StatusCodeEnum.Unauthorized);
             }
 
-            await AuthenticateUser(storedToken.User);
+            var userDto = await AuthenticateUser(storedToken.User);
 
             storedToken.IsRevoked = true;
             await db.SaveChangesAsync();
 
-            var user = storedToken.User;
-
-            ApplicationUserDto userDto = new()
-            {
-                Id = user.Id,
-                UserName = user.UserName
-            };
-
             return ServiceResponse.Success(userDto);
         }
-        private async Task AuthenticateUser(ApplicationUser user)
+
+        private async Task<ApplicationUserDto> AuthenticateUser(ApplicationUser user)
         {
-            await tokenService.SetAuthTokenCookie(user);
+            ServiceResponse<DateTime> expiry = await tokenService.SetAuthTokenCookie(user);
             await tokenService.SetRefreshTokenCookie(user);
+
+            return new ApplicationUserDto
+            {
+                Id = user.Id,
+                Email = user.Email,
+                UserName = user.UserName,
+                TokenExpiry = expiry.Data
+            };
         }
     }
 }
