@@ -25,13 +25,13 @@ namespace Operum.Service.Services.Authentication
 
             if (user == null)
             {
-                logger.LogWarning("Failed login attempt for credentials {credentials}. Reason: User not found.", loginRequest.Credentials);
+                logger.LogWarning("Failed login attempt. Reason: User not found.");
                 return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "Invalid login attempt.");
             }
 
             if (!user.EmailConfirmed)
             {
-                logger.LogWarning("Failed login attempt for credentials {credentials}. Reason: Email not confirmed.", loginRequest.Credentials);
+                logger.LogWarning("Failed login attempt. Reason: Email not confirmed.");
                 return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "Email address has not been confirmed.");
             }
 
@@ -39,18 +39,17 @@ namespace Operum.Service.Services.Authentication
 
             if (signInResult.IsLockedOut)
             {
-                logger.LogWarning("Failed login attempt for credentials {credentials}. Reason: User is locked out.", loginRequest.Credentials);
+                logger.LogWarning("Failed login attempt. Reason: User is locked out.");
                 return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "You are currently locked out.");
             }
             if (!signInResult.Succeeded)
             {
-                logger.LogWarning("Failed login attempt for credentials {credentials}. Reason: Wrong password.", loginRequest.Credentials);
+                logger.LogWarning("Failed login attempt. Reason: Wrong password.");
                 return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "Invalid login attempt.");
             }
 
             var userDto = await AuthenticateUser(user);
-
-            logger.LogInformation("User {userId} logged in successfully.", loginRequest.Credentials);
+            logger.LogInformation("User {userId} logged in successfully.", userDto.Id);
 
             return ServiceResponse.Success(userDto, "Successfully logged in!");
         }
