@@ -11,7 +11,6 @@ import Auth from "./pages/Auth";
 import { ConfirmEmail } from "./pages/ConfirmEmail";
 import Home from "./pages/Home";
 import Tracker from "./pages/Tracker";
-import globalStore from "./stores/GlobalStore";
 
 const App = observer(() => {
     const auth = useAuth();
@@ -20,10 +19,6 @@ const App = observer(() => {
     useEffect(() => {
         auth.handleUserLoggedInCheck();
     }, [auth]);
-
-    if (!globalStore.isAuthResolved) {
-        return <div>{`Loading...`}</div>;
-    }
 
     return (
         <>

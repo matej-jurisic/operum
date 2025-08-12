@@ -73,7 +73,6 @@ export default function Tracker() {
                     color={tracker.color}
                     value={activeTab}
                     onChange={setActiveTab}
-                    keepMounted={false}
                 >
                     <Tabs.List>
                         <Tabs.Tab value="entries">Entries</Tabs.Tab>

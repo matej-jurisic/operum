@@ -8,9 +8,7 @@ import {
 } from "@mantine/core";
 import { DatePickerInput, DateTimePicker, TimeInput } from "@mantine/dates";
 import { useForm } from "@mantine/form";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import api from "../api/api";
-import { FieldDto } from "../model/FieldDto";
 import { TrackerDto } from "../model/TrackerDto";
 
 interface CreateEntryDialogProps {
@@ -19,22 +17,13 @@ interface CreateEntryDialogProps {
     onEntryCreated?: () => void;
 }
 
-const GetFields = async (
-    trackerId: string,
-    setFields: Dispatch<SetStateAction<FieldDto[]>>
-) => {
-    const response = await api.get(`/trackers/${trackerId}/fields`);
-    setFields(response.data.data);
-};
-
 export default function CreateEntryDialog(props: CreateEntryDialogProps) {
-    const [fields, setFields] = useState<FieldDto[]>([]);
     const form = useForm<{ [key: string]: unknown }>({ initialValues: {} });
 
     const handleSubmit = async (values: Record<string, unknown>) => {
         const fieldValues: Record<string, string> = {};
 
-        fields.forEach((field) => {
+        props.tracker.fields.forEach((field) => {
             let value = values[field.name];
 
             if (field.type === "bool") {
@@ -68,11 +57,7 @@ export default function CreateEntryDialog(props: CreateEntryDialogProps) {
         props.onEntryCreated?.();
     };
 
-    useEffect(() => {
-        GetFields(props.tracker.id, setFields);
-    }, [props.tracker.id]);
-
-    if (fields.length === 0) {
+    if (props.tracker.fields.length === 0) {
         return <></>;
     }
 
@@ -85,7 +70,7 @@ export default function CreateEntryDialog(props: CreateEntryDialogProps) {
                             align="stretch"
                             style={{ maxWidth: 400, margin: "0 auto" }}
                         >
-                            {fields.map((field) => {
+                            {props.tracker.fields.map((field) => {
                                 const fieldProps = {
                                     label: field.name,
                                     required: field.required,
