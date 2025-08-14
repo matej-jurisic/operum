@@ -8,23 +8,25 @@ const USERNAME_KEY = "username";
 const ID_KEY = "id";
 
 const useAuth = () => {
-    const handleUserLoggedInCheck = () => {
+    const handleUserLoggedInCheck = async () => {
+        globalStore.setCheckingAuth(true);
         const username = localStorage.getItem(USERNAME_KEY);
         const id = localStorage.getItem(ID_KEY);
         const exp = localStorage.getItem("exp");
 
         if (username !== null && id !== null && exp !== null) {
             if (Date.now() > parseInt(exp, 10)) {
-                getUser();
-                return;
+                await getUser();
+            } else {
+                globalStore.setCurrentUser({
+                    userName: username,
+                    id: id,
+                });
             }
-            globalStore.setCurrentUser({
-                userName: username,
-                id: id,
-            });
         } else {
             globalStore.setCurrentUser(undefined);
         }
+        globalStore.setCheckingAuth(false);
     };
 
     const setUserData = (user: ApplicationUserDto) => {

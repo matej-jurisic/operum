@@ -1,3 +1,4 @@
+// PublicRoute.tsx
 import { observer } from "mobx-react";
 import { JSX } from "react";
 import { Navigate } from "react-router-dom";
@@ -9,6 +10,7 @@ interface PublicRouteProps {
 }
 
 export const PublicRoute = (props: PublicRouteProps) => {
+    if (globalStore.checkingAuth) return <div>Checking authentication...</div>;
     if (globalStore.currentUser) return <Navigate to="/home" />;
 
     return <GenericRoute page={props.page} />;

@@ -11,6 +11,7 @@ import Auth from "./pages/Auth";
 import { ConfirmEmail } from "./pages/ConfirmEmail";
 import Home from "./pages/Home";
 import Tracker from "./pages/Tracker";
+import globalStore from "./stores/GlobalStore";
 
 const App = observer(() => {
     const auth = useAuth();
@@ -18,7 +19,11 @@ const App = observer(() => {
 
     useEffect(() => {
         auth.handleUserLoggedInCheck();
-    }, [auth]);
+    }, []);
+
+    if (globalStore.checkingAuth) {
+        return <div>Checking authentication...</div>;
+    }
 
     return (
         <>
@@ -52,7 +57,13 @@ const App = observer(() => {
                             />
                             <Route
                                 path="*"
-                                element={<Navigate to={"/home"} />}
+                                element={
+                                    globalStore.currentUser ? (
+                                        <Navigate to={"/home"} />
+                                    ) : (
+                                        <Navigate to={"/auth"} />
+                                    )
+                                }
                             />
                         </Routes>
                     </BrowserRouter>

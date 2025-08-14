@@ -3,6 +3,7 @@ import { ApplicationUserDto } from "../model/ApplicationUserDto";
 
 class GlobalStore {
     currentUser: ApplicationUserDto | undefined;
+    checkingAuth: boolean = true;
 
     constructor() {
         makeAutoObservable(this);
@@ -10,6 +11,10 @@ class GlobalStore {
 
     setCurrentUser(user: ApplicationUserDto | undefined) {
         this.currentUser = user;
+    }
+
+    setCheckingAuth(value: boolean) {
+        this.checkingAuth = value;
     }
 }
 
