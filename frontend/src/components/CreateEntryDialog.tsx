@@ -6,7 +6,7 @@ import {
     Stack,
     TextInput,
 } from "@mantine/core";
-import { DatePickerInput, DateTimePicker, TimeInput } from "@mantine/dates";
+import { DatePickerInput, DateTimePicker, TimePicker } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import api from "../api/api";
 import { TrackerDto } from "../model/TrackerDto";
@@ -109,9 +109,10 @@ export default function CreateEntryDialog(props: CreateEntryDialogProps) {
                                         );
                                     case "timespan":
                                         return (
-                                            <TimeInput
+                                            <TimePicker
                                                 withSeconds
                                                 {...fieldProps}
+                                                format="24h"
                                                 label={
                                                     fieldProps.label +
                                                     " (hh:mm:ss)"
@@ -125,6 +126,17 @@ export default function CreateEntryDialog(props: CreateEntryDialogProps) {
                                                 withSeconds
                                                 placeholder="Pick date/time"
                                                 {...fieldProps}
+                                                dropdownType="popover"
+                                                styles={{
+                                                    input: {
+                                                        cursor: "pointer",
+                                                        userSelect: "none",
+                                                    },
+                                                }}
+                                                modalProps={{
+                                                    centered: true,
+                                                    size: "sm",
+                                                }}
                                             />
                                         );
                                     default:
