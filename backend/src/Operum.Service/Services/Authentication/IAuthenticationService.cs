@@ -11,5 +11,6 @@ namespace Operum.Service.Services.Authentication
         Task<ServiceResponse> Register(RegisterRequestDto registerRequest);
         Task<ServiceResponse<ApplicationUserDto>> GetCurrentApplicationUser();
         Task<ServiceResponse<ApplicationUserDto>> RefreshToken();
+        Task<ServiceResponse> ConfirmEmail(string userId, string token);
     }
 }

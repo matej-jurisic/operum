@@ -122,7 +122,7 @@ api.interceptors.response.use(
 
             try {
                 // Use a raw axios instance here to avoid the interceptor loop
-                const response = await axios.get(
+                const response = await axios.post(
                     `${import.meta.env.VITE_REACT_API_URL}/auth/refresh`,
                     {
                         withCredentials: true,

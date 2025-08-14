@@ -1,4 +1,6 @@
-export interface SingleFieldAnalyticsDto {
+export interface FieldAnalyticsDto {
+    fieldName: string;
+
     // Common
     count?: number;
 

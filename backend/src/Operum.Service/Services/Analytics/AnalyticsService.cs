@@ -9,35 +9,55 @@ using Operum.Service.Services.Authorization;
 
 namespace Operum.Service.Services.Analytics
 {
-    public class AnalyticsService(OperumContext db, IAuthorizationService authorizationService) : IAnalyticsService
+    public class AnalyticsService(OperumContext db, IDbContextFactory<OperumContext> dbFactory, IAuthorizationService authorizationService) : IAnalyticsService
     {
-        public async Task<ServiceResponse<SingleFieldAnalyticsDto>> GetSingleFieldAnalytics(string trackerId, string fieldId)
+        public async Task<ServiceResponse<List<FieldAnalyticsDto>>> GetTrackerAnalytics(string trackerId)
         {
             var user = authorizationService.GetCurrentUserDto();
-            var field = await db.Fields
-                .Include(x => x.Tracker)
-                .FirstOrDefaultAsync(x => x.TrackerId == trackerId && x.Id == fieldId);
+            var tracker = await db.Trackers.FindAsync(trackerId);
 
-            if (field == null || !user.Owns(field))
+            if (tracker == null || !user.Owns(tracker))
             {
                 return ServiceResponse.Failure(StatusCodeEnum.NotFound);
             }
 
-            return field.Type switch
+            var fields = await db.Fields
+                .Where(x => x.TrackerId == trackerId)
+                .Select(f => new { f.Id, f.Type, f.Name })
+                .ToListAsync();
+
+            // Process analytics in parallel for better performance
+            var analyticsTasks = fields.Select(async field =>
             {
-                OperumTypes.Number => await GetSingleFieldNumberAnalytics(fieldId),
-                OperumTypes.DateTime => await GetSingleFieldDateTimeAnalytics(fieldId),
-                OperumTypes.Date => await GetSingleFieldDateAnalytics(fieldId),
-                OperumTypes.TimeSpan => await GetSingleFieldTimeSpanAnalytics(fieldId),
-                OperumTypes.Bool => await GetSingleFieldBoolAnalytics(fieldId),
-                _ => ServiceResponse.Failure(StatusCodeEnum.BadRequest, $"Type {field.Type} does not support single field analytics.")
-            };
+                await using var taskDb = await dbFactory.CreateDbContextAsync();
+
+                var analytics = field.Type switch
+                {
+                    OperumTypes.Number => await GetNumericAnalytics(taskDb, field.Id),
+                    OperumTypes.DateTime => await GetDateTimeAnalytics(taskDb, field.Id),
+                    OperumTypes.Date => await GetDateAnalytics(taskDb, field.Id),
+                    OperumTypes.TimeSpan => await GetTimeSpanAnalytics(taskDb, field.Id),
+                    OperumTypes.Bool => await GetBooleanAnalytics(taskDb, field.Id),
+                    _ => null
+                };
+
+                if (analytics?.Data != null)
+                {
+                    analytics.Data.FieldName = field.Name;
+                }
+
+                return analytics?.Data;
+            });
+
+            var results = await Task.WhenAll(analyticsTasks);
+            List<FieldAnalyticsDto> analyticsResult = results.Where(r => r != null).ToList()!;
+
+            return ServiceResponse.Success(analyticsResult);
         }
 
-
-        private async Task<ServiceResponse<SingleFieldAnalyticsDto>> GetSingleFieldNumberAnalytics(string fieldId)
+        private async Task<ServiceResponse<FieldAnalyticsDto>> GetNumericAnalytics(OperumContext taskDb, string fieldId)
         {
-            var analyticsData = await db.FieldValues
+            var result = await taskDb.FieldValues
                 .Where(x => x.FieldId == fieldId && x.NumberValue.HasValue)
                 .GroupBy(x => true)
                 .Select(g => new
@@ -45,37 +65,35 @@ namespace Operum.Service.Services.Analytics
                     Count = g.Count(),
                     Min = g.Min(x => x.NumberValue),
                     Max = g.Max(x => x.NumberValue),
+                    Sum = g.Sum(x => x.NumberValue),
                     Average = g.Average(x => x.NumberValue),
-                    SumOfSquares = g.Sum(x => x.NumberValue * x.NumberValue),
-                    Sum = g.Sum(x => x.NumberValue)
+                    SumOfSquares = g.Sum(x => x.NumberValue * x.NumberValue)
                 })
                 .FirstOrDefaultAsync();
 
-            if (analyticsData == null || analyticsData.Count == 0)
+            if (result == null || result.Count == 0)
             {
-                return ServiceResponse.Success(new SingleFieldAnalyticsDto());
+                return ServiceResponse.Success(new FieldAnalyticsDto());
             }
 
-            double avg = analyticsData.Average ?? 0;
-            double variance = (analyticsData.SumOfSquares ?? 0 - analyticsData.Count * avg * avg) / analyticsData.Count;
-            double stdDev = Math.Sqrt(variance);
+            var avg = result.Average ?? 0;
+            var variance = (result.SumOfSquares ?? 0) / result.Count - (avg * avg);
+            var stdDev = Math.Sqrt(Math.Max(0, variance));
 
-            var analytics = new SingleFieldAnalyticsDto
+            return ServiceResponse.Success(new FieldAnalyticsDto
             {
-                Count = analyticsData.Count,
-                Min = analyticsData.Min,
-                Max = analyticsData.Max,
-                Sum = analyticsData.Sum,
+                Count = result.Count,
+                Min = result.Min,
+                Max = result.Max,
+                Sum = result.Sum,
                 Average = Math.Round(avg, 2),
                 StdDev = Math.Round(stdDev, 2)
-            };
-
-            return ServiceResponse.Success(analytics);
+            });
         }
 
-        private async Task<ServiceResponse<SingleFieldAnalyticsDto>> GetSingleFieldTimeSpanAnalytics(string fieldId)
+        private async Task<ServiceResponse<FieldAnalyticsDto>> GetTimeSpanAnalytics(OperumContext taskDb, string fieldId)
         {
-            var fieldValues = await db.FieldValues
+            var fieldValues = await taskDb.FieldValues
                 .Where(x => x.FieldId == fieldId && x.TimeSpanValue.HasValue)
                 .ToListAsync();
 
@@ -93,10 +111,10 @@ namespace Operum.Service.Services.Analytics
 
             if (result == null || result.Count == 0)
             {
-                return ServiceResponse.Success(new SingleFieldAnalyticsDto());
+                return ServiceResponse.Success(new FieldAnalyticsDto());
             }
 
-            return ServiceResponse.Success(new SingleFieldAnalyticsDto
+            return ServiceResponse.Success(new FieldAnalyticsDto
             {
                 Count = result.Count,
                 MinTimeSpan = TimeSpan.FromTicks(result.MinTicks),
@@ -105,9 +123,9 @@ namespace Operum.Service.Services.Analytics
             });
         }
 
-        private async Task<ServiceResponse<SingleFieldAnalyticsDto>> GetSingleFieldDateTimeAnalytics(string fieldId)
+        private async Task<ServiceResponse<FieldAnalyticsDto>> GetDateTimeAnalytics(OperumContext taskDb, string fieldId)
         {
-            var result = await db.FieldValues
+            var result = await taskDb.FieldValues
                 .Where(x => x.FieldId == fieldId && x.DateTimeValue.HasValue)
                 .GroupBy(x => true)
                 .Select(g => new
@@ -120,10 +138,10 @@ namespace Operum.Service.Services.Analytics
 
             if (result == null || result.Count == 0)
             {
-                return ServiceResponse.Success(new SingleFieldAnalyticsDto());
+                return ServiceResponse.Success(new FieldAnalyticsDto());
             }
 
-            return ServiceResponse.Success(new SingleFieldAnalyticsDto
+            return ServiceResponse.Success(new FieldAnalyticsDto
             {
                 Count = result.Count,
                 MinDateTime = result.Min,
@@ -131,12 +149,12 @@ namespace Operum.Service.Services.Analytics
             });
         }
 
-        private async Task<ServiceResponse<SingleFieldAnalyticsDto>> GetSingleFieldDateAnalytics(string fieldId)
+        private async Task<ServiceResponse<FieldAnalyticsDto>> GetDateAnalytics(OperumContext taskDb, string fieldId)
         {
-            var result = await db.FieldValues
+            var result = await taskDb.FieldValues
                 .Where(x => x.FieldId == fieldId && x.DateTimeValue.HasValue)
                 .Select(x => x.DateTimeValue!.Value.Date)
-                .GroupBy(d => true)
+                .GroupBy(x => true)
                 .Select(g => new
                 {
                     Count = g.Count(),
@@ -147,10 +165,10 @@ namespace Operum.Service.Services.Analytics
 
             if (result == null || result.Count == 0)
             {
-                return ServiceResponse.Success(new SingleFieldAnalyticsDto());
+                return ServiceResponse.Success(new FieldAnalyticsDto());
             }
 
-            return ServiceResponse.Success(new SingleFieldAnalyticsDto
+            return ServiceResponse.Success(new FieldAnalyticsDto
             {
                 Count = result.Count,
                 MinDate = result.Min,
@@ -158,10 +176,9 @@ namespace Operum.Service.Services.Analytics
             });
         }
 
-
-        private async Task<ServiceResponse<SingleFieldAnalyticsDto>> GetSingleFieldBoolAnalytics(string fieldId)
+        private async Task<ServiceResponse<FieldAnalyticsDto>> GetBooleanAnalytics(OperumContext taskDb, string fieldId)
         {
-            var result = await db.FieldValues
+            var result = await taskDb.FieldValues
                 .Where(x => x.FieldId == fieldId && x.BooleanValue.HasValue)
                 .GroupBy(x => true)
                 .Select(g => new
@@ -174,12 +191,12 @@ namespace Operum.Service.Services.Analytics
 
             if (result == null || result.Count == 0)
             {
-                return ServiceResponse.Success(new SingleFieldAnalyticsDto());
+                return ServiceResponse.Success(new FieldAnalyticsDto());
             }
 
-            double truePercentage = (double)result.TrueCount / result.Count * 100;
+            var truePercentage = (double)result.TrueCount / result.Count;
 
-            return ServiceResponse.Success(new SingleFieldAnalyticsDto
+            return ServiceResponse.Success(new FieldAnalyticsDto
             {
                 Count = result.Count,
                 TrueCount = result.TrueCount,
@@ -187,6 +204,5 @@ namespace Operum.Service.Services.Analytics
                 TruePercentage = Math.Round(truePercentage, 2)
             });
         }
-
     }
 }

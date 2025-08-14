@@ -13,22 +13,47 @@ using System.Threading.RateLimiting;
 
 namespace Operum.API.Configuration
 {
-    public static class ServiceRegistrations
+    public static class WebServices
     {
-        public static void RegisterServices(this IServiceCollection services, IConfiguration configuration)
+        public static void Configure(this IServiceCollection services, IConfiguration configuration)
         {
-            services.AddControllers(options =>
-            {
-                var policy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
-            });
+            services.AddControllers();
             services.AddEndpointsApiExplorer();
             services.AddSwaggerGen();
             services.AddRouting(options => options.LowercaseUrls = true);
+            services.AddHttpContextAccessor();
+
+            services.RegisterAuthServices(configuration);
+            services.RegisterDatabase(configuration);
+            services.RegisterCors(configuration);
+            services.RegisterRateLimiting();
+        }
+
+        public static void RegisterDatabase(this IServiceCollection services, IConfiguration configuration)
+        {
+            string? connectionString = configuration.GetConnectionString("Operum");
+            ArgumentException.ThrowIfNullOrEmpty(connectionString);
+
+            services.AddDbContextFactory<OperumContext>(opt =>
+            {
+                opt.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+                opt.UseNpgsql(connectionString, x => x.MigrationsHistoryTable("__EFMigrationsHistory", "backend"));
+            });
+        }
+
+        private static void RegisterAuthServices(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.RegisterJwtAuthentication(configuration);
+            services.RegisterIdentity();
+        }
+
+        private static void RegisterCors(this IServiceCollection services, IConfiguration configuration)
+        {
             services.AddCors(opt =>
             {
                 var allowedHosts = configuration.GetValue<string?>("AllowedHosts");
                 var origins = allowedHosts?.Split(';', StringSplitOptions.RemoveEmptyEntries)
-                  ?? [];
+                    ?? ["http://localhost:3000", "https://localhost:3000"];
 
                 opt.AddPolicy("CorsPolicy", policy =>
                 {
@@ -39,7 +64,10 @@ namespace Operum.API.Configuration
                        .WithOrigins(origins);
                 });
             });
-            services.AddHttpContextAccessor();
+        }
+
+        private static void RegisterRateLimiting(this IServiceCollection services)
+        {
             services.AddRateLimiter(options =>
             {
                 options.AddFixedWindowLimiter("fixed", config =>
@@ -52,17 +80,10 @@ namespace Operum.API.Configuration
             });
         }
 
-        public static void RegisterDatabase(this IServiceCollection services, string connectionString)
+        private static void RegisterJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
         {
-            services.AddDbContext<OperumContext>(opt =>
-            {
-                opt.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
-                opt.UseNpgsql(connectionString, x => x.MigrationsHistoryTable("__EFMigrationsHistory", "backend"));
-            });
-        }
+            var jwtKey = configuration["JwtSettings:Key"] ?? throw new InvalidOperationException("JWT Key is not configured");
 
-        public static void RegisterAuthServices(this IServiceCollection services, IConfiguration configuration)
-        {
             services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -70,12 +91,10 @@ namespace Operum.API.Configuration
             })
             .AddJwtBearer(options =>
             {
-                options.RequireHttpsMetadata = false;
-                options.SaveToken = true;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["JwtSettings:Key"] ?? throw new Exception("Missing jwt configuration!"))),
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
                     ValidateIssuer = true,
                     ValidIssuer = configuration["JwtSettings:Issuer"],
                     ValidateAudience = true,
@@ -83,52 +102,71 @@ namespace Operum.API.Configuration
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.Zero
                 };
+
                 options.Events = new JwtBearerEvents
                 {
                     OnMessageReceived = context =>
                     {
-                        context.Request.Cookies.TryGetValue("AuthToken", out var token);
-                        if (!string.IsNullOrEmpty(token))
+                        if (context.Request.Cookies.TryGetValue("AuthToken", out var token) && !string.IsNullOrEmpty(token))
                         {
                             context.Token = token;
                         }
                         return Task.CompletedTask;
                     },
-                    OnAuthenticationFailed = context =>
-                    {
-                        return Task.CompletedTask;
-                    },
-                    OnTokenValidated = context =>
-                    {
-                        return Task.CompletedTask;
-                    },
                     OnChallenge = async context =>
                     {
-                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        var endpoint = context.HttpContext.GetEndpoint();
+                        if (endpoint?.Metadata?.GetMetadata<IAllowAnonymous>() != null)
+                            return;
+
                         context.HandleResponse();
-                        await context.Response.WriteAsJsonAsync(new ApiResponse()
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        context.Response.ContentType = "application/json";
+
+                        await context.Response.WriteAsJsonAsync(new ApiResponse
                         {
-                            Messages = ["Unauthorized."],
+                            Messages = ["Authentication required"],
                             StatusCode = StatusCodeEnum.Unauthorized
                         });
                     }
                 };
             });
+        }
+
+
+        private static void RegisterIdentity(this IServiceCollection services)
+        {
             services.AddAuthorizationBuilder()
                 .SetFallbackPolicy(new AuthorizationPolicyBuilder()
-                .RequireAuthenticatedUser()
-                .Build()).SetInvokeHandlersAfterFailure(false);
+                    .RequireAuthenticatedUser()
+                    .Build())
+                .SetInvokeHandlersAfterFailure(false);
+
             services.AddAuthorization();
-            services.AddIdentityApiEndpoints<IdentityUser>()
-                .AddEntityFrameworkStores<OperumContext>();
+
             services.AddIdentityCore<ApplicationUser>()
                 .AddRoles<IdentityRole>()
                 .AddRoleManager<RoleManager<IdentityRole>>()
+                .AddSignInManager<SignInManager<ApplicationUser>>()
+                .AddUserManager<UserManager<ApplicationUser>>()
                 .AddEntityFrameworkStores<OperumContext>()
                 .AddDefaultTokenProviders();
+
             services.Configure<IdentityOptions>(options =>
             {
                 options.User.RequireUniqueEmail = true;
+
+                // Password requirements
+                options.Password.RequireDigit = true;
+                options.Password.RequiredLength = 8;
+                options.Password.RequireNonAlphanumeric = false;
+                options.Password.RequireUppercase = true;
+                options.Password.RequireLowercase = true;
+
+                // Account lockout
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+                options.Lockout.MaxFailedAccessAttempts = 5;
+                options.Lockout.AllowedForNewUsers = true;
             });
         }
     }

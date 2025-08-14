@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Operum.API.Controllers
+namespace Operum.API.Controllers.Base
 {
     [ApiController]
     [Route("api")]

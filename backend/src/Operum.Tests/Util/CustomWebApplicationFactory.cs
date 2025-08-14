@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -9,6 +10,8 @@ using Operum.API;
 using Operum.API.Seed;
 using Operum.Model;
 using Operum.Model.Models;
+using Operum.Service.Integrations.MailSender;
+using Operum.Tests.Mocks;
 using System.Net;
 
 namespace Operum.Tests.Util
@@ -30,8 +33,11 @@ namespace Operum.Tests.Util
                 services.RemoveAll<IDbContextOptionsConfiguration<OperumContext>>();
                 services.AddDbContext<OperumContext>(options =>
                 {
-                    options.UseInMemoryDatabase(_databaseName);
+                    options.UseInMemoryDatabase(_databaseName)
+                        .ConfigureWarnings(warnings =>
+                           warnings.Ignore(InMemoryEventId.TransactionIgnoredWarning));
                 });
+                services.AddScoped<IMailSender, MockMailSender>();
             });
         }
 
@@ -63,8 +69,7 @@ namespace Operum.Tests.Util
             var userManager = scopedServices.GetRequiredService<UserManager<ApplicationUser>>();
 
             await db.Database.EnsureCreatedAsync();
-            await DataSeeder.SeedRolesAsync(roleManager);
-            await DataSeeder.SeedUsersAsync(userManager);
+            await DataSeeder.SeedUsersAsync(userManager, roleManager);
         }
     }
 

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Operum.API.Controllers.Base;
 using Operum.Model.DTOs.Auth.Requests;
 using Operum.Service.Services.Authentication;
 using Operum.Service.Services.Roles;

@@ -12,8 +12,8 @@ interface FieldsListProps {
     refreshTracker: () => void;
 }
 
-const DeleteField = async (fieldId: string) => {
-    await api.delete(`/trackers/fields/${fieldId}`);
+const DeleteField = async (trackerId: string, fieldId: string) => {
+    await api.delete(`/trackers/${trackerId}/fields/${fieldId}`);
 };
 
 const GetFields = async (trackerId: string) => {
@@ -108,7 +108,7 @@ export default function FieldsList(props: FieldsListProps) {
                         setOpenDialogType(undefined);
                     }}
                     onConfirm={async () => {
-                        await DeleteField(selectedField.id);
+                        await DeleteField(props.tracker.id, selectedField.id);
                         setSelectedField(undefined);
                         setOpenDialogType(undefined);
                         setFields(await GetFields(props.tracker.id));

@@ -32,16 +32,16 @@ namespace Operum.Service.Services.Fields
             await db.Fields.AddAsync(newField);
             await db.SaveChangesAsync();
 
-            var created = await GetField(newField.Id);
+            var created = await GetField(trackerId, newField.Id);
             return ServiceResponse.Success(created.Data);
         }
 
-        public async Task<ServiceResponse> DeleteField(string id)
+        public async Task<ServiceResponse> DeleteField(string trackerId, string fieldId)
         {
             var user = authorizationService.GetCurrentUserDto();
             var field = await db.Fields
                 .Include(x => x.Tracker)
-                .FirstOrDefaultAsync(x => x.Id == id);
+                .FirstOrDefaultAsync(x => x.Id == fieldId && x.TrackerId == trackerId);
 
             if (field == null || !user.Owns(field))
             {
@@ -53,12 +53,12 @@ namespace Operum.Service.Services.Fields
             return ServiceResponse.Success();
         }
 
-        public async Task<ServiceResponse<FieldDto>> GetField(string id)
+        public async Task<ServiceResponse<FieldDto>> GetField(string trackerId, string fieldId)
         {
             var user = authorizationService.GetCurrentUserDto();
             var field = await db.Fields
                  .Include(x => x.Tracker)
-                 .FirstOrDefaultAsync(x => x.Id == id);
+                 .FirstOrDefaultAsync(x => x.Id == fieldId && x.TrackerId == trackerId);
 
             if (field == null || !user.Owns(field))
             {
@@ -82,12 +82,12 @@ namespace Operum.Service.Services.Fields
             return ServiceResponse.Success(mapper.Map<List<Field>, List<FieldDto>>(fields));
         }
 
-        public async Task<ServiceResponse<FieldDto>> UpdateField(string id, UpdateFieldDto field)
+        public async Task<ServiceResponse<FieldDto>> UpdateField(string trackerId, string fieldId, UpdateFieldDto field)
         {
             var user = authorizationService.GetCurrentUserDto();
             var originalField = await db.Fields
                 .Include(x => x.Tracker)
-                .FirstOrDefaultAsync(x => x.Id == id);
+                .FirstOrDefaultAsync(x => x.Id == fieldId && x.TrackerId == trackerId);
 
             if (originalField == null || !user.Owns(originalField))
             {
@@ -100,7 +100,7 @@ namespace Operum.Service.Services.Fields
             db.Fields.Update(originalField);
             await db.SaveChangesAsync();
 
-            var updatedField = await GetField(originalField.Id);
+            var updatedField = await GetField(trackerId, fieldId);
             return ServiceResponse.Success(updatedField.Data);
         }
     }

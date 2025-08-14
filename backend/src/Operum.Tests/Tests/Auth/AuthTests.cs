@@ -24,8 +24,8 @@ public class AuthTests(CustomWebApplicationFactory factory, ITestOutputHelper ou
 
         var loginPayload = new LoginRequestDto()
         {
-            Credentials = DefaultUsers.TestUserData.Email,
-            Password = DefaultUsers.TestUserData.Password,
+            Credentials = DefaultUsers.AdminUserData.UserName,
+            Password = DefaultUsers.AdminUserData.Password,
         };
         var loginResponse = await client.PostAsJsonAsync("auth/login", loginPayload);
         Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
@@ -49,7 +49,7 @@ public class AuthTests(CustomWebApplicationFactory factory, ITestOutputHelper ou
     }
 
     [Fact]
-    public async Task Login_InvalidCredentials_ReturnsForbidden()
+    public async Task Login_InvalidCredentials_ReturnsBadRequest()
     {
         var client = _factory.CreateClient();
         await _factory.SeedDatabaseAsync();
@@ -57,18 +57,18 @@ public class AuthTests(CustomWebApplicationFactory factory, ITestOutputHelper ou
         var wrongCredentialsPayload = new LoginRequestDto()
         {
             Credentials = "not-test@example.com",
-            Password = DefaultUsers.TestUserData.Password,
+            Password = DefaultUsers.AdminUserData.Password,
         };
         var loginResponse = await client.PostAsJsonAsync("auth/login", wrongCredentialsPayload);
-        Assert.Equal(HttpStatusCode.Unauthorized, loginResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, loginResponse.StatusCode);
 
         var wrongPasswordPayload = new LoginRequestDto()
         {
-            Credentials = DefaultUsers.TestUserData.Email,
+            Credentials = DefaultUsers.AdminUserData.Email,
             Password = "NotPassword123!"
         };
         loginResponse = await client.PostAsJsonAsync("auth/login", wrongPasswordPayload);
-        Assert.Equal(HttpStatusCode.Unauthorized, loginResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, loginResponse.StatusCode);
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public class AuthTests(CustomWebApplicationFactory factory, ITestOutputHelper ou
 
         await client.Authenticate(DefaultUsers.TestUserData);
 
-        var refreshResponse = await client.GetAsync("auth/refresh");
+        var refreshResponse = await client.PostAsync("auth/refresh", null);
         client.Authenticate(refreshResponse);
 
         var validResponse = await client.GetAsync("users/me");

@@ -107,7 +107,7 @@ namespace Operum.Service.Services.Entries
             var user = authorizationService.GetCurrentUserDto();
             var entry = await db.Entries
                 .Include(x => x.Tracker)
-                .FirstOrDefaultAsync(x => x.Id == entryId);
+                .FirstOrDefaultAsync(x => x.Id == entryId && x.TrackerId == trackerId);
 
             if (entry == null || !user.Owns(entry))
             {
@@ -122,14 +122,14 @@ namespace Operum.Service.Services.Entries
 
             var fieldValuesDict = fieldValues.ToDictionary(x => x.FieldId);
 
-            var allTrackerFields = await db.Fields
+            var allFields = await db.Fields
                 .Where(f => f.TrackerId == trackerId)
                 .AsNoTracking()
                 .ToListAsync();
 
             var newFieldValues = new List<FieldValue>();
 
-            foreach (var field in allTrackerFields)
+            foreach (var field in allFields)
             {
                 fieldValuesDict.TryGetValue(field.Id, out var existingFieldValue);
                 bool hasNewValue = updateEntry.FieldValues.TryGetValue(field.Name, out string? newValue);

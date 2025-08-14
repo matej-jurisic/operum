@@ -1,16 +1,7 @@
-import {
-    Group,
-    Paper,
-    Select,
-    SimpleGrid,
-    Stack,
-    Text,
-    Title,
-} from "@mantine/core";
+import { Paper, SimpleGrid, Stack, Text, Title } from "@mantine/core";
 import { useEffect, useState } from "react";
 import api from "../api/api";
-import { FieldDto } from "../model/FieldDto";
-import { SingleFieldAnalyticsDto } from "../model/SingleFieldNumericAnalyticsDto";
+import { FieldAnalyticsDto } from "../model/SingleFieldNumericAnalyticsDto";
 import { TrackerDto } from "../model/TrackerDto";
 import {
     formatDateOnly,
@@ -23,10 +14,8 @@ interface AnalyticsListProps {
     isActive: boolean;
 }
 
-const GetSingleFieldAnalytics = async (trackerId: string, fieldId: string) => {
-    const response = await api.get(
-        `/trackers/${trackerId}/fields/${fieldId}/analytics/numeric`
-    );
+const GetTrackerAnalytics = async (trackerId: string) => {
+    const response = await api.get(`/trackers/${trackerId}/analytics`);
     return response.data.data;
 };
 
@@ -50,170 +39,127 @@ const StatCard = ({
 );
 
 export default function AnalyticsList(props: AnalyticsListProps) {
-    const [analytics, setAnalytics] = useState<SingleFieldAnalyticsDto>();
-    const [selectedField, setSelectedField] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (props.isActive) setSelectedField(null);
-    }, [props.isActive]);
+    const [analytics, setAnalytics] = useState<FieldAnalyticsDto[]>([]);
 
     useEffect(() => {
         const GetData = async () => {
-            if (!selectedField) return;
-            setAnalytics(
-                await GetSingleFieldAnalytics(props.tracker.id, selectedField)
-            );
+            setAnalytics(await GetTrackerAnalytics(props.tracker.id));
         };
 
-        if (selectedField) {
-            GetData();
-        } else {
-            setAnalytics(undefined);
-        }
-    }, [selectedField, props.tracker.id]);
+        GetData();
+    }, [props.tracker.id]);
 
     return (
         <Stack gap="lg">
-            <Stack gap="md">
-                <Title c={props.tracker.color} order={4}>
-                    Field Analytics
-                </Title>
-                <Select
-                    data={props.tracker.fields.map((field: FieldDto) => ({
-                        value: field.id,
-                        label: field.name,
-                    }))}
-                    value={selectedField}
-                    onChange={setSelectedField}
-                    placeholder="Select a field to analyze"
-                    searchable
-                    clearable
-                />
-            </Stack>
-
-            {analytics && (
+            {analytics.map((analytic) => (
                 <Stack gap="lg">
-                    <Group justify="space-between" align="center">
-                        <Title c={props.tracker.color} order={4}>
-                            Statistics
-                        </Title>
-                        <Text size="sm" c="dimmed">
-                            {
-                                props.tracker.fields.find(
-                                    (f) => f.id === selectedField
-                                )?.name
-                            }
-                        </Text>
-                    </Group>
-
+                    <Title c={props.tracker.color} order={4}>
+                        {analytic.fieldName}
+                    </Title>
                     <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
-                        {analytics.min != null && (
+                        {analytic.min != null && (
                             <StatCard
                                 label="Minimum"
-                                value={analytics.min.toFixed(2)}
+                                value={analytic.min.toFixed(2)}
                             />
                         )}
-                        {analytics.max != null && (
+                        {analytic.max != null && (
                             <StatCard
                                 label="Maximum"
-                                value={analytics.max.toFixed(2)}
+                                value={analytic.max.toFixed(2)}
                             />
                         )}
-                        {analytics.average != null && (
+                        {analytic.average != null && (
                             <StatCard
                                 label="Average"
-                                value={analytics.average.toFixed(2)}
+                                value={analytic.average.toFixed(2)}
                             />
                         )}
-                        {analytics.sum != null && (
+                        {analytic.sum != null && (
                             <StatCard
                                 label="Sum"
-                                value={analytics.sum.toFixed(2)}
+                                value={analytic.sum.toFixed(2)}
                             />
                         )}
-                        {analytics.stdDev != null && (
+                        {analytic.stdDev != null && (
                             <StatCard
                                 label="Standard Deviation"
-                                value={analytics.stdDev.toFixed(2)}
+                                value={analytic.stdDev.toFixed(2)}
                             />
                         )}
-                        {analytics.count != null && (
+                        {analytic.count != null && (
                             <StatCard
                                 label="Total Count"
-                                value={analytics.count}
+                                value={analytic.count}
                             />
                         )}
 
-                        {analytics.minDateTime && (
+                        {analytic.minDateTime && (
                             <StatCard
                                 label="Earliest"
-                                value={formatDateTime(analytics.minDateTime)}
+                                value={formatDateTime(analytic.minDateTime)}
                             />
                         )}
-                        {analytics.maxDateTime && (
+                        {analytic.maxDateTime && (
                             <StatCard
                                 label="Latest"
-                                value={formatDateTime(analytics.maxDateTime)}
+                                value={formatDateTime(analytic.maxDateTime)}
                             />
                         )}
 
-                        {analytics.minDate && (
+                        {analytic.minDate && (
                             <StatCard
                                 label="Earliest"
-                                value={formatDateOnly(analytics.minDate)}
+                                value={formatDateOnly(analytic.minDate)}
                             />
                         )}
-                        {analytics.maxDate && (
+                        {analytic.maxDate && (
                             <StatCard
                                 label="Latest"
-                                value={formatDateOnly(analytics.maxDate)}
+                                value={formatDateOnly(analytic.maxDate)}
                             />
                         )}
 
-                        {analytics.minTimeSpan && (
+                        {analytic.minTimeSpan && (
                             <StatCard
                                 label="Shortest"
-                                value={formatTimeSpan(analytics.minTimeSpan)}
+                                value={formatTimeSpan(analytic.minTimeSpan)}
                             />
                         )}
-                        {analytics.maxTimeSpan && (
+                        {analytic.maxTimeSpan && (
                             <StatCard
                                 label="Longest"
-                                value={formatTimeSpan(analytics.maxTimeSpan)}
+                                value={formatTimeSpan(analytic.maxTimeSpan)}
                             />
                         )}
-                        {analytics.averageTimeSpan && (
+                        {analytic.averageTimeSpan && (
                             <StatCard
                                 label="Average"
-                                value={formatTimeSpan(
-                                    analytics.averageTimeSpan
-                                )}
+                                value={formatTimeSpan(analytic.averageTimeSpan)}
                             />
                         )}
 
-                        {analytics.trueCount != null && (
+                        {analytic.trueCount != null && (
                             <StatCard
                                 label="True Count"
-                                value={analytics.trueCount}
+                                value={analytic.trueCount}
                             />
                         )}
-                        {analytics.falseCount != null && (
+                        {analytic.falseCount != null && (
                             <StatCard
                                 label="False Count"
-                                value={analytics.falseCount}
+                                value={analytic.falseCount}
                             />
                         )}
-                        {analytics.truePercentage != null && (
+                        {analytic.truePercentage != null && (
                             <StatCard
                                 label="True Percentage"
-                                value={`${analytics.truePercentage.toFixed(
-                                    2
-                                )}%`}
+                                value={`${analytic.truePercentage.toFixed(2)}%`}
                             />
                         )}
                     </SimpleGrid>
                 </Stack>
-            )}
+            ))}
         </Stack>
     );
 }

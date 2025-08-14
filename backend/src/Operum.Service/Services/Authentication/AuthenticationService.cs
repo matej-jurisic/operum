@@ -180,5 +180,21 @@ namespace Operum.Service.Services.Authentication
                 TokenExpiry = expiry.Data
             };
         }
+
+        public async Task<ServiceResponse> ConfirmEmail(string userId, string token)
+        {
+            if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(token))
+                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "User ID and token are required");
+
+            var user = await userManager.FindByIdAsync(userId);
+            if (user == null)
+                return ServiceResponse.Failure(StatusCodeEnum.NotFound, "User not found");
+
+            var result = await userManager.ConfirmEmailAsync(user, token.Replace(' ', '+'));
+            if (result.Succeeded)
+                return ServiceResponse.Success("Email confirmed successfully!");
+
+            return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "Error while confirming mail address!");
+        }
     }
 }

@@ -17,14 +17,9 @@ public partial class Program
         var configuration = builder.Configuration;
         configuration.AddEnvironmentVariables();
 
-        builder.Services.RegisterServices(configuration);
-        builder.Services.RegisterAuthServices(configuration);
-        builder.Services.RegisterDependencyInjections();
-        builder.Services.RegisterValidations();
-
-        string? connectionString = builder.Configuration.GetConnectionString("Operum");
-        if (connectionString != null)
-            builder.Services.RegisterDatabase(connectionString);
+        WebServices.Configure(builder.Services, configuration);
+        BusinessServices.Configure(builder.Services, configuration);
+        Validations.Configure(builder.Services);
 
         builder.Host.UseSerilog((context, configuration) =>
             configuration.ReadFrom.Configuration(context.Configuration));
@@ -41,9 +36,8 @@ public partial class Program
             db.Database.Migrate();
 
             var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-            await DataSeeder.SeedRolesAsync(roleManager);
             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            await DataSeeder.SeedUsersAsync(userManager, configuration);
+            await DataSeeder.SeedUsersAsync(userManager, roleManager, configuration);
         }
 
         if (app.Environment.IsDevelopment())

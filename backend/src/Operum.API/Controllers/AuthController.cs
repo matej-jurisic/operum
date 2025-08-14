@@ -1,17 +1,14 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Operum.Model.Common;
+using Operum.API.Controllers.Base;
 using Operum.Model.DTOs.Auth.Requests;
-using Operum.Model.Enums;
-using Operum.Model.Models;
 using Operum.Service.Services.Authentication;
 
 namespace Operum.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class AuthController(IAuthenticationService authenticationService, UserManager<ApplicationUser> userManager) : BaseController
+    public class AuthController(IAuthenticationService authenticationService) : BaseController
     {
         [AllowAnonymous]
         [HttpPost("login")]
@@ -35,7 +32,7 @@ namespace Operum.API.Controllers
         }
 
         [AllowAnonymous]
-        [HttpGet("refresh")]
+        [HttpPost("refresh")]
         public async Task<IActionResult> RefreshToken()
         {
             return GetApiResponse(await authenticationService.RefreshToken());
@@ -51,18 +48,7 @@ namespace Operum.API.Controllers
         [HttpGet("confirm-email")]
         public async Task<IActionResult> ConfirmEmail(string userId, string token)
         {
-            if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(token))
-                return BadRequest("User ID and token are required");
-
-            var user = await userManager.FindByIdAsync(userId);
-            if (user == null)
-                return NotFound("User not found");
-
-            var result = await userManager.ConfirmEmailAsync(user, token.Replace(' ', '+'));
-            if (result.Succeeded)
-                return GetApiResponse(ServiceResponse.Success(StatusCodeEnum.Ok, "Email confirmed successfully!"));
-
-            return GetApiResponse(ServiceResponse.Failure(StatusCodeEnum.BadRequest, "Error while confirming mail address!"));
+            return GetApiResponse(await authenticationService.ConfirmEmail(userId, token));
         }
     }
 }

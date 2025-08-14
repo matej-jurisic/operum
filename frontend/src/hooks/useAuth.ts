@@ -65,7 +65,7 @@ const useAuth = () => {
     };
 
     const refresh = async () => {
-        const user = await api.get("/auth/refresh");
+        const user = await api.post("/auth/refresh");
         setUserData(user.data.data);
     };
 
