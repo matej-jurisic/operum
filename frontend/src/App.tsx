@@ -23,7 +23,14 @@ const App = observer(() => {
     }, []);
 
     if (globalStore.checkingAuth) {
-        return <div>Checking authentication...</div>;
+        return (
+            <LoadingOverlay
+                visible
+                overlayProps={{
+                    opacity: 0.3,
+                }}
+            />
+        );
     }
 
     return (
