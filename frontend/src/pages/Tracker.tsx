@@ -4,20 +4,14 @@ import { IoMdReturnLeft } from "react-icons/io";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../api/api";
 import AnalyiticsList from "../components/AnalyticsList";
-import CreateEntryDialog from "../components/CreateEntryDialog";
-import { CreateFieldDialog } from "../components/CreateFieldDialog";
+import { FieldFormDialog } from "../components/CreateFieldDialog";
 import EntriesList from "../components/EntriesList";
 import FieldsList from "../components/FieldsList";
-import { EntryDto } from "../model/EntryDto";
+import { TrackerProvider } from "../context/TrackerContext";
 import { TrackerDto } from "../model/TrackerDto";
 
 const GetTracker = async (trackerId: string) => {
     const response = await api.get(`/trackers/${trackerId}`);
-    return response.data.data;
-};
-
-const GetEntries = async (trackerId: string) => {
-    const response = await api.get(`/trackers/${trackerId}/entries`);
     return response.data.data;
 };
 
@@ -32,13 +26,12 @@ export default function Tracker() {
 
     const [tracker, setTracker] = useState<TrackerDto>();
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
-    const [entries, setEntries] = useState<EntryDto[]>([]);
+
     const [activeTab, setActiveTab] = useState<string | null>("entries");
 
     useEffect(() => {
         const fetchData = async () => {
             if (trackerId) {
-                setEntries(await GetEntries(trackerId));
                 setTracker(await GetTracker(trackerId));
             }
         };
@@ -48,7 +41,7 @@ export default function Tracker() {
     if (!tracker) return null;
 
     return (
-        <>
+        <TrackerProvider trackerId={tracker.id}>
             <Stack gap="lg">
                 <Group align="center" justify="space-between" w="100%">
                     <Title
@@ -67,7 +60,6 @@ export default function Tracker() {
                         Back
                     </Button>
                 </Group>
-
                 <Tabs
                     variant="default"
                     color={tracker.color}
@@ -83,13 +75,7 @@ export default function Tracker() {
 
                     <Container px={0} pt={"md"} fluid>
                         <Tabs.Panel value="entries">
-                            <EntriesList
-                                tracker={tracker}
-                                entries={entries}
-                                refreshEntries={async () => {
-                                    setEntries(await GetEntries(tracker.id));
-                                }}
-                            />
+                            <EntriesList tracker={tracker} />
                         </Tabs.Panel>
                         <Tabs.Panel value="fields">
                             <FieldsList
@@ -100,33 +86,21 @@ export default function Tracker() {
                             />
                         </Tabs.Panel>
                         <Tabs.Panel value="analytics">
-                            <AnalyiticsList
-                                tracker={tracker}
-                                isActive={activeTab === "analytics"}
-                            />
+                            <AnalyiticsList tracker={tracker} />
                         </Tabs.Panel>
                     </Container>
                 </Tabs>
             </Stack>
 
-            {openDialogType === OpenDialogType.CreateEntry && (
-                <CreateEntryDialog
-                    tracker={tracker}
-                    onClose={() => setOpenDialogType(undefined)}
-                    onEntryCreated={async () =>
-                        setEntries(await GetEntries(tracker.id))
-                    }
-                />
-            )}
             {openDialogType === OpenDialogType.AddField && (
-                <CreateFieldDialog
+                <FieldFormDialog
                     tracker={tracker}
                     onClose={() => setOpenDialogType(undefined)}
-                    onFieldAdded={async () =>
+                    onFieldSaved={async () =>
                         setTracker(await GetTracker(tracker.id))
                     }
                 />
             )}
-        </>
+        </TrackerProvider>
     );
 }

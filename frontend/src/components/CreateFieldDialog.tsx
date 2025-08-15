@@ -10,21 +10,19 @@ import { useForm } from "@mantine/form";
 import api from "../api/api";
 import { TrackerDto } from "../model/TrackerDto";
 import { fieldTypes } from "../model/constants/DataTypesForSelect";
-import { CreateFieldDto } from "../model/requests/CreateFieldDto";
+import { FieldUpsertDto } from "../model/requests/FieldUpsertDto";
 
-interface CreateFieldDialogProps {
+interface FieldFormDialogProps {
     tracker: TrackerDto;
+    fieldId?: string;
+    initialValues?: FieldUpsertDto;
     onClose: () => void;
-    onFieldAdded?: () => void;
+    onFieldSaved?: () => void;
 }
 
-export function CreateFieldDialog({
-    tracker,
-    onClose,
-    onFieldAdded,
-}: CreateFieldDialogProps) {
-    const form = useForm<CreateFieldDto>({
-        initialValues: {
+export function FieldFormDialog(props: FieldFormDialogProps) {
+    const form = useForm<FieldUpsertDto>({
+        initialValues: props.initialValues || {
             name: "",
             type: "string",
             description: "",
@@ -38,15 +36,27 @@ export function CreateFieldDialog({
         },
     });
 
-    const handleSubmit = async (values: CreateFieldDto) => {
-        await api.post(`/trackers/${tracker.id}/fields`, values);
-        onClose();
+    const handleSubmit = async (values: FieldUpsertDto) => {
+        if (props.fieldId) {
+            await api.put(
+                `/trackers/${props.tracker.id}/fields/${props.fieldId}`,
+                values
+            );
+        } else {
+            await api.post(`/trackers/${props.tracker.id}/fields`, values);
+        }
+        props.onClose();
         form.reset();
-        onFieldAdded?.();
+        props.onFieldSaved?.();
     };
 
     return (
-        <Modal opened onClose={onClose} title="Add Field to Tracker" centered>
+        <Modal
+            opened
+            onClose={props.onClose}
+            title="Add Field to Tracker"
+            centered
+        >
             <form onSubmit={form.onSubmit(handleSubmit)}>
                 <Stack align="stretch">
                     <TextInput
@@ -75,7 +85,7 @@ export function CreateFieldDialog({
                         {...form.getInputProps("required")}
                     />
 
-                    <Button color={tracker.color} type="submit">
+                    <Button color={props.tracker.color} type="submit">
                         Create
                     </Button>
                 </Stack>

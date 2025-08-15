@@ -1,44 +1,44 @@
 import { Badge, Button, Card, Group, Stack, Text } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
-import { MdDelete } from "react-icons/md";
+import { MdDelete, MdEdit } from "react-icons/md";
 import api from "../api/api";
+import { useTracker } from "../context/TrackerContext";
 import { FieldDto } from "../model/FieldDto";
+import { FieldUpsertDto } from "../model/requests/FieldUpsertDto";
 import { TrackerDto } from "../model/TrackerDto";
 import ConfirmationDialog from "./ConfirmationDialog";
-import { CreateFieldDialog } from "./CreateFieldDialog";
+import { FieldFormDialog } from "./CreateFieldDialog";
 
 interface FieldsListProps {
     tracker: TrackerDto;
-    refreshTracker: () => void;
 }
 
 const DeleteField = async (trackerId: string, fieldId: string) => {
     await api.delete(`/trackers/${trackerId}/fields/${fieldId}`);
 };
 
-const GetFields = async (trackerId: string) => {
-    const response = await api.get(`/trackers/${trackerId}/fields`);
-    return response.data.data;
-};
-
 enum OpenDialogType {
     CreateField,
     DeleteField,
+    EditField,
 }
 
 export default function FieldsList(props: FieldsListProps) {
-    const [fields, setFields] = useState<FieldDto[]>([]);
     const [selectedField, setSelectedField] = useState<FieldDto>();
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
 
-    useEffect(() => {
-        const GetData = async () => {
-            setFields(await GetFields(props.tracker.id));
-        };
+    const {
+        fields,
+        refreshFields,
+        markEntriesDirty,
+        markAnalyticsDirty,
+        refreshFieldsIfDirty,
+    } = useTracker();
 
-        GetData();
-    }, [props.tracker.id]);
+    useEffect(() => {
+        refreshFieldsIfDirty();
+    }, []);
 
     return (
         <>
@@ -97,6 +97,19 @@ export default function FieldsList(props: FieldsListProps) {
                                 >
                                     <MdDelete size={18} />
                                 </Button>
+                                <Button
+                                    variant="outline"
+                                    color="green"
+                                    onClick={() => {
+                                        setSelectedField(field);
+                                        setOpenDialogType(
+                                            OpenDialogType.EditField
+                                        );
+                                    }}
+                                    aria-label={`Edit field ${field.name}`}
+                                >
+                                    <MdEdit size={18} />
+                                </Button>
                             </Group>
                         </Group>
                     </Card>
@@ -113,20 +126,38 @@ export default function FieldsList(props: FieldsListProps) {
                         await DeleteField(props.tracker.id, selectedField.id);
                         setSelectedField(undefined);
                         setOpenDialogType(undefined);
-                        setFields(await GetFields(props.tracker.id));
-                        props.refreshTracker();
+                        markEntriesDirty();
+                        markAnalyticsDirty();
+                        refreshFields();
                     }}
                     severity="important"
                     message="Deleting a field will delete all the data stored in it."
                 />
             )}
             {openDialogType === OpenDialogType.CreateField && (
-                <CreateFieldDialog
+                <FieldFormDialog
                     tracker={props.tracker}
                     onClose={() => setOpenDialogType(undefined)}
-                    onFieldAdded={async () => {
-                        setFields(await GetFields(props.tracker.id));
-                        props.refreshTracker();
+                    onFieldSaved={async () => {
+                        refreshFields();
+                    }}
+                />
+            )}
+            {openDialogType === OpenDialogType.EditField && selectedField && (
+                <FieldFormDialog
+                    tracker={props.tracker}
+                    fieldId={selectedField.id}
+                    initialValues={{ ...selectedField } as FieldUpsertDto}
+                    onClose={() => {
+                        setOpenDialogType(undefined);
+                        setSelectedField(undefined);
+                    }}
+                    onFieldSaved={async () => {
+                        setSelectedField(undefined);
+                        setOpenDialogType(undefined);
+                        markAnalyticsDirty();
+                        markEntriesDirty();
+                        refreshFields();
                     }}
                 />
             )}

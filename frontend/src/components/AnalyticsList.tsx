@@ -1,7 +1,6 @@
 import { Paper, SimpleGrid, Stack, Text, Title } from "@mantine/core";
-import { useEffect, useState } from "react";
-import api from "../api/api";
-import { FieldAnalyticsDto } from "../model/FieldAnalyticsDto";
+import { useEffect } from "react";
+import { useTracker } from "../context/TrackerContext";
 import { TrackerDto } from "../model/TrackerDto";
 import {
     formatDateOnly,
@@ -11,13 +10,7 @@ import {
 
 interface AnalyticsListProps {
     tracker: TrackerDto;
-    isActive: boolean;
 }
-
-const GetTrackerAnalytics = async (trackerId: string) => {
-    const response = await api.get(`/trackers/${trackerId}/analytics`);
-    return response.data.data;
-};
 
 const StatCard = ({
     label,
@@ -39,15 +32,11 @@ const StatCard = ({
 );
 
 export default function AnalyticsList(props: AnalyticsListProps) {
-    const [analytics, setAnalytics] = useState<FieldAnalyticsDto[]>([]);
+    const { analytics, refreshAnalyticsIfDirty } = useTracker();
 
     useEffect(() => {
-        const GetData = async () => {
-            setAnalytics(await GetTrackerAnalytics(props.tracker.id));
-        };
-
-        GetData();
-    }, [props.tracker.id]);
+        refreshAnalyticsIfDirty();
+    }, []);
 
     return (
         <Stack gap="lg">

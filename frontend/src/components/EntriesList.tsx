@@ -8,10 +8,11 @@ import {
     Stack,
     Text,
 } from "@mantine/core";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FiPlus } from "react-icons/fi";
-import { MdDelete } from "react-icons/md";
+import { MdDelete, MdEdit } from "react-icons/md";
 import api from "../api/api";
+import { useTracker } from "../context/TrackerContext";
 import { EntryDto } from "../model/EntryDto";
 import { FieldValueDto } from "../model/FieldValueDto";
 import { TrackerDto } from "../model/TrackerDto";
@@ -21,12 +22,10 @@ import {
     formatTimeSpan,
 } from "../util/TypeFormatter";
 import ConfirmationDialog from "./ConfirmationDialog";
-import CreateEntryDialog from "./CreateEntryDialog";
+import EntryFormDialog from "./EntryFormDialog";
 
 interface EntriesListProps {
     tracker: TrackerDto;
-    entries: EntryDto[];
-    refreshEntries: () => void;
 }
 
 const DeleteEntry = async (trackerId: string, entryId: string) => {
@@ -49,18 +48,35 @@ const renderValue = (v: FieldValueDto) => {
 enum OpenDialogType {
     CreateEntry,
     DeleteEntry,
+    UpdateEntry,
 }
 
 export default function EntriesList(props: EntriesListProps) {
     const [selectedEntry, setSelectedEntry] = useState<EntryDto>();
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
     const [currentPage, setCurrentPage] = useState(1);
+
+    const {
+        entries,
+        refreshEntriesIfDirty,
+        refreshEntries,
+        markAnalyticsDirty,
+    } = useTracker();
+
     const pageSize = 3;
-    const totalPages = Math.ceil(props.entries.length / pageSize);
-    const paginatedEntries = props.entries.slice(
-        (currentPage - 1) * pageSize,
-        currentPage * pageSize
-    );
+    const totalPages = useMemo(() => {
+        return Math.ceil(entries.length / pageSize);
+    }, [entries]);
+    const paginatedEntries = useMemo(() => {
+        return entries.slice(
+            (currentPage - 1) * pageSize,
+            currentPage * pageSize
+        );
+    }, [currentPage, entries]);
+
+    useEffect(() => {
+        refreshEntriesIfDirty();
+    }, []);
 
     return (
         <>
@@ -120,6 +136,18 @@ export default function EntriesList(props: EntriesListProps) {
                                 >
                                     <MdDelete size={18} />
                                 </Button>
+                                <Button
+                                    variant="outline"
+                                    color="green"
+                                    onClick={() => {
+                                        setSelectedEntry(entry);
+                                        setOpenDialogType(
+                                            OpenDialogType.UpdateEntry
+                                        );
+                                    }}
+                                >
+                                    <MdEdit size={18} />
+                                </Button>
                             </Group>
                         </Stack>
                     </Card>
@@ -132,7 +160,8 @@ export default function EntriesList(props: EntriesListProps) {
                     onClose={() => setSelectedEntry(undefined)}
                     onConfirm={async () => {
                         await DeleteEntry(props.tracker.id, selectedEntry.id);
-                        props.refreshEntries();
+                        refreshEntries();
+                        markAnalyticsDirty();
                         setSelectedEntry(undefined);
                     }}
                     severity="warning"
@@ -141,10 +170,36 @@ export default function EntriesList(props: EntriesListProps) {
             )}
 
             {openDialogType === OpenDialogType.CreateEntry && (
-                <CreateEntryDialog
+                <EntryFormDialog
                     tracker={props.tracker}
                     onClose={() => {
-                        props.refreshEntries();
+                        setOpenDialogType(undefined);
+                    }}
+                    onEntrySaved={async () => {
+                        markAnalyticsDirty();
+                        refreshEntries();
+                        setOpenDialogType(undefined);
+                    }}
+                />
+            )}
+
+            {openDialogType === OpenDialogType.UpdateEntry && selectedEntry && (
+                <EntryFormDialog
+                    tracker={props.tracker}
+                    entryId={selectedEntry.id}
+                    initialValues={selectedEntry.fieldValues.reduce(
+                        (acc, field) => {
+                            acc[field.fieldName] = field.value;
+                            return acc;
+                        },
+                        {} as Record<string, unknown>
+                    )}
+                    onClose={() => {
+                        setOpenDialogType(undefined);
+                    }}
+                    onEntrySaved={async () => {
+                        markAnalyticsDirty();
+                        refreshEntries();
                         setOpenDialogType(undefined);
                     }}
                 />

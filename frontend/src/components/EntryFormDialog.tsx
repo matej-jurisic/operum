@@ -11,14 +11,18 @@ import { useForm } from "@mantine/form";
 import api from "../api/api";
 import { TrackerDto } from "../model/TrackerDto";
 
-interface CreateEntryDialogProps {
+interface EntryFormDialogProps {
     tracker: TrackerDto;
+    entryId?: string;
+    initialValues?: Record<string, unknown>;
     onClose: () => void;
-    onEntryCreated?: () => void;
+    onEntrySaved?: () => void;
 }
 
-export default function CreateEntryDialog(props: CreateEntryDialogProps) {
-    const form = useForm<{ [key: string]: unknown }>({ initialValues: {} });
+export default function EntryFormDialog(props: EntryFormDialogProps) {
+    const form = useForm<{ [key: string]: unknown }>({
+        initialValues: props.initialValues || {},
+    });
 
     const handleSubmit = async (values: Record<string, unknown>) => {
         const fieldValues: Record<string, string> = {};
@@ -48,13 +52,22 @@ export default function CreateEntryDialog(props: CreateEntryDialogProps) {
             }
         });
 
-        await api.post(`/trackers/${props.tracker.id}/entries`, {
-            fieldValues,
-        });
+        if (props.entryId) {
+            // Update
+            await api.put(
+                `/trackers/${props.tracker.id}/entries/${props.entryId}`,
+                { fieldValues }
+            );
+        } else {
+            // Create
+            await api.post(`/trackers/${props.tracker.id}/entries`, {
+                fieldValues,
+            });
+        }
 
         form.reset();
         props.onClose();
-        props.onEntryCreated?.();
+        props.onEntrySaved?.();
     };
 
     if (props.tracker.fields.length === 0) {
@@ -63,7 +76,12 @@ export default function CreateEntryDialog(props: CreateEntryDialogProps) {
 
     return (
         <>
-            <Modal title="Create Entry" centered opened onClose={props.onClose}>
+            <Modal
+                title={props.entryId ? "Update Entry" : "Create Entry"}
+                centered
+                opened
+                onClose={props.onClose}
+            >
                 <>
                     <form onSubmit={form.onSubmit(handleSubmit)}>
                         <Stack
@@ -122,7 +140,7 @@ export default function CreateEntryDialog(props: CreateEntryDialogProps) {
                                     case "datetime":
                                         return (
                                             <DateTimePicker
-                                                valueFormat="DD/MM/YYYY hh:mm:ss"
+                                                valueFormat="DD/MM/YYYY HH:mm:ss"
                                                 withSeconds
                                                 placeholder="Pick date/time"
                                                 {...fieldProps}
@@ -145,7 +163,7 @@ export default function CreateEntryDialog(props: CreateEntryDialogProps) {
                             })}
 
                             <Button color={props.tracker.color} type="submit">
-                                Create
+                                {props.entryId ? "Update" : "Create"}
                             </Button>
                         </Stack>
                     </form>
