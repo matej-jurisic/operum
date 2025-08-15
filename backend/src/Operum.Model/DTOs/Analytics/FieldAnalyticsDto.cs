@@ -48,5 +48,22 @@ namespace Operum.Model.DTOs.Analytics
         public int? FalseCount { get; set; }
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public double? TruePercentage { get; set; }
+
+        // For Charts
+
+        public List<ChartPointDto> Points { get; set; } = [];
+        public List<PieChartPointDto> PiePoints { get; set; } = [];
+    }
+
+    public class ChartPointDto
+    {
+        public DateTime Date { get; set; }
+        public double Value { get; set; }
+    }
+
+    public class PieChartPointDto
+    {
+        public string Label { get; set; } = string.Empty;
+        public int Value { get; set; }
     }
 }

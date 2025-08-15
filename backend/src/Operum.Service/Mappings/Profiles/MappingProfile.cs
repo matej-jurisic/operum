@@ -1,4 +1,6 @@
 ﻿using Operum.Model.DTOs;
+using Operum.Model.DTOs.Analytics;
+using Operum.Model.DTOs.Analytics.Requests;
 using Operum.Model.DTOs.Entry;
 using Operum.Model.DTOs.Fields;
 using Operum.Model.DTOs.Fields.Requests;
@@ -41,6 +43,16 @@ namespace Operum.Service.Mappings.Profiles
                 {
                     d.FieldValues.Add(mapper.Map<FieldValue, FieldValueDto>(v));
                 }
+            });
+            mapper.Register<AnalyticRequiredDataType, AnalyticRequiredDataTypeDto>();
+            mapper.Register<CreateAnalyticRequiredDataTypeDto, AnalyticRequiredDataType>();
+            mapper.Register<CreateAnalyticRequestDto, Analytic>((s, d) =>
+            {
+                d.AnalyticRequiredDataTypes = mapper.Map<List<CreateAnalyticRequiredDataTypeDto>, List<AnalyticRequiredDataType>>(s.AnalyticRequiredDataTypes);
+            });
+            mapper.Register<Analytic, AnalyticDto>((s, d) =>
+            {
+                d.AnalyticRequiredDataTypes = mapper.Map<List<AnalyticRequiredDataType>, List<AnalyticRequiredDataTypeDto>>(s.AnalyticRequiredDataTypes);
             });
         }
     }

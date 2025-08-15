@@ -9,28 +9,14 @@ import {
 import { useForm } from "@mantine/form";
 import api from "../api/api";
 import { TrackerDto } from "../model/TrackerDto";
-
-interface CreateFieldDto {
-    name: string;
-    description?: string;
-    type: string;
-    required: boolean;
-}
+import { fieldTypes } from "../model/constants/DataTypesForSelect";
+import { CreateFieldDto } from "../model/requests/CreateFieldDto";
 
 interface CreateFieldDialogProps {
     tracker: TrackerDto;
     onClose: () => void;
     onFieldAdded?: () => void;
 }
-
-const fieldTypes = [
-    { value: "string", label: "String" },
-    { value: "number", label: "Number" },
-    { value: "bool", label: "Bool" },
-    { value: "date", label: "Date" },
-    { value: "timespan", label: "Timespan" },
-    { value: "datetime", label: "Datetime" },
-];
 
 export function CreateFieldDialog({
     tracker,

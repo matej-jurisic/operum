@@ -9,6 +9,7 @@ import {
     Text,
 } from "@mantine/core";
 import { useState } from "react";
+import { FiPlus } from "react-icons/fi";
 import { MdDelete } from "react-icons/md";
 import api from "../api/api";
 import { EntryDto } from "../model/EntryDto";
@@ -67,6 +68,7 @@ export default function EntriesList(props: EntriesListProps) {
                 <Group justify={"space-between"} w="100%">
                     <Button
                         color={props.tracker.color}
+                        leftSection={<FiPlus size={18} />}
                         onClick={() =>
                             setOpenDialogType(OpenDialogType.CreateEntry)
                         }

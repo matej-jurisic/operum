@@ -7,6 +7,7 @@ import { PrivateRoute } from "./components/routing/PrivateRoute";
 import PublicRoute from "./components/routing/PublicRoute";
 import { useLoading } from "./context/LoadingContext";
 import useAuth from "./hooks/useAuth";
+import AdminPanel from "./pages/AdminPanel";
 import Auth from "./pages/Auth";
 import { ConfirmEmail } from "./pages/ConfirmEmail";
 import Home from "./pages/Home";
@@ -54,6 +55,10 @@ const App = observer(() => {
                                 element={
                                     <PublicRoute page={<ConfirmEmail />} />
                                 }
+                            />
+                            <Route
+                                path="admin-panel"
+                                element={<PrivateRoute page={<AdminPanel />} />}
                             />
                             <Route
                                 path="*"

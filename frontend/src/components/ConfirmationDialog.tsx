@@ -35,7 +35,7 @@ export default function ConfirmationDialog({
             padding="lg"
         >
             <Stack gap="lg">
-                <Text>{message}</Text>
+                <Text className="truncated-text">{message}</Text>
 
                 <Group justify="center" gap="sm">
                     <Button variant="outline" onClick={onClose} color="gray">

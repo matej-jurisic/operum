@@ -17,5 +17,7 @@ namespace Operum.Model
         public DbSet<Field> Fields { get; set; }
         public DbSet<Entry> Entries { get; set; }
         public DbSet<FieldValue> FieldValues { get; set; }
+        public DbSet<Analytic> Analytics { get; set; }
+        public DbSet<AnalyticRequiredDataType> AnalyticRequiredDataTypes { get; set; }
     }
 }

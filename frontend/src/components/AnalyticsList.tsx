@@ -1,7 +1,7 @@
 import { Paper, SimpleGrid, Stack, Text, Title } from "@mantine/core";
 import { useEffect, useState } from "react";
 import api from "../api/api";
-import { FieldAnalyticsDto } from "../model/SingleFieldNumericAnalyticsDto";
+import { FieldAnalyticsDto } from "../model/FieldAnalyticsDto";
 import { TrackerDto } from "../model/TrackerDto";
 import {
     formatDateOnly,

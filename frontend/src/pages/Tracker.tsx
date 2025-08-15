@@ -81,7 +81,7 @@ export default function Tracker() {
                         <Tabs.Tab value="analytics">Analytics</Tabs.Tab>
                     </Tabs.List>
 
-                    <Container px={0} pt={"xl"} fluid>
+                    <Container px={0} pt={"md"} fluid>
                         <Tabs.Panel value="entries">
                             <EntriesList
                                 tracker={tracker}

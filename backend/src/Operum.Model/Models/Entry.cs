@@ -14,6 +14,6 @@ namespace Operum.Model.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        public virtual ICollection<FieldValue> FieldValues { get; set; } = [];
+        public virtual List<FieldValue> FieldValues { get; set; } = [];
     }
 }

@@ -1,5 +1,6 @@
 import { Badge, Button, Card, Group, Stack, Text } from "@mantine/core";
 import { useEffect, useState } from "react";
+import { FiPlus } from "react-icons/fi";
 import { MdDelete } from "react-icons/md";
 import api from "../api/api";
 import { FieldDto } from "../model/FieldDto";
@@ -45,6 +46,7 @@ export default function FieldsList(props: FieldsListProps) {
                 <Group justify="space-between" w="100%">
                     <Button
                         color={props.tracker.color}
+                        leftSection={<FiPlus size={18} />}
                         onClick={() =>
                             setOpenDialogType(OpenDialogType.CreateField)
                         }

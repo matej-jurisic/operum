@@ -1,12 +1,16 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Operum.Model;
 using Operum.Model.Common;
+using Operum.Model.Constants;
+using Operum.Model.DTOs.Analytics;
 using Operum.Model.DTOs.Trackers;
 using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Model.Enums;
 using Operum.Model.Models;
+using Operum.Service.Helpers;
 using Operum.Service.Mappings.Mapper;
 using Operum.Service.Services.Authorization;
+using Operum.Service.Services.Trackers.Helpers;
 
 namespace Operum.Service.Services.Trackers
 {
@@ -83,6 +87,51 @@ namespace Operum.Service.Services.Trackers
 
             var updatedTracker = await GetTracker(originalTracker.Id);
             return ServiceResponse.Success(updatedTracker.Data);
+        }
+
+        public async Task<ServiceResponse<List<FieldAnalyticsDto>>> GetTrackerAnalytics(string trackerId)
+        {
+            var user = authorizationService.GetCurrentUserDto();
+            var tracker = await db.Trackers.FindAsync(trackerId);
+
+            if (tracker == null || !user.Owns(tracker))
+            {
+                return ServiceResponse.Failure(StatusCodeEnum.NotFound);
+            }
+
+            var fieldsWithData = await db.Fields
+                .Include(x => x.FieldValues)
+                .Where(x => x.TrackerId == trackerId)
+                .Select(f => new
+                {
+                    f.Id,
+                    f.Type,
+                    f.Name,
+                    Values = f.FieldValues
+                })
+                .ToListAsync();
+
+            var analyticsResult = new List<FieldAnalyticsDto>();
+
+            foreach (var field in fieldsWithData)
+            {
+                var analytics = field.Type switch
+                {
+                    DataTypes.Number => TrackerAnalyticsHelpers.GetNumericAnalytics(field.Values, field.Name),
+                    DataTypes.DateTime => TrackerAnalyticsHelpers.GetDateTimeAnalytics(field.Values, field.Name),
+                    DataTypes.Date => TrackerAnalyticsHelpers.GetDateAnalytics(field.Values, field.Name),
+                    DataTypes.TimeSpan => TrackerAnalyticsHelpers.GetTimeSpanAnalytics(field.Values, field.Name),
+                    DataTypes.Bool => TrackerAnalyticsHelpers.GetBooleanAnalytics(field.Values, field.Name),
+                    _ => null
+                };
+
+                if (analytics != null)
+                {
+                    analyticsResult.Add(analytics);
+                }
+            }
+
+            return ServiceResponse.Success(analyticsResult);
         }
     }
 }

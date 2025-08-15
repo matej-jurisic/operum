@@ -25,8 +25,8 @@ namespace Operum.Model.DTOs.Fields.Requests
 
             RuleFor(x => x.Type)
                 .NotEmpty().WithMessage("Field type is required.")
-                .Must(type => OperumTypes.IsValid(type.ToLower()))
-                .WithMessage($"Field type must be one of: {string.Join(", ", OperumTypes.All)}");
+                .Must(type => DataTypes.IsValid(type.ToLower()))
+                .WithMessage($"Field type must be one of: {string.Join(", ", DataTypes.All)}");
         }
     }
 }

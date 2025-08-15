@@ -11,7 +11,8 @@ import {
     useMantineTheme,
 } from "@mantine/core";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { CiLogout, CiUser } from "react-icons/ci";
+import { CiLogout, CiSettings, CiUser } from "react-icons/ci";
+import { FiPlus } from "react-icons/fi";
 import { GoSun } from "react-icons/go";
 import { IoMoonOutline } from "react-icons/io5";
 import { MdDelete } from "react-icons/md";
@@ -61,13 +62,6 @@ export default function Home() {
                         Operum
                     </Title>
                     <Group justify="flex-end">
-                        <Button
-                            onClick={() =>
-                                setOpenDialogType(OpenDialogType.CreateTracker)
-                            }
-                        >
-                            + Create Tracker
-                        </Button>
                         <Menu>
                             <Menu.Target>
                                 <Button variant="outline">
@@ -79,6 +73,12 @@ export default function Home() {
                                 <Menu.Item leftSection={<CiUser size={16} />}>
                                     {globalStore.currentUser?.userName ||
                                         "Guest"}
+                                </Menu.Item>
+                                <Menu.Item
+                                    leftSection={<CiSettings size={16} />}
+                                    onClick={() => navigate("/admin-panel")}
+                                >
+                                    Admin panel
                                 </Menu.Item>
                                 <Menu.Item
                                     leftSection={<CiLogout size={16} />}
@@ -111,7 +111,17 @@ export default function Home() {
                     </Group>
                 </Group>
 
-                <Stack gap="md" pt={"lg"}>
+                <Stack gap="md" align="stretch">
+                    <Group>
+                        <Button
+                            leftSection={<FiPlus size={18} />}
+                            onClick={() =>
+                                setOpenDialogType(OpenDialogType.CreateTracker)
+                            }
+                        >
+                            Create Tracker
+                        </Button>
+                    </Group>
                     {trackers.map((x) => {
                         const isValidColor =
                             x.color !== undefined && x.color in theme.colors;
@@ -131,15 +141,11 @@ export default function Home() {
                                 withBorder
                                 style={{
                                     borderLeft: `6px solid ${borderColor}`,
-                                    transition: "transform 0.15s ease",
                                     cursor: "pointer",
                                 }}
                                 onClick={() => navigate(`/trackers/${x.id}`)}
                             >
-                                <Group
-                                    justify="space-between"
-                                    align="flex-start"
-                                >
+                                <Group justify="space-between" align="center">
                                     <Stack gap={4} maw="90%">
                                         <Title
                                             order={4}
@@ -150,6 +156,7 @@ export default function Home() {
                                         <Text
                                             c="dimmed"
                                             size="sm"
+                                            className="truncated-text"
                                             style={{
                                                 whiteSpace: "normal",
                                                 wordBreak: "break-word",
@@ -165,7 +172,6 @@ export default function Home() {
                                         style={{ flexGrow: 1 }}
                                     >
                                         <Button
-                                            size="xs"
                                             variant="outline"
                                             color="red"
                                             onClick={(e) => {
