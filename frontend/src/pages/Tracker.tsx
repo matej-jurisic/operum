@@ -78,12 +78,7 @@ export default function Tracker() {
                             <EntriesList tracker={tracker} />
                         </Tabs.Panel>
                         <Tabs.Panel value="fields">
-                            <FieldsList
-                                tracker={tracker}
-                                refreshTracker={async () => {
-                                    setTracker(await GetTracker(tracker.id));
-                                }}
-                            />
+                            <FieldsList tracker={tracker} />
                         </Tabs.Panel>
                         <Tabs.Panel value="analytics">
                             <AnalyiticsList tracker={tracker} />
