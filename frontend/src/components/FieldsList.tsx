@@ -84,32 +84,34 @@ export default function FieldsList(props: FieldsListProps) {
                                         {field.type}
                                     </Badge>
                                 </Group>
-                                <Button
-                                    variant="outline"
-                                    color="red"
-                                    onClick={() => {
-                                        setSelectedField(field);
-                                        setOpenDialogType(
-                                            OpenDialogType.DeleteField
-                                        );
-                                    }}
-                                    aria-label={`Delete field ${field.name}`}
-                                >
-                                    <MdDelete size={18} />
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    color="green"
-                                    onClick={() => {
-                                        setSelectedField(field);
-                                        setOpenDialogType(
-                                            OpenDialogType.EditField
-                                        );
-                                    }}
-                                    aria-label={`Edit field ${field.name}`}
-                                >
-                                    <MdEdit size={18} />
-                                </Button>
+                                <Group>
+                                    <Button
+                                        variant="outline"
+                                        color="red"
+                                        onClick={() => {
+                                            setSelectedField(field);
+                                            setOpenDialogType(
+                                                OpenDialogType.DeleteField
+                                            );
+                                        }}
+                                        aria-label={`Delete field ${field.name}`}
+                                    >
+                                        <MdDelete size={18} />
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        color="green"
+                                        onClick={() => {
+                                            setSelectedField(field);
+                                            setOpenDialogType(
+                                                OpenDialogType.EditField
+                                            );
+                                        }}
+                                        aria-label={`Edit field ${field.name}`}
+                                    >
+                                        <MdEdit size={18} />
+                                    </Button>
+                                </Group>
                             </Group>
                         </Group>
                     </Card>
