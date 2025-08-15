@@ -45,6 +45,7 @@ services:
     image: prom/prometheus
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
 
   grafana:
     image: grafana/grafana
@@ -69,3 +70,4 @@ volumes:
   pgdata:
   backend-logs:
   grafana-data:
+  prometheus-data:
