@@ -95,79 +95,86 @@ api.interceptors.response.use(
         return response;
     },
     async (error: AxiosError<ApiResponse>) => {
-        setGlobalLoading(false);
+        // A single try-finally block can ensure loading is always turned off.
+        try {
+            const originalRequest = error.config as AxiosRequestConfig & {
+                _retry?: boolean;
+            };
 
-        const originalRequest = error.config as AxiosRequestConfig & {
-            _retry?: boolean;
-        };
-
-        // Check if the request is for the refresh endpoint, we don't want to intercept this
-        if (originalRequest.url?.includes("/auth/refresh")) {
-            clearUserData();
-            showSessionExpiredNotification();
-            return Promise.reject(error);
-        }
-
-        if (error.response?.status === 401 && !originalRequest._retry) {
-            if (isRefreshing) {
-                // If a refresh is already in progress, queue the request
-                return new Promise((resolve, reject) => {
-                    failedQueue.push({ resolve, reject });
-                }).then(() => api(originalRequest));
-            }
-
-            // Mark that we are now refreshing
-            originalRequest._retry = true;
-            isRefreshing = true;
-
-            try {
-                // Use a raw axios instance here to avoid the interceptor loop
-                const response = await axios.post(
-                    `${import.meta.env.VITE_REACT_API_URL}/auth/refresh`,
-                    {
-                        withCredentials: true,
-                    }
-                );
-
-                // Update user data with the new token information
-                setUserData(response.data.data);
-
-                isRefreshing = false;
-                // Process the queue with the new token
-                processQueue(null, "success");
-
-                // Retry the original request
-                return api(originalRequest);
-            } catch (refreshError) {
-                // Refresh failed, clear user data and show a notification
-                isRefreshing = false;
-                processQueue(refreshError);
+            // Check if the request is for the refresh endpoint, we don't want to intercept this
+            if (originalRequest.url?.includes("/auth/refresh")) {
                 clearUserData();
                 showSessionExpiredNotification();
-                return Promise.reject(refreshError);
+                return Promise.reject(error);
             }
-        }
 
-        const messages = error.response?.data?.messages;
-        if (messages?.length) {
-            messages.forEach((m: string) => {
+            if (error.response?.status === 401 && !originalRequest._retry) {
+                if (isRefreshing) {
+                    // If a refresh is already in progress, queue the request
+                    return new Promise((resolve, reject) => {
+                        failedQueue.push({ resolve, reject });
+                    }).then(() => api(originalRequest));
+                }
+
+                // Mark that we are now refreshing
+                originalRequest._retry = true;
+                isRefreshing = true;
+
+                try {
+                    // Use a raw axios instance here to avoid the interceptor loop
+                    const response = await axios.post(
+                        `${import.meta.env.VITE_REACT_API_URL}/auth/refresh`,
+                        {
+                            withCredentials: true,
+                        }
+                    );
+
+                    // Update user data with the new token information
+                    setUserData(response.data.data);
+
+                    isRefreshing = false;
+                    // Process the queue with the new token
+                    processQueue(null, "success");
+
+                    // Retry the original request
+                    return api(originalRequest);
+                } catch (refreshError) {
+                    // Refresh failed, clear user data and show a notification
+                    isRefreshing = false;
+                    processQueue(refreshError);
+                    clearUserData();
+                    showSessionExpiredNotification();
+                    // We must still reject the original request promise here
+                    return Promise.reject(refreshError);
+                }
+            }
+
+            // Handle and show all other errors
+            const messages = error.response?.data?.messages;
+            if (messages?.length) {
+                messages.forEach((m: string) => {
+                    notifications.show({
+                        title: "Error",
+                        message: m,
+                        color: "red",
+                        withBorder: true,
+                    });
+                });
+            } else {
                 notifications.show({
                     title: "Error",
-                    message: m,
+                    message: "An unknown error occurred. Please try again.",
                     color: "red",
                     withBorder: true,
                 });
-            });
-        } else {
-            notifications.show({
-                title: "Error",
-                message: "An unknown error occurred. Please try again.",
-                color: "red",
-                withBorder: true,
-            });
-        }
+            }
 
-        return Promise.reject(error);
+            return Promise.reject(error);
+        } finally {
+            // This ensures that loading is turned off for any outcome,
+            // whether the refresh succeeds, fails, or it's a different error.
+            setGlobalLoading(false);
+        }
     }
 );
 
