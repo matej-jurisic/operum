@@ -206,44 +206,126 @@ namespace Operum.Service.Services.Entries
                 return ServiceResponse.Failure(StatusCodeEnum.NotFound);
             }
 
-            using var stream = file.OpenReadStream();
-            // Load tracker fields (so we can match CSV headers)
-            var fields = await db.Fields.Where(x => x.TrackerId == trackerId).ToListAsync();
+            // Check entry count limit upfront
+            var currentEntryCount = await db.Entries.Where(x => x.TrackerId == trackerId).CountAsync();
 
-            var createdEntries = new List<EntryDto>();
+            using var stream = file.OpenReadStream();
+            var fields = await db.Fields.Where(x => x.TrackerId == trackerId).ToListAsync();
+            var fieldsByName = fields.ToDictionary(f => f.Name, f => f);
+            var requiredFields = fields.Where(f => f.Required).ToList();
+
+            // First pass: Parse and validate all records
+            var parsedRecords = new List<Dictionary<string, string>>();
+            var validationErrors = new List<string>();
 
             using (var reader = new StreamReader(stream))
             using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
             {
                 var records = csv.GetRecords<dynamic>();
+                int rowIndex = 1; // Start from 1 for user-friendly error messages
 
                 foreach (var record in records)
                 {
                     var dict = (IDictionary<string, object>)record;
+                    var parsedRecord = new Dictionary<string, string>();
 
-                    var entryDto = new CreateEntryDto
+                    // Validate required fields
+                    var missingRequiredFields = requiredFields
+                        .Where(f => !dict.ContainsKey(f.Name) || string.IsNullOrWhiteSpace(dict[f.Name]?.ToString()))
+                        .Select(f => f.Name)
+                        .ToList();
+
+                    if (missingRequiredFields.Count > 0)
                     {
-                        FieldValues = fields
-                            .Where(f => dict.ContainsKey(f.Name) && dict[f.Name] != null)
-                            .ToDictionary(
-                                f => f.Name,
-                                f => dict[f.Name]?.ToString()
-                            )
-                    };
+                        validationErrors.Add($"Row {rowIndex}: Missing required fields: {string.Join(", ", missingRequiredFields)}");
+                        rowIndex++;
+                        continue;
+                    }
 
-                    var result = await CreateEntry(trackerId, entryDto);
+                    // Parse known fields only
+                    foreach (var field in fields)
+                    {
+                        if (dict.ContainsKey(field.Name) && dict[field.Name] != null)
+                        {
+                            var value = dict[field.Name]?.ToString();
+                            if (!string.IsNullOrWhiteSpace(value))
+                            {
+                                parsedRecord[field.Name] = value;
+                            }
+                        }
+                    }
 
-                    if (result.IsSuccess)
-                        createdEntries.Add(result.Data!);
-                    else
-                        return ServiceResponse.Failure(
-                            StatusCodeEnum.BadRequest,
-                            $"Failed to import row: {string.Join(", ", dict.Select(kv => $"{kv.Key}={kv.Value}"))}"
-                        );
+                    parsedRecords.Add(parsedRecord);
+                    rowIndex++;
                 }
             }
 
-            return ServiceResponse.Success(createdEntries, $"{createdEntries.Count} entries imported successfully!");
+            // Return validation errors if any
+            if (validationErrors.Count > 0)
+            {
+                return ServiceResponse.Failure(StatusCodeEnum.BadRequest,
+                    $"Validation errors:\n{string.Join("\n", validationErrors)}");
+            }
+
+            // Check if importing would exceed the limit
+            if (currentEntryCount + parsedRecords.Count > DataLimits.MaxEntryCount)
+            {
+                return ServiceResponse.Failure(StatusCodeEnum.BadRequest,
+                    $"Import would exceed maximum entry limit. Current: {currentEntryCount}, " +
+                    $"Import: {parsedRecords.Count}, Max: {DataLimits.MaxEntryCount}");
+            }
+
+            // Batch create entries and field values
+            var newEntries = new List<Entry>();
+            var allFieldValues = new List<FieldValue>();
+            var createdAt = DateTime.UtcNow;
+
+            foreach (var parsedRecord in parsedRecords)
+            {
+                var newEntry = new Entry
+                {
+                    TrackerId = trackerId,
+                    CreatedAt = createdAt,
+                };
+                newEntries.Add(newEntry);
+
+                // Create field values for this entry
+                foreach (var kvp in parsedRecord)
+                {
+                    if (fieldsByName.TryGetValue(kvp.Key, out var field))
+                    {
+                        var fieldValue = new FieldValue
+                        {
+                            EntryId = newEntry.Id, // This will be the generated ID
+                            FieldId = field.Id,
+                        };
+                        fieldValue.SetFieldValue(field, kvp.Value);
+                        allFieldValues.Add(fieldValue);
+                    }
+                }
+            }
+
+            // Single database transaction for all operations
+            using var transaction = await db.Database.BeginTransactionAsync();
+            try
+            {
+                // Add all entries in one batch
+                await db.Entries.AddRangeAsync(newEntries);
+                await db.SaveChangesAsync(); // This generates the Entry IDs
+
+                // Add all field values in one batch
+                await db.FieldValues.AddRangeAsync(allFieldValues);
+                await db.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+
+            return ServiceResponse.Success($"Entries imported successfully!");
         }
     }
 }
