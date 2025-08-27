@@ -143,7 +143,9 @@ export default function AnalyticsList(props: AnalyticsListProps) {
                         {analytic.truePercentage != null && (
                             <StatCard
                                 label="True Percentage"
-                                value={`${analytic.truePercentage.toFixed(2)}%`}
+                                value={`${(
+                                    analytic.truePercentage * 100
+                                ).toFixed(2)}%`}
                             />
                         )}
                     </SimpleGrid>
