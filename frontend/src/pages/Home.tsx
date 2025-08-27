@@ -19,7 +19,8 @@ import { MdDelete } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import api from "../api/api";
 import ConfirmationDialog from "../components/ConfirmationDialog";
-import CreateTrackerDialog from "../components/CreateTrackerDialog";
+
+import CreateTrackerDialog from "../components/TrackerFormDialog";
 import useAuth from "../hooks/useAuth";
 import { TrackerDto } from "../model/TrackerDto";
 import globalStore from "../stores/GlobalStore";

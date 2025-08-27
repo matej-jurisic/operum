@@ -9,6 +9,7 @@ import {
 import { DatePickerInput, DateTimePicker, TimePicker } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import api from "../api/api";
+import { useTracker } from "../context/TrackerContext";
 import { TrackerDto } from "../model/TrackerDto";
 
 interface EntryFormDialogProps {
@@ -20,6 +21,7 @@ interface EntryFormDialogProps {
 }
 
 export default function EntryFormDialog(props: EntryFormDialogProps) {
+    const { fields } = useTracker();
     const form = useForm<{ [key: string]: unknown }>({
         initialValues: props.initialValues || {},
     });
@@ -27,7 +29,7 @@ export default function EntryFormDialog(props: EntryFormDialogProps) {
     const handleSubmit = async (values: Record<string, unknown>) => {
         const fieldValues: Record<string, string> = {};
 
-        props.tracker.fields.forEach((field) => {
+        fields.forEach((field) => {
             let value = values[field.name];
 
             if (field.type === "bool") {
@@ -70,10 +72,6 @@ export default function EntryFormDialog(props: EntryFormDialogProps) {
         props.onEntrySaved?.();
     };
 
-    if (props.tracker.fields.length === 0) {
-        return <></>;
-    }
-
     return (
         <>
             <Modal
@@ -88,7 +86,7 @@ export default function EntryFormDialog(props: EntryFormDialogProps) {
                             align="stretch"
                             style={{ maxWidth: 400, margin: "0 auto" }}
                         >
-                            {props.tracker.fields.map((field) => {
+                            {fields.map((field) => {
                                 const fieldProps = {
                                     label: field.name,
                                     required: field.required,

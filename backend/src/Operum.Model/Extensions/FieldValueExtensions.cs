@@ -1,6 +1,5 @@
 ﻿using Operum.Model.Constants;
 using Operum.Model.Models;
-using System.Text.Json;
 
 namespace Operum.Model.Extensions
 {
@@ -87,36 +86,6 @@ namespace Operum.Model.Extensions
             if (currentType != DataTypes.Date && currentType != DataTypes.DateTime) fieldValue.DateTimeValue = null;
             if (currentType != DataTypes.TimeSpan) fieldValue.TimeSpanValue = null;
             if (currentType != DataTypes.Bool) fieldValue.BooleanValue = null;
-        }
-
-        private static object? ExtractValueFromJsonElement(JsonElement jsonElement, string targetFieldType)
-        {
-            try
-            {
-                switch (jsonElement.ValueKind)
-                {
-                    case JsonValueKind.String:
-                        return jsonElement.GetString();
-                    case JsonValueKind.Number:
-                        if (jsonElement.TryGetDouble(out double doubleVal))
-                        {
-                            return doubleVal;
-                        }
-                        return null;
-                    case JsonValueKind.True:
-                        return true;
-                    case JsonValueKind.False:
-                        return false;
-                    case JsonValueKind.Null:
-                        return null;
-                    default:
-                        return null;
-                }
-            }
-            catch (InvalidOperationException)
-            {
-                return null;
-            }
         }
     }
 }

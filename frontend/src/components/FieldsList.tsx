@@ -8,7 +8,7 @@ import { FieldDto } from "../model/FieldDto";
 import { FieldUpsertDto } from "../model/requests/FieldUpsertDto";
 import { TrackerDto } from "../model/TrackerDto";
 import ConfirmationDialog from "./ConfirmationDialog";
-import { FieldFormDialog } from "./CreateFieldDialog";
+import { FieldFormDialog } from "./FieldFormDialog";
 
 interface FieldsListProps {
     tracker: TrackerDto;

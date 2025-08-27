@@ -1,4 +1,5 @@
-﻿using Operum.Model.Common;
+﻿using Microsoft.AspNetCore.Http;
+using Operum.Model.Common;
 using Operum.Model.DTOs.Entry;
 using Operum.Model.DTOs.Entry.Requests;
 
@@ -11,5 +12,6 @@ namespace Operum.Service.Services.Entries
         public Task<ServiceResponse<EntryDto>> GetEntry(string trackerId, string entryId);
         public Task<ServiceResponse<EntryDto>> UpdateEntry(string trackerId, string entryId, UpdateEntryDto updateEntry);
         public Task<ServiceResponse<EntryDto>> DeleteEntry(string trackerId, string entryId);
+        public Task<ServiceResponse<List<EntryDto>>> ImportEntriesFromCsv(string trackerId, IFormFile file);
     }
 }

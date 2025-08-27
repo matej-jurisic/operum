@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using CsvHelper;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Operum.Model;
 using Operum.Model.Common;
 using Operum.Model.Constants;
@@ -10,6 +12,7 @@ using Operum.Model.Models;
 using Operum.Service.Helpers;
 using Operum.Service.Mappings.Mapper;
 using Operum.Service.Services.Authorization;
+using System.Globalization;
 
 namespace Operum.Service.Services.Entries
 {
@@ -186,6 +189,61 @@ namespace Operum.Service.Services.Entries
             await db.SaveChangesAsync();
 
             return ServiceResponse.Success();
+        }
+
+        public async Task<ServiceResponse<List<EntryDto>>> ImportEntriesFromCsv(string trackerId, IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "File is empty.");
+            }
+
+            var user = authorizationService.GetCurrentUserDto();
+            var tracker = await db.Trackers.FindAsync(trackerId);
+
+            if (tracker == null || !user.Owns(tracker))
+            {
+                return ServiceResponse.Failure(StatusCodeEnum.NotFound);
+            }
+
+            using var stream = file.OpenReadStream();
+            // Load tracker fields (so we can match CSV headers)
+            var fields = await db.Fields.Where(x => x.TrackerId == trackerId).ToListAsync();
+
+            var createdEntries = new List<EntryDto>();
+
+            using (var reader = new StreamReader(stream))
+            using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+            {
+                var records = csv.GetRecords<dynamic>();
+
+                foreach (var record in records)
+                {
+                    var dict = (IDictionary<string, object>)record;
+
+                    var entryDto = new CreateEntryDto
+                    {
+                        FieldValues = fields
+                            .Where(f => dict.ContainsKey(f.Name) && dict[f.Name] != null)
+                            .ToDictionary(
+                                f => f.Name,
+                                f => dict[f.Name]?.ToString()
+                            )
+                    };
+
+                    var result = await CreateEntry(trackerId, entryDto);
+
+                    if (result.IsSuccess)
+                        createdEntries.Add(result.Data!);
+                    else
+                        return ServiceResponse.Failure(
+                            StatusCodeEnum.BadRequest,
+                            $"Failed to import row: {string.Join(", ", dict.Select(kv => $"{kv.Key}={kv.Value}"))}"
+                        );
+                }
+            }
+
+            return ServiceResponse.Success(createdEntries, $"{createdEntries.Count} entries imported successfully!");
         }
     }
 }

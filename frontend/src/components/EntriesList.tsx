@@ -9,7 +9,7 @@ import {
     Text,
 } from "@mantine/core";
 import { useEffect, useMemo, useState } from "react";
-import { FiPlus } from "react-icons/fi";
+import { FiFile, FiPlus } from "react-icons/fi";
 import { MdDelete, MdEdit } from "react-icons/md";
 import api from "../api/api";
 import { useTracker } from "../context/TrackerContext";
@@ -23,6 +23,7 @@ import {
 } from "../util/TypeFormatter";
 import ConfirmationDialog from "./ConfirmationDialog";
 import EntryFormDialog from "./EntryFormDialog";
+import ImportEntriesDialog from "./ImportEntriesDialog";
 
 interface EntriesListProps {
     tracker: TrackerDto;
@@ -49,12 +50,14 @@ enum OpenDialogType {
     CreateEntry,
     DeleteEntry,
     UpdateEntry,
+    ImportEntries,
 }
 
 export default function EntriesList(props: EntriesListProps) {
     const [selectedEntry, setSelectedEntry] = useState<EntryDto>();
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
     const [currentPage, setCurrentPage] = useState(1);
+    const { fields } = useTracker();
 
     const {
         entries,
@@ -82,15 +85,28 @@ export default function EntriesList(props: EntriesListProps) {
         <>
             <Stack gap="md">
                 <Group justify={"space-between"} w="100%">
-                    <Button
-                        color={props.tracker.color}
-                        leftSection={<FiPlus size={18} />}
-                        onClick={() =>
-                            setOpenDialogType(OpenDialogType.CreateEntry)
-                        }
-                    >
-                        Create Entry
-                    </Button>
+                    <Group>
+                        <Button
+                            color={props.tracker.color}
+                            leftSection={<FiPlus size={18} />}
+                            onClick={() => {
+                                if (fields.length === 0) return;
+                                setOpenDialogType(OpenDialogType.CreateEntry);
+                            }}
+                        >
+                            Create Entry
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                if (fields.length === 0) return;
+                                setOpenDialogType(OpenDialogType.ImportEntries);
+                            }}
+                            color={props.tracker.color}
+                            leftSection={<FiFile size={18} />}
+                        >
+                            Import Entries
+                        </Button>
+                    </Group>
                     <Group>
                         <Pagination
                             onChange={setCurrentPage}
@@ -198,6 +214,17 @@ export default function EntriesList(props: EntriesListProps) {
                         setOpenDialogType(undefined);
                     }}
                     onEntrySaved={async () => {
+                        markAnalyticsDirty();
+                        refreshEntries();
+                        setOpenDialogType(undefined);
+                    }}
+                />
+            )}
+            {openDialogType === OpenDialogType.ImportEntries && (
+                <ImportEntriesDialog
+                    onClose={() => setOpenDialogType(undefined)}
+                    trackerId={props.tracker.id}
+                    onImport={async () => {
                         markAnalyticsDirty();
                         refreshEntries();
                         setOpenDialogType(undefined);

@@ -4,8 +4,8 @@ import { IoMdReturnLeft } from "react-icons/io";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../api/api";
 import AnalyiticsList from "../components/AnalyticsList";
-import { FieldFormDialog } from "../components/CreateFieldDialog";
 import EntriesList from "../components/EntriesList";
+import { FieldFormDialog } from "../components/FieldFormDialog";
 import FieldsList from "../components/FieldsList";
 import { TrackerProvider } from "../context/TrackerContext";
 import { TrackerDto } from "../model/TrackerDto";
@@ -17,6 +17,7 @@ const GetTracker = async (trackerId: string) => {
 
 enum OpenDialogType {
     CreateEntry,
+    ImportEntries,
     AddField,
 }
 
@@ -69,7 +70,7 @@ export default function Tracker() {
                 >
                     <Tabs.List>
                         <Tabs.Tab value="entries">Entries</Tabs.Tab>
-                        <Tabs.Tab value="fields">{`Fields (${tracker.fields.length})`}</Tabs.Tab>
+                        <Tabs.Tab value="fields">Fields</Tabs.Tab>
                         <Tabs.Tab value="analytics">Analytics</Tabs.Tab>
                     </Tabs.List>
 

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Operum.API.Controllers.Base;
+using Operum.Model.DTOs.Entries.Requests;
 using Operum.Model.DTOs.Entry.Requests;
 using Operum.Service.Services.Entries;
 
@@ -37,6 +38,12 @@ namespace Operum.API.Controllers
         public async Task<IActionResult> DeleteEntry([FromRoute] string trackerId, [FromRoute] string entryId)
         {
             return GetApiResponse(await entriesService.DeleteEntry(trackerId, entryId));
+        }
+
+        [HttpPost("import-csv")]
+        public async Task<IActionResult> ImportCsv([FromRoute] string trackerId, [FromForm] ImportEntriesDto file)
+        {
+            return GetApiResponse(await entriesService.ImportEntriesFromCsv(trackerId, file.File));
         }
     }
 }
