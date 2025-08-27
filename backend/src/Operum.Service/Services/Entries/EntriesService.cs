@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Operum.Model;
 using Operum.Model.Common;
+using Operum.Model.Constants;
 using Operum.Model.DTOs.Entry;
 using Operum.Model.DTOs.Entry.Requests;
 using Operum.Model.Enums;
@@ -21,6 +22,12 @@ namespace Operum.Service.Services.Entries
             if (tracker == null || !user.Owns(tracker))
             {
                 return ServiceResponse.Failure(StatusCodeEnum.NotFound);
+            }
+
+            var entryCount = await db.Entries.Where(x => x.TrackerId == trackerId).CountAsync();
+            if (entryCount >= DataLimits.MaxEntryCount)
+            {
+                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, $"Maximum number of entries {DataLimits.MaxEntryCount} reached.");
             }
 
             var fields = await db.Fields.Where(x => x.TrackerId == trackerId).ToListAsync();

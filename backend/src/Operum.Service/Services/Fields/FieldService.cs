@@ -23,6 +23,12 @@ namespace Operum.Service.Services.Fields
                 return ServiceResponse.Failure(StatusCodeEnum.NotFound);
             }
 
+            var fieldCount = await db.Fields.Where(x => x.TrackerId == trackerId).CountAsync();
+            if (fieldCount >= DataLimits.MaxFieldCount)
+            {
+                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, $"Maximum number of fields {DataLimits.MaxFieldCount} reached.");
+            }
+
             if (!DataTypes.IsValid(field.Type)) return ServiceResponse.Failure(StatusCodeEnum.BadRequest, $"Field type {field.Type} is not allowed.");
 
             var newField = mapper.Map<CreateFieldDto, Field>(field);

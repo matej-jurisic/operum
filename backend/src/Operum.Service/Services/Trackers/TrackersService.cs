@@ -19,6 +19,13 @@ namespace Operum.Service.Services.Trackers
         public async Task<ServiceResponse<TrackerDto>> CreateTracker(CreateTrackerDto tracker)
         {
             var user = authorizationService.GetCurrentUserDto();
+
+            var trackerCount = await db.Trackers.Where(x => x.OwnerId == user.Id).CountAsync();
+            if (trackerCount >= DataLimits.MaxTrackerCount)
+            {
+                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, $"Maximum number of trackers {DataLimits.MaxTrackerCount} reached.");
+            }
+
             var trackerModel = mapper.Map<CreateTrackerDto, Tracker>(tracker);
 
             trackerModel.OwnerId = user.Id;
