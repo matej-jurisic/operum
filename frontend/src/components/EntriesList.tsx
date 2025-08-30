@@ -77,8 +77,15 @@ export default function EntriesList(props: EntriesListProps) {
         );
     }, [currentPage, entries]);
 
+    const [isLoading, setIsLoading] = useState(true);
+
     useEffect(() => {
-        refreshEntriesIfDirty();
+        const loadEntries = async () => {
+            setIsLoading(true);
+            await refreshEntriesIfDirty();
+            setIsLoading(false);
+        };
+        loadEntries();
     }, []);
 
     // Create table headers from fields
@@ -146,39 +153,30 @@ export default function EntriesList(props: EntriesListProps) {
     return (
         <>
             <Stack gap="md">
-                <Group justify="space-between" w="100%">
-                    <Group>
-                        <Button
-                            color={props.tracker.color}
-                            leftSection={<FiPlus size={18} />}
-                            onClick={() => {
-                                if (fields.length === 0) return;
-                                setOpenDialogType(OpenDialogType.CreateEntry);
-                            }}
-                        >
-                            Create Entry
-                        </Button>
-                        <Button
-                            onClick={() => {
-                                if (fields.length === 0) return;
-                                setOpenDialogType(OpenDialogType.ImportEntries);
-                            }}
-                            color={props.tracker.color}
-                            leftSection={<FiFile size={18} />}
-                        >
-                            Import Entries
-                        </Button>
-                    </Group>
-                    <Group>
-                        <Pagination
-                            onChange={setCurrentPage}
-                            total={totalPages}
-                            color={props.tracker.color}
-                        />
-                    </Group>
+                <Group justify="flex-start" w="100%">
+                    <Button
+                        color={props.tracker.color}
+                        leftSection={<FiPlus size={18} />}
+                        onClick={() => {
+                            if (fields.length === 0) return;
+                            setOpenDialogType(OpenDialogType.CreateEntry);
+                        }}
+                    >
+                        Create Entry
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            if (fields.length === 0) return;
+                            setOpenDialogType(OpenDialogType.ImportEntries);
+                        }}
+                        color={props.tracker.color}
+                        leftSection={<FiFile size={18} />}
+                    >
+                        Import Entries
+                    </Button>
                 </Group>
 
-                {entries.length > 0 ? (
+                {!isLoading && entries.length > 0 ? (
                     <Table.ScrollContainer minWidth={800}>
                         <Table striped highlightOnHover withTableBorder withColumnBorders>
                             <Table.Thead>
@@ -197,10 +195,22 @@ export default function EntriesList(props: EntriesListProps) {
                             </Table.Tbody>
                         </Table>
                     </Table.ScrollContainer>
-                ) : (
+                ) : !isLoading ? (
                     <Text size="lg" c="dimmed" ta="center" py="xl">
                         No entries found. Create your first entry to get started.
                     </Text>
+                ) : null}
+
+                {totalPages > 1 && (
+                    <Group justify="center" mt="md">
+                        <Pagination
+                            value={currentPage}
+                            onChange={setCurrentPage}
+                            total={totalPages}
+                            color={props.tracker.color}
+                            size="sm"
+                        />
+                    </Group>
                 )}
             </Stack>
 
