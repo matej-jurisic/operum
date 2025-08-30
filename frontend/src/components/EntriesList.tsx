@@ -1,11 +1,10 @@
 import {
+    ActionIcon,
     Button,
-    Card,
     Group,
-    Input,
     Pagination,
-    SimpleGrid,
     Stack,
+    Table,
     Text,
 } from "@mantine/core";
 import { useEffect, useMemo, useState } from "react";
@@ -66,10 +65,11 @@ export default function EntriesList(props: EntriesListProps) {
         markAnalyticsDirty,
     } = useTracker();
 
-    const pageSize = 3;
+    const pageSize = 10; // Increased page size for table format
     const totalPages = useMemo(() => {
         return Math.ceil(entries.length / pageSize);
     }, [entries]);
+    
     const paginatedEntries = useMemo(() => {
         return entries.slice(
             (currentPage - 1) * pageSize,
@@ -81,10 +81,72 @@ export default function EntriesList(props: EntriesListProps) {
         refreshEntriesIfDirty();
     }, []);
 
+    // Create table headers from fields
+    const tableHeaders = useMemo(() => {
+        return [
+            ...fields.map(field => field.name),
+            'Created At',
+            'Actions'
+        ];
+    }, [fields]);
+
+    // Create table rows from entries
+    const tableRows = useMemo(() => {
+        return paginatedEntries.map((entry) => {
+            const fieldCells = fields.map(field => {
+                const fieldValue = entry.fieldValues.find(fv => fv.fieldId === field.id);
+                return fieldValue ? renderValue(fieldValue) : "Value not set.";
+            });
+
+            return (
+                <Table.Tr key={entry.id}>
+                    {fieldCells.map((cellValue, index) => (
+                        <Table.Td key={index}>
+                            <Text size="sm" truncate="end" maw={200}>
+                                {cellValue}
+                            </Text>
+                        </Table.Td>
+                    ))}
+                    <Table.Td>
+                        <Text size="sm" c="dimmed">
+                            {new Date(entry.createdAt).toLocaleString()}
+                        </Text>
+                    </Table.Td>
+                    <Table.Td>
+                        <Group gap="xs">
+                            <ActionIcon
+                                variant="outline"
+                                color="green"
+                                size="sm"
+                                onClick={() => {
+                                    setSelectedEntry(entry);
+                                    setOpenDialogType(OpenDialogType.UpdateEntry);
+                                }}
+                            >
+                                <MdEdit size={16} />
+                            </ActionIcon>
+                            <ActionIcon
+                                variant="outline"
+                                color="red"
+                                size="sm"
+                                onClick={() => {
+                                    setSelectedEntry(entry);
+                                    setOpenDialogType(OpenDialogType.DeleteEntry);
+                                }}
+                            >
+                                <MdDelete size={16} />
+                            </ActionIcon>
+                        </Group>
+                    </Table.Td>
+                </Table.Tr>
+            );
+        });
+    }, [paginatedEntries, fields]);
+
     return (
         <>
             <Stack gap="md">
-                <Group justify={"space-between"} w="100%">
+                <Group justify="space-between" w="100%">
                     <Group>
                         <Button
                             color={props.tracker.color}
@@ -116,58 +178,30 @@ export default function EntriesList(props: EntriesListProps) {
                     </Group>
                 </Group>
 
-                {paginatedEntries.map((entry) => (
-                    <Card key={entry.id} p="md" radius="md" withBorder>
-                        <Stack gap={"md"} align="stretch">
-                            <SimpleGrid
-                                cols={{ base: 2, sm: 2, md: 3, lg: 4 }}
-                                spacing="md"
-                                verticalSpacing="sm"
-                            >
-                                {entry.fieldValues.map((field) => (
-                                    <Input.Wrapper
-                                        key={field.fieldId}
-                                        label={field.fieldName}
-                                    >
-                                        <Input
-                                            readOnly
-                                            value={renderValue(field)}
-                                        />
-                                    </Input.Wrapper>
-                                ))}
-                            </SimpleGrid>
-                            <Group gap={"md"} justify="center" w={"100%"}>
-                                <Text size="sm" c="dimmed">
-                                    {new Date(entry.createdAt).toLocaleString()}
-                                </Text>
-                                <Button
-                                    variant="outline"
-                                    color="red"
-                                    onClick={() => {
-                                        setSelectedEntry(entry);
-                                        setOpenDialogType(
-                                            OpenDialogType.DeleteEntry
-                                        );
-                                    }}
-                                >
-                                    <MdDelete size={18} />
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    color="green"
-                                    onClick={() => {
-                                        setSelectedEntry(entry);
-                                        setOpenDialogType(
-                                            OpenDialogType.UpdateEntry
-                                        );
-                                    }}
-                                >
-                                    <MdEdit size={18} />
-                                </Button>
-                            </Group>
-                        </Stack>
-                    </Card>
-                ))}
+                {entries.length > 0 ? (
+                    <Table.ScrollContainer minWidth={800}>
+                        <Table striped highlightOnHover withTableBorder withColumnBorders>
+                            <Table.Thead>
+                                <Table.Tr>
+                                    {tableHeaders.map((header, index) => (
+                                        <Table.Th key={index}>
+                                            <Text fw={600} size="sm">
+                                                {header}
+                                            </Text>
+                                        </Table.Th>
+                                    ))}
+                                </Table.Tr>
+                            </Table.Thead>
+                            <Table.Tbody>
+                                {tableRows}
+                            </Table.Tbody>
+                        </Table>
+                    </Table.ScrollContainer>
+                ) : (
+                    <Text size="lg" c="dimmed" ta="center" py="xl">
+                        No entries found. Create your first entry to get started.
+                    </Text>
+                )}
             </Stack>
 
             {selectedEntry && openDialogType === OpenDialogType.DeleteEntry && (
