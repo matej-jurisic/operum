@@ -184,7 +184,9 @@ export default function EntriesList(props: EntriesListProps) {
                     {visibleColumns["createdAt"] && (
                         <Table.Td>
                             <Text size="sm" c="dimmed">
-                                {formatDateTimeFromDate(entry.createdAt)}
+                                {formatDateTimeFromDate(
+                                    new Date(entry.createdAt)
+                                )}
                             </Text>
                         </Table.Td>
                     )}
