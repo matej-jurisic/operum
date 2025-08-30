@@ -23,6 +23,7 @@ import { TrackerDto } from "../model/TrackerDto";
 import {
     formatDateOnly,
     formatDateTime,
+    formatDateTimeFromDate,
     formatTimeSpan,
 } from "../util/TypeFormatter";
 import ConfirmationDialog from "./ConfirmationDialog";
@@ -183,7 +184,7 @@ export default function EntriesList(props: EntriesListProps) {
                     {visibleColumns["createdAt"] && (
                         <Table.Td>
                             <Text size="sm" c="dimmed">
-                                {new Date(entry.createdAt).toLocaleString()}
+                                {formatDateTimeFromDate(entry.createdAt)}
                             </Text>
                         </Table.Td>
                     )}
