@@ -1,4 +1,4 @@
-import { Button, FileInput, Modal, Stack } from "@mantine/core";
+import { Button, FileInput, Modal, Stack, Text } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { AxiosRequestConfig } from "axios"; // Import AxiosRequestConfig
 import api from "../api/api";
@@ -45,6 +45,11 @@ export default function ImportEntriesDialog(props: ImportEntriesDialogProps) {
                 })}
             >
                 <Stack>
+                    <Text size="sm" c="dimmed">
+                        Upload a CSV file to import entries. Make sure header
+                        names match the field names in the tracker (case
+                        sensitive).
+                    </Text>
                     <FileInput
                         variant="default"
                         accept=".csv"

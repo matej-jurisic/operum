@@ -17,7 +17,7 @@ namespace Operum.Model.DTOs.Fields.Requests
         {
             RuleFor(x => x.Name)
                 .NotEmpty().WithMessage("Field name is required.")
-                .MaximumLength(100).WithMessage("Field name cannot exceed 100 characters.");
+                .MaximumLength(50).WithMessage("Field name cannot exceed 100 characters.");
 
             RuleFor(x => x.Description)
                 .MaximumLength(500).WithMessage("Description cannot exceed 500 characters.")

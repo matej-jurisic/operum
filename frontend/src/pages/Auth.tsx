@@ -2,12 +2,12 @@ import {
     Box,
     Button,
     Group,
-    Input,
     Paper,
     PasswordInput,
     Stack,
     Tabs,
     Text,
+    TextInput,
     Title,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
@@ -31,6 +31,48 @@ export default function Auth() {
             email: "",
             userName: "",
             password: "",
+            confirmPassword: "",
+        },
+        validate: {
+            email: (value) => {
+                if (!/\S+@\S+\.\S+/.test(value)) {
+                    return "Invalid email";
+                }
+                return null;
+            },
+            userName: (value) => {
+                if (value.length < 3) {
+                    return "Username must be at least 3 characters long";
+                }
+                if (value.length > 20) {
+                    return "Username must be at most 20 characters long";
+                }
+                return null;
+            },
+            password: (value) => {
+                if (value.length < 6) {
+                    return "Password must be at least 6 characters long";
+                }
+                if (!/[A-Z]/.test(value)) {
+                    return "Password must include an uppercase letter";
+                }
+                if (!/[a-z]/.test(value)) {
+                    return "Password must include a lowercase letter";
+                }
+                if (!/\d/.test(value)) {
+                    return "Password must include a number";
+                }
+                if (!/[^\w\d\s]/.test(value)) {
+                    return "Password must include a special character";
+                }
+                return null;
+            },
+            confirmPassword: (value, values) => {
+                if (value !== values.password) {
+                    return "Passwords must match";
+                }
+                return null;
+            },
         },
     });
 
@@ -66,18 +108,27 @@ export default function Auth() {
                     }}
                 >
                     <Tabs.Panel value="login">
-                        <Paper p="xl" shadow="md" w={350}>
+                        <Paper p="xl" shadow="xl" w={350}>
                             <form onSubmit={loginForm.onSubmit(onLogin)}>
                                 <Stack>
-                                    <Title order={3}>Welcome to Operum</Title>
-                                    <Input
-                                        placeholder="Username or Email"
+                                    <Title
+                                        order={3}
+                                        ta="center"
+                                        variant="gradient"
+                                    >
+                                        Welcome to Operum
+                                    </Title>
+                                    <Text ta="center" size="sm" c="dimmed">
+                                        Please log in to continue.
+                                    </Text>
+                                    <TextInput
+                                        label="Username or Email"
                                         {...loginForm.getInputProps(
                                             "credentials"
                                         )}
                                     />
                                     <PasswordInput
-                                        placeholder="Password"
+                                        label="Password"
                                         {...loginForm.getInputProps("password")}
                                     />
                                     <Group>
@@ -101,24 +152,39 @@ export default function Auth() {
                         </Paper>
                     </Tabs.Panel>
                     <Tabs.Panel value="register">
-                        <Paper p="xl" shadow="md" w={350}>
+                        <Paper p="xl" shadow="xl" w={350}>
                             <form onSubmit={registerForm.onSubmit(onRegister)}>
-                                <Stack>
-                                    <Title order={3}>Welcome to Operum</Title>
-                                    <Input
-                                        placeholder="Email"
+                                <Stack gap="sm">
+                                    <Title
+                                        order={3}
+                                        ta="center"
+                                        variant="gradient"
+                                    >
+                                        Welcome to Operum
+                                    </Title>
+                                    <Text ta="center" size="sm" c="dimmed">
+                                        Please register to continue.
+                                    </Text>
+                                    <TextInput
+                                        label="Email"
                                         {...registerForm.getInputProps("email")}
                                     />
-                                    <Input
-                                        placeholder="Username"
+                                    <TextInput
+                                        label="Username"
                                         {...registerForm.getInputProps(
                                             "userName"
                                         )}
                                     />
                                     <PasswordInput
-                                        placeholder="Password"
+                                        label="Password"
                                         {...registerForm.getInputProps(
                                             "password"
+                                        )}
+                                    />
+                                    <PasswordInput
+                                        label="Confirm Password"
+                                        {...registerForm.getInputProps(
+                                            "confirmPassword"
                                         )}
                                     />
                                     <Group>

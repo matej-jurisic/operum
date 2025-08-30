@@ -124,16 +124,18 @@ namespace Operum.Service.Services.Trackers
             {
                 var analytics = field.Type switch
                 {
-                    DataTypes.Number => TrackerAnalyticsHelpers.GetNumericAnalytics(field.Values, field.Name),
-                    DataTypes.DateTime => TrackerAnalyticsHelpers.GetDateTimeAnalytics(field.Values, field.Name),
-                    DataTypes.Date => TrackerAnalyticsHelpers.GetDateAnalytics(field.Values, field.Name),
-                    DataTypes.TimeSpan => TrackerAnalyticsHelpers.GetTimeSpanAnalytics(field.Values, field.Name),
-                    DataTypes.Bool => TrackerAnalyticsHelpers.GetBooleanAnalytics(field.Values, field.Name),
+                    DataTypes.Number => TrackerAnalyticsHelpers.GetNumericAnalytics(field.Values),
+                    DataTypes.DateTime => TrackerAnalyticsHelpers.GetDateTimeAnalytics(field.Values),
+                    DataTypes.Date => TrackerAnalyticsHelpers.GetDateAnalytics(field.Values),
+                    DataTypes.TimeSpan => TrackerAnalyticsHelpers.GetTimeSpanAnalytics(field.Values),
+                    DataTypes.Bool => TrackerAnalyticsHelpers.GetBooleanAnalytics(field.Values),
                     _ => null
                 };
 
                 if (analytics != null)
                 {
+                    analytics.FieldName = field.Name;
+                    analytics.FieldType = field.Type;
                     analyticsResult.Add(analytics);
                 }
             }

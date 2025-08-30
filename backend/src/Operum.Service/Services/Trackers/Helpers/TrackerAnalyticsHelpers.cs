@@ -5,7 +5,7 @@ namespace Operum.Service.Services.Trackers.Helpers
 {
     public static class TrackerAnalyticsHelpers
     {
-        public static FieldAnalyticsDto GetNumericAnalytics(IEnumerable<FieldValue> values, string fieldName)
+        public static FieldAnalyticsDto GetNumericAnalytics(IEnumerable<FieldValue> values)
         {
             List<double> numericValues = [.. values
                 .Where(v => v.NumberValue.HasValue)
@@ -13,7 +13,7 @@ namespace Operum.Service.Services.Trackers.Helpers
 
             if (numericValues.Count == 0)
             {
-                return new FieldAnalyticsDto { FieldName = fieldName };
+                return new FieldAnalyticsDto();
             }
 
             var count = numericValues.Count;
@@ -27,7 +27,6 @@ namespace Operum.Service.Services.Trackers.Helpers
 
             return new FieldAnalyticsDto
             {
-                FieldName = fieldName,
                 Count = count,
                 Min = min,
                 Max = max,
@@ -37,7 +36,7 @@ namespace Operum.Service.Services.Trackers.Helpers
             };
         }
 
-        public static FieldAnalyticsDto GetTimeSpanAnalytics(IEnumerable<FieldValue> values, string fieldName)
+        public static FieldAnalyticsDto GetTimeSpanAnalytics(IEnumerable<FieldValue> values)
         {
             var timeSpanValues = values
                 .Where(v => v.TimeSpanValue.HasValue)
@@ -46,7 +45,7 @@ namespace Operum.Service.Services.Trackers.Helpers
 
             if (timeSpanValues.Count == 0)
             {
-                return new FieldAnalyticsDto { FieldName = fieldName };
+                return new FieldAnalyticsDto();
             }
 
             var count = timeSpanValues.Count;
@@ -56,7 +55,6 @@ namespace Operum.Service.Services.Trackers.Helpers
 
             return new FieldAnalyticsDto
             {
-                FieldName = fieldName,
                 Count = count,
                 MinTimeSpan = TimeSpan.FromTicks(minTicks),
                 MaxTimeSpan = TimeSpan.FromTicks(maxTicks),
@@ -64,7 +62,7 @@ namespace Operum.Service.Services.Trackers.Helpers
             };
         }
 
-        public static FieldAnalyticsDto GetDateTimeAnalytics(IEnumerable<FieldValue> values, string fieldName)
+        public static FieldAnalyticsDto GetDateTimeAnalytics(IEnumerable<FieldValue> values)
         {
             var dateTimeValues = values
                 .Where(v => v.DateTimeValue.HasValue)
@@ -73,19 +71,18 @@ namespace Operum.Service.Services.Trackers.Helpers
 
             if (dateTimeValues.Count == 0)
             {
-                return new FieldAnalyticsDto { FieldName = fieldName };
+                return new FieldAnalyticsDto();
             }
 
             return new FieldAnalyticsDto
             {
-                FieldName = fieldName,
                 Count = dateTimeValues.Count,
                 MinDateTime = dateTimeValues.Min(),
                 MaxDateTime = dateTimeValues.Max()
             };
         }
 
-        public static FieldAnalyticsDto GetDateAnalytics(IEnumerable<FieldValue> values, string fieldName)
+        public static FieldAnalyticsDto GetDateAnalytics(IEnumerable<FieldValue> values)
         {
             var dateValues = values
                 .Where(v => v.DateTimeValue.HasValue)
@@ -94,19 +91,18 @@ namespace Operum.Service.Services.Trackers.Helpers
 
             if (dateValues.Count == 0)
             {
-                return new FieldAnalyticsDto { FieldName = fieldName };
+                return new FieldAnalyticsDto();
             }
 
             return new FieldAnalyticsDto
             {
-                FieldName = fieldName,
                 Count = dateValues.Count,
                 MinDate = dateValues.Min(),
                 MaxDate = dateValues.Max()
             };
         }
 
-        public static FieldAnalyticsDto GetBooleanAnalytics(IEnumerable<FieldValue> values, string fieldName)
+        public static FieldAnalyticsDto GetBooleanAnalytics(IEnumerable<FieldValue> values)
         {
             var booleanValues = values
                 .Where(v => v.BooleanValue.HasValue)
@@ -115,7 +111,7 @@ namespace Operum.Service.Services.Trackers.Helpers
 
             if (booleanValues.Count == 0)
             {
-                return new FieldAnalyticsDto { FieldName = fieldName };
+                return new FieldAnalyticsDto();
             }
 
             var count = booleanValues.Count;
@@ -125,7 +121,6 @@ namespace Operum.Service.Services.Trackers.Helpers
 
             return new FieldAnalyticsDto
             {
-                FieldName = fieldName,
                 Count = count,
                 TrueCount = trueCount,
                 FalseCount = falseCount,

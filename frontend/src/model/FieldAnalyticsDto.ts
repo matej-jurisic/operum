@@ -1,5 +1,6 @@
 export interface FieldAnalyticsDto {
     fieldName: string;
+    fieldType: string;
 
     // Common
     count?: number;

@@ -62,6 +62,7 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
                     <TextInput
                         label="Field Name"
                         placeholder="Enter field name"
+                        maxLength={50}
                         {...form.getInputProps("name")}
                     />
 

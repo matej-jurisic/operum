@@ -56,9 +56,11 @@ export default function FieldsList(props: FieldsListProps) {
                 </Group>
                 {fields.map((field) => (
                     <Card key={field.id} p="md" radius="md" withBorder>
-                        <Group p="apart" align="center" justify="flex-end">
-                            <Stack gap={2} style={{ flex: 1 }} miw={"150px"}>
-                                <Text fw={600} size="md" lineClamp={1}>
+                        {/* Option 1: Stacked layout for mobile */}
+                        <Stack gap="sm">
+                            {/* Field info section */}
+                            <Stack gap={2}>
+                                <Text fw={600} size="md" truncate="end">
                                     {field.name}
                                 </Text>
                                 <Text
@@ -73,34 +75,42 @@ export default function FieldsList(props: FieldsListProps) {
                                     {field.description || "No description"}
                                 </Text>
                             </Stack>
-                            <Group justify="flex-end" w={250}>
-                                <Group justify="flex-end">
+
+                            {/* Badges and actions section - always horizontal */}
+                            <Group
+                                justify="space-between"
+                                wrap="nowrap"
+                                align="flex-end"
+                            >
+                                <Group gap="xs" wrap="wrap">
                                     {field.required && (
-                                        <Badge variant="light" color="red">
+                                        <Badge
+                                            variant="light"
+                                            color="red"
+                                            size="sm"
+                                        >
                                             Required
                                         </Badge>
                                     )}
-                                    <Badge variant="light" color="blue">
+                                    <Badge
+                                        variant="light"
+                                        color="blue"
+                                        size="sm"
+                                    >
                                         {field.type}
                                     </Badge>
                                 </Group>
-                                <Group>
-                                    <Button
-                                        variant="outline"
-                                        color="red"
-                                        onClick={() => {
-                                            setSelectedField(field);
-                                            setOpenDialogType(
-                                                OpenDialogType.DeleteField
-                                            );
-                                        }}
-                                        aria-label={`Delete field ${field.name}`}
-                                    >
-                                        <MdDelete size={18} />
-                                    </Button>
+
+                                <Group
+                                    gap="xs"
+                                    wrap="nowrap"
+                                    style={{ flexShrink: 0 }}
+                                >
                                     <Button
                                         variant="outline"
                                         color="green"
+                                        size="sm"
+                                        px="xs"
                                         onClick={() => {
                                             setSelectedField(field);
                                             setOpenDialogType(
@@ -109,11 +119,26 @@ export default function FieldsList(props: FieldsListProps) {
                                         }}
                                         aria-label={`Edit field ${field.name}`}
                                     >
-                                        <MdEdit size={18} />
+                                        <MdEdit size={16} />
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        color="red"
+                                        size="sm"
+                                        px="xs"
+                                        onClick={() => {
+                                            setSelectedField(field);
+                                            setOpenDialogType(
+                                                OpenDialogType.DeleteField
+                                            );
+                                        }}
+                                        aria-label={`Delete field ${field.name}`}
+                                    >
+                                        <MdDelete size={16} />
                                     </Button>
                                 </Group>
                             </Group>
-                        </Group>
+                        </Stack>
                     </Card>
                 ))}
             </Stack>

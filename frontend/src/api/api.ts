@@ -48,6 +48,7 @@ const clearUserData = () => {
     localStorage.removeItem(USERNAME_KEY);
     localStorage.removeItem(ID_KEY);
     localStorage.removeItem(EXP_KEY);
+    document.location.reload();
 };
 
 const showSessionExpiredNotification = () => {
