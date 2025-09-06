@@ -82,6 +82,7 @@ export default function EntriesList(props: EntriesListProps) {
         entries,
         refreshEntriesIfDirty,
         refreshEntries,
+        refreshFieldsIfDirty,
         markAnalyticsDirty,
     } = useTracker();
 
@@ -115,6 +116,7 @@ export default function EntriesList(props: EntriesListProps) {
         const loadEntries = async () => {
             setIsLoading(true);
             await refreshEntriesIfDirty();
+            await refreshFieldsIfDirty();
             setIsLoading(false);
         };
         loadEntries();
