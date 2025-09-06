@@ -3,13 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34322.80
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Operum.API", "Operum.API/Operum.API.csproj", "{8ADED33F-A24B-4171-9066-5E8DC67F8B75}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Operum.API", "Operum.API\Operum.API.csproj", "{8ADED33F-A24B-4171-9066-5E8DC67F8B75}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Operum.Model", "Operum.Model/Operum.Model.csproj", "{1C81CB3C-1F83-457F-85CD-1BA7478EC78C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Operum.Model", "Operum.Model\Operum.Model.csproj", "{1C81CB3C-1F83-457F-85CD-1BA7478EC78C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Operum.Service", "Operum.Service/Operum.Service.csproj", "{4A51AA3A-5F6D-40DA-B9B9-D6D239A53C29}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Operum.Service", "Operum.Service\Operum.Service.csproj", "{4A51AA3A-5F6D-40DA-B9B9-D6D239A53C29}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Operum.Tests", "Operum.Tests/Operum.Tests.csproj", "{574CE637-4981-6FBA-7FE8-41396A2F68A5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Operum.Tests", "Operum.Tests\Operum.Tests.csproj", "{574CE637-4981-6FBA-7FE8-41396A2F68A5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

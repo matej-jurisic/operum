@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Operum.API.Middleware;
+using Operum.API.Middleware.Security;
 using Operum.Model.Configuration;
 using Operum.Service.Integrations.MailSender;
 using Operum.Service.Mappings.Mapper;

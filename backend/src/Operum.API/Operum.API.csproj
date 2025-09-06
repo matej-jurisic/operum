@@ -24,4 +24,8 @@
     <ProjectReference Include="..\Operum.Service\Operum.Service.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Middleware\ExceptionHandling\" />
+  </ItemGroup>
+
 </Project>

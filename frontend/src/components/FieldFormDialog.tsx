@@ -83,6 +83,7 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
 
                     <Checkbox
                         label="Required"
+                        checked={form.values.required}
                         {...form.getInputProps("required")}
                     />
 

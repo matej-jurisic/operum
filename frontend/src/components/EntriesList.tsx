@@ -439,7 +439,7 @@ export default function EntriesList(props: EntriesListProps) {
             {openDialogType === OpenDialogType.ImportEntries && (
                 <ImportEntriesDialog
                     onClose={() => setOpenDialogType(undefined)}
-                    trackerId={props.tracker.id}
+                    tracker={props.tracker}
                     onImport={async () => {
                         markAnalyticsDirty();
                         refreshEntries();

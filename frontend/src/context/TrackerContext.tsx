@@ -1,10 +1,4 @@
-import React, {
-    createContext,
-    useCallback,
-    useContext,
-    useEffect,
-    useState,
-} from "react";
+import React, { createContext, useCallback, useContext, useState } from "react";
 import api from "../api/api";
 import { EntryDto } from "../model/EntryDto";
 import { FieldAnalyticsDto } from "../model/FieldAnalyticsDto";
@@ -75,12 +69,6 @@ export const TrackerProvider: React.FC<{
     const markEntriesDirty = useCallback(() => setEntriesDirty(true), []);
     const markFieldsDirty = useCallback(() => setFieldsDirty(true), []);
     const markAnalyticsDirty = useCallback(() => setAnalyticsDirty(true), []);
-
-    useEffect(() => {
-        refreshEntries();
-        refreshFields();
-        refreshAnalytics();
-    }, [refreshEntries, refreshFields, refreshAnalytics]);
 
     const refreshIfDirty = useCallback(
         async (dataset: "entries" | "fields" | "analytics") => {

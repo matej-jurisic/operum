@@ -4,7 +4,7 @@ using Operum.Model.Common;
 using Operum.Model.Enums;
 using System.Net;
 
-namespace Operum.API.Middleware
+namespace Operum.API.Middleware.Security
 {
     public class AuthorizationResultHandlerMiddleware : IAuthorizationMiddlewareResultHandler
     {
