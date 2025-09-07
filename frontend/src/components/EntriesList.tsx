@@ -344,50 +344,52 @@ export default function EntriesList(props: EntriesListProps) {
     return (
         <>
             <Stack gap="md">
-                <Group justify="space-between" w="100%">
-                    <Group>
-                        <Button
-                            color={props.tracker.color}
-                            leftSection={<FiPlus size={18} />}
-                            onClick={() => {
-                                if (fields.length === 0) return;
-                                setOpenDialogType(OpenDialogType.CreateEntry);
-                            }}
-                        >
-                            Create Entry
-                        </Button>
-                        <Button
-                            onClick={() => {
-                                if (fields.length === 0) return;
-                                setOpenDialogType(OpenDialogType.ImportEntries);
-                            }}
-                            color={props.tracker.color}
-                            leftSection={<PiFileCsvDuotone size={24} />}
-                        >
-                            Import Entries
-                        </Button>
+                <Group justify="space-between" w="100%" h={36}>
+                    <Menu shadow="md" position="bottom-start">
+                        <Menu.Target>
+                            <ActionIcon size={"lg"} color={props.tracker.color}>
+                                <FiPlus size={18} />
+                            </ActionIcon>
+                        </Menu.Target>
 
+                        <Menu.Dropdown>
+                            <Menu.Item
+                                leftSection={<FiPlus size={16} />}
+                                onClick={() =>
+                                    setOpenDialogType(
+                                        OpenDialogType.CreateEntry
+                                    )
+                                }
+                            >
+                                Create Entry
+                            </Menu.Item>
+                            <Menu.Item
+                                leftSection={<PiFileCsvDuotone size={16} />}
+                                onClick={() =>
+                                    setOpenDialogType(
+                                        OpenDialogType.ImportEntries
+                                    )
+                                }
+                            >
+                                Import Entries
+                            </Menu.Item>
+                        </Menu.Dropdown>
+                    </Menu>
+
+                    <Group>
                         {/* Bulk actions */}
                         {!isSelectMode ? (
-                            <Button
+                            <ActionIcon
                                 variant="outline"
                                 color={props.tracker.color}
-                                leftSection={<MdSelectAll size={18} />}
                                 onClick={enterSelectMode}
                                 disabled={entries.length === 0}
+                                size={"lg"}
                             >
-                                Select
-                            </Button>
+                                <MdSelectAll size={18} />
+                            </ActionIcon>
                         ) : (
                             <Group>
-                                <Button
-                                    variant="outline"
-                                    leftSection={<RxCross2 size={18} />}
-                                    color="gray"
-                                    onClick={clearSelection}
-                                >
-                                    Cancel
-                                </Button>
                                 <Button
                                     variant="outline"
                                     color="red"
@@ -401,94 +403,113 @@ export default function EntriesList(props: EntriesListProps) {
                                 >
                                     Delete Selected
                                 </Button>
+                                <ActionIcon
+                                    size={"lg"}
+                                    variant="outline"
+                                    color="gray"
+                                    onClick={clearSelection}
+                                >
+                                    <RxCross2 size={18} />
+                                </ActionIcon>
                             </Group>
                         )}
-                    </Group>
 
-                    <Menu
-                        shadow="md"
-                        position="bottom-end"
-                        closeOnItemClick={false}
-                        width={200}
-                    >
-                        <Menu.Target>
-                            <Button
-                                variant="outline"
-                                color={props.tracker.color}
-                                leftSection={<IoMdEye size={18} />}
-                            >
-                                Show/Hide Columns
-                            </Button>
-                        </Menu.Target>
+                        <Menu
+                            shadow="md"
+                            position="bottom-end"
+                            closeOnItemClick={false}
+                            width={200}
+                        >
+                            <Menu.Target>
+                                <ActionIcon
+                                    variant="outline"
+                                    color={props.tracker.color}
+                                    size={"lg"}
+                                >
+                                    <IoMdEye size={18} />
+                                </ActionIcon>
+                            </Menu.Target>
 
-                        <Menu.Dropdown>
-                            {fields.map((field) => (
-                                <Menu.Item key={field.id} p={0}>
+                            <Menu.Dropdown>
+                                {fields.map((field) => (
+                                    <Menu.Item key={field.id} p={0}>
+                                        <UnstyledButton
+                                            p="xs"
+                                            w="100%"
+                                            onClick={() =>
+                                                toggleColumn(field.id)
+                                            }
+                                        >
+                                            <Group justify="space-between">
+                                                <Text size="sm">
+                                                    {field.name}
+                                                </Text>
+                                                <Checkbox
+                                                    size="sm"
+                                                    color={props.tracker.color}
+                                                    checked={
+                                                        visibleColumns[
+                                                            field.id
+                                                        ] || false
+                                                    }
+                                                    onChange={() => {}}
+                                                />
+                                            </Group>
+                                        </UnstyledButton>
+                                    </Menu.Item>
+                                ))}
+
+                                <Menu.Divider />
+
+                                <Menu.Item p={0}>
                                     <UnstyledButton
                                         p="xs"
                                         w="100%"
-                                        onClick={() => toggleColumn(field.id)}
+                                        onClick={() =>
+                                            toggleColumn("createdAt")
+                                        }
                                     >
                                         <Group justify="space-between">
-                                            <Text size="sm">{field.name}</Text>
+                                            <Text size="sm">Created At</Text>
                                             <Checkbox
                                                 size="sm"
+                                                color={props.tracker.color}
                                                 checked={
-                                                    visibleColumns[field.id] ||
-                                                    false
+                                                    visibleColumns[
+                                                        "createdAt"
+                                                    ] || false
                                                 }
                                                 onChange={() => {}}
+                                                tabIndex={-1}
                                             />
                                         </Group>
                                     </UnstyledButton>
                                 </Menu.Item>
-                            ))}
 
-                            <Menu.Divider />
-
-                            <Menu.Item p={0}>
-                                <UnstyledButton
-                                    p="xs"
-                                    w="100%"
-                                    onClick={() => toggleColumn("createdAt")}
-                                >
-                                    <Group justify="space-between">
-                                        <Text size="sm">Created At</Text>
-                                        <Checkbox
-                                            size="sm"
-                                            checked={
-                                                visibleColumns["createdAt"] ||
-                                                false
-                                            }
-                                            onChange={() => {}}
-                                            tabIndex={-1}
-                                        />
-                                    </Group>
-                                </UnstyledButton>
-                            </Menu.Item>
-
-                            <Menu.Item p={0}>
-                                <UnstyledButton
-                                    p="xs"
-                                    w="100%"
-                                    onClick={() => toggleColumn("actions")}
-                                >
-                                    <Group justify="space-between">
-                                        <Text size="sm">Actions</Text>
-                                        <Checkbox
-                                            size="sm"
-                                            checked={
-                                                visibleColumns["actions"] ||
-                                                false
-                                            }
-                                            onChange={() => {}}
-                                            tabIndex={-1}
-                                        />
-                                    </Group>
-                                </UnstyledButton>
-                            </Menu.Item>
-                        </Menu.Dropdown>
-                    </Menu>
+                                <Menu.Item p={0}>
+                                    <UnstyledButton
+                                        p="xs"
+                                        w="100%"
+                                        onClick={() => toggleColumn("actions")}
+                                    >
+                                        <Group justify="space-between">
+                                            <Text size="sm">Actions</Text>
+                                            <Checkbox
+                                                color={props.tracker.color}
+                                                size="sm"
+                                                checked={
+                                                    visibleColumns["actions"] ||
+                                                    false
+                                                }
+                                                onChange={() => {}}
+                                                tabIndex={-1}
+                                            />
+                                        </Group>
+                                    </UnstyledButton>
+                                </Menu.Item>
+                            </Menu.Dropdown>
+                        </Menu>
+                    </Group>
                 </Group>
 
                 {entries.length > 0 && !isLoadingData ? (

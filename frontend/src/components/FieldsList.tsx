@@ -1,4 +1,4 @@
-import { Badge, Button, Card, Group, Stack, Text } from "@mantine/core";
+import { ActionIcon, Badge, Card, Group, Stack, Text } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { MdDelete, MdEdit } from "react-icons/md";
@@ -32,16 +32,16 @@ export default function FieldsList(props: FieldsListProps) {
     return (
         <>
             <Stack gap="md">
-                <Group justify="space-between" w="100%">
-                    <Button
+                <Group justify="space-between" w="100%" h={36}>
+                    <ActionIcon
+                        size={"lg"}
                         color={props.tracker.color}
-                        leftSection={<FiPlus size={18} />}
                         onClick={() =>
                             setOpenDialogType(OpenDialogType.CreateField)
                         }
                     >
-                        Create Field
-                    </Button>
+                        <FiPlus size={18} />
+                    </ActionIcon>
                 </Group>
                 {fields.map((field) => (
                     <Card key={field.id} p="md" radius="md" withBorder>
@@ -95,11 +95,10 @@ export default function FieldsList(props: FieldsListProps) {
                                     wrap="nowrap"
                                     style={{ flexShrink: 0 }}
                                 >
-                                    <Button
+                                    <ActionIcon
                                         variant="outline"
                                         color="green"
-                                        size="sm"
-                                        px="xs"
+                                        size="lg"
                                         onClick={() => {
                                             setSelectedField(field);
                                             setOpenDialogType(
@@ -109,12 +108,11 @@ export default function FieldsList(props: FieldsListProps) {
                                         aria-label={`Edit field ${field.name}`}
                                     >
                                         <MdEdit size={16} />
-                                    </Button>
-                                    <Button
+                                    </ActionIcon>
+                                    <ActionIcon
                                         variant="outline"
                                         color="red"
-                                        size="sm"
-                                        px="xs"
+                                        size="lg"
                                         onClick={() => {
                                             setSelectedField(field);
                                             setOpenDialogType(
@@ -124,7 +122,7 @@ export default function FieldsList(props: FieldsListProps) {
                                         aria-label={`Delete field ${field.name}`}
                                     >
                                         <MdDelete size={16} />
-                                    </Button>
+                                    </ActionIcon>
                                 </Group>
                             </Group>
                         </Stack>

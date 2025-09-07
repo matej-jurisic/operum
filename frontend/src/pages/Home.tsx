@@ -1,4 +1,5 @@
 import {
+    ActionIcon,
     Button,
     Card,
     Group,
@@ -173,7 +174,8 @@ export default function Home() {
                                         justify="flex-end"
                                         style={{ flexGrow: 1 }}
                                     >
-                                        <Button
+                                        <ActionIcon
+                                            size={"lg"}
                                             variant="outline"
                                             color="green"
                                             onClick={(e) => {
@@ -185,8 +187,9 @@ export default function Home() {
                                             }}
                                         >
                                             <MdEdit size={18} />
-                                        </Button>
-                                        <Button
+                                        </ActionIcon>
+                                        <ActionIcon
+                                            size={"lg"}
                                             variant="outline"
                                             color="red"
                                             onClick={(e) => {
@@ -198,7 +201,7 @@ export default function Home() {
                                             }}
                                         >
                                             <MdDelete size={18} />
-                                        </Button>
+                                        </ActionIcon>
                                     </Group>
                                 </Group>
                             </Card>

@@ -77,14 +77,14 @@ export default function EntryDetailsDialog({
             }
         >
             <Stack gap="sm">
-                <Divider label="Information" />
+                <Divider label="Data" />
                 {entry.fieldValues.map((fieldValue) => (
                     <Group key={fieldValue.fieldId} justify="space-between">
                         <Text fw={500}>{fieldValue.fieldName}:</Text>
                         <Text>{renderValue(fieldValue)}</Text>
                     </Group>
                 ))}
-                <Divider label="Data" />
+                <Divider label="Information" />
                 <Group justify="space-between">
                     <Text fw={500}>Created At:</Text>
                     <Text>
