@@ -7,7 +7,7 @@ import {
     TextInput,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import api from "../api/api";
+import { useTracker } from "../context/TrackerContext";
 import { TrackerDto } from "../model/TrackerDto";
 import { fieldTypes } from "../model/constants/DataTypesForSelect";
 import { FieldUpsertDto } from "../model/requests/FieldUpsertDto";
@@ -17,10 +17,11 @@ interface FieldFormDialogProps {
     fieldId?: string;
     initialValues?: FieldUpsertDto;
     onClose: () => void;
-    onFieldSaved?: () => void;
 }
 
 export function FieldFormDialog(props: FieldFormDialogProps) {
+    const { CreateField, UpdateField } = useTracker();
+
     const form = useForm<FieldUpsertDto>({
         initialValues: props.initialValues || {
             name: "",
@@ -38,16 +39,12 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
 
     const handleSubmit = async (values: FieldUpsertDto) => {
         if (props.fieldId) {
-            await api.put(
-                `/trackers/${props.tracker.id}/fields/${props.fieldId}`,
-                values
-            );
+            UpdateField(props.tracker.id, props.fieldId, values);
         } else {
-            await api.post(`/trackers/${props.tracker.id}/fields`, values);
+            CreateField(props.tracker.id, values);
         }
         props.onClose();
         form.reset();
-        props.onFieldSaved?.();
     };
 
     return (

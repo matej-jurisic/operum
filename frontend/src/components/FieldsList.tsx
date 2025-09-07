@@ -2,7 +2,6 @@ import { Badge, Button, Card, Group, Stack, Text } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { MdDelete, MdEdit } from "react-icons/md";
-import api from "../api/api";
 import { useTracker } from "../context/TrackerContext";
 import { FieldDto } from "../model/FieldDto";
 import { FieldUpsertDto } from "../model/requests/FieldUpsertDto";
@@ -14,10 +13,6 @@ interface FieldsListProps {
     tracker: TrackerDto;
 }
 
-const DeleteField = async (trackerId: string, fieldId: string) => {
-    await api.delete(`/trackers/${trackerId}/fields/${fieldId}`);
-};
-
 enum OpenDialogType {
     CreateField,
     DeleteField,
@@ -28,13 +23,7 @@ export default function FieldsList(props: FieldsListProps) {
     const [selectedField, setSelectedField] = useState<FieldDto>();
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
 
-    const {
-        fields,
-        refreshFields,
-        markEntriesDirty,
-        markAnalyticsDirty,
-        refreshFieldsIfDirty,
-    } = useTracker();
+    const { fields, DeleteField, refreshFieldsIfDirty } = useTracker();
 
     useEffect(() => {
         refreshFieldsIfDirty();
@@ -153,9 +142,6 @@ export default function FieldsList(props: FieldsListProps) {
                         await DeleteField(props.tracker.id, selectedField.id);
                         setSelectedField(undefined);
                         setOpenDialogType(undefined);
-                        markEntriesDirty();
-                        markAnalyticsDirty();
-                        refreshFields();
                     }}
                     severity="important"
                     message="Deleting a field will delete all the data stored in it."
@@ -165,9 +151,6 @@ export default function FieldsList(props: FieldsListProps) {
                 <FieldFormDialog
                     tracker={props.tracker}
                     onClose={() => setOpenDialogType(undefined)}
-                    onFieldSaved={async () => {
-                        refreshFields();
-                    }}
                 />
             )}
             {openDialogType === OpenDialogType.EditField && selectedField && (
@@ -178,13 +161,6 @@ export default function FieldsList(props: FieldsListProps) {
                     onClose={() => {
                         setOpenDialogType(undefined);
                         setSelectedField(undefined);
-                    }}
-                    onFieldSaved={async () => {
-                        setSelectedField(undefined);
-                        setOpenDialogType(undefined);
-                        markAnalyticsDirty();
-                        markEntriesDirty();
-                        refreshFields();
                     }}
                 />
             )}

@@ -8,7 +8,6 @@ import {
 } from "@mantine/core";
 import { DatePickerInput, DateTimePicker, TimePicker } from "@mantine/dates";
 import { useForm } from "@mantine/form";
-import api from "../api/api";
 import { useTracker } from "../context/TrackerContext";
 import { TrackerDto } from "../model/TrackerDto";
 
@@ -17,11 +16,10 @@ interface EntryFormDialogProps {
     entryId?: string;
     initialValues?: Record<string, unknown>;
     onClose: () => void;
-    onEntrySaved?: () => void;
 }
 
 export default function EntryFormDialog(props: EntryFormDialogProps) {
-    const { fields } = useTracker();
+    const { fields, CreateEntry, UpdateEntry } = useTracker();
     const form = useForm<{ [key: string]: unknown }>({
         initialValues: props.initialValues || {},
     });
@@ -55,21 +53,13 @@ export default function EntryFormDialog(props: EntryFormDialogProps) {
         });
 
         if (props.entryId) {
-            // Update
-            await api.put(
-                `/trackers/${props.tracker.id}/entries/${props.entryId}`,
-                { fieldValues }
-            );
+            await UpdateEntry(props.tracker.id, props.entryId, fieldValues);
         } else {
-            // Create
-            await api.post(`/trackers/${props.tracker.id}/entries`, {
-                fieldValues,
-            });
+            await CreateEntry(props.tracker.id, fieldValues);
         }
 
         form.reset();
         props.onClose();
-        props.onEntrySaved?.();
     };
 
     return (

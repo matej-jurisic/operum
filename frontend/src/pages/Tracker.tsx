@@ -5,7 +5,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import api from "../api/api";
 import AnalyiticsList from "../components/AnalyticsList";
 import EntriesList from "../components/EntriesList";
-import { FieldFormDialog } from "../components/FieldFormDialog";
 import FieldsList from "../components/FieldsList";
 import { TrackerProvider } from "../context/TrackerContext";
 import { TrackerDto } from "../model/TrackerDto";
@@ -15,19 +14,11 @@ const GetTracker = async (trackerId: string) => {
     return response.data.data;
 };
 
-enum OpenDialogType {
-    CreateEntry,
-    ImportEntries,
-    AddField,
-}
-
 export default function Tracker() {
     const { trackerId } = useParams();
     const navigate = useNavigate();
 
     const [tracker, setTracker] = useState<TrackerDto>();
-    const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
-
     const [activeTab, setActiveTab] = useState<string | null>("entries");
 
     useEffect(() => {
@@ -87,16 +78,6 @@ export default function Tracker() {
                     </Container>
                 </Tabs>
             </Stack>
-
-            {openDialogType === OpenDialogType.AddField && (
-                <FieldFormDialog
-                    tracker={tracker}
-                    onClose={() => setOpenDialogType(undefined)}
-                    onFieldSaved={async () =>
-                        setTracker(await GetTracker(tracker.id))
-                    }
-                />
-            )}
         </TrackerProvider>
     );
 }

@@ -41,7 +41,7 @@ export default function ConfirmationDialog({
                     <Button variant="outline" onClick={onClose} color="gray">
                         Cancel
                     </Button>
-                    <Button onClick={onConfirm} color={confirmColor}>
+                    <Button autoFocus onClick={onConfirm} color={confirmColor}>
                         Confirm
                     </Button>
                 </Group>

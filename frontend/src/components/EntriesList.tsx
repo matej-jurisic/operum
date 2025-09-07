@@ -15,7 +15,6 @@ import { FiPlus } from "react-icons/fi";
 import { IoMdEye } from "react-icons/io";
 import { MdDelete, MdEdit } from "react-icons/md";
 import { PiFileCsvDuotone } from "react-icons/pi";
-import api from "../api/api";
 import { useTracker } from "../context/TrackerContext";
 import { EntryDto } from "../model/EntryDto";
 import { FieldValueDto } from "../model/FieldValueDto";
@@ -43,10 +42,6 @@ const gridColumnSizes = {
     bool: "80px",
 };
 
-const DeleteEntry = async (trackerId: string, entryId: string) => {
-    await api.delete(`/trackers/${trackerId}/entries/${entryId}`);
-};
-
 const renderValue = (v: FieldValueDto) => {
     if (v.value === null) return "";
     if (typeof v.value === "string") {
@@ -71,20 +66,19 @@ export default function EntriesList(props: EntriesListProps) {
     const [selectedEntry, setSelectedEntry] = useState<EntryDto>();
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
     const [currentPage, setCurrentPage] = useState(1);
-    const { fields } = useTracker();
+    const { fields, DeleteEntry } = useTracker();
 
     // Column visibility state - all visible by default
     const [visibleColumns, setVisibleColumns] = useState<
         Record<string, boolean>
     >({});
 
-    const {
-        entries,
-        refreshEntriesIfDirty,
-        refreshEntries,
-        refreshFieldsIfDirty,
-        markAnalyticsDirty,
-    } = useTracker();
+    // Add a flag to track if visibility has been initialized
+    const [visibilityInitialized, setVisibilityInitialized] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const { entries, refreshEntriesIfDirty, refreshFieldsIfDirty } =
+        useTracker();
 
     const pageSize = 10;
     const totalPages = useMemo(() => {
@@ -97,30 +91,6 @@ export default function EntriesList(props: EntriesListProps) {
             currentPage * pageSize
         );
     }, [currentPage, entries]);
-
-    const [isLoading, setIsLoading] = useState(true);
-
-    // Initialize column visibility when fields change
-    useEffect(() => {
-        const initialVisibility: Record<string, boolean> = {};
-        fields.forEach((field) => {
-            initialVisibility[field.id] = true;
-        });
-        // Always show these system columns
-        initialVisibility["createdAt"] = true;
-        initialVisibility["actions"] = true;
-        setVisibleColumns(initialVisibility);
-    }, [fields]);
-
-    useEffect(() => {
-        const loadEntries = async () => {
-            setIsLoading(true);
-            await refreshEntriesIfDirty();
-            await refreshFieldsIfDirty();
-            setIsLoading(false);
-        };
-        loadEntries();
-    }, []);
 
     // Toggle column visibility
     const toggleColumn = (columnId: string) => {
@@ -226,6 +196,33 @@ export default function EntriesList(props: EntriesListProps) {
             );
         });
     }, [paginatedEntries, visibleFields, visibleColumns]);
+
+    // Load data on component mount
+    useEffect(() => {
+        const loadData = async () => {
+            setIsLoading(true);
+            await refreshEntriesIfDirty();
+            await refreshFieldsIfDirty();
+            setIsLoading(false);
+        };
+        loadData();
+    }, [refreshEntriesIfDirty, refreshFieldsIfDirty]);
+
+    // Initialize column visibility when fields are loaded (only once)
+    useEffect(() => {
+        if (fields.length > 0 && !visibilityInitialized) {
+            const initialVisibility: Record<string, boolean> = {};
+            fields.forEach((field) => {
+                initialVisibility[field.id] = true;
+            });
+            // Always show these system columns
+            initialVisibility["createdAt"] = true;
+            initialVisibility["actions"] = true;
+
+            setVisibleColumns(initialVisibility);
+            setVisibilityInitialized(true);
+        }
+    }, [fields, visibilityInitialized]);
 
     return (
         <>
@@ -340,7 +337,11 @@ export default function EntriesList(props: EntriesListProps) {
                     </Menu>
                 </Group>
 
-                {!isLoading && entries.length > 0 ? (
+                {isLoading ? (
+                    <Text size="lg" c="dimmed" ta="center" py="xl">
+                        Loading entries...
+                    </Text>
+                ) : entries.length > 0 ? (
                     <Table.ScrollContainer minWidth={0}>
                         <Table
                             striped
@@ -367,12 +368,12 @@ export default function EntriesList(props: EntriesListProps) {
                             <Table.Tbody>{tableRows}</Table.Tbody>
                         </Table>
                     </Table.ScrollContainer>
-                ) : !isLoading ? (
+                ) : (
                     <Text size="lg" c="dimmed" ta="center" py="xl">
                         No entries found. Create your first entry to get
                         started.
                     </Text>
-                ) : null}
+                )}
 
                 {totalPages > 1 && (
                     <Group justify="center">
@@ -394,8 +395,6 @@ export default function EntriesList(props: EntriesListProps) {
                     onClose={() => setSelectedEntry(undefined)}
                     onConfirm={async () => {
                         await DeleteEntry(props.tracker.id, selectedEntry.id);
-                        refreshEntries();
-                        markAnalyticsDirty();
                         setSelectedEntry(undefined);
                     }}
                     severity="warning"
@@ -407,11 +406,6 @@ export default function EntriesList(props: EntriesListProps) {
                 <EntryFormDialog
                     tracker={props.tracker}
                     onClose={() => {
-                        setOpenDialogType(undefined);
-                    }}
-                    onEntrySaved={async () => {
-                        markAnalyticsDirty();
-                        refreshEntries();
                         setOpenDialogType(undefined);
                     }}
                 />
@@ -431,22 +425,12 @@ export default function EntriesList(props: EntriesListProps) {
                     onClose={() => {
                         setOpenDialogType(undefined);
                     }}
-                    onEntrySaved={async () => {
-                        markAnalyticsDirty();
-                        refreshEntries();
-                        setOpenDialogType(undefined);
-                    }}
                 />
             )}
             {openDialogType === OpenDialogType.ImportEntries && (
                 <ImportEntriesDialog
                     onClose={() => setOpenDialogType(undefined)}
                     tracker={props.tracker}
-                    onImport={async () => {
-                        markAnalyticsDirty();
-                        refreshEntries();
-                        setOpenDialogType(undefined);
-                    }}
                 />
             )}
         </>

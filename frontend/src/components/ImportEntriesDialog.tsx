@@ -12,36 +12,14 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useClipboard } from "@mantine/hooks";
-import { AxiosRequestConfig } from "axios"; // Import AxiosRequestConfig
 import { FiCopy } from "react-icons/fi";
-import api from "../api/api";
 import { useTracker } from "../context/TrackerContext";
 import { TrackerDto } from "../model/TrackerDto";
 
 interface ImportEntriesDialogProps {
     onClose: () => void;
     tracker: TrackerDto;
-    onImport: () => void;
 }
-
-const ImportEntries = async (trackerId: string, file: File | null) => {
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const config: AxiosRequestConfig = {
-        headers: {
-            "Content-Type": "multipart/form-data",
-        },
-    };
-
-    await api.post(
-        `/trackers/${trackerId}/entries/import-csv`,
-        formData,
-        config
-    );
-};
 
 export default function ImportEntriesDialog(props: ImportEntriesDialogProps) {
     const form = useForm<{ file: File | null }>({
@@ -50,7 +28,7 @@ export default function ImportEntriesDialog(props: ImportEntriesDialogProps) {
         },
     });
 
-    const { fields } = useTracker();
+    const { fields, ImportEntries } = useTracker();
     const clipboard = useClipboard();
 
     const generateCsvHeader = () => {
@@ -67,7 +45,6 @@ export default function ImportEntriesDialog(props: ImportEntriesDialogProps) {
                 onSubmit={form.onSubmit(async (values) => {
                     await ImportEntries(props.tracker.id, values.file);
                     props.onClose();
-                    props.onImport();
                 })}
             >
                 <Stack>
