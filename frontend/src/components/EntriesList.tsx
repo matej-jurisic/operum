@@ -16,6 +16,7 @@ import { FiPlus } from "react-icons/fi";
 import { IoMdEye } from "react-icons/io";
 import { MdDelete, MdEdit, MdSelectAll } from "react-icons/md";
 import { PiFileCsvDuotone } from "react-icons/pi";
+import { RiFileListFill } from "react-icons/ri";
 import { RxCross2 } from "react-icons/rx";
 import { useTracker } from "../context/TrackerContext";
 import { EntryDto } from "../model/EntryDto";
@@ -28,6 +29,7 @@ import {
     formatTimeSpan,
 } from "../util/TypeFormatter";
 import ConfirmationDialog from "./ConfirmationDialog";
+import EntryDetailsDialog from "./EntryDetailsDialog"; // New import
 import EntryFormDialog from "./EntryFormDialog";
 import ImportEntriesDialog from "./ImportEntriesDialog";
 
@@ -63,6 +65,7 @@ enum OpenDialogType {
     UpdateEntry,
     ImportEntries,
     BulkDelete,
+    ViewDetails,
 }
 
 export default function EntriesList(props: EntriesListProps) {
@@ -85,6 +88,7 @@ export default function EntriesList(props: EntriesListProps) {
 
     // Add a flag to track if visibility has been initialized
     const [visibilityInitialized, setVisibilityInitialized] = useState(false);
+    const [isLoadingData, setIsLoadingData] = useState(false);
 
     const { entries, refreshEntriesIfDirty, refreshFieldsIfDirty } =
         useTracker();
@@ -203,7 +207,7 @@ export default function EntriesList(props: EntriesListProps) {
         }
 
         if (visibleColumns["actions"]) {
-            headers.push({ id: "actions", label: "Actions", width: "87px" });
+            headers.push({ id: "actions", label: "Actions", width: "125px" });
         }
 
         return headers;
@@ -227,15 +231,7 @@ export default function EntriesList(props: EntriesListProps) {
             });
 
             return (
-                <Table.Tr
-                    key={entry.id}
-                    h={43}
-                    bg={
-                        selectedEntryIds.has(entry.id)
-                            ? `${props.tracker.color}.0`
-                            : undefined
-                    }
-                >
+                <Table.Tr key={entry.id} h={43}>
                     {/* Selection checkbox */}
                     {isSelectMode && (
                         <Table.Td>
@@ -266,6 +262,19 @@ export default function EntriesList(props: EntriesListProps) {
                     {visibleColumns["actions"] && (
                         <Table.Td>
                             <Group gap="xs">
+                                {/* New ActionIcon for viewing details */}
+                                <ActionIcon
+                                    variant="outline"
+                                    color={props.tracker.color}
+                                    onClick={() => {
+                                        setSelectedEntry(entry);
+                                        setOpenDialogType(
+                                            OpenDialogType.ViewDetails
+                                        );
+                                    }}
+                                >
+                                    <RiFileListFill size={16} />
+                                </ActionIcon>
                                 <ActionIcon
                                     variant="outline"
                                     color="green"
@@ -308,11 +317,13 @@ export default function EntriesList(props: EntriesListProps) {
     // Load data on component mount
     useEffect(() => {
         const loadData = async () => {
+            setIsLoadingData(true);
             await refreshEntriesIfDirty();
             await refreshFieldsIfDirty();
+            setIsLoadingData(false);
         };
         loadData();
-    }, [refreshEntriesIfDirty, refreshFieldsIfDirty]);
+    }, []);
 
     // Initialize column visibility when fields are loaded (only once)
     useEffect(() => {
@@ -480,14 +491,13 @@ export default function EntriesList(props: EntriesListProps) {
                     </Menu>
                 </Group>
 
-                {entries.length > 0 ? (
+                {entries.length > 0 && !isLoadingData ? (
                     <Table.ScrollContainer minWidth={0}>
                         <Table
                             striped
                             highlightOnHover
                             withTableBorder
                             withColumnBorders
-                            highlightOnHoverColor={`${props.tracker.color}.0`}
                         >
                             <Table.Thead>
                                 <Table.Tr>
@@ -512,6 +522,8 @@ export default function EntriesList(props: EntriesListProps) {
                             <Table.Tbody>{tableRows}</Table.Tbody>
                         </Table>
                     </Table.ScrollContainer>
+                ) : isLoadingData ? (
+                    <></>
                 ) : (
                     <Text size="lg" c="dimmed" ta="center" py="xl">
                         No entries found. Create your first entry to get
@@ -597,6 +609,17 @@ export default function EntriesList(props: EntriesListProps) {
             {openDialogType === OpenDialogType.ImportEntries && (
                 <ImportEntriesDialog
                     onClose={() => setOpenDialogType(undefined)}
+                    tracker={props.tracker}
+                />
+            )}
+
+            {openDialogType === OpenDialogType.ViewDetails && selectedEntry && (
+                <EntryDetailsDialog
+                    onClose={() => {
+                        setOpenDialogType(undefined);
+                        setSelectedEntry(undefined);
+                    }}
+                    entryId={selectedEntry.id}
                     tracker={props.tracker}
                 />
             )}

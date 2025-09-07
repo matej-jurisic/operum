@@ -27,7 +27,7 @@ const App = observer(() => {
             <LoadingOverlay
                 visible
                 overlayProps={{
-                    opacity: 0.3,
+                    opacity: 0.5,
                 }}
             />
         );
@@ -38,7 +38,7 @@ const App = observer(() => {
             <LoadingOverlay
                 visible={loading}
                 overlayProps={{
-                    opacity: 0.3,
+                    opacity: 0.5,
                 }}
             />
             <ScrollArea h={"100vh"}>

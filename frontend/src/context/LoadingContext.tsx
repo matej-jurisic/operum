@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+    createContext,
+    useContext,
+    useEffect,
+    useRef,
+    useState,
+} from "react";
 
 type LoadingContextType = {
     loading: boolean;
@@ -11,13 +17,31 @@ export const LoadingProvider: React.FC<{ children: React.ReactNode }> = ({
     children,
 }) => {
     const [loading, setLoading] = useState(false);
+    const timeoutRef = useRef<number>(null);
+
+    const setLoadingWithDebounce = (value: boolean) => {
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+        }
+
+        if (value) {
+            setLoading(true);
+        } else {
+            // Delay hiding loading by 150ms to prevent flicker
+            timeoutRef.current = setTimeout(() => {
+                setLoading(false);
+            }, 150);
+        }
+    };
 
     useEffect(() => {
-        registerLoadingSetter(setLoading);
+        registerLoadingSetter(setLoadingWithDebounce);
     }, []);
 
     return (
-        <LoadingContext.Provider value={{ loading, setLoading }}>
+        <LoadingContext.Provider
+            value={{ loading, setLoading: setLoadingWithDebounce }}
+        >
             {children}
         </LoadingContext.Provider>
     );

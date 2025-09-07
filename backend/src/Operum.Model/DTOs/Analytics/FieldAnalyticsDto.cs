@@ -14,10 +14,17 @@ namespace Operum.Model.DTOs.Analytics
         // For Numbers
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public double? Average { get; set; }
+
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public double? Min { get; set; }
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? MinEntryId { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public double? Max { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? MaxEntryId { get; set; }
+
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public double? StdDev { get; set; }
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -27,19 +34,31 @@ namespace Operum.Model.DTOs.Analytics
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public DateTime? MinDateTime { get; set; }
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? MinDateTimeEntryId { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public DateTime? MaxDateTime { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? MaxDateTimeEntryId { get; set; }
 
         // For Date
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public DateTime? MinDate { get; set; }
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? MinDateEntryId { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public DateTime? MaxDate { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? MaxDateEntryId { get; set; }
 
         // For TimeSpan
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public TimeSpan? MinTimeSpan { get; set; }
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? MinTimeSpanEntryId { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public TimeSpan? MaxTimeSpan { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? MaxTimeSpanEntryId { get; set; }
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public TimeSpan? AverageTimeSpan { get; set; }
 
@@ -50,22 +69,5 @@ namespace Operum.Model.DTOs.Analytics
         public int? FalseCount { get; set; }
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public double? TruePercentage { get; set; }
-
-        // For Charts
-
-        public List<ChartPointDto> Points { get; set; } = [];
-        public List<PieChartPointDto> PiePoints { get; set; } = [];
-    }
-
-    public class ChartPointDto
-    {
-        public DateTime Date { get; set; }
-        public double Value { get; set; }
-    }
-
-    public class PieChartPointDto
-    {
-        public string Label { get; set; } = string.Empty;
-        public int Value { get; set; }
     }
 }

@@ -7,9 +7,9 @@ namespace Operum.Service.Services.Trackers.Helpers
     {
         public static FieldAnalyticsDto GetNumericAnalytics(IEnumerable<FieldValue> values)
         {
-            List<double> numericValues = [.. values
+            var numericValues = values
                 .Where(v => v.NumberValue.HasValue)
-                .Select(v => v.NumberValue!.Value)];
+                .ToList();
 
             if (numericValues.Count == 0)
             {
@@ -17,22 +17,26 @@ namespace Operum.Service.Services.Trackers.Helpers
             }
 
             var count = numericValues.Count;
-            var min = numericValues.Min();
-            var max = numericValues.Max();
-            var sum = numericValues.Sum();
-            var avg = numericValues.Average();
-            var sumOfSquares = numericValues.Sum(x => x * x);
+            var minValue = numericValues.OrderBy(v => v.NumberValue!.Value).First();
+            var maxValue = numericValues.OrderByDescending(v => v.NumberValue!.Value).First();
+
+            var sum = numericValues.Sum(v => v.NumberValue!.Value);
+            var sumOfSquares = numericValues.Sum(v => v.NumberValue!.Value * v.NumberValue!.Value);
+
+            var avg = sum / count;
             var variance = sumOfSquares / count - (avg * avg);
-            var stdDev = Math.Sqrt(Math.Max(0, (double)variance));
+            var stdDev = Math.Sqrt(Math.Max(0, variance));
 
             return new FieldAnalyticsDto
             {
                 Count = count,
-                Min = min,
-                Max = max,
+                Min = minValue.NumberValue!.Value,
+                MinEntryId = minValue.EntryId,
+                Max = maxValue.NumberValue!.Value,
+                MaxEntryId = maxValue.EntryId,
                 Sum = sum,
                 Average = Math.Round(avg, 2),
-                StdDev = Math.Round(stdDev, 2),
+                StdDev = Math.Round(stdDev, 2)
             };
         }
 
@@ -40,7 +44,6 @@ namespace Operum.Service.Services.Trackers.Helpers
         {
             var timeSpanValues = values
                 .Where(v => v.TimeSpanValue.HasValue)
-                .Select(v => v.TimeSpanValue!.Value)
                 .ToList();
 
             if (timeSpanValues.Count == 0)
@@ -49,15 +52,17 @@ namespace Operum.Service.Services.Trackers.Helpers
             }
 
             var count = timeSpanValues.Count;
-            var minTicks = timeSpanValues.Min(x => x.Ticks);
-            var maxTicks = timeSpanValues.Max(x => x.Ticks);
-            var avgTicks = timeSpanValues.Average(x => (double)x.Ticks);
+            var minValue = timeSpanValues.OrderBy(v => v.TimeSpanValue!.Value.Ticks).First();
+            var maxValue = timeSpanValues.OrderByDescending(v => v.TimeSpanValue!.Value.Ticks).First();
+            var avgTicks = timeSpanValues.Average(v => (double)v.TimeSpanValue!.Value.Ticks);
 
             return new FieldAnalyticsDto
             {
                 Count = count,
-                MinTimeSpan = TimeSpan.FromTicks(minTicks),
-                MaxTimeSpan = TimeSpan.FromTicks(maxTicks),
+                MinTimeSpan = minValue.TimeSpanValue!.Value,
+                MinTimeSpanEntryId = minValue.EntryId,
+                MaxTimeSpan = maxValue.TimeSpanValue!.Value,
+                MaxTimeSpanEntryId = maxValue.EntryId,
                 AverageTimeSpan = TimeSpan.FromTicks((long)Math.Round(avgTicks))
             };
         }
@@ -66,7 +71,6 @@ namespace Operum.Service.Services.Trackers.Helpers
         {
             var dateTimeValues = values
                 .Where(v => v.DateTimeValue.HasValue)
-                .Select(v => v.DateTimeValue!.Value)
                 .ToList();
 
             if (dateTimeValues.Count == 0)
@@ -74,11 +78,16 @@ namespace Operum.Service.Services.Trackers.Helpers
                 return new FieldAnalyticsDto();
             }
 
+            var minValue = dateTimeValues.OrderBy(v => v.DateTimeValue!.Value).First();
+            var maxValue = dateTimeValues.OrderByDescending(v => v.DateTimeValue!.Value).First();
+
             return new FieldAnalyticsDto
             {
                 Count = dateTimeValues.Count,
-                MinDateTime = dateTimeValues.Min(),
-                MaxDateTime = dateTimeValues.Max()
+                MinDateTime = minValue.DateTimeValue!.Value,
+                MinDateTimeEntryId = minValue.EntryId,
+                MaxDateTime = maxValue.DateTimeValue!.Value,
+                MaxDateTimeEntryId = maxValue.EntryId
             };
         }
 
@@ -86,7 +95,6 @@ namespace Operum.Service.Services.Trackers.Helpers
         {
             var dateValues = values
                 .Where(v => v.DateTimeValue.HasValue)
-                .Select(v => v.DateTimeValue!.Value)
                 .ToList();
 
             if (dateValues.Count == 0)
@@ -94,11 +102,16 @@ namespace Operum.Service.Services.Trackers.Helpers
                 return new FieldAnalyticsDto();
             }
 
+            var minValue = dateValues.OrderBy(v => v.DateTimeValue!.Value).First();
+            var maxValue = dateValues.OrderByDescending(v => v.DateTimeValue!.Value).First();
+
             return new FieldAnalyticsDto
             {
                 Count = dateValues.Count,
-                MinDate = dateValues.Min(),
-                MaxDate = dateValues.Max()
+                MinDate = minValue.DateTimeValue!.Value,
+                MinDateEntryId = minValue.EntryId,
+                MaxDate = maxValue.DateTimeValue!.Value,
+                MaxDateEntryId = maxValue.EntryId
             };
         }
 
