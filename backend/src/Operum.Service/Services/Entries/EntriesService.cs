@@ -173,7 +173,7 @@ namespace Operum.Service.Services.Entries
             return ServiceResponse.Success(updatedEntry.Data);
         }
 
-        public async Task<ServiceResponse<EntryDto>> DeleteEntry(string trackerId, string entryId)
+        public async Task<ServiceResponse> DeleteEntry(string trackerId, string entryId)
         {
             var user = authorizationService.GetCurrentUserDto();
             var entry = await db.Entries
@@ -187,6 +187,17 @@ namespace Operum.Service.Services.Entries
 
             db.Entries.Remove(entry);
             await db.SaveChangesAsync();
+
+            return ServiceResponse.Success();
+        }
+
+        public async Task<ServiceResponse> DeleteEntries(string trackerId, List<string> entryIdList)
+        {
+            var user = authorizationService.GetCurrentUserDto();
+            var entries = await db.Entries
+                .Include(x => x.Tracker)
+                .Where(x => entryIdList.Contains(x.Id) && x.TrackerId == trackerId && x.Tracker.OwnerId == user.Id)
+                .ExecuteDeleteAsync();
 
             return ServiceResponse.Success();
         }

@@ -21,6 +21,7 @@ type TrackerContextType = {
     ) => Promise<void>;
     DeleteField: (trackerId: string, fieldId: string) => Promise<void>;
     DeleteEntry: (trackerId: string, entryId: string) => Promise<void>;
+    DeleteEntries: (trackerId: string, entryIds: string[]) => Promise<void>;
     CreateEntry: (
         trackerId: string,
         fieldValues: Record<string, string>
@@ -134,6 +135,15 @@ export const TrackerProvider: React.FC<{
         markAnalyticsDirty();
     };
 
+    const DeleteEntries = async (trackerId: string, entryIds: string[]) => {
+        await api.delete(`/trackers/${trackerId}/entries`, {
+            data: { entryIds },
+        });
+        refreshEntries();
+
+        markAnalyticsDirty();
+    };
+
     const CreateEntry = async (
         trackerId: string,
         fieldValues: Record<string, string>
@@ -188,6 +198,7 @@ export const TrackerProvider: React.FC<{
                 UpdateField,
                 DeleteField,
                 DeleteEntry,
+                DeleteEntries,
                 CreateEntry,
                 UpdateEntry,
                 ImportEntries,

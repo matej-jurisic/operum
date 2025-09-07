@@ -1,5 +1,6 @@
 import {
     ActionIcon,
+    Badge,
     Button,
     Checkbox,
     Group,
@@ -13,8 +14,9 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { IoMdEye } from "react-icons/io";
-import { MdDelete, MdEdit } from "react-icons/md";
+import { MdDelete, MdEdit, MdSelectAll } from "react-icons/md";
 import { PiFileCsvDuotone } from "react-icons/pi";
+import { RxCross2 } from "react-icons/rx";
 import { useTracker } from "../context/TrackerContext";
 import { EntryDto } from "../model/EntryDto";
 import { FieldValueDto } from "../model/FieldValueDto";
@@ -60,13 +62,21 @@ enum OpenDialogType {
     DeleteEntry,
     UpdateEntry,
     ImportEntries,
+    BulkDelete,
 }
 
 export default function EntriesList(props: EntriesListProps) {
     const [selectedEntry, setSelectedEntry] = useState<EntryDto>();
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
     const [currentPage, setCurrentPage] = useState(1);
-    const { fields, DeleteEntry } = useTracker();
+
+    // Bulk selection state
+    const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(
+        new Set()
+    );
+    const [isSelectMode, setIsSelectMode] = useState(false);
+
+    const { fields, DeleteEntry, DeleteEntries } = useTracker(); // Assuming DeleteEntries exists
 
     // Column visibility state - all visible by default
     const [visibleColumns, setVisibleColumns] = useState<
@@ -75,7 +85,6 @@ export default function EntriesList(props: EntriesListProps) {
 
     // Add a flag to track if visibility has been initialized
     const [visibilityInitialized, setVisibilityInitialized] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
 
     const { entries, refreshEntriesIfDirty, refreshFieldsIfDirty } =
         useTracker();
@@ -92,6 +101,51 @@ export default function EntriesList(props: EntriesListProps) {
         );
     }, [currentPage, entries]);
 
+    // Selection handlers
+    const toggleEntrySelection = (entryId: string) => {
+        setSelectedEntryIds((prev) => {
+            const newSet = new Set(prev);
+            if (newSet.has(entryId)) {
+                newSet.delete(entryId);
+            } else {
+                newSet.add(entryId);
+            }
+            return newSet;
+        });
+    };
+
+    // New handler to toggle all entries
+    const toggleSelectAll = () => {
+        const allEntryIds = new Set(entries.map((entry) => entry.id));
+        const allSelected = selectedEntryIds.size === allEntryIds.size;
+
+        if (allSelected) {
+            setSelectedEntryIds(new Set()); // Deselect all
+        } else {
+            setSelectedEntryIds(allEntryIds); // Select all
+        }
+    };
+
+    const clearSelection = () => {
+        setSelectedEntryIds(new Set());
+        setIsSelectMode(false);
+    };
+
+    const enterSelectMode = () => {
+        setIsSelectMode(true);
+    };
+
+    // Check if all entries are selected
+    const allEntriesSelected = useMemo(() => {
+        return entries.length > 0 && selectedEntryIds.size === entries.length;
+    }, [entries, selectedEntryIds]);
+
+    const someEntriesSelected = useMemo(() => {
+        return (
+            selectedEntryIds.size > 0 && selectedEntryIds.size < entries.length
+        );
+    }, [entries, selectedEntryIds]);
+
     // Toggle column visibility
     const toggleColumn = (columnId: string) => {
         setVisibleColumns((prev) => ({
@@ -107,7 +161,28 @@ export default function EntriesList(props: EntriesListProps) {
 
     // Create table headers from visible fields
     const tableHeaders = useMemo(() => {
-        const headers = [
+        const headers = [];
+
+        if (isSelectMode) {
+            headers.push({
+                id: "selection",
+                label: (
+                    <Group>
+                        <Checkbox
+                            checked={allEntriesSelected}
+                            indeterminate={someEntriesSelected}
+                            onChange={toggleSelectAll}
+                        />
+                        <Badge color={props.tracker.color} variant="filled">
+                            {selectedEntryIds.size}
+                        </Badge>
+                    </Group>
+                ),
+                width: "90px",
+            });
+        }
+
+        headers.push(
             ...visibleFields.map((field) => ({
                 id: field.id,
                 label: field.name,
@@ -116,8 +191,8 @@ export default function EntriesList(props: EntriesListProps) {
                           field.type as keyof typeof gridColumnSizes
                       ]
                     : "auto",
-            })),
-        ];
+            }))
+        );
 
         if (visibleColumns["createdAt"]) {
             headers.push({
@@ -132,7 +207,14 @@ export default function EntriesList(props: EntriesListProps) {
         }
 
         return headers;
-    }, [visibleFields, visibleColumns]);
+    }, [
+        visibleFields,
+        visibleColumns,
+        isSelectMode,
+        allEntriesSelected,
+        someEntriesSelected,
+        toggleSelectAll,
+    ]);
 
     // Create table rows from entries
     const tableRows = useMemo(() => {
@@ -145,7 +227,26 @@ export default function EntriesList(props: EntriesListProps) {
             });
 
             return (
-                <Table.Tr key={entry.id} h={43}>
+                <Table.Tr
+                    key={entry.id}
+                    h={43}
+                    bg={
+                        selectedEntryIds.has(entry.id)
+                            ? `${props.tracker.color}.0`
+                            : undefined
+                    }
+                >
+                    {/* Selection checkbox */}
+                    {isSelectMode && (
+                        <Table.Td>
+                            <Checkbox
+                                checked={selectedEntryIds.has(entry.id)}
+                                onChange={() => toggleEntrySelection(entry.id)}
+                                size="sm"
+                            />
+                        </Table.Td>
+                    )}
+
                     {fieldCells.map((cellValue, index) => (
                         <Table.Td key={visibleFields[index].id}>
                             <Text size="sm" truncate="end">
@@ -195,15 +296,20 @@ export default function EntriesList(props: EntriesListProps) {
                 </Table.Tr>
             );
         });
-    }, [paginatedEntries, visibleFields, visibleColumns]);
+    }, [
+        paginatedEntries,
+        visibleFields,
+        visibleColumns,
+        isSelectMode,
+        selectedEntryIds,
+        props.tracker.color,
+    ]);
 
     // Load data on component mount
     useEffect(() => {
         const loadData = async () => {
-            setIsLoading(true);
             await refreshEntriesIfDirty();
             await refreshFieldsIfDirty();
-            setIsLoading(false);
         };
         loadData();
     }, [refreshEntriesIfDirty, refreshFieldsIfDirty]);
@@ -249,6 +355,43 @@ export default function EntriesList(props: EntriesListProps) {
                         >
                             Import Entries
                         </Button>
+
+                        {/* Bulk actions */}
+                        {!isSelectMode ? (
+                            <Button
+                                variant="outline"
+                                color={props.tracker.color}
+                                leftSection={<MdSelectAll size={18} />}
+                                onClick={enterSelectMode}
+                                disabled={entries.length === 0}
+                            >
+                                Select
+                            </Button>
+                        ) : (
+                            <Group>
+                                <Button
+                                    variant="outline"
+                                    leftSection={<RxCross2 size={18} />}
+                                    color="gray"
+                                    onClick={clearSelection}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    color="red"
+                                    leftSection={<MdDelete size={18} />}
+                                    onClick={() =>
+                                        setOpenDialogType(
+                                            OpenDialogType.BulkDelete
+                                        )
+                                    }
+                                    disabled={selectedEntryIds.size === 0}
+                                >
+                                    Delete Selected
+                                </Button>
+                            </Group>
+                        )}
                     </Group>
 
                     <Menu
@@ -337,11 +480,7 @@ export default function EntriesList(props: EntriesListProps) {
                     </Menu>
                 </Group>
 
-                {isLoading ? (
-                    <Text size="lg" c="dimmed" ta="center" py="xl">
-                        Loading entries...
-                    </Text>
-                ) : entries.length > 0 ? (
+                {entries.length > 0 ? (
                     <Table.ScrollContainer minWidth={0}>
                         <Table
                             striped
@@ -358,9 +497,14 @@ export default function EntriesList(props: EntriesListProps) {
                                             w={header.width}
                                             miw={header.width}
                                         >
-                                            <Text fw={600} size="sm">
-                                                {header.label}
-                                            </Text>
+                                            {typeof header.label ===
+                                            "string" ? (
+                                                <Text fw={600} size="sm">
+                                                    {header.label}
+                                                </Text>
+                                            ) : (
+                                                header.label
+                                            )}
                                         </Table.Th>
                                     ))}
                                 </Table.Tr>
@@ -389,6 +533,7 @@ export default function EntriesList(props: EntriesListProps) {
                 )}
             </Stack>
 
+            {/* Single entry delete dialog */}
             {selectedEntry && openDialogType === OpenDialogType.DeleteEntry && (
                 <ConfirmationDialog
                     isOpen={selectedEntry !== undefined}
@@ -399,6 +544,28 @@ export default function EntriesList(props: EntriesListProps) {
                     }}
                     severity="warning"
                     message="Are you sure you want to delete this entry?"
+                />
+            )}
+
+            {/* Bulk delete dialog */}
+            {openDialogType === OpenDialogType.BulkDelete && (
+                <ConfirmationDialog
+                    isOpen={true}
+                    onClose={() => setOpenDialogType(undefined)}
+                    onConfirm={async () => {
+                        await DeleteEntries(
+                            props.tracker.id,
+                            Array.from(selectedEntryIds)
+                        );
+                        clearSelection();
+                        setOpenDialogType(undefined);
+                    }}
+                    severity="warning"
+                    message={`Are you sure you want to delete ${
+                        selectedEntryIds.size
+                    } selected ${
+                        selectedEntryIds.size === 1 ? "entry" : "entries"
+                    }?`}
                 />
             )}
 

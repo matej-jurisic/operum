@@ -40,6 +40,12 @@ namespace Operum.API.Controllers
             return GetApiResponse(await entriesService.DeleteEntry(trackerId, entryId));
         }
 
+        [HttpDelete]
+        public async Task<IActionResult> DeleteEntries([FromRoute] string trackerId, [FromBody] DeleteEntriesDto deleteRequest)
+        {
+            return GetApiResponse(await entriesService.DeleteEntries(trackerId, deleteRequest.EntryIds));
+        }
+
         [HttpPost("import-csv")]
         public async Task<IActionResult> ImportCsv([FromRoute] string trackerId, [FromForm] ImportEntriesDto file)
         {
