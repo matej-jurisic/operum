@@ -111,7 +111,9 @@ export default function TrackerFormDialog(props: TrackerFormDialogProps) {
                         renderOption={renderColorOption(theme)}
                         {...form.getInputProps("color")}
                     />
-                    <Button type="submit">Create Tracker</Button>
+                    <Button type="submit">
+                        {props.trackerId ? "Update Tracker" : "Create Tracker"}
+                    </Button>
                 </Stack>
             </form>
         </Modal>

@@ -87,7 +87,9 @@ export default function EntryDetailsDialog({
                 <Divider label="Data" />
                 <Group justify="space-between">
                     <Text fw={500}>Created At:</Text>
-                    <Text>{formatDateTimeFromDate(entry.createdAt)}</Text>
+                    <Text>
+                        {formatDateTimeFromDate(new Date(entry.createdAt))}
+                    </Text>
                 </Group>
             </Stack>
         </Modal>
