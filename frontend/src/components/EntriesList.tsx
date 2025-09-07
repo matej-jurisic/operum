@@ -178,7 +178,7 @@ export default function EntriesList(props: EntriesListProps) {
                         </Badge>
                     </Group>
                 ),
-                width: "90px",
+                width: "100px",
             });
         }
 

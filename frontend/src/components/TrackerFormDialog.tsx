@@ -12,11 +12,13 @@ import {
 import { useForm } from "@mantine/form";
 import { FaCheck, FaCircle } from "react-icons/fa";
 import api from "../api/api";
-import { CreateTrackerDto } from "../model/requests/CreateTrackerDto";
+import { TrackerUpsertDto } from "../model/requests/CreateTrackerDto";
 
-export interface CreateTrackerDialogProps {
+export interface TrackerFormDialogProps {
     onClose: () => void;
-    onCreate?: () => void;
+    onConfirm?: () => void;
+    trackerId?: string;
+    initialValues?: TrackerUpsertDto;
 }
 
 const colorOptions = [
@@ -51,14 +53,11 @@ const renderColorOption = (
     );
 };
 
-export default function CreateTrackerDialog({
-    onClose,
-    onCreate,
-}: CreateTrackerDialogProps) {
+export default function TrackerFormDialog(props: TrackerFormDialogProps) {
     const theme = useMantineTheme();
 
-    const form = useForm<CreateTrackerDto>({
-        initialValues: {
+    const form = useForm<TrackerUpsertDto>({
+        initialValues: props.initialValues || {
             name: "",
             description: "",
             color: "indigo",
@@ -77,15 +76,19 @@ export default function CreateTrackerDialog({
         },
     });
 
-    const handleSubmit = async (values: CreateTrackerDto) => {
-        await api.post("/trackers", values);
+    const handleSubmit = async (values: TrackerUpsertDto) => {
+        if (props.trackerId) {
+            await api.put(`/trackers/${props.trackerId}`, values);
+        } else {
+            await api.post("/trackers", values);
+        }
+        props.onClose();
+        props.onConfirm?.();
         form.reset();
-        onClose();
-        onCreate?.();
     };
 
     return (
-        <Modal opened onClose={onClose} title="Create Tracker" centered>
+        <Modal opened onClose={props.onClose} title="Create Tracker" centered>
             <form onSubmit={form.onSubmit(handleSubmit)}>
                 <Stack>
                     <TextInput

@@ -15,12 +15,12 @@ import { CiLogout, CiSettings, CiUser } from "react-icons/ci";
 import { FiPlus } from "react-icons/fi";
 import { GoSun } from "react-icons/go";
 import { IoMoonOutline } from "react-icons/io5";
-import { MdDelete } from "react-icons/md";
+import { MdDelete, MdEdit } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import api from "../api/api";
 import ConfirmationDialog from "../components/ConfirmationDialog";
 
-import CreateTrackerDialog from "../components/TrackerFormDialog";
+import TrackerFormDialog from "../components/TrackerFormDialog";
 import useAuth from "../hooks/useAuth";
 import { TrackerDto } from "../model/TrackerDto";
 import globalStore from "../stores/GlobalStore";
@@ -39,6 +39,7 @@ const DeleteTracker = async (trackerId: string) => {
 enum OpenDialogType {
     CreateTracker,
     DeleteTracker,
+    UpdateTracker,
 }
 
 export default function Home() {
@@ -174,6 +175,19 @@ export default function Home() {
                                     >
                                         <Button
                                             variant="outline"
+                                            color="green"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedTracker(x);
+                                                setOpenDialogType(
+                                                    OpenDialogType.UpdateTracker
+                                                );
+                                            }}
+                                        >
+                                            <MdEdit size={18} />
+                                        </Button>
+                                        <Button
+                                            variant="outline"
                                             color="red"
                                             onClick={(e) => {
                                                 e.stopPropagation();
@@ -195,13 +209,25 @@ export default function Home() {
 
             {/* Dialogs */}
             {openDialogType === OpenDialogType.CreateTracker && (
-                <CreateTrackerDialog
-                    onCreate={() => GetTrackers(setTrackers)}
+                <TrackerFormDialog
+                    onConfirm={() => GetTrackers(setTrackers)}
                     onClose={() => {
                         setOpenDialogType(undefined);
                     }}
                 />
             )}
+
+            {openDialogType === OpenDialogType.UpdateTracker &&
+                selectedTracker && (
+                    <TrackerFormDialog
+                        onConfirm={() => GetTrackers(setTrackers)}
+                        onClose={() => {
+                            setOpenDialogType(undefined);
+                        }}
+                        initialValues={selectedTracker}
+                        trackerId={selectedTracker.id}
+                    />
+                )}
 
             {openDialogType === OpenDialogType.DeleteTracker &&
                 selectedTracker && (
