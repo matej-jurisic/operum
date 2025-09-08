@@ -30,7 +30,7 @@ namespace Operum.Model.Extensions
                 switch (currentField.Type.ToLowerInvariant())
                 {
                     case DataTypes.String:
-                        fieldValue.StringValue = value;
+                        fieldValue.StringValue = !string.IsNullOrWhiteSpace(value) ? value : null;
                         break;
                     case DataTypes.Number:
                         fieldValue.NumberValue = value == null ? null : Convert.ToDouble(value);
@@ -65,7 +65,7 @@ namespace Operum.Model.Extensions
                         }
                         break;
                     case DataTypes.Bool:
-                        fieldValue.BooleanValue = value == null ? null : Convert.ToBoolean(value);
+                        fieldValue.BooleanValue = value != null && Convert.ToBoolean(value);
                         break;
                     default:
                         return false;

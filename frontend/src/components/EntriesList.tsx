@@ -46,8 +46,8 @@ const gridColumnSizes = {
     bool: "80px",
 };
 
-const renderValue = (v: FieldValueDto) => {
-    if (v.value === null) return "";
+const renderValue = (v: FieldValueDto | undefined) => {
+    if (v === null || v === undefined) return "";
     if (typeof v.value === "string") {
         if (v.fieldType === "date") return formatDateOnly(v.value);
         if (v.fieldType === "datetime") return formatDateTime(v.value);
@@ -55,7 +55,7 @@ const renderValue = (v: FieldValueDto) => {
         return v.value;
     }
     if (typeof v.value === "number") return v.value;
-    if (typeof v.value === "boolean") return v.value.toString();
+    if (typeof v.value === "boolean") return v.value ? "Yes" : "No";
     return "Unexpected data type";
 };
 
@@ -227,7 +227,7 @@ export default function EntriesList(props: EntriesListProps) {
                 const fieldValue = entry.fieldValues.find(
                     (fv) => fv.fieldId === field.id
                 );
-                return fieldValue ? renderValue(fieldValue) : "Value not set.";
+                return renderValue(fieldValue);
             });
 
             return (
@@ -347,9 +347,12 @@ export default function EntriesList(props: EntriesListProps) {
                 <Group justify="space-between" w="100%" h={36}>
                     <Menu shadow="md" position="bottom-start">
                         <Menu.Target>
-                            <ActionIcon size={"lg"} color={props.tracker.color}>
-                                <FiPlus size={18} />
-                            </ActionIcon>
+                            <Button
+                                leftSection={<FiPlus size={18} />}
+                                color={props.tracker.color}
+                            >
+                                Create
+                            </Button>
                         </Menu.Target>
 
                         <Menu.Dropdown>
@@ -517,8 +520,9 @@ export default function EntriesList(props: EntriesListProps) {
                         <Table
                             striped
                             highlightOnHover
-                            withTableBorder
                             withColumnBorders
+                            withTableBorder
+                            verticalSpacing={"sm"}
                         >
                             <Table.Thead>
                                 <Table.Tr>
@@ -552,18 +556,16 @@ export default function EntriesList(props: EntriesListProps) {
                     </Text>
                 )}
 
-                {totalPages > 1 && (
-                    <Group justify="center">
-                        <Pagination
-                            value={currentPage}
-                            onChange={setCurrentPage}
-                            total={totalPages}
-                            siblings={0}
-                            color={props.tracker.color}
-                            size="md"
-                        />
-                    </Group>
-                )}
+                <Group justify="center">
+                    <Pagination
+                        value={currentPage}
+                        onChange={setCurrentPage}
+                        total={totalPages}
+                        siblings={0}
+                        color={props.tracker.color}
+                        size="md"
+                    />
+                </Group>
             </Stack>
 
             {/* Single entry delete dialog */}

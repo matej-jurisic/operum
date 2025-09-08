@@ -289,9 +289,19 @@ export default function AnalyticsList(props: AnalyticsListProps) {
         );
     }
 
+    const sortedAnalytics = [...analytics].sort((a, b) => {
+        const aHasStats = Object.keys(a).some(
+            (key) => key !== "fieldName" && key !== "fieldType"
+        );
+        const bHasStats = Object.keys(b).some(
+            (key) => key !== "fieldName" && key !== "fieldType"
+        );
+        return aHasStats === bHasStats ? 0 : aHasStats ? -1 : 1;
+    });
+
     return (
         <Stack gap="xl">
-            {analytics.map((analytic, index) => (
+            {sortedAnalytics.map((analytic, index) => (
                 <AnalyticsSection
                     key={`${analytic.fieldName}-${index}`}
                     analytic={analytic}

@@ -1,4 +1,12 @@
-import { ActionIcon, Badge, Card, Group, Stack, Text } from "@mantine/core";
+import {
+    ActionIcon,
+    Badge,
+    Button,
+    Card,
+    Group,
+    Stack,
+    Text,
+} from "@mantine/core";
 import { useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { MdDelete, MdEdit } from "react-icons/md";
@@ -33,15 +41,15 @@ export default function FieldsList(props: FieldsListProps) {
         <>
             <Stack gap="md">
                 <Group justify="space-between" w="100%" h={36}>
-                    <ActionIcon
-                        size={"lg"}
+                    <Button
                         color={props.tracker.color}
                         onClick={() =>
                             setOpenDialogType(OpenDialogType.CreateField)
                         }
+                        leftSection={<FiPlus size={18} />}
                     >
-                        <FiPlus size={18} />
-                    </ActionIcon>
+                        Create
+                    </Button>
                 </Group>
                 {fields.map((field) => (
                     <Card key={field.id} p="md" radius="md" withBorder>

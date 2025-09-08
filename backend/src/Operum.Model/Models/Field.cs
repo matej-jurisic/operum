@@ -11,6 +11,7 @@ namespace Operum.Model.Models
         public string? Description { get; set; }
         public string Type { get; set; } = string.Empty;
         public bool Required { get; set; } = false;
+        //public bool Visible { get; set; } = true;
 
         public string TrackerId { get; set; } = string.Empty;
         [ForeignKey(nameof(TrackerId))]
