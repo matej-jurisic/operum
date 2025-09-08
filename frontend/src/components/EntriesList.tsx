@@ -32,7 +32,6 @@ import ConfirmationDialog from "./ConfirmationDialog";
 import EntryDetailsDialog from "./EntryDetailsDialog"; // New import
 import EntryFormDialog from "./EntryFormDialog";
 import ImportEntriesDialog from "./ImportEntriesDialog";
-import ViewsDialog from "./ViewsDialog";
 
 interface EntriesListProps {
     tracker: TrackerDto;
