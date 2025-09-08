@@ -67,7 +67,6 @@ enum OpenDialogType {
     ImportEntries,
     BulkDelete,
     ViewDetails,
-    ViewList,
 }
 
 export default function EntriesList(props: EntriesListProps) {
@@ -514,16 +513,6 @@ export default function EntriesList(props: EntriesListProps) {
                                 </Menu.Item>
                             </Menu.Dropdown>
                         </Menu>
-                        <ActionIcon
-                            variant="outline"
-                            color={props.tracker.color}
-                            size={"lg"}
-                            onClick={() =>
-                                setOpenDialogType(OpenDialogType.ViewList)
-                            }
-                        >
-                            <IoMdEye size={18} />
-                        </ActionIcon>
                     </Group>
                 </Group>
 
@@ -656,13 +645,6 @@ export default function EntriesList(props: EntriesListProps) {
                     }}
                     entryId={selectedEntry.id}
                     tracker={props.tracker}
-                />
-            )}
-
-            {openDialogType === OpenDialogType.ViewList && (
-                <ViewsDialog
-                    tracker={props.tracker}
-                    onClose={() => setOpenDialogType(undefined)}
                 />
             )}
         </>
