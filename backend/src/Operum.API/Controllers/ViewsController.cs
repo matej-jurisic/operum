@@ -1,0 +1,30 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using Operum.API.Controllers.Base;
+using Operum.Model.DTOs.Views.Requests;
+using Operum.Service.Services.Views;
+
+namespace Operum.API.Controllers
+{
+    [ApiController]
+    [Route("api/trackers/{trackerId}/[controller]")]
+    public class ViewsController(IViewsService viewsService) : BaseController
+    {
+        [HttpPost]
+        public async Task<IActionResult> CreateView([FromBody] CreateViewDto view, [FromRoute] string trackerId)
+        {
+            return GetApiResponse(await viewsService.CreateView(trackerId, view));
+        }
+
+        [HttpGet("{viewId}")]
+        public async Task<IActionResult> GetView([FromRoute] string trackerId, [FromRoute] string viewId)
+        {
+            return GetApiResponse(await viewsService.GetView(trackerId, viewId));
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetViewList([FromRoute] string trackerId)
+        {
+            return GetApiResponse(await viewsService.GetViewList(trackerId));
+        }
+    }
+}

@@ -13,6 +13,7 @@ using Operum.Service.Services.Roles;
 using Operum.Service.Services.Token;
 using Operum.Service.Services.Trackers;
 using Operum.Service.Services.Users;
+using Operum.Service.Services.Views;
 
 namespace Operum.API.Configuration
 {
@@ -41,6 +42,7 @@ namespace Operum.API.Configuration
             services.AddScoped<IFieldsService, FieldService>();
             services.AddScoped<IEntriesService, EntriesService>();
             services.AddScoped<IAnalyticsService, AnalyticsService>();
+            services.AddScoped<IViewsService, ViewsService>();
 
             return services;
         }

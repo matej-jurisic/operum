@@ -51,6 +51,11 @@ const GetTrackerAnalytics = async (trackerId: string) => {
     return response.data.data;
 };
 
+const GetViewList = async (trackerId: string) => {
+    const response = await api.get(`trackers/${trackerId}/views`);
+    return response.data.data;
+};
+
 export const TrackerProvider: React.FC<{
     trackerId: string;
     children: React.ReactNode;

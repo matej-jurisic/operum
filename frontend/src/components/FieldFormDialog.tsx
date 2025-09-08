@@ -48,12 +48,7 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
     };
 
     return (
-        <Modal
-            opened
-            onClose={props.onClose}
-            title="Add Field to Tracker"
-            centered
-        >
+        <Modal opened onClose={props.onClose} title="Create Field " centered>
             <form onSubmit={form.onSubmit(handleSubmit)}>
                 <Stack align="stretch">
                     <TextInput

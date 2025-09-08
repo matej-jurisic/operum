@@ -69,9 +69,9 @@ export default function EntryDetailsDialog({
             onClose={onClose}
             title={
                 <Group>
-                    <Title order={4}>Entry Details</Title>
+                    <Title order={4}>{tracker.name}</Title>
                     <Badge color={tracker.color} variant="filled">
-                        {tracker.name}
+                        Entry Details
                     </Badge>
                 </Group>
             }

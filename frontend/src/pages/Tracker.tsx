@@ -6,6 +6,7 @@ import api from "../api/api";
 import AnalyiticsList from "../components/AnalyticsList";
 import EntriesList from "../components/EntriesList";
 import FieldsList from "../components/FieldsList";
+import ViewsList from "../components/ViewsList";
 import { TrackerProvider } from "../context/TrackerContext";
 import { TrackerDto } from "../model/TrackerDto";
 
@@ -61,6 +62,7 @@ export default function Tracker() {
                 >
                     <Tabs.List>
                         <Tabs.Tab value="entries">Entries</Tabs.Tab>
+                        <Tabs.Tab value="views">Views</Tabs.Tab>
                         <Tabs.Tab value="fields">Fields</Tabs.Tab>
                         <Tabs.Tab value="analytics">Analytics</Tabs.Tab>
                     </Tabs.List>
@@ -68,6 +70,9 @@ export default function Tracker() {
                     <Container px={0} pt={"md"} fluid>
                         <Tabs.Panel value="entries">
                             <EntriesList tracker={tracker} />
+                        </Tabs.Panel>
+                        <Tabs.Panel value="views">
+                            <ViewsList tracker={tracker} />
                         </Tabs.Panel>
                         <Tabs.Panel value="fields">
                             <FieldsList tracker={tracker} />

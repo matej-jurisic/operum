@@ -7,6 +7,8 @@ using Operum.Model.DTOs.Fields.Requests;
 using Operum.Model.DTOs.FieldValue;
 using Operum.Model.DTOs.Trackers;
 using Operum.Model.DTOs.Trackers.Requests;
+using Operum.Model.DTOs.Views;
+using Operum.Model.DTOs.Views.Requests;
 using Operum.Model.Extensions;
 using Operum.Model.Models;
 using Operum.Service.Mappings.Mapper;
@@ -54,6 +56,21 @@ namespace Operum.Service.Mappings.Profiles
             {
                 d.AnalyticRequiredDataTypes = mapper.Map<List<AnalyticRequiredDataType>, List<AnalyticRequiredDataTypeDto>>(s.AnalyticRequiredDataTypes);
             });
+            mapper.Register<View, ViewDto>((s, d) =>
+            {
+                d.Sorts = mapper.Map<ICollection<ViewSort>, List<ViewSortDto>>(s.Sorts);
+            });
+
+            mapper.Register<CreateViewDto, View>((s, d) =>
+            {
+                d.Sorts = mapper.Map<List<CreateViewSortDto>, List<ViewSort>>(s.Sorts);
+            });
+
+            mapper.Register<ViewSort, ViewSortDto>((s, d) =>
+            {
+                d.Field = mapper.Map<Field, FieldDto>(s.Field);
+            });
+            mapper.Register<CreateViewSortDto, ViewSort>();
         }
     }
 }

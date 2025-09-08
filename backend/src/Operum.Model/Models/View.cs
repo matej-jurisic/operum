@@ -1,22 +1,22 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Operum.Model.Models
 {
-    public class Field
+    public class View
     {
         [Key]
         public string Id { get; set; } = Guid.NewGuid().ToString();
         public string Name { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public string Type { get; set; } = string.Empty;
-        public bool Required { get; set; } = false;
-        public bool Visible { get; set; } = true;
 
         public string TrackerId { get; set; } = string.Empty;
         [ForeignKey(nameof(TrackerId))]
         public virtual Tracker Tracker { get; set; } = null!;
 
-        public virtual List<FieldValue> FieldValues { get; set; } = [];
+        //public virtual List<ViewFilter> Filters { get; set; } = [];
+        public virtual List<ViewSort> Sorts { get; set; } = [];
+        //public virtual List<ViewGroup> Groups { get; set; } = [];
+        //public virtual List<ViewColumn> Columns { get; set; } = [];
     }
 }
