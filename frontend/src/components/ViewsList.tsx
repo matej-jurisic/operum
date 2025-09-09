@@ -1,10 +1,12 @@
 import { ActionIcon, Button, Card, Group, Stack, Text } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
-import { MdEdit } from "react-icons/md";
+import { MdDelete } from "react-icons/md";
+import { RiFileListFill } from "react-icons/ri";
 import api from "../api/api";
 import { TrackerDto } from "../model/TrackerDto";
 import { ViewDto } from "../model/ViewDto";
+import ConfirmationDialog from "./ConfirmationDialog";
 import ViewDetailsDialog from "./ViewDetailsDialog";
 import ViewFormDialog from "./ViewFormDialog";
 
@@ -17,9 +19,14 @@ const GetViewList = async (trackerId: string) => {
     return response.data.data;
 };
 
+const DeleteView = async (trackerId: string, viewId: string) => {
+    await api.delete(`trackers/${trackerId}/views/${viewId}`);
+};
+
 enum OpenDialogType {
     ViewDetails,
     CreateView,
+    DeleteView,
 }
 
 export default function ViewsList(props: Props) {
@@ -51,26 +58,51 @@ export default function ViewsList(props: Props) {
                 </Group>
                 {views.map((view) => (
                     <Card key={view.id} p="md" radius="md" withBorder>
-                        <Group wrap="nowrap" justify="space-between">
+                        <Group
+                            wrap="nowrap"
+                            justify="space-between"
+                            align="flex-start"
+                        >
                             <Stack gap="sm">
-                                <Text fw={600} size="md" truncate="end">
+                                <Text
+                                    className="wrapped-text"
+                                    fw={600}
+                                    size="md"
+                                    lineClamp={1}
+                                >
                                     {view.name}
                                 </Text>
                             </Stack>
-                            <ActionIcon
-                                variant="outline"
-                                color="green"
-                                size="lg"
-                                onClick={() => {
-                                    setSelectedView(view);
-                                    setOpenDialogType(
-                                        OpenDialogType.ViewDetails
-                                    );
-                                }}
-                                aria-label={`Edit field ${view.name}`}
-                            >
-                                <MdEdit size={16} />
-                            </ActionIcon>
+                            <Group gap="xs" wrap="nowrap">
+                                <ActionIcon
+                                    variant="outline"
+                                    color={props.tracker.color}
+                                    size="lg"
+                                    onClick={() => {
+                                        setSelectedView(view);
+                                        setOpenDialogType(
+                                            OpenDialogType.ViewDetails
+                                        );
+                                    }}
+                                    aria-label={`Edit field ${view.name}`}
+                                >
+                                    <RiFileListFill size={16} />
+                                </ActionIcon>
+                                <ActionIcon
+                                    variant="outline"
+                                    color="red"
+                                    size="lg"
+                                    onClick={() => {
+                                        setSelectedView(view);
+                                        setOpenDialogType(
+                                            OpenDialogType.DeleteView
+                                        );
+                                    }}
+                                    aria-label={`Delete view ${view.name}`}
+                                >
+                                    <MdDelete size={16} />
+                                </ActionIcon>
+                            </Group>
                         </Group>
                     </Card>
                 ))}
@@ -91,6 +123,23 @@ export default function ViewsList(props: Props) {
                     onCreated={async () =>
                         setViews(await GetViewList(props.tracker.id))
                     }
+                />
+            )}
+
+            {selectedView && openDialogType === OpenDialogType.DeleteView && (
+                <ConfirmationDialog
+                    isOpen={selectedView !== undefined}
+                    onClose={() => setOpenDialogType(undefined)}
+                    onConfirm={async () => {
+                        if (selectedView) {
+                            await DeleteView(props.tracker.id, selectedView.id);
+                            setViews(await GetViewList(props.tracker.id));
+                            setOpenDialogType(undefined);
+                            setSelectedView(undefined);
+                        }
+                    }}
+                    severity="warning"
+                    message={`Are you sure you want to delete the view "${selectedView.name}"?`}
                 />
             )}
         </>

@@ -231,7 +231,7 @@ export default function EntriesList(props: EntriesListProps) {
             });
 
             return (
-                <Table.Tr key={entry.id} h={43}>
+                <Table.Tr key={entry.id} h={53}>
                     {/* Selection checkbox */}
                     {isSelectMode && (
                         <Table.Td>
@@ -244,7 +244,7 @@ export default function EntriesList(props: EntriesListProps) {
                     )}
 
                     {fieldCells.map((cellValue, index) => (
-                        <Table.Td key={visibleFields[index].id}>
+                        <Table.Td key={visibleFields[index].id} maw={300}>
                             <Text size="sm" truncate="end">
                                 {cellValue}
                             </Text>
@@ -393,10 +393,10 @@ export default function EntriesList(props: EntriesListProps) {
                             </ActionIcon>
                         ) : (
                             <Group>
-                                <Button
+                                <ActionIcon
                                     variant="outline"
                                     color="red"
-                                    leftSection={<MdDelete size={18} />}
+                                    size={"lg"}
                                     onClick={() =>
                                         setOpenDialogType(
                                             OpenDialogType.BulkDelete
@@ -404,8 +404,8 @@ export default function EntriesList(props: EntriesListProps) {
                                     }
                                     disabled={selectedEntryIds.size === 0}
                                 >
-                                    Delete Selected
-                                </Button>
+                                    <MdDelete size={18} />
+                                </ActionIcon>
                                 <ActionIcon
                                     size={"lg"}
                                     variant="outline"
@@ -444,7 +444,11 @@ export default function EntriesList(props: EntriesListProps) {
                                             }
                                         >
                                             <Group justify="space-between">
-                                                <Text size="sm">
+                                                <Text
+                                                    className="wrapped-text"
+                                                    size="sm"
+                                                    maw={"70%"}
+                                                >
                                                     {field.name}
                                                 </Text>
                                                 <Checkbox

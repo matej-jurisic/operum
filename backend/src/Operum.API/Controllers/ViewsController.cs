@@ -26,5 +26,11 @@ namespace Operum.API.Controllers
         {
             return GetApiResponse(await viewsService.GetViewList(trackerId));
         }
+
+        [HttpDelete("{viewId}")]
+        public async Task<IActionResult> DeleteView([FromRoute] string trackerId, [FromRoute] string viewId)
+        {
+            return GetApiResponse(await viewsService.DeleteView(trackerId, viewId));
+        }
     }
 }

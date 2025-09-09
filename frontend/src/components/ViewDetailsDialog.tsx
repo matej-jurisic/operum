@@ -35,9 +35,15 @@ export default function ViewDetailsDialog(props: Props) {
             centered
             onClose={props.onClose}
             title={
-                <Group justify="space-between">
-                    <Title order={4}>{view.name}</Title>
-                    <Badge color={props.tracker.color} variant="filled">
+                <Group justify="space-between" wrap="nowrap" mr={"xs"}>
+                    <Title order={4} className="wrapped-text" lineClamp={3}>
+                        {view.name}
+                    </Title>
+                    <Badge
+                        color={props.tracker.color}
+                        variant="filled"
+                        miw="max-content"
+                    >
                         View
                     </Badge>
                 </Group>
@@ -47,9 +53,15 @@ export default function ViewDetailsDialog(props: Props) {
             <Divider label="Sort" />
             {view.sorts.map((sort) => (
                 <>
-                    <Group key={sort.fieldId} justify="space-between">
-                        <Text fw={500}>{sort.field.name}</Text>
-                        <Text>
+                    <Group
+                        key={sort.fieldId}
+                        justify="space-between"
+                        wrap="nowrap"
+                    >
+                        <Title order={5} className="wrapped-text" maw={"50%"}>
+                            {sort.field.name}
+                        </Title>
+                        <Text maw={"50%"}>
                             {sort.descending ? "Descending" : "Ascending"}
                         </Text>
                     </Group>

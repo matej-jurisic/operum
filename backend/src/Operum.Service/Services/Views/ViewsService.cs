@@ -33,6 +33,21 @@ namespace Operum.Service.Services.Views
             return ServiceResponse.Success(created.Data);
         }
 
+        public async Task<ServiceResponse> DeleteView(string trackerId, string viewId)
+        {
+            var user = authorizationService.GetCurrentUserDto();
+
+            var tracker = await db.Trackers.FindAsync(trackerId);
+            if (tracker == null || tracker.OwnerId != user.Id)
+            {
+                return ServiceResponse.Failure(StatusCodeEnum.NotFound);
+            }
+
+            await db.Views.Where(x => x.Id == viewId && x.TrackerId == trackerId).ExecuteDeleteAsync();
+
+            return ServiceResponse.Success();
+        }
+
         public async Task<ServiceResponse<ViewDto>> GetView(string trackerId, string viewId)
         {
             var user = authorizationService.GetCurrentUserDto();

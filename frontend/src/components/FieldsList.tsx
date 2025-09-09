@@ -6,6 +6,7 @@ import {
     Group,
     Stack,
     Text,
+    Title,
 } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
@@ -54,32 +55,29 @@ export default function FieldsList(props: FieldsListProps) {
                 {fields.map((field) => (
                     <Card key={field.id} p="md" radius="md" withBorder>
                         {/* Option 1: Stacked layout for mobile */}
-                        <Stack gap="sm">
+                        <Group
+                            align="flex-start"
+                            justify="space-between"
+                            wrap="nowrap"
+                        >
                             {/* Field info section */}
-                            <Stack gap={2}>
-                                <Text fw={600} size="md" truncate="end">
+                            <Stack gap={"sm"} flex={1}>
+                                <Title
+                                    order={4}
+                                    lineClamp={1}
+                                    className="wrapped-text"
+                                >
                                     {field.name}
-                                </Text>
+                                </Title>
                                 <Text
                                     c="dimmed"
                                     size="sm"
-                                    style={{
-                                        whiteSpace: "normal",
-                                        wordBreak: "break-word",
-                                    }}
                                     lineClamp={3}
+                                    className="wrapped-text"
                                 >
                                     {field.description || "No description"}
                                 </Text>
-                            </Stack>
-
-                            {/* Badges and actions section - always horizontal */}
-                            <Group
-                                justify="space-between"
-                                wrap="nowrap"
-                                align="flex-end"
-                            >
-                                <Group gap="xs" wrap="wrap">
+                                <Group wrap="wrap">
                                     {field.required && (
                                         <Badge
                                             variant="light"
@@ -97,43 +95,41 @@ export default function FieldsList(props: FieldsListProps) {
                                         {field.type}
                                     </Badge>
                                 </Group>
+                            </Stack>
 
-                                <Group
-                                    gap="xs"
-                                    wrap="nowrap"
-                                    style={{ flexShrink: 0 }}
+                            {/* Badges and actions section - always horizontal */}
+
+                            <Group gap="xs" wrap="nowrap">
+                                <ActionIcon
+                                    variant="outline"
+                                    color="green"
+                                    size="lg"
+                                    onClick={() => {
+                                        setSelectedField(field);
+                                        setOpenDialogType(
+                                            OpenDialogType.EditField
+                                        );
+                                    }}
+                                    aria-label={`Edit field ${field.name}`}
                                 >
-                                    <ActionIcon
-                                        variant="outline"
-                                        color="green"
-                                        size="lg"
-                                        onClick={() => {
-                                            setSelectedField(field);
-                                            setOpenDialogType(
-                                                OpenDialogType.EditField
-                                            );
-                                        }}
-                                        aria-label={`Edit field ${field.name}`}
-                                    >
-                                        <MdEdit size={16} />
-                                    </ActionIcon>
-                                    <ActionIcon
-                                        variant="outline"
-                                        color="red"
-                                        size="lg"
-                                        onClick={() => {
-                                            setSelectedField(field);
-                                            setOpenDialogType(
-                                                OpenDialogType.DeleteField
-                                            );
-                                        }}
-                                        aria-label={`Delete field ${field.name}`}
-                                    >
-                                        <MdDelete size={16} />
-                                    </ActionIcon>
-                                </Group>
+                                    <MdEdit size={16} />
+                                </ActionIcon>
+                                <ActionIcon
+                                    variant="outline"
+                                    color="red"
+                                    size="lg"
+                                    onClick={() => {
+                                        setSelectedField(field);
+                                        setOpenDialogType(
+                                            OpenDialogType.DeleteField
+                                        );
+                                    }}
+                                    aria-label={`Delete field ${field.name}`}
+                                >
+                                    <MdDelete size={16} />
+                                </ActionIcon>
                             </Group>
-                        </Stack>
+                        </Group>
                     </Card>
                 ))}
             </Stack>

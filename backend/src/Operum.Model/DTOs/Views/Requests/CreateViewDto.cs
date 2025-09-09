@@ -17,7 +17,7 @@ namespace Operum.Model.DTOs.Views.Requests
         {
             RuleFor(x => x.Name)
                 .NotEmpty().WithMessage("View name is required.")
-                .MaximumLength(100).WithMessage("View name cannot exceed 100 characters.");
+                .MaximumLength(50).WithMessage("View name cannot exceed 50 characters.");
 
             RuleFor(x => x.Sorts)
                 .NotEmpty().WithMessage("At least one sort is required.")

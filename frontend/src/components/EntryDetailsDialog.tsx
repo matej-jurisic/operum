@@ -68,9 +68,15 @@ export default function EntryDetailsDialog({
             centered
             onClose={onClose}
             title={
-                <Group>
-                    <Title order={4}>{tracker.name}</Title>
-                    <Badge color={tracker.color} variant="filled">
+                <Group justify="space-between" wrap="nowrap" mr={"xs"}>
+                    <Title order={4} className="wrapped-text" lineClamp={3}>
+                        {tracker.name}
+                    </Title>
+                    <Badge
+                        color={tracker.color}
+                        variant="filled"
+                        miw="max-content"
+                    >
                         Entry Details
                     </Badge>
                 </Group>
@@ -79,14 +85,22 @@ export default function EntryDetailsDialog({
             <Stack gap="sm">
                 <Divider label="Data" />
                 {entry.fieldValues.map((fieldValue) => (
-                    <Group key={fieldValue.fieldId} justify="space-between">
-                        <Text fw={500}>{fieldValue.fieldName}:</Text>
-                        <Text>{renderValue(fieldValue)}</Text>
+                    <Group
+                        key={fieldValue.fieldId}
+                        justify="space-between"
+                        wrap="nowrap"
+                    >
+                        <Title maw={"50%"} order={5} className="wrapped-text">
+                            {fieldValue.fieldName}
+                        </Title>
+                        <Text maw={"50%"} className="wrapped-text">
+                            {renderValue(fieldValue)}
+                        </Text>
                     </Group>
                 ))}
                 <Divider label="Information" />
                 <Group justify="space-between">
-                    <Text fw={500}>Created At:</Text>
+                    <Text fw={500}>Created At</Text>
                     <Text>
                         {formatDateTimeFromDate(new Date(entry.createdAt))}
                     </Text>

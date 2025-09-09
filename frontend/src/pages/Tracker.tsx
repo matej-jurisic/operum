@@ -6,6 +6,7 @@ import api from "../api/api";
 import AnalyiticsList from "../components/AnalyticsList";
 import EntriesList from "../components/EntriesList";
 import FieldsList from "../components/FieldsList";
+import Header from "../components/Header";
 import ViewsList from "../components/ViewsList";
 import { TrackerProvider } from "../context/TrackerContext";
 import { TrackerDto } from "../model/TrackerDto";
@@ -34,24 +35,24 @@ export default function Tracker() {
     if (!tracker) return null;
 
     return (
-        <TrackerProvider trackerId={tracker.id}>
+        <TrackerProvider initialTracker={tracker}>
             <Stack gap="lg">
-                <Group align="center" justify="space-between" w="100%">
-                    <Title
-                        c={tracker.color}
-                        className="truncated-text"
-                        order={2}
-                    >
+                <Group justify="space-between">
+                    <Title order={2} c={tracker.color} mb="md">
                         {tracker.name}
                     </Title>
-                    <Button
-                        onClick={() => navigate("/")}
-                        variant="outline"
-                        leftSection={<IoMdReturnLeft size={18} />}
+                    <Header
                         color={tracker.color}
-                    >
-                        Back
-                    </Button>
+                        buttons={[
+                            <Button
+                                variant="outline"
+                                color={tracker.color}
+                                onClick={() => navigate("/home")}
+                            >
+                                <IoMdReturnLeft size={16} />
+                            </Button>,
+                        ]}
+                    />
                 </Group>
                 <Tabs
                     variant="default"

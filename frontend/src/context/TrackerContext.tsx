@@ -1,15 +1,25 @@
 import { AxiosRequestConfig } from "axios";
-import React, { createContext, useCallback, useContext, useState } from "react";
+import React, {
+    createContext,
+    Dispatch,
+    SetStateAction,
+    useCallback,
+    useContext,
+    useState,
+} from "react";
 import api from "../api/api";
 import { EntryDto } from "../model/EntryDto";
 import { FieldAnalyticsDto } from "../model/FieldAnalyticsDto";
 import { FieldDto } from "../model/FieldDto";
 import { FieldUpsertDto } from "../model/requests/FieldUpsertDto";
+import { TrackerDto } from "../model/TrackerDto";
 
 type TrackerContextType = {
     entries: EntryDto[];
     fields: FieldDto[];
     analytics: FieldAnalyticsDto[];
+    tracker: TrackerDto;
+    setTracker: Dispatch<SetStateAction<TrackerDto>>;
     refreshEntriesIfDirty: () => Promise<void>;
     refreshFieldsIfDirty: () => Promise<void>;
     refreshAnalyticsIfDirty: () => Promise<void>;
@@ -52,34 +62,35 @@ const GetTrackerAnalytics = async (trackerId: string) => {
 };
 
 export const TrackerProvider: React.FC<{
-    trackerId: string;
+    initialTracker: TrackerDto;
     children: React.ReactNode;
-}> = ({ trackerId, children }) => {
+}> = ({ initialTracker, children }) => {
     const [entries, setEntries] = useState<EntryDto[]>([]);
     const [fields, setFields] = useState<FieldDto[]>([]);
     const [analytics, setAnalytics] = useState<FieldAnalyticsDto[]>([]);
+    const [tracker, setTracker] = useState<TrackerDto>(initialTracker);
 
     const [entriesDirty, setEntriesDirty] = useState(true);
     const [fieldsDirty, setFieldsDirty] = useState(true);
     const [analyticsDirty, setAnalyticsDirty] = useState(true);
 
     const refreshEntries = useCallback(async () => {
-        const data = await GetEntries(trackerId);
+        const data = await GetEntries(tracker.id);
         setEntries(data);
         setEntriesDirty(false);
-    }, [trackerId]);
+    }, [tracker.id]);
 
     const refreshFields = useCallback(async () => {
-        const data = await GetFields(trackerId);
+        const data = await GetFields(tracker.id);
         setFields(data);
         setFieldsDirty(false);
-    }, [trackerId]);
+    }, [tracker.id]);
 
     const refreshAnalytics = useCallback(async () => {
-        const data = await GetTrackerAnalytics(trackerId);
+        const data = await GetTrackerAnalytics(tracker.id);
         setAnalytics(data);
         setAnalyticsDirty(false);
-    }, [trackerId]);
+    }, [tracker.id]);
 
     const markEntriesDirty = useCallback(() => setEntriesDirty(true), []);
     const markAnalyticsDirty = useCallback(() => setAnalyticsDirty(true), []);
@@ -191,6 +202,8 @@ export const TrackerProvider: React.FC<{
                 entries,
                 fields,
                 analytics,
+                tracker,
+                setTracker,
                 refreshEntriesIfDirty: () => refreshIfDirty("entries"),
                 refreshFieldsIfDirty: () => refreshIfDirty("fields"),
                 refreshAnalyticsIfDirty: () => refreshIfDirty("analytics"),

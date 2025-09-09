@@ -38,7 +38,12 @@ export default function ViewFormDialog({ tracker, onClose, onCreated }: Props) {
             sorts: [],
         },
         validate: {
-            name: (value) => (value.trim() ? null : "View name is required"),
+            name: (value) =>
+                !value.trim()
+                    ? "View name is required"
+                    : value.length > 50
+                    ? "View name must be at most 50 characters"
+                    : null,
             sorts: (sorts) => {
                 if (sorts.find((s) => !s.fieldId)) {
                     return "All sorts must have a field selected";
@@ -96,11 +101,12 @@ export default function ViewFormDialog({ tracker, onClose, onCreated }: Props) {
                         label="View Name"
                         placeholder="Enter view name"
                         required
+                        maxLength={50}
                         {...form.getInputProps("name")}
                     />
 
-                    <div>
-                        <Group justify="space-between" mb="md" align="center">
+                    <Stack gap="lg" mih={200} justify="space-between">
+                        <Group justify="space-between" align="center">
                             <Text fw={500} size="sm">
                                 Sorting{" "}
                                 {form.values.sorts.length > 0 &&
@@ -123,7 +129,7 @@ export default function ViewFormDialog({ tracker, onClose, onCreated }: Props) {
                                 No sorting rules added yet
                             </Text>
                         ) : (
-                            <Stack gap="md">
+                            <Stack gap="md" flex={1}>
                                 {form.values.sorts.map((sort, index) => (
                                     <Group key={index} gap="xs" wrap="nowrap">
                                         <Select
@@ -167,16 +173,17 @@ export default function ViewFormDialog({ tracker, onClose, onCreated }: Props) {
                                 ))}
                             </Stack>
                         )}
-                        {form.errors.sorts && (
-                            <Text c="red" size="xs">
-                                {form.errors.sorts}
-                            </Text>
-                        )}
-                    </div>
-
-                    <Button color={tracker.color} type="submit">
-                        Create View
-                    </Button>
+                        <Stack>
+                            {form.errors.sorts && (
+                                <Text c="red" size="xs">
+                                    {form.errors.sorts}
+                                </Text>
+                            )}
+                            <Button color={tracker.color} type="submit">
+                                Create View
+                            </Button>
+                        </Stack>
+                    </Stack>
                 </Stack>
             </form>
         </Modal>

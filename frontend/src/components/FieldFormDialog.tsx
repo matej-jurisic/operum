@@ -32,7 +32,15 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
 
         validate: {
             name: (value) =>
-                value.trim().length === 0 ? "Field name is required" : null,
+                value.trim().length === 0
+                    ? "Field name is required"
+                    : value.length > 30
+                    ? "Name must be shorter than 30 characters"
+                    : null,
+            description: (value) =>
+                value && value.length > 500
+                    ? "Description must be at most 500 characters"
+                    : null,
             type: (value) => (value ? null : "Type is required"),
         },
     });
@@ -48,13 +56,18 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
     };
 
     return (
-        <Modal opened onClose={props.onClose} title="Create Field " centered>
+        <Modal
+            opened
+            onClose={props.onClose}
+            title={props.fieldId ? "Edit Field" : "Create Field"}
+            centered
+        >
             <form onSubmit={form.onSubmit(handleSubmit)}>
                 <Stack align="stretch">
                     <TextInput
                         label="Field Name"
                         placeholder="Enter field name"
-                        maxLength={50}
+                        maxLength={30}
                         {...form.getInputProps("name")}
                     />
 
@@ -70,6 +83,7 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
                     <TextInput
                         label="Description"
                         placeholder="Enter field description"
+                        maxLength={500}
                         {...form.getInputProps("description")}
                     />
 
