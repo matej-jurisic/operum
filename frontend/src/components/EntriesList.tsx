@@ -86,7 +86,7 @@ export default function EntriesList(props: EntriesListProps) {
         refreshFieldsIfDirty,
         DeleteEntry,
         DeleteEntries,
-        entriesDirty,
+        selectedViewId,
     } = useTracker();
 
     // Column visibility state - all visible by default
@@ -328,7 +328,7 @@ export default function EntriesList(props: EntriesListProps) {
             setIsLoadingData(false);
         };
         loadData();
-    }, [entriesDirty]);
+    }, [selectedViewId]);
 
     // Initialize column visibility when fields are loaded (only once)
     useEffect(() => {

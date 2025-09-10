@@ -267,11 +267,11 @@ const AnalyticsSection = ({
 };
 
 export default function AnalyticsList(props: AnalyticsListProps) {
-    const { analytics, refreshAnalyticsIfDirty, analyticsDirty } = useTracker();
+    const { analytics, refreshAnalyticsIfDirty, selectedViewId } = useTracker();
 
     useEffect(() => {
         refreshAnalyticsIfDirty();
-    }, [analyticsDirty]);
+    }, [selectedViewId]);
 
     if (!analytics || analytics.length === 0) {
         return (

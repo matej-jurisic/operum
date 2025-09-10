@@ -106,7 +106,7 @@ export const TrackerProvider: React.FC<{
             setEntries(data);
             setEntriesDirty(false);
         },
-        [tracker.id]
+        [tracker.id, internalSelectedViewId]
     );
 
     const refreshFields = useCallback(async () => {
@@ -124,7 +124,7 @@ export const TrackerProvider: React.FC<{
             setAnalytics(data);
             setAnalyticsDirty(false);
         },
-        [tracker.id]
+        [tracker.id, internalSelectedViewId]
     );
 
     const refreshViews = useCallback(async () => {

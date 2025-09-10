@@ -13,22 +13,26 @@ export default function SelectView() {
     }, []);
 
     const selectViewList = useMemo(() => {
-        return views.map(
-            (v: ViewDto) =>
-                ({
-                    value: v.id,
-                    label: v.name,
-                } as SelectData)
-        );
+        return [
+            ...views.map(
+                (v: ViewDto) =>
+                    ({
+                        value: v.id,
+                        label: v.name,
+                    } as SelectData)
+            ),
+        ];
     }, [views]);
 
     return (
         <Select
             label="View"
             maw={130}
+            clearable
+            allowDeselect={false}
             data={selectViewList}
             onChange={(value) => setSelectedViewId(value ?? undefined)}
-            value={selectedViewId}
+            value={selectedViewId ?? null}
         />
     );
 }
