@@ -39,7 +39,11 @@ namespace Operum.Model.Extensions
                     case DataTypes.DateTime:
                         if (!string.IsNullOrWhiteSpace(value))
                         {
-                            fieldValue.DateTimeValue = DateTime.Parse(value, null, System.Globalization.DateTimeStyles.RoundtripKind).ToUniversalTime();
+                            var parsed = DateTime.Parse(value, null, System.Globalization.DateTimeStyles.RoundtripKind);
+                            if (parsed.Kind == DateTimeKind.Unspecified)
+                                parsed = DateTime.SpecifyKind(parsed, DateTimeKind.Utc);
+
+                            fieldValue.DateTimeValue = parsed.ToUniversalTime();
                         }
                         else if (value == null)
                         {

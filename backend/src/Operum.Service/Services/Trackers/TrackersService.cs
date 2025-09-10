@@ -111,7 +111,7 @@ namespace Operum.Service.Services.Trackers
             if (!string.IsNullOrEmpty(viewId))
             {
                 view = await db.Views
-                    .Include(v => v.Sorts)
+                    .Include(v => v.Filters)
                     .ThenInclude(s => s.Field)
                     .FirstOrDefaultAsync(v => v.Id == viewId && v.TrackerId == trackerId);
 

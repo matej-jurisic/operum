@@ -105,6 +105,9 @@ namespace Operum.Service.Services.Entries
             if (view != null && view.Filters.Count != 0)
             {
                 entriesQuery = ViewHelpers.ApplyViewFilters(entriesQuery, view.Filters);
+            }
+            if (view != null && view.Sorts.Count != 0)
+            {
                 entriesQuery = ViewHelpers.ApplyViewSorting(entriesQuery, view.Sorts);
             }
 
@@ -329,7 +332,7 @@ namespace Operum.Service.Services.Entries
                     {
                         var fieldValue = new FieldValue
                         {
-                            EntryId = newEntry.Id, // This will be the generated ID
+                            EntryId = newEntry.Id,
                             FieldId = field.Id,
                         };
                         fieldValue.SetFieldValue(field, kvp.Value);

@@ -167,15 +167,20 @@ namespace Operum.Service.Helpers
             {
                 if (!DateTime.TryParse(value, null, System.Globalization.DateTimeStyles.RoundtripKind, out var dateValue))
                     return query;
+                var utcDateValue = dateValue.ToUniversalTime();
+                if (dateValue.Kind == DateTimeKind.Unspecified)
+                {
+                    utcDateValue = DateTime.SpecifyKind(dateValue, DateTimeKind.Utc);
+                }
 
                 return operatorType switch
                 {
-                    OperatorTypes.EqualsOperator => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue != null && fv.DateTimeValue.Value.Date == dateValue.Date)),
-                    OperatorTypes.NotEquals => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && (fv.DateTimeValue == null || fv.DateTimeValue.Value.Date != dateValue.Date))),
-                    OperatorTypes.GreaterThan => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue > dateValue)),
-                    OperatorTypes.GreaterThanOrEqual => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue >= dateValue)),
-                    OperatorTypes.LessThan => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue < dateValue)),
-                    OperatorTypes.LessThanOrEqual => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue <= dateValue)),
+                    OperatorTypes.EqualsOperator => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue != null && fv.DateTimeValue.Value.Date == utcDateValue.Date)),
+                    OperatorTypes.NotEquals => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && (fv.DateTimeValue == null || fv.DateTimeValue.Value.Date != utcDateValue.Date))),
+                    OperatorTypes.GreaterThan => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue > utcDateValue)),
+                    OperatorTypes.GreaterThanOrEqual => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue >= utcDateValue)),
+                    OperatorTypes.LessThan => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue < utcDateValue)),
+                    OperatorTypes.LessThanOrEqual => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue <= utcDateValue)),
                     _ => query
                 };
             }
@@ -233,15 +238,23 @@ namespace Operum.Service.Helpers
             };
         }
 
-        public static bool IsValidFieldValue(string value, string fieldType)
+        public static bool IsValidFieldValue(string? value, string fieldType)
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(value))
+                    return true;
+
                 return fieldType.ToLowerInvariant() switch
                 {
                     DataTypes.String => true,
                     DataTypes.Number => double.TryParse(value, out _),
-                    DataTypes.Date or DataTypes.DateTime => DateTime.TryParse(value, null, System.Globalization.DateTimeStyles.RoundtripKind, out _),
+                    DataTypes.Date or DataTypes.DateTime => DateTime.TryParse(
+                        value,
+                        null,
+                        System.Globalization.DateTimeStyles.RoundtripKind,
+                        out var parsedDateTime
+                    ) && EnsureUtc(parsedDateTime),
                     DataTypes.TimeSpan => TimeSpan.TryParse(value, out _),
                     DataTypes.Bool => bool.TryParse(value, out _),
                     _ => false,
@@ -252,6 +265,17 @@ namespace Operum.Service.Helpers
                 return false;
             }
         }
+
+        // Helper to ensure DateTime can safely be stored as UTC
+        private static bool EnsureUtc(DateTime dt)
+        {
+            if (dt.Kind == DateTimeKind.Unspecified)
+                dt = DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+
+            _ = dt.ToUniversalTime();
+            return true;
+        }
+
 
         // Helper method to validate filter operators for each field type
         public static bool IsValidOperatorForFieldType(string operatorType, string fieldType)
