@@ -1,5 +1,6 @@
 export interface CreateViewDto {
     name: string;
+    description?: string;
     sorts: CreateViewSortDto[];
 }
 

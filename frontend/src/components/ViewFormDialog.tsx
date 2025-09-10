@@ -12,7 +12,6 @@ import {
 import { useForm } from "@mantine/form";
 import { FiPlus } from "react-icons/fi";
 import { MdDelete } from "react-icons/md";
-import api from "../api/api";
 import { useTracker } from "../context/TrackerContext";
 import { CreateViewDto } from "../model/requests/CreateViewDto";
 import { TrackerDto } from "../model/TrackerDto";
@@ -20,17 +19,12 @@ import { TrackerDto } from "../model/TrackerDto";
 interface Props {
     tracker: TrackerDto;
     onClose: () => void;
-    onCreated?: () => void;
 }
 
 const MAX_SORTS = 3;
 
-const createView = async (trackerId: string, viewData: CreateViewDto) => {
-    await api.post(`/trackers/${trackerId}/views`, viewData);
-};
-
-export default function ViewFormDialog({ tracker, onClose, onCreated }: Props) {
-    const { fields } = useTracker();
+export default function ViewFormDialog({ tracker, onClose }: Props) {
+    const { fields, CreateView } = useTracker();
 
     const form = useForm<CreateViewDto>({
         initialValues: {
@@ -43,6 +37,10 @@ export default function ViewFormDialog({ tracker, onClose, onCreated }: Props) {
                     ? "View name is required"
                     : value.length > 50
                     ? "View name must be at most 50 characters"
+                    : null,
+            description: (value) =>
+                value && value.length > 500
+                    ? "Description must be at most 500 characters"
                     : null,
             sorts: (sorts) => {
                 if (sorts.find((s) => !s.fieldId)) {
@@ -63,7 +61,6 @@ export default function ViewFormDialog({ tracker, onClose, onCreated }: Props) {
                 return null;
             },
         },
-        validateInputOnBlur: true,
     });
 
     const fieldOptions = fields.map((field) => ({
@@ -87,9 +84,8 @@ export default function ViewFormDialog({ tracker, onClose, onCreated }: Props) {
     };
 
     const handleSubmit = async (values: CreateViewDto) => {
-        await createView(tracker.id, values);
+        await CreateView(tracker.id, values);
         onClose();
-        onCreated?.();
         form.reset();
     };
 
@@ -103,6 +99,12 @@ export default function ViewFormDialog({ tracker, onClose, onCreated }: Props) {
                         required
                         maxLength={50}
                         {...form.getInputProps("name")}
+                    />
+                    <TextInput
+                        label="Description"
+                        placeholder="Enter field description"
+                        maxLength={500}
+                        {...form.getInputProps("description")}
                     />
 
                     <Stack gap="lg" mih={200} justify="space-between">

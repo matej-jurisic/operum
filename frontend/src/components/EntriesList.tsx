@@ -1,11 +1,11 @@
 import {
     ActionIcon,
     Badge,
+    Button,
     Checkbox,
     Group,
     Menu,
     Pagination,
-    Select,
     Stack,
     Table,
     Text,
@@ -19,11 +19,9 @@ import { PiFileCsvDuotone } from "react-icons/pi";
 import { RiFileListFill } from "react-icons/ri";
 import { RxCross2 } from "react-icons/rx";
 import { useTracker } from "../context/TrackerContext";
-import { SelectData } from "../model/common/SelectData";
 import { EntryDto } from "../model/EntryDto";
 import { FieldValueDto } from "../model/FieldValueDto";
 import { TrackerDto } from "../model/TrackerDto";
-import { ViewDto } from "../model/ViewDto";
 import {
     formatDateOnly,
     formatDateTime,
@@ -41,7 +39,7 @@ interface EntriesListProps {
 
 const gridColumnSizes = {
     string: "auto",
-    number: "100px",
+    number: "auto",
     date: "80px",
     datetime: "160px",
     timespan: "80px",
@@ -81,8 +79,15 @@ export default function EntriesList(props: EntriesListProps) {
     );
     const [isSelectMode, setIsSelectMode] = useState(false);
 
-    const { fields, DeleteEntry, DeleteEntries, views, refreshViews } =
-        useTracker();
+    const {
+        fields,
+        entries,
+        refreshEntriesIfDirty,
+        refreshFieldsIfDirty,
+        DeleteEntry,
+        DeleteEntries,
+        entriesDirty,
+    } = useTracker();
 
     // Column visibility state - all visible by default
     const [visibleColumns, setVisibleColumns] = useState<
@@ -93,15 +98,7 @@ export default function EntriesList(props: EntriesListProps) {
     const [visibilityInitialized, setVisibilityInitialized] = useState(false);
     const [isLoadingData, setIsLoadingData] = useState(false);
 
-    const {
-        entries,
-        refreshEntriesIfDirty,
-        refreshFieldsIfDirty,
-        selectedViewId,
-        setSelectedViewId,
-    } = useTracker();
-
-    const pageSize = 10;
+    const pageSize = 15;
     const totalPages = useMemo(() => {
         return Math.ceil(entries.length / pageSize);
     }, [entries]);
@@ -170,16 +167,6 @@ export default function EntriesList(props: EntriesListProps) {
     const visibleFields = useMemo(() => {
         return fields.filter((field) => visibleColumns[field.id]);
     }, [fields, visibleColumns]);
-
-    const selectViewList = useMemo(() => {
-        return views.map(
-            (v: ViewDto) =>
-                ({
-                    value: v.id,
-                    label: v.name,
-                } as SelectData)
-        );
-    }, [views]);
 
     // Create table headers from visible fields
     const tableHeaders = useMemo(() => {
@@ -338,11 +325,10 @@ export default function EntriesList(props: EntriesListProps) {
             setIsLoadingData(true);
             await refreshEntriesIfDirty();
             await refreshFieldsIfDirty();
-            await refreshViews();
             setIsLoadingData(false);
         };
         loadData();
-    }, []);
+    }, [entriesDirty]);
 
     // Initialize column visibility when fields are loaded (only once)
     useEffect(() => {
@@ -367,12 +353,12 @@ export default function EntriesList(props: EntriesListProps) {
                     <Group>
                         <Menu shadow="md" position="bottom-start">
                             <Menu.Target>
-                                <ActionIcon
-                                    size={"lg"}
+                                <Button
+                                    leftSection={<FiPlus size={18} />}
                                     color={props.tracker.color}
                                 >
-                                    <FiPlus size={18} />
-                                </ActionIcon>
+                                    Create
+                                </Button>
                             </Menu.Target>
 
                             <Menu.Dropdown>
@@ -398,14 +384,6 @@ export default function EntriesList(props: EntriesListProps) {
                                 </Menu.Item>
                             </Menu.Dropdown>
                         </Menu>
-                        <Select
-                            maw={140}
-                            data={selectViewList}
-                            onChange={(value) =>
-                                setSelectedViewId(value ?? undefined)
-                            }
-                            value={selectedViewId}
-                        />
                     </Group>
 
                     <Group flex={1} justify="flex-end" wrap="nowrap">

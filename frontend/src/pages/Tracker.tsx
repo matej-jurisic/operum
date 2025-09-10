@@ -7,6 +7,8 @@ import AnalyiticsList from "../components/AnalyticsList";
 import EntriesList from "../components/EntriesList";
 import FieldsList from "../components/FieldsList";
 import Header from "../components/Header";
+import SelectView from "../components/SelectView";
+import StickyContainer from "../components/StickyContainer";
 import ViewsList from "../components/ViewsList";
 import { TrackerProvider } from "../context/TrackerContext";
 import { TrackerDto } from "../model/TrackerDto";
@@ -37,13 +39,15 @@ export default function Tracker() {
     return (
         <TrackerProvider initialTracker={tracker}>
             <Stack gap="lg">
-                <Group justify="space-between">
-                    <Title order={2} c={tracker.color} mb="md">
+                <Group justify="space-between" gap={"md"}>
+                    <Title order={2} c={tracker.color}>
                         {tracker.name}
                     </Title>
+
                     <Header
                         color={tracker.color}
-                        buttons={[
+                        items={[
+                            <SelectView />,
                             <Button
                                 variant="outline"
                                 color={tracker.color}
@@ -54,6 +58,7 @@ export default function Tracker() {
                         ]}
                     />
                 </Group>
+
                 <Tabs
                     variant="default"
                     color={tracker.color}
@@ -61,13 +66,14 @@ export default function Tracker() {
                     onChange={setActiveTab}
                     keepMounted={false}
                 >
-                    <Tabs.List>
-                        <Tabs.Tab value="entries">Entries</Tabs.Tab>
-                        <Tabs.Tab value="views">Views</Tabs.Tab>
-                        <Tabs.Tab value="fields">Fields</Tabs.Tab>
-                        <Tabs.Tab value="analytics">Analytics</Tabs.Tab>
-                    </Tabs.List>
-
+                    <StickyContainer>
+                        <Tabs.List>
+                            <Tabs.Tab value="entries">Entries</Tabs.Tab>
+                            <Tabs.Tab value="views">Views</Tabs.Tab>
+                            <Tabs.Tab value="fields">Fields</Tabs.Tab>
+                            <Tabs.Tab value="analytics">Analytics</Tabs.Tab>
+                        </Tabs.List>
+                    </StickyContainer>
                     <Container px={0} pt={"md"} fluid>
                         <Tabs.Panel value="entries">
                             <EntriesList tracker={tracker} />

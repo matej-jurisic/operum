@@ -5,6 +5,7 @@ namespace Operum.Model.DTOs.Views.Requests
     public class CreateViewDto
     {
         public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
 
         public List<CreateViewSortDto> Sorts { get; set; } = [];
     }
@@ -18,6 +19,10 @@ namespace Operum.Model.DTOs.Views.Requests
             RuleFor(x => x.Name)
                 .NotEmpty().WithMessage("View name is required.")
                 .MaximumLength(50).WithMessage("View name cannot exceed 50 characters.");
+
+            RuleFor(x => x.Description)
+               .MaximumLength(500).WithMessage("Description cannot exceed 500 characters.")
+               .When(x => !string.IsNullOrEmpty(x.Description));
 
             RuleFor(x => x.Sorts)
                 .NotEmpty().WithMessage("At least one sort is required.")

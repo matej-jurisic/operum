@@ -3,6 +3,7 @@ import { FieldDto } from "./FieldDto";
 export interface ViewDto {
     id: string;
     name: string;
+    description?: string;
     sorts: ViewSortDto[];
 }
 

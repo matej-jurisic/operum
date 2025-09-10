@@ -39,10 +39,10 @@ namespace Operum.API.Controllers
             return GetApiResponse(await trackerService.DeleteTracker(id));
         }
 
-        [HttpGet("{id}/analytics")]
-        public async Task<IActionResult> GetTrackerAnalytics([FromRoute] string id)
+        [HttpGet("{trackerId}/analytics")]
+        public async Task<IActionResult> GetTrackerAnalytics([FromRoute] string trackerId, [FromQuery] string? viewId)
         {
-            return GetApiResponse(await trackerService.GetTrackerAnalytics(id));
+            return GetApiResponse(await trackerService.GetTrackerAnalytics(trackerId, viewId));
         }
     }
 }

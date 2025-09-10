@@ -51,7 +51,7 @@ export default function Home() {
         <>
             <Stack gap="md" align="stretch">
                 <Group justify="space-between">
-                    <Title c={theme.primaryColor} order={2} mb="md">
+                    <Title c={theme.primaryColor} order={2}>
                         {"Operum"}
                     </Title>
                     <Header />

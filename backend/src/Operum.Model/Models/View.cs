@@ -9,6 +9,7 @@ namespace Operum.Model.Models
         [Key]
         public string Id { get; set; } = Guid.NewGuid().ToString();
         public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
 
         public string TrackerId { get; set; } = string.Empty;
         [ForeignKey(nameof(TrackerId))]

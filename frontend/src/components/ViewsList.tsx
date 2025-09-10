@@ -1,4 +1,12 @@
-import { ActionIcon, Button, Card, Group, Stack, Text } from "@mantine/core";
+import {
+    ActionIcon,
+    Button,
+    Card,
+    Group,
+    Stack,
+    Text,
+    Title,
+} from "@mantine/core";
 import { useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { MdDelete } from "react-icons/md";
@@ -23,10 +31,10 @@ enum OpenDialogType {
 export default function ViewsList(props: Props) {
     const [selectedView, setSelectedView] = useState<ViewDto>();
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
-    const { views, refreshViews, DeleteView } = useTracker();
+    const { views, refreshViewsIfDirty, DeleteView } = useTracker();
 
     useEffect(() => {
-        refreshViews();
+        refreshViewsIfDirty();
     }, []);
 
     return (
@@ -51,13 +59,20 @@ export default function ViewsList(props: Props) {
                             align="flex-start"
                         >
                             <Stack gap="sm">
-                                <Text
-                                    className="wrapped-text"
-                                    fw={600}
-                                    size="md"
+                                <Title
+                                    order={4}
                                     lineClamp={1}
+                                    className="wrapped-text"
                                 >
                                     {view.name}
+                                </Title>
+                                <Text
+                                    c="dimmed"
+                                    size="sm"
+                                    lineClamp={3}
+                                    className="wrapped-text"
+                                >
+                                    {view.description || "No description"}
                                 </Text>
                             </Stack>
                             <Group gap="xs" wrap="nowrap">
@@ -107,7 +122,6 @@ export default function ViewsList(props: Props) {
                 <ViewFormDialog
                     tracker={props.tracker}
                     onClose={() => setOpenDialogType(undefined)}
-                    onCreated={async () => refreshViews()}
                 />
             )}
 
@@ -118,7 +132,6 @@ export default function ViewsList(props: Props) {
                     onConfirm={async () => {
                         if (selectedView) {
                             await DeleteView(props.tracker.id, selectedView.id);
-                            refreshViews();
                             setOpenDialogType(undefined);
                             setSelectedView(undefined);
                         }

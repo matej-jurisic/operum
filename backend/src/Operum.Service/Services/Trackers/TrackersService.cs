@@ -96,7 +96,7 @@ namespace Operum.Service.Services.Trackers
             return ServiceResponse.Success(updatedTracker.Data);
         }
 
-        public async Task<ServiceResponse<List<FieldAnalyticsDto>>> GetTrackerAnalytics(string trackerId)
+        public async Task<ServiceResponse<List<FieldAnalyticsDto>>> GetTrackerAnalytics(string trackerId, string? viewId)
         {
             var user = authorizationService.GetCurrentUserDto();
             var tracker = await db.Trackers.FindAsync(trackerId);
@@ -106,39 +106,64 @@ namespace Operum.Service.Services.Trackers
                 return ServiceResponse.Failure(StatusCodeEnum.NotFound);
             }
 
-            var fieldsWithData = await db.Fields
-                .Include(x => x.FieldValues)
-                .Where(x => x.TrackerId == trackerId)
-                .Select(f => new
-                {
-                    f.Id,
-                    f.Type,
-                    f.Name,
-                    Values = f.FieldValues
-                })
-                .ToListAsync();
-
-            var analyticsResult = new List<FieldAnalyticsDto>();
-
-            foreach (var field in fieldsWithData)
+            View? view = null;
+            if (!string.IsNullOrEmpty(viewId))
             {
-                var analytics = field.Type switch
-                {
-                    DataTypes.Number => TrackerAnalyticsHelpers.GetNumericAnalytics(field.Values),
-                    DataTypes.DateTime => TrackerAnalyticsHelpers.GetDateTimeAnalytics(field.Values),
-                    DataTypes.Date => TrackerAnalyticsHelpers.GetDateAnalytics(field.Values),
-                    DataTypes.TimeSpan => TrackerAnalyticsHelpers.GetTimeSpanAnalytics(field.Values),
-                    DataTypes.Bool => TrackerAnalyticsHelpers.GetBooleanAnalytics(field.Values),
-                    _ => null
-                };
+                view = await db.Views
+                    .Include(v => v.Sorts)
+                    .ThenInclude(s => s.Field)
+                    .FirstOrDefaultAsync(v => v.Id == viewId && v.TrackerId == trackerId);
 
-                if (analytics != null)
+                if (view == null)
                 {
-                    analytics.FieldName = field.Name;
-                    analytics.FieldType = field.Type;
-                    analyticsResult.Add(analytics);
+                    return ServiceResponse.Failure(StatusCodeEnum.NotFound, "View not found or doesn't belong to this tracker");
                 }
             }
+
+            var entriesQuery = db.Entries
+                .Include(x => x.FieldValues)
+                .ThenInclude(x => x.Field)
+                .Where(x => x.TrackerId == trackerId);
+
+            //if (view != null && view.Sorts.Count != 0)
+            //{
+            //    entriesQuery = ViewHelpers.ApplyViewSorting(entriesQuery, view.Sorts);
+            //}
+
+            var entries = await entriesQuery.ToListAsync();
+
+            // Process analytics in parallel with proper null handling
+            var analyticsResult = entries
+                .SelectMany(e => e.FieldValues)
+                .GroupBy(fv => fv.Field.Id)
+                .AsParallel()
+                .Select(group =>
+                {
+                    var field = group.First().Field;
+                    var fieldValues = group.ToList();
+
+                    var analytics = field.Type switch
+                    {
+                        DataTypes.Number => TrackerAnalyticsHelpers.GetNumericAnalytics(fieldValues),
+                        DataTypes.DateTime => TrackerAnalyticsHelpers.GetDateTimeAnalytics(fieldValues),
+                        DataTypes.Date => TrackerAnalyticsHelpers.GetDateAnalytics(fieldValues),
+                        DataTypes.TimeSpan => TrackerAnalyticsHelpers.GetTimeSpanAnalytics(fieldValues),
+                        DataTypes.Bool => TrackerAnalyticsHelpers.GetBooleanAnalytics(fieldValues),
+                        _ => null
+                    };
+
+                    if (analytics != null)
+                    {
+                        analytics.FieldName = field.Name;
+                        analytics.FieldType = field.Type;
+                    }
+
+                    return analytics;
+                })
+                .Where(analytics => analytics != null)
+                .Cast<FieldAnalyticsDto>()
+                .OrderBy(a => a.FieldName)
+                .ToList();
 
             return ServiceResponse.Success(analyticsResult);
         }

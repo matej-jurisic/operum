@@ -26,7 +26,6 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
         initialValues: props.initialValues || {
             name: "",
             type: "string",
-            description: "",
             required: false,
         },
 

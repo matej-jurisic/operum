@@ -15,7 +15,7 @@ import globalStore from "../stores/GlobalStore";
 
 interface Props {
     color?: string;
-    buttons?: JSX.Element[];
+    items?: JSX.Element[];
 }
 
 export default function Header(props: Props) {
@@ -25,56 +25,54 @@ export default function Header(props: Props) {
     const auth = useAuth();
 
     return (
-        <Group justify="space-between" mb="md">
-            <Group justify="flex-end">
-                {props.buttons}
-                <Button
-                    variant="outline"
-                    color={props.color ?? theme.primaryColor}
-                    onClick={() => {
-                        setColorScheme(
-                            computedColorScheme === "dark" ? "light" : "dark"
-                        );
-                    }}
-                >
-                    {colorScheme === "light" ? (
-                        <IoMoonOutline size={16} />
-                    ) : (
-                        <GoSun size={16} />
-                    )}
-                </Button>
-                <Menu>
-                    <Menu.Target>
-                        <Button
-                            variant="outline"
-                            color={props.color ?? theme.primaryColor}
-                        >
-                            <CiUser size={18} />
-                        </Button>
-                    </Menu.Target>
+        <Group align="flex-end">
+            {props.items}
+            <Button
+                variant="outline"
+                color={props.color ?? theme.primaryColor}
+                onClick={() => {
+                    setColorScheme(
+                        computedColorScheme === "dark" ? "light" : "dark"
+                    );
+                }}
+            >
+                {colorScheme === "light" ? (
+                    <IoMoonOutline size={16} />
+                ) : (
+                    <GoSun size={16} />
+                )}
+            </Button>
+            <Menu>
+                <Menu.Target>
+                    <Button
+                        variant="outline"
+                        color={props.color ?? theme.primaryColor}
+                    >
+                        <CiUser size={18} />
+                    </Button>
+                </Menu.Target>
 
-                    <Menu.Dropdown>
-                        <Menu.Item leftSection={<CiUser size={16} />}>
-                            {globalStore.currentUser?.userName || "Guest"}
-                        </Menu.Item>
-                        {/* <Menu.Item
+                <Menu.Dropdown>
+                    <Menu.Item leftSection={<CiUser size={16} />}>
+                        {globalStore.currentUser?.userName || "Guest"}
+                    </Menu.Item>
+                    {/* <Menu.Item
                             leftSection={<CiSettings size={16} />}
                             onClick={() => navigate("/admin-panel")}
                         >
                             Admin panel
                         </Menu.Item> */}
-                        <Menu.Item
-                            leftSection={<CiLogout size={16} />}
-                            onClick={async () => {
-                                await auth.logout();
-                                window.location.reload();
-                            }}
-                        >
-                            Logout
-                        </Menu.Item>
-                    </Menu.Dropdown>
-                </Menu>
-            </Group>
+                    <Menu.Item
+                        leftSection={<CiLogout size={16} />}
+                        onClick={async () => {
+                            await auth.logout();
+                            window.location.reload();
+                        }}
+                    >
+                        Logout
+                    </Menu.Item>
+                </Menu.Dropdown>
+            </Menu>
         </Group>
     );
 }
