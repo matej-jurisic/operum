@@ -5,11 +5,17 @@ export interface ViewDto {
     name: string;
     description?: string;
     sorts: ViewSortDto[];
+    filters: ViewFilterDto[];
 }
 
 export interface ViewSortDto {
-    fieldId: string;
     descending: boolean;
     order: number;
     field: FieldDto;
+}
+
+export interface ViewFilterDto {
+    field: FieldDto;
+    operator: string;
+    value: string;
 }

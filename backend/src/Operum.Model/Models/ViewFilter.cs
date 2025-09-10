@@ -13,7 +13,10 @@ namespace Operum.Model.Models
         public virtual View View { get; set; } = null!;
 
         public string FieldId { get; set; } = string.Empty;
+        [ForeignKey(nameof(FieldId))]
+        public virtual Field Field { get; set; } = null!;
+
         public string Operator { get; set; } = string.Empty;
-        public string Value { get; set; } = string.Empty;
+        public string? Value { get; set; }
     }
 }

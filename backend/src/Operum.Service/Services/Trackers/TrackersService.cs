@@ -8,6 +8,7 @@ using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Model.Enums;
 using Operum.Model.Extensions;
 using Operum.Model.Models;
+using Operum.Service.Helpers;
 using Operum.Service.Mappings.Mapper;
 using Operum.Service.Services.Authorization;
 using Operum.Service.Services.Trackers.Helpers;
@@ -125,10 +126,10 @@ namespace Operum.Service.Services.Trackers
                 .ThenInclude(x => x.Field)
                 .Where(x => x.TrackerId == trackerId);
 
-            //if (view != null && view.Sorts.Count != 0)
-            //{
-            //    entriesQuery = ViewHelpers.ApplyViewSorting(entriesQuery, view.Sorts);
-            //}
+            if (view != null && view.Filters.Count != 0)
+            {
+                entriesQuery = ViewHelpers.ApplyViewFilters(entriesQuery, view.Filters);
+            }
 
             var entries = await entriesQuery.ToListAsync();
 

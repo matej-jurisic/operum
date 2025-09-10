@@ -6,6 +6,7 @@ using Operum.Model.DTOs.Views.Requests;
 using Operum.Model.Enums;
 using Operum.Model.Extensions;
 using Operum.Model.Models;
+using Operum.Service.Helpers;
 using Operum.Service.Mappings.Mapper;
 using Operum.Service.Services.Authorization;
 
@@ -16,19 +17,38 @@ namespace Operum.Service.Services.Views
         public async Task<ServiceResponse<ViewDto>> CreateView(string trackerId, CreateViewDto view)
         {
             var user = authorizationService.GetCurrentUserDto();
-
             var tracker = await db.Trackers.FindAsync(trackerId);
             if (tracker == null || tracker.OwnerId != user.Id)
             {
                 return ServiceResponse.Failure(StatusCodeEnum.NotFound);
             }
 
+            foreach (var sort in view.Sorts)
+            {
+                var field = await db.Fields.FindAsync(sort.FieldId);
+                if (field == null || field.TrackerId != trackerId)
+                    return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "Sort field not found or doesn't belong to tracker");
+            }
+
+            foreach (var filter in view.Filters)
+            {
+                var field = await db.Fields.FindAsync(filter.FieldId);
+                if (field == null || field.TrackerId != trackerId)
+                    return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "Filter field not found or doesn't belong to tracker");
+
+                // Validate operator is valid for the field type
+                if (!ViewHelpers.IsValidOperatorForFieldType(filter.Operator, field.Type))
+                    return ServiceResponse.Failure(StatusCodeEnum.BadRequest, $"Operator '{filter.Operator}' is not valid for field type '{field.Type}'");
+
+                // Validate field value
+                if (filter.Value != null && !ViewHelpers.IsValidFieldValue(filter.Value, field.Type))
+                    return ServiceResponse.Failure(StatusCodeEnum.BadRequest, $"Value '{filter.Value}' is invalid for field type '{field.Type}'");
+            }
+
             var userView = mapper.Map<CreateViewDto, View>(view);
             userView.TrackerId = trackerId;
-
             await db.Views.AddAsync(userView);
             await db.SaveChangesAsync();
-
             var created = await GetView(trackerId, userView.Id);
             return ServiceResponse.Success(created.Data);
         }
@@ -55,6 +75,8 @@ namespace Operum.Service.Services.Views
             var userView = await db.Views
                 .Include(x => x.Tracker)
                 .Include(x => x.Sorts.OrderBy(s => s.Order))
+                .ThenInclude(x => x.Field)
+                .Include(x => x.Filters)
                 .ThenInclude(x => x.Field)
                 .FirstOrDefaultAsync(x => x.Id == viewId && x.TrackerId == trackerId);
 

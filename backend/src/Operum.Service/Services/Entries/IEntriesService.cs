@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Operum.Model.Common;
+using Operum.Model.DTOs.Entries.Requests;
 using Operum.Model.DTOs.Entry;
 using Operum.Model.DTOs.Entry.Requests;
 

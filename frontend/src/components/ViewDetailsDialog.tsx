@@ -1,8 +1,17 @@
-import { Badge, Divider, Group, Modal, Text, Title } from "@mantine/core";
+import {
+    Badge,
+    Divider,
+    Group,
+    Modal,
+    Stack,
+    Text,
+    Title,
+} from "@mantine/core";
 import { useEffect, useState } from "react";
 import api from "../api/api";
 import { TrackerDto } from "../model/TrackerDto";
 import { ViewDto } from "../model/ViewDto";
+import { renderValue } from "./EntriesList";
 
 interface Props {
     viewId: string;
@@ -35,38 +44,72 @@ export default function ViewDetailsDialog(props: Props) {
             centered
             onClose={props.onClose}
             title={
-                <Group justify="space-between" wrap="nowrap" mr={"xs"}>
+                <Group justify="space-between" wrap="nowrap" mr="xs">
                     <Title order={4} className="wrapped-text" lineClamp={3}>
                         {view.name}
                     </Title>
-                    <Badge
-                        color={props.tracker.color}
-                        variant="filled"
-                        miw="max-content"
-                    >
+                    <Badge color={props.tracker.color} variant="filled">
                         View
                     </Badge>
                 </Group>
             }
-            size="lg"
+            size={"md"}
         >
-            <Divider label="Sort" />
-            {view.sorts.map((sort) => (
-                <>
-                    <Group
-                        key={sort.fieldId}
-                        justify="space-between"
-                        wrap="nowrap"
-                    >
-                        <Title order={5} className="wrapped-text" maw={"50%"}>
-                            {sort.order + 1}. {sort.field.name}
-                        </Title>
-                        <Text maw={"50%"}>
-                            {sort.descending ? "Descending" : "Ascending"}
-                        </Text>
-                    </Group>
-                </>
-            ))}
+            <Stack>
+                {view.sorts.length > 0 && (
+                    <>
+                        <Divider label="Sorts" labelPosition="center" />
+                        {view.sorts.map((sort, index) => (
+                            <Group
+                                key={index}
+                                justify="space-between"
+                                wrap="nowrap"
+                            >
+                                <Text fw={500}>{sort.field.name}</Text>
+                                <Group gap="xs">
+                                    <Badge
+                                        color={props.tracker.color}
+                                        variant="outline"
+                                    >
+                                        {sort.order + 1}
+                                    </Badge>
+                                    <Badge color="gray" variant="light">
+                                        {sort.descending
+                                            ? "Descending"
+                                            : "Ascending"}
+                                    </Badge>
+                                </Group>
+                            </Group>
+                        ))}
+                    </>
+                )}
+
+                {view.filters.length > 0 && (
+                    <>
+                        <Divider label="Filters" labelPosition="center" />
+                        {view.filters.map((filter, index) => (
+                            <Group
+                                key={index}
+                                justify="space-between"
+                                wrap="nowrap"
+                            >
+                                <Text fw={500}>{filter.field.name}</Text>
+                                <Group gap="xs">
+                                    <Badge color="blue" variant="outline">
+                                        {filter.operator}
+                                    </Badge>
+                                    <Badge color="teal" variant="light">
+                                        {renderValue(
+                                            filter.field.type,
+                                            filter.value
+                                        )}
+                                    </Badge>
+                                </Group>
+                            </Group>
+                        ))}
+                    </>
+                )}
+            </Stack>
         </Modal>
     );
 }

@@ -13,8 +13,7 @@ namespace Operum.Model.DTOs.Views.Requests
         public CreateViewSortDtoValidator()
         {
             RuleFor(x => x.FieldId)
-                .NotEmpty().WithMessage("FieldId is required.")
-                .MaximumLength(100).WithMessage("FieldId cannot exceed 100 characters.");
+                .NotEmpty().WithMessage("FieldId is required.");
         }
     }
 }

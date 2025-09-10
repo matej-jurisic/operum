@@ -10,33 +10,15 @@ import {
 import { useEffect, useState } from "react";
 import api from "../api/api";
 import { EntryDto } from "../model/EntryDto";
-import { FieldValueDto } from "../model/FieldValueDto";
 import { TrackerDto } from "../model/TrackerDto";
-import {
-    formatDateOnly,
-    formatDateTime,
-    formatDateTimeFromDate,
-    formatTimeSpan,
-} from "../util/TypeFormatter";
+import { formatDateTimeFromDate } from "../util/TypeFormatter";
+import { renderValue } from "./EntriesList";
 
 interface EntryDetailsDialogProps {
     onClose: () => void;
     entryId: string;
     tracker: TrackerDto;
 }
-
-const renderValue = (v: FieldValueDto) => {
-    if (v.value === null) return <Text c="dimmed">No value set</Text>;
-    if (typeof v.value === "string") {
-        if (v.fieldType === "date") return formatDateOnly(v.value);
-        if (v.fieldType === "datetime") return formatDateTime(v.value);
-        if (v.fieldType === "timespan") return formatTimeSpan(v.value);
-        return v.value;
-    }
-    if (typeof v.value === "number") return v.value;
-    if (typeof v.value === "boolean") return v.value.toString();
-    return "Unexpected data type";
-};
 
 const GetEntry = async (trackerId: string, entryId: string) => {
     const response = await api.get(`/trackers/${trackerId}/entries/${entryId}`);
@@ -94,7 +76,10 @@ export default function EntryDetailsDialog({
                             {fieldValue.fieldName}
                         </Title>
                         <Text maw={"50%"} className="wrapped-text">
-                            {renderValue(fieldValue)}
+                            {renderValue(
+                                fieldValue.fieldType,
+                                fieldValue.value
+                            )}
                         </Text>
                     </Group>
                 ))}

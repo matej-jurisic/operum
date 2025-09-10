@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Operum.Model;
 using Operum.Model.Common;
 using Operum.Model.Constants;
+using Operum.Model.DTOs.Entries.Requests;
 using Operum.Model.DTOs.Entry;
 using Operum.Model.DTOs.Entry.Requests;
 using Operum.Model.Enums;
@@ -84,6 +85,8 @@ namespace Operum.Service.Services.Entries
             if (!string.IsNullOrEmpty(viewId))
             {
                 view = await db.Views
+                    .Include(v => v.Filters)
+                    .ThenInclude(s => s.Field)
                     .Include(v => v.Sorts)
                     .ThenInclude(s => s.Field)
                     .FirstOrDefaultAsync(v => v.Id == viewId && v.TrackerId == trackerId);
@@ -99,13 +102,10 @@ namespace Operum.Service.Services.Entries
                 .ThenInclude(x => x.Field)
                 .Where(x => x.TrackerId == trackerId);
 
-            if (view != null && view.Sorts.Count != 0)
+            if (view != null && view.Filters.Count != 0)
             {
+                entriesQuery = ViewHelpers.ApplyViewFilters(entriesQuery, view.Filters);
                 entriesQuery = ViewHelpers.ApplyViewSorting(entriesQuery, view.Sorts);
-            }
-            else
-            {
-                entriesQuery = entriesQuery.OrderByDescending(x => x.CreatedAt);
             }
 
             var entries = await entriesQuery.ToListAsync();

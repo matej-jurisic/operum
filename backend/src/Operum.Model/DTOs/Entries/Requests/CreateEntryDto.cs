@@ -1,6 +1,6 @@
 ﻿using FluentValidation;
 
-namespace Operum.Model.DTOs.Entry.Requests
+namespace Operum.Model.DTOs.Entries.Requests
 {
     public class CreateEntryDto
     {

@@ -7,5 +7,6 @@
         public string? Description { get; set; }
 
         public List<ViewSortDto> Sorts { get; set; } = [];
+        public List<ViewFilterDto> Filters { get; set; } = [];
     }
 }

@@ -59,13 +59,20 @@ namespace Operum.Service.Mappings.Profiles
             mapper.Register<View, ViewDto>((s, d) =>
             {
                 d.Sorts = mapper.Map<ICollection<ViewSort>, List<ViewSortDto>>(s.Sorts);
+                d.Filters = mapper.Map<ICollection<ViewFilter>, List<ViewFilterDto>>(s.Filters);
             });
 
             mapper.Register<ViewSort, ViewSortDto>((s, d) =>
             {
                 d.Field = mapper.Map<Field, FieldDto>(s.Field);
             });
+            mapper.Register<ViewFilter, ViewFilterDto>((s, d) =>
+            {
+                d.Field = mapper.Map<Field, FieldDto>(s.Field);
+            });
+
             mapper.Register<CreateViewSortDto, ViewSort>();
+            mapper.Register<CreateViewFilterDto, ViewFilter>();
             mapper.Register<CreateViewDto, View>((s, d) =>
             {
                 d.Sorts = [.. s.Sorts
@@ -75,6 +82,7 @@ namespace Operum.Service.Mappings.Profiles
                         sort.Order = index;
                         return sort;
                     })];
+                d.Filters = mapper.Map<List<CreateViewFilterDto>, List<ViewFilter>>(s.Filters);
             });
         }
     }

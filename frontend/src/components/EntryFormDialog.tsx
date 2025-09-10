@@ -1,21 +1,49 @@
-import {
-    Button,
-    Checkbox,
-    Modal,
-    NumberInput,
-    Stack,
-    TextInput,
-} from "@mantine/core";
-import { DatePickerInput, DateTimePicker, TimePicker } from "@mantine/dates";
+import { Button, Modal, Stack } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useTracker } from "../context/TrackerContext";
 import { TrackerDto } from "../model/TrackerDto";
+import FieldValueInput from "./FieldValueInput";
 
 interface EntryFormDialogProps {
     tracker: TrackerDto;
     entryId?: string;
     initialValues?: Record<string, unknown>;
     onClose: () => void;
+}
+
+export function GetStringValue(type: string | unknown, value: unknown) {
+    if (value === null || value === undefined) {
+        if (type === "bool") {
+            return "false";
+        }
+        return "";
+    }
+    switch (type) {
+        case "bool":
+            return value ? "true" : "false";
+
+        case "date":
+            if (value instanceof Date) {
+                const utcMidnight = new Date(
+                    Date.UTC(
+                        value.getFullYear(),
+                        value.getMonth(),
+                        value.getDate()
+                    )
+                );
+                return utcMidnight.toISOString();
+            }
+            return String(value);
+
+        case "timespan":
+        case "datetime":
+            if (value instanceof Date) {
+                return value.toISOString();
+            } else return String(value);
+
+        default:
+            return String(value);
+    }
 }
 
 export default function EntryFormDialog(props: EntryFormDialogProps) {
@@ -30,26 +58,7 @@ export default function EntryFormDialog(props: EntryFormDialogProps) {
         fields.forEach((field) => {
             let value = values[field.name];
 
-            if (field.type === "bool") {
-                value = value ?? false;
-                fieldValues[field.name] = value ? "true" : "false";
-            } else if (value != null) {
-                if (field.type === "date") {
-                    const parsed = new Date(value as string);
-                    const utcMidnight = new Date(
-                        Date.UTC(
-                            parsed.getFullYear(),
-                            parsed.getMonth(),
-                            parsed.getDate()
-                        )
-                    );
-                    fieldValues[field.name] = utcMidnight.toISOString();
-                } else if (field.type === "timespan") {
-                    fieldValues[field.name] = String(value);
-                } else {
-                    fieldValues[field.name] = String(value);
-                }
-            }
+            fieldValues[field.name] = GetStringValue(field.type, value);
         });
 
         if (props.entryId) {
@@ -76,79 +85,13 @@ export default function EntryFormDialog(props: EntryFormDialogProps) {
                             align="stretch"
                             style={{ maxWidth: 400, margin: "0 auto" }}
                         >
-                            {fields.map((field) => {
-                                const fieldProps = {
-                                    label: field.name,
-                                    required: field.required,
-                                    key: field.id,
-                                    ...form.getInputProps(field.name),
-                                };
-
-                                switch (field.type) {
-                                    case "string":
-                                        return <TextInput {...fieldProps} />;
-                                    case "number":
-                                        return <NumberInput {...fieldProps} />;
-                                    case "bool":
-                                        return (
-                                            <Checkbox
-                                                label={`${field.name}${
-                                                    field.description
-                                                        ? " - " +
-                                                          field.description
-                                                        : ""
-                                                }`}
-                                                key={field.id}
-                                                {...form.getInputProps(
-                                                    field.name,
-                                                    { type: "checkbox" }
-                                                )}
-                                            />
-                                        );
-                                    case "date":
-                                        return (
-                                            <DatePickerInput
-                                                valueFormat="DD/MM/YYYY"
-                                                placeholder="Pick date"
-                                                {...fieldProps}
-                                            />
-                                        );
-                                    case "timespan":
-                                        return (
-                                            <TimePicker
-                                                withSeconds
-                                                {...fieldProps}
-                                                format="24h"
-                                                label={
-                                                    fieldProps.label +
-                                                    " (hh:mm:ss)"
-                                                }
-                                            />
-                                        );
-                                    case "datetime":
-                                        return (
-                                            <DateTimePicker
-                                                valueFormat="DD/MM/YYYY HH:mm:ss"
-                                                withSeconds
-                                                placeholder="Pick date/time"
-                                                {...fieldProps}
-                                                dropdownType="popover"
-                                                styles={{
-                                                    input: {
-                                                        cursor: "pointer",
-                                                        userSelect: "none",
-                                                    },
-                                                }}
-                                                modalProps={{
-                                                    centered: true,
-                                                    size: "sm",
-                                                }}
-                                            />
-                                        );
-                                    default:
-                                        return null;
-                                }
-                            })}
+                            {fields.map((field) => (
+                                <FieldValueInput
+                                    key={field.id}
+                                    field={field}
+                                    form={form}
+                                />
+                            ))}
 
                             <Button color={props.tracker.color} type="submit">
                                 {props.entryId ? "Update" : "Create"}

@@ -20,7 +20,6 @@ import { RiFileListFill } from "react-icons/ri";
 import { RxCross2 } from "react-icons/rx";
 import { useTracker } from "../context/TrackerContext";
 import { EntryDto } from "../model/EntryDto";
-import { FieldValueDto } from "../model/FieldValueDto";
 import { TrackerDto } from "../model/TrackerDto";
 import {
     formatDateOnly,
@@ -46,17 +45,16 @@ const gridColumnSizes = {
     bool: "80px",
 };
 
-const renderValue = (v: FieldValueDto | undefined) => {
-    if (v === null || v === undefined) return "";
-    if (typeof v.value === "string") {
-        if (v.fieldType === "date") return formatDateOnly(v.value);
-        if (v.fieldType === "datetime") return formatDateTime(v.value);
-        if (v.fieldType === "timespan") return formatTimeSpan(v.value);
-        return v.value;
+export const renderValue = (type: string | undefined, value: unknown) => {
+    if (typeof value === "string") {
+        if (type === "date") return formatDateOnly(value);
+        if (type === "datetime") return formatDateTime(value);
+        if (type === "timespan") return formatTimeSpan(value);
+        return value;
     }
-    if (typeof v.value === "number") return v.value;
-    if (typeof v.value === "boolean") return v.value ? "Yes" : "No";
-    return "Unexpected data type";
+    if (typeof value === "number") return value;
+    if (typeof value === "boolean") return value ? "Yes" : "No";
+    return "";
 };
 
 enum OpenDialogType {
@@ -232,7 +230,7 @@ export default function EntriesList(props: EntriesListProps) {
                 const fieldValue = entry.fieldValues.find(
                     (fv) => fv.fieldId === field.id
                 );
-                return renderValue(fieldValue);
+                return renderValue(fieldValue?.fieldType, fieldValue?.value);
             });
 
             return (
