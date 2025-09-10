@@ -13,15 +13,20 @@ import { FieldAnalyticsDto } from "../model/FieldAnalyticsDto";
 import { FieldDto } from "../model/FieldDto";
 import { FieldUpsertDto } from "../model/requests/FieldUpsertDto";
 import { TrackerDto } from "../model/TrackerDto";
+import { ViewDto } from "../model/ViewDto";
 
 type TrackerContextType = {
     entries: EntryDto[];
     fields: FieldDto[];
     analytics: FieldAnalyticsDto[];
+    views: ViewDto[];
     tracker: TrackerDto;
+    selectedViewId: string | undefined;
+    setSelectedViewId: (viewId: string | undefined) => void;
     setTracker: Dispatch<SetStateAction<TrackerDto>>;
-    refreshEntriesIfDirty: () => Promise<void>;
+    refreshEntriesIfDirty: (viewId?: string) => Promise<void>;
     refreshFieldsIfDirty: () => Promise<void>;
+    refreshViews: () => Promise<void>;
     refreshAnalyticsIfDirty: () => Promise<void>;
     CreateField: (trackerId: string, values: FieldUpsertDto) => Promise<void>;
     UpdateField: (
@@ -41,13 +46,16 @@ type TrackerContextType = {
         entryId: string,
         fieldValues: Record<string, string>
     ) => Promise<void>;
+    DeleteView: (trackerId: string, viewId: string) => Promise<void>;
     ImportEntries: (trackerId: string, file: File | null) => Promise<void>;
 };
 
 const TrackerContext = createContext<TrackerContextType | undefined>(undefined);
 
-const GetEntries = async (trackerId: string) => {
-    const response = await api.get(`/trackers/${trackerId}/entries`);
+const GetEntries = async (trackerId: string, viewId?: string) => {
+    const response = await api.get(`/trackers/${trackerId}/entries`, {
+        params: viewId ? { viewId } : {},
+    });
     return response.data.data;
 };
 
@@ -61,6 +69,11 @@ const GetTrackerAnalytics = async (trackerId: string) => {
     return response.data.data;
 };
 
+const GetViewList = async (trackerId: string) => {
+    const response = await api.get(`trackers/${trackerId}/views`);
+    return response.data.data;
+};
+
 export const TrackerProvider: React.FC<{
     initialTracker: TrackerDto;
     children: React.ReactNode;
@@ -68,17 +81,26 @@ export const TrackerProvider: React.FC<{
     const [entries, setEntries] = useState<EntryDto[]>([]);
     const [fields, setFields] = useState<FieldDto[]>([]);
     const [analytics, setAnalytics] = useState<FieldAnalyticsDto[]>([]);
+    const [views, setViews] = useState<ViewDto[]>([]);
     const [tracker, setTracker] = useState<TrackerDto>(initialTracker);
+    const [internalSelectedViewId, setInternalSelectedViewId] =
+        useState<string>();
 
     const [entriesDirty, setEntriesDirty] = useState(true);
     const [fieldsDirty, setFieldsDirty] = useState(true);
     const [analyticsDirty, setAnalyticsDirty] = useState(true);
 
-    const refreshEntries = useCallback(async () => {
-        const data = await GetEntries(tracker.id);
-        setEntries(data);
-        setEntriesDirty(false);
-    }, [tracker.id]);
+    const refreshEntries = useCallback(
+        async (implicitViewId?: string) => {
+            const data = await GetEntries(
+                tracker.id,
+                implicitViewId ?? internalSelectedViewId
+            );
+            setEntries(data);
+            setEntriesDirty(false);
+        },
+        [tracker.id]
+    );
 
     const refreshFields = useCallback(async () => {
         const data = await GetFields(tracker.id);
@@ -90,6 +112,11 @@ export const TrackerProvider: React.FC<{
         const data = await GetTrackerAnalytics(tracker.id);
         setAnalytics(data);
         setAnalyticsDirty(false);
+    }, [tracker.id]);
+
+    const refreshViews = useCallback(async () => {
+        const data = await GetViewList(tracker.id);
+        setViews(data);
     }, [tracker.id]);
 
     const markEntriesDirty = useCallback(() => setEntriesDirty(true), []);
@@ -178,6 +205,13 @@ export const TrackerProvider: React.FC<{
         markAnalyticsDirty();
     };
 
+    const DeleteView = async (trackerId: string, viewId: string) => {
+        await api.delete(`trackers/${trackerId}/views/${viewId}`);
+        if (viewId === internalSelectedViewId) {
+            markEntriesDirty();
+        }
+    };
+
     const ImportEntries = async (trackerId: string, file: File | null) => {
         if (!file) return;
         const formData = new FormData();
@@ -194,6 +228,13 @@ export const TrackerProvider: React.FC<{
             formData,
             config
         );
+
+        refreshEntries();
+    };
+
+    const setSelectedViewId = (viewId: string | undefined) => {
+        setInternalSelectedViewId(viewId);
+        refreshEntries(viewId);
     };
 
     return (
@@ -203,6 +244,10 @@ export const TrackerProvider: React.FC<{
                 fields,
                 analytics,
                 tracker,
+                views,
+                selectedViewId: internalSelectedViewId,
+                setSelectedViewId,
+                refreshViews,
                 setTracker,
                 refreshEntriesIfDirty: () => refreshIfDirty("entries"),
                 refreshFieldsIfDirty: () => refreshIfDirty("fields"),
@@ -214,6 +259,7 @@ export const TrackerProvider: React.FC<{
                 DeleteEntries,
                 CreateEntry,
                 UpdateEntry,
+                DeleteView,
                 ImportEntries,
             }}
         >

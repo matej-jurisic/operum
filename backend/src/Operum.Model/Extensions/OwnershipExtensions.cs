@@ -1,7 +1,7 @@
 ﻿using Operum.Model.DTOs;
 using Operum.Model.Models;
 
-namespace Operum.Service.Helpers
+namespace Operum.Model.Extensions
 {
     public static class OwnershipExtensions
     {

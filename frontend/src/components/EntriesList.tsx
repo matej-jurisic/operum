@@ -1,11 +1,11 @@
 import {
     ActionIcon,
     Badge,
-    Button,
     Checkbox,
     Group,
     Menu,
     Pagination,
+    Select,
     Stack,
     Table,
     Text,
@@ -19,9 +19,11 @@ import { PiFileCsvDuotone } from "react-icons/pi";
 import { RiFileListFill } from "react-icons/ri";
 import { RxCross2 } from "react-icons/rx";
 import { useTracker } from "../context/TrackerContext";
+import { SelectData } from "../model/common/SelectData";
 import { EntryDto } from "../model/EntryDto";
 import { FieldValueDto } from "../model/FieldValueDto";
 import { TrackerDto } from "../model/TrackerDto";
+import { ViewDto } from "../model/ViewDto";
 import {
     formatDateOnly,
     formatDateTime,
@@ -79,7 +81,8 @@ export default function EntriesList(props: EntriesListProps) {
     );
     const [isSelectMode, setIsSelectMode] = useState(false);
 
-    const { fields, DeleteEntry, DeleteEntries } = useTracker(); // Assuming DeleteEntries exists
+    const { fields, DeleteEntry, DeleteEntries, views, refreshViews } =
+        useTracker();
 
     // Column visibility state - all visible by default
     const [visibleColumns, setVisibleColumns] = useState<
@@ -90,8 +93,13 @@ export default function EntriesList(props: EntriesListProps) {
     const [visibilityInitialized, setVisibilityInitialized] = useState(false);
     const [isLoadingData, setIsLoadingData] = useState(false);
 
-    const { entries, refreshEntriesIfDirty, refreshFieldsIfDirty } =
-        useTracker();
+    const {
+        entries,
+        refreshEntriesIfDirty,
+        refreshFieldsIfDirty,
+        selectedViewId,
+        setSelectedViewId,
+    } = useTracker();
 
     const pageSize = 10;
     const totalPages = useMemo(() => {
@@ -162,6 +170,16 @@ export default function EntriesList(props: EntriesListProps) {
     const visibleFields = useMemo(() => {
         return fields.filter((field) => visibleColumns[field.id]);
     }, [fields, visibleColumns]);
+
+    const selectViewList = useMemo(() => {
+        return views.map(
+            (v: ViewDto) =>
+                ({
+                    value: v.id,
+                    label: v.name,
+                } as SelectData)
+        );
+    }, [views]);
 
     // Create table headers from visible fields
     const tableHeaders = useMemo(() => {
@@ -320,6 +338,7 @@ export default function EntriesList(props: EntriesListProps) {
             setIsLoadingData(true);
             await refreshEntriesIfDirty();
             await refreshFieldsIfDirty();
+            await refreshViews();
             setIsLoadingData(false);
         };
         loadData();
@@ -344,42 +363,52 @@ export default function EntriesList(props: EntriesListProps) {
     return (
         <>
             <Stack gap="md">
-                <Group justify="space-between" w="100%" h={36}>
-                    <Menu shadow="md" position="bottom-start">
-                        <Menu.Target>
-                            <Button
-                                leftSection={<FiPlus size={18} />}
-                                color={props.tracker.color}
-                            >
-                                Create
-                            </Button>
-                        </Menu.Target>
-
-                        <Menu.Dropdown>
-                            <Menu.Item
-                                leftSection={<FiPlus size={16} />}
-                                onClick={() =>
-                                    setOpenDialogType(
-                                        OpenDialogType.CreateEntry
-                                    )
-                                }
-                            >
-                                Create Entry
-                            </Menu.Item>
-                            <Menu.Item
-                                leftSection={<PiFileCsvDuotone size={16} />}
-                                onClick={() =>
-                                    setOpenDialogType(
-                                        OpenDialogType.ImportEntries
-                                    )
-                                }
-                            >
-                                Import Entries
-                            </Menu.Item>
-                        </Menu.Dropdown>
-                    </Menu>
-
+                <Group justify="space-between" w="100%">
                     <Group>
+                        <Menu shadow="md" position="bottom-start">
+                            <Menu.Target>
+                                <ActionIcon
+                                    size={"lg"}
+                                    color={props.tracker.color}
+                                >
+                                    <FiPlus size={18} />
+                                </ActionIcon>
+                            </Menu.Target>
+
+                            <Menu.Dropdown>
+                                <Menu.Item
+                                    leftSection={<FiPlus size={16} />}
+                                    onClick={() =>
+                                        setOpenDialogType(
+                                            OpenDialogType.CreateEntry
+                                        )
+                                    }
+                                >
+                                    Create Entry
+                                </Menu.Item>
+                                <Menu.Item
+                                    leftSection={<PiFileCsvDuotone size={16} />}
+                                    onClick={() =>
+                                        setOpenDialogType(
+                                            OpenDialogType.ImportEntries
+                                        )
+                                    }
+                                >
+                                    Import Entries
+                                </Menu.Item>
+                            </Menu.Dropdown>
+                        </Menu>
+                        <Select
+                            maw={140}
+                            data={selectViewList}
+                            onChange={(value) =>
+                                setSelectedViewId(value ?? undefined)
+                            }
+                            value={selectedViewId}
+                        />
+                    </Group>
+
+                    <Group flex={1} justify="flex-end" wrap="nowrap">
                         {/* Bulk actions */}
                         {!isSelectMode ? (
                             <ActionIcon

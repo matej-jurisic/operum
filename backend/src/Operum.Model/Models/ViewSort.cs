@@ -16,6 +16,7 @@ namespace Operum.Model.Models
         [ForeignKey(nameof(FieldId))]
         public virtual Field Field { get; set; } = null!;
 
+        public int Order { get; set; }
         public bool Descending { get; set; } = false;
     }
 }

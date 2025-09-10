@@ -59,7 +59,7 @@ export default function ViewDetailsDialog(props: Props) {
                         wrap="nowrap"
                     >
                         <Title order={5} className="wrapped-text" maw={"50%"}>
-                            {sort.field.name}
+                            {sort.order + 1}. {sort.field.name}
                         </Title>
                         <Text maw={"50%"}>
                             {sort.descending ? "Descending" : "Ascending"}

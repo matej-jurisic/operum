@@ -6,6 +6,7 @@ namespace Operum.Model.DTOs.Views
     {
         public string Id { get; set; } = string.Empty;
         public FieldDto Field { get; set; } = null!;
+        public int Order { get; set; }
         public bool Descending { get; set; } = false;
     }
 }

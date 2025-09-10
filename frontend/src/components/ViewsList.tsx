@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { MdDelete } from "react-icons/md";
 import { RiFileListFill } from "react-icons/ri";
-import api from "../api/api";
+import { useTracker } from "../context/TrackerContext";
 import { TrackerDto } from "../model/TrackerDto";
 import { ViewDto } from "../model/ViewDto";
 import ConfirmationDialog from "./ConfirmationDialog";
@@ -14,15 +14,6 @@ interface Props {
     tracker: TrackerDto;
 }
 
-const GetViewList = async (trackerId: string) => {
-    const response = await api.get(`trackers/${trackerId}/views`);
-    return response.data.data;
-};
-
-const DeleteView = async (trackerId: string, viewId: string) => {
-    await api.delete(`trackers/${trackerId}/views/${viewId}`);
-};
-
 enum OpenDialogType {
     ViewDetails,
     CreateView,
@@ -30,16 +21,12 @@ enum OpenDialogType {
 }
 
 export default function ViewsList(props: Props) {
-    const [views, setViews] = useState<ViewDto[]>([]);
     const [selectedView, setSelectedView] = useState<ViewDto>();
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
+    const { views, refreshViews, DeleteView } = useTracker();
 
     useEffect(() => {
-        const GetViews = async () => {
-            setViews(await GetViewList(props.tracker.id));
-        };
-
-        GetViews();
+        refreshViews();
     }, []);
 
     return (
@@ -120,9 +107,7 @@ export default function ViewsList(props: Props) {
                 <ViewFormDialog
                     tracker={props.tracker}
                     onClose={() => setOpenDialogType(undefined)}
-                    onCreated={async () =>
-                        setViews(await GetViewList(props.tracker.id))
-                    }
+                    onCreated={async () => refreshViews()}
                 />
             )}
 
@@ -133,7 +118,7 @@ export default function ViewsList(props: Props) {
                     onConfirm={async () => {
                         if (selectedView) {
                             await DeleteView(props.tracker.id, selectedView.id);
-                            setViews(await GetViewList(props.tracker.id));
+                            refreshViews();
                             setOpenDialogType(undefined);
                             setSelectedView(undefined);
                         }

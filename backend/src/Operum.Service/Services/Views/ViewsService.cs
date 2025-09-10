@@ -4,8 +4,8 @@ using Operum.Model.Common;
 using Operum.Model.DTOs.Views;
 using Operum.Model.DTOs.Views.Requests;
 using Operum.Model.Enums;
+using Operum.Model.Extensions;
 using Operum.Model.Models;
-using Operum.Service.Helpers;
 using Operum.Service.Mappings.Mapper;
 using Operum.Service.Services.Authorization;
 
@@ -53,10 +53,11 @@ namespace Operum.Service.Services.Views
             var user = authorizationService.GetCurrentUserDto();
 
             var userView = await db.Views
-                .Include(x => x.Sorts)
-                .ThenInclude(x => x.Field)
                 .Include(x => x.Tracker)
+                .Include(x => x.Sorts.OrderBy(s => s.Order))
+                .ThenInclude(x => x.Field)
                 .FirstOrDefaultAsync(x => x.Id == viewId && x.TrackerId == trackerId);
+
 
             if (userView == null || userView.Tracker.OwnerId != user.Id)
             {

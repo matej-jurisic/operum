@@ -9,5 +9,6 @@ export interface ViewDto {
 export interface ViewSortDto {
     fieldId: string;
     descending: boolean;
+    order: number;
     field: FieldDto;
 }

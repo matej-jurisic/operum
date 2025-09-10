@@ -61,16 +61,21 @@ namespace Operum.Service.Mappings.Profiles
                 d.Sorts = mapper.Map<ICollection<ViewSort>, List<ViewSortDto>>(s.Sorts);
             });
 
-            mapper.Register<CreateViewDto, View>((s, d) =>
-            {
-                d.Sorts = mapper.Map<List<CreateViewSortDto>, List<ViewSort>>(s.Sorts);
-            });
-
             mapper.Register<ViewSort, ViewSortDto>((s, d) =>
             {
                 d.Field = mapper.Map<Field, FieldDto>(s.Field);
             });
             mapper.Register<CreateViewSortDto, ViewSort>();
+            mapper.Register<CreateViewDto, View>((s, d) =>
+            {
+                d.Sorts = [.. s.Sorts
+                    .Select((sortDto, index) =>
+                    {
+                        var sort = mapper.Map<CreateViewSortDto, ViewSort>(sortDto);
+                        sort.Order = index;
+                        return sort;
+                    })];
+            });
         }
     }
 }

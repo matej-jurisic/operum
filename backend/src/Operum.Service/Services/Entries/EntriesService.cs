@@ -71,7 +71,7 @@ namespace Operum.Service.Services.Entries
             return ServiceResponse.Success(created.Data, "Entry created successfully!");
         }
 
-        public async Task<ServiceResponse<List<EntryDto>>> GetEntries(string trackerId)
+        public async Task<ServiceResponse<List<EntryDto>>> GetEntries(string trackerId, string? viewId)
         {
             var user = authorizationService.GetCurrentUserDto();
             var tracker = await db.Trackers.FindAsync(trackerId);
@@ -80,13 +80,35 @@ namespace Operum.Service.Services.Entries
                 return ServiceResponse.Failure(StatusCodeEnum.NotFound);
             }
 
-            var entries = await db.Entries
+            View? view = null;
+            if (!string.IsNullOrEmpty(viewId))
+            {
+                view = await db.Views
+                    .Include(v => v.Sorts)
+                    .ThenInclude(s => s.Field)
+                    .FirstOrDefaultAsync(v => v.Id == viewId && v.TrackerId == trackerId);
+
+                if (view == null)
+                {
+                    return ServiceResponse.Failure(StatusCodeEnum.NotFound, "View not found or doesn't belong to this tracker");
+                }
+            }
+
+            var entriesQuery = db.Entries
                 .Include(x => x.FieldValues)
                 .ThenInclude(x => x.Field)
-                .Where(x => x.TrackerId == trackerId)
-                .OrderByDescending(x => x.CreatedAt)
-                .ToListAsync();
+                .Where(x => x.TrackerId == trackerId);
 
+            if (view != null && view.Sorts.Count != 0)
+            {
+                entriesQuery = ViewHelpers.ApplyViewSorting(entriesQuery, view.Sorts);
+            }
+            else
+            {
+                entriesQuery = entriesQuery.OrderByDescending(x => x.CreatedAt);
+            }
+
+            var entries = await entriesQuery.ToListAsync();
             return ServiceResponse.Success(mapper.Map<List<Entry>, List<EntryDto>>(entries));
         }
 
