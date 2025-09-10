@@ -1,6 +1,5 @@
 import {
     ActionIcon,
-    Badge,
     Button,
     Group,
     Modal,
@@ -210,11 +209,11 @@ export default function ViewFormDialog({ tracker, onClose }: Props) {
                                                 data={[
                                                     {
                                                         value: "asc",
-                                                        label: "Ascending",
+                                                        label: "Asc",
                                                     },
                                                     {
                                                         value: "desc",
-                                                        label: "Descending",
+                                                        label: "Desc",
                                                     },
                                                 ]}
                                                 value={
@@ -299,26 +298,6 @@ export default function ViewFormDialog({ tracker, onClose }: Props) {
                                                         {...form.getInputProps(
                                                             `filters.${index}.fieldId`
                                                         )}
-                                                        renderOption={(o) => {
-                                                            const field =
-                                                                getFieldById(
-                                                                    o.option
-                                                                        .value
-                                                                );
-                                                            return (
-                                                                <Group>
-                                                                    {
-                                                                        o.option
-                                                                            .label
-                                                                    }
-                                                                    <Badge variant="light">
-                                                                        {
-                                                                            field?.type
-                                                                        }
-                                                                    </Badge>
-                                                                </Group>
-                                                            );
-                                                        }}
                                                         onChange={(
                                                             newFieldId
                                                         ) => {
