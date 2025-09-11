@@ -40,14 +40,13 @@ export default function Tracker() {
         <TrackerProvider initialTracker={tracker}>
             <Stack gap="lg">
                 <Group justify="space-between" gap={"md"}>
-                    <Title order={2} c={tracker.color}>
+                    <Title order={2} c={tracker.color} flex={1}>
                         {tracker.name}
                     </Title>
 
                     <Header
                         color={tracker.color}
                         items={[
-                            <SelectView color={tracker.color} />,
                             <Button
                                 variant="outline"
                                 color={tracker.color}
@@ -55,6 +54,7 @@ export default function Tracker() {
                             >
                                 <IoMdReturnLeft size={16} />
                             </Button>,
+                            <SelectView />,
                         ]}
                     />
                 </Group>

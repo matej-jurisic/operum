@@ -1,44 +1,82 @@
-import { Select } from "@mantine/core";
+import { Button, Menu } from "@mantine/core";
 import { useEffect, useMemo } from "react";
-import { FaFilter } from "react-icons/fa";
+import { MdCheck, MdFilter } from "react-icons/md";
 import { useTracker } from "../context/TrackerContext";
-import { SelectData } from "../model/common/SelectData";
 import { ViewDto } from "../model/ViewDto";
 
-interface Props {
-    color?: string;
-}
-
-export default function SelectView(props: Props) {
-    const { views, selectedViewId, setSelectedViewId, refreshViewsIfDirty } =
-        useTracker();
+export default function SelectViewMenu() {
+    const {
+        views,
+        selectedViewId,
+        setSelectedViewId,
+        refreshViewsIfDirty,
+        tracker,
+    } = useTracker();
 
     useEffect(() => {
         refreshViewsIfDirty();
     }, []);
 
     const selectViewList = useMemo(() => {
-        return [
-            ...views.map(
-                (v: ViewDto) =>
-                    ({
-                        value: v.id,
-                        label: v.name,
-                    } as SelectData)
-            ),
-        ];
-    }, [views]);
+        const list = views.map((v: ViewDto) => ({
+            value: v.id,
+            label: v.name,
+        }));
+
+        // If something is selected, move it to the top
+        if (selectedViewId) {
+            const selectedIndex = list.findIndex(
+                (v) => v.value === selectedViewId
+            );
+            if (selectedIndex > -1) {
+                const [selected] = list.splice(selectedIndex, 1);
+                list.unshift(selected);
+            }
+        }
+
+        return list;
+    }, [views, selectedViewId]);
 
     return (
-        <Select
-            maw={130}
-            clearable
-            leftSection={<FaFilter color={props.color} size={16} />}
-            leftSectionPointerEvents="none"
-            allowDeselect={false}
-            data={selectViewList}
-            onChange={(value) => setSelectedViewId(value ?? undefined)}
-            value={selectedViewId ?? null}
-        />
+        <Menu position="bottom" width={200}>
+            <Menu.Target>
+                <Button
+                    variant={selectedViewId ? "filled" : "outline"}
+                    color={tracker.color}
+                >
+                    <MdFilter size={16} />
+                </Button>
+            </Menu.Target>
+
+            <Menu.Dropdown>
+                <Menu.Label>Active View</Menu.Label>
+                <Menu.Divider />
+                {/* Deselect option */}
+                <Menu.Item
+                    onClick={() => setSelectedViewId(undefined)}
+                    rightSection={
+                        !selectedViewId ? <MdCheck size={16} /> : null
+                    }
+                    c="dimmed"
+                    style={{ fontStyle: "italic" }}
+                >
+                    None
+                </Menu.Item>
+
+                {selectViewList.map((item) => (
+                    <Menu.Item
+                        key={item.value}
+                        onClick={() => setSelectedViewId(item.value)}
+                        rightSection={
+                            selectedViewId === item.value ? (
+                                <MdCheck size={16} />
+                            ) : null
+                        }
+                    >
+                        {item.label}
+                    </Menu.Item>
+                ))}
+            </Menu.Dropdown>
+        </Menu>
     );
 }

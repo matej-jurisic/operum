@@ -69,9 +69,9 @@ export default function ViewDetailsDialog(props: Props) {
                                 <Group gap="xs">
                                     <Badge
                                         color={props.tracker.color}
-                                        variant="outline"
+                                        variant="light"
                                     >
-                                        {sort.order + 1}
+                                        Order: {sort.order + 1}
                                     </Badge>
                                     <Badge color="gray" variant="light">
                                         {sort.descending
@@ -95,10 +95,16 @@ export default function ViewDetailsDialog(props: Props) {
                             >
                                 <Text fw={500}>{filter.field.name}</Text>
                                 <Group gap="xs">
-                                    <Badge color="blue" variant="outline">
+                                    <Badge
+                                        color={props.tracker.color}
+                                        variant="light"
+                                    >
                                         {filter.operator}
                                     </Badge>
-                                    <Badge color="teal" variant="light">
+                                    <Badge
+                                        color={props.tracker.color}
+                                        variant="outline"
+                                    >
                                         {renderValue(
                                             filter.field.type,
                                             filter.value

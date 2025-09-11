@@ -6,9 +6,12 @@ import {
     Group,
     Menu,
     Pagination,
+    Paper,
+    ScrollArea,
     Stack,
     Table,
     Text,
+    Tooltip,
     UnstyledButton,
 } from "@mantine/core";
 import { useEffect, useMemo, useState } from "react";
@@ -96,7 +99,7 @@ export default function EntriesList(props: EntriesListProps) {
     const [visibilityInitialized, setVisibilityInitialized] = useState(false);
     const [isLoadingData, setIsLoadingData] = useState(false);
 
-    const pageSize = 15;
+    const pageSize = 10;
     const totalPages = useMemo(() => {
         return Math.ceil(entries.length / pageSize);
     }, [entries]);
@@ -351,12 +354,28 @@ export default function EntriesList(props: EntriesListProps) {
                     <Group>
                         <Menu shadow="md" position="bottom-start">
                             <Menu.Target>
-                                <Button
-                                    leftSection={<FiPlus size={18} />}
-                                    color={props.tracker.color}
+                                <Tooltip
+                                    label={
+                                        fields.length === 0
+                                            ? "Cannot create entry: No fields available"
+                                            : ""
+                                    }
+                                    disabled={fields.length > 0}
+                                    withArrow
                                 >
-                                    Create
-                                </Button>
+                                    <Button
+                                        color={props.tracker.color}
+                                        onClick={() =>
+                                            setOpenDialogType(
+                                                OpenDialogType.CreateEntry
+                                            )
+                                        }
+                                        disabled={fields.length === 0}
+                                        leftSection={<FiPlus size={18} />}
+                                    >
+                                        Create
+                                    </Button>
+                                </Tooltip>
                             </Menu.Target>
 
                             <Menu.Dropdown>
@@ -383,8 +402,7 @@ export default function EntriesList(props: EntriesListProps) {
                             </Menu.Dropdown>
                         </Menu>
                     </Group>
-
-                    <Group flex={1} justify="flex-end" wrap="nowrap">
+                    <Group justify="flex-end" wrap="nowrap">
                         {/* Bulk actions */}
                         {!isSelectMode ? (
                             <ActionIcon
@@ -433,6 +451,7 @@ export default function EntriesList(props: EntriesListProps) {
                                     variant="outline"
                                     color={props.tracker.color}
                                     size={"lg"}
+                                    disabled={fields.length === 0}
                                 >
                                     <IoMdEye size={18} />
                                 </ActionIcon>
@@ -524,57 +543,65 @@ export default function EntriesList(props: EntriesListProps) {
                     </Group>
                 </Group>
 
-                {entries.length > 0 && !isLoadingData ? (
-                    <Table.ScrollContainer minWidth={0}>
-                        <Table
-                            striped
-                            highlightOnHover
-                            withColumnBorders
-                            withTableBorder
-                            verticalSpacing={"sm"}
-                        >
-                            <Table.Thead>
-                                <Table.Tr>
-                                    {tableHeaders.map((header) => (
-                                        <Table.Th
-                                            key={header.id}
-                                            w={header.width}
-                                            miw={header.width}
-                                        >
-                                            {typeof header.label ===
-                                            "string" ? (
-                                                <Text fw={600} size="sm">
-                                                    {header.label}
-                                                </Text>
-                                            ) : (
-                                                header.label
-                                            )}
-                                        </Table.Th>
-                                    ))}
-                                </Table.Tr>
-                            </Table.Thead>
-                            <Table.Tbody>{tableRows}</Table.Tbody>
-                        </Table>
-                    </Table.ScrollContainer>
-                ) : isLoadingData ? (
-                    <></>
-                ) : (
-                    <Text size="lg" c="dimmed" ta="center" py="xl">
-                        No entries found. Create your first entry to get
-                        started.
-                    </Text>
-                )}
-
-                <Group justify="center">
-                    <Pagination
-                        value={currentPage}
-                        onChange={setCurrentPage}
-                        total={totalPages}
-                        siblings={0}
-                        color={props.tracker.color}
-                        size="md"
-                    />
-                </Group>
+                <ScrollArea flex={1}>
+                    {entries.length > 0 && !isLoadingData ? (
+                        <Table.ScrollContainer minWidth={0}>
+                            <Table
+                                h={"100%"}
+                                striped
+                                stickyHeader
+                                highlightOnHover
+                                withColumnBorders
+                                withTableBorder
+                                verticalSpacing={"sm"}
+                            >
+                                <Table.Thead>
+                                    <Table.Tr>
+                                        {tableHeaders.map((header) => (
+                                            <Table.Th
+                                                key={header.id}
+                                                w={header.width}
+                                                miw={header.width}
+                                            >
+                                                {typeof header.label ===
+                                                "string" ? (
+                                                    <Text fw={600} size="sm">
+                                                        {header.label}
+                                                    </Text>
+                                                ) : (
+                                                    header.label
+                                                )}
+                                            </Table.Th>
+                                        ))}
+                                    </Table.Tr>
+                                </Table.Thead>
+                                <Table.Tbody>{tableRows}</Table.Tbody>
+                            </Table>
+                        </Table.ScrollContainer>
+                    ) : isLoadingData ? (
+                        <></>
+                    ) : (
+                        <Paper withBorder p="xl" radius="md">
+                            <Stack gap="md" align="center">
+                                <Text size="lg" fw={500} c="dimmed">
+                                    No Entries Available
+                                </Text>
+                                <Text ta="center" c="dimmed">
+                                    Entries will appear here when you create
+                                    them.
+                                </Text>
+                            </Stack>
+                        </Paper>
+                    )}
+                </ScrollArea>
+                <Pagination
+                    value={currentPage}
+                    onChange={setCurrentPage}
+                    total={totalPages}
+                    siblings={0}
+                    color={props.tracker.color}
+                    size="md"
+                />
             </Stack>
 
             {/* Single entry delete dialog */}

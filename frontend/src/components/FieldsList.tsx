@@ -4,6 +4,7 @@ import {
     Button,
     Card,
     Group,
+    Paper,
     Stack,
     Text,
     Title,
@@ -52,86 +53,99 @@ export default function FieldsList(props: FieldsListProps) {
                         Create
                     </Button>
                 </Group>
-                {fields.map((field) => (
-                    <Card key={field.id} p="md" radius="md" withBorder>
-                        {/* Option 1: Stacked layout for mobile */}
-                        <Group
-                            align="flex-start"
-                            justify="space-between"
-                            wrap="nowrap"
-                        >
-                            {/* Field info section */}
-                            <Stack gap={"sm"} flex={1}>
-                                <Title
-                                    order={4}
-                                    lineClamp={1}
-                                    className="wrapped-text"
-                                >
-                                    {field.name}
-                                </Title>
-                                <Text
-                                    c="dimmed"
-                                    size="sm"
-                                    lineClamp={3}
-                                    className="wrapped-text"
-                                >
-                                    {field.description || "No description"}
-                                </Text>
-                                <Group wrap="wrap">
-                                    {field.required && (
+                {fields.length > 0 ? (
+                    fields.map((field) => (
+                        <Card key={field.id} p="md" radius="md" withBorder>
+                            {/* Option 1: Stacked layout for mobile */}
+                            <Group
+                                align="flex-start"
+                                justify="space-between"
+                                wrap="nowrap"
+                            >
+                                {/* Field info section */}
+                                <Stack gap={"sm"} flex={1}>
+                                    <Title
+                                        order={4}
+                                        lineClamp={1}
+                                        className="wrapped-text"
+                                    >
+                                        {field.name}
+                                    </Title>
+                                    <Text
+                                        c="dimmed"
+                                        size="sm"
+                                        lineClamp={3}
+                                        className="wrapped-text"
+                                    >
+                                        {field.description || "No description"}
+                                    </Text>
+                                    <Group wrap="wrap">
+                                        {field.required && (
+                                            <Badge
+                                                variant="light"
+                                                color="red"
+                                                size="sm"
+                                            >
+                                                Required
+                                            </Badge>
+                                        )}
                                         <Badge
                                             variant="light"
-                                            color="red"
+                                            color="blue"
                                             size="sm"
                                         >
-                                            Required
+                                            {field.type}
                                         </Badge>
-                                    )}
-                                    <Badge
-                                        variant="light"
-                                        color="blue"
-                                        size="sm"
+                                    </Group>
+                                </Stack>
+
+                                {/* Badges and actions section - always horizontal */}
+
+                                <Group gap="xs" wrap="nowrap">
+                                    <ActionIcon
+                                        variant="outline"
+                                        color="green"
+                                        size="lg"
+                                        onClick={() => {
+                                            setSelectedField(field);
+                                            setOpenDialogType(
+                                                OpenDialogType.EditField
+                                            );
+                                        }}
+                                        aria-label={`Edit field ${field.name}`}
                                     >
-                                        {field.type}
-                                    </Badge>
+                                        <MdEdit size={16} />
+                                    </ActionIcon>
+                                    <ActionIcon
+                                        variant="outline"
+                                        color="red"
+                                        size="lg"
+                                        onClick={() => {
+                                            setSelectedField(field);
+                                            setOpenDialogType(
+                                                OpenDialogType.DeleteField
+                                            );
+                                        }}
+                                        aria-label={`Delete field ${field.name}`}
+                                    >
+                                        <MdDelete size={16} />
+                                    </ActionIcon>
                                 </Group>
-                            </Stack>
-
-                            {/* Badges and actions section - always horizontal */}
-
-                            <Group gap="xs" wrap="nowrap">
-                                <ActionIcon
-                                    variant="outline"
-                                    color="green"
-                                    size="lg"
-                                    onClick={() => {
-                                        setSelectedField(field);
-                                        setOpenDialogType(
-                                            OpenDialogType.EditField
-                                        );
-                                    }}
-                                    aria-label={`Edit field ${field.name}`}
-                                >
-                                    <MdEdit size={16} />
-                                </ActionIcon>
-                                <ActionIcon
-                                    variant="outline"
-                                    color="red"
-                                    size="lg"
-                                    onClick={() => {
-                                        setSelectedField(field);
-                                        setOpenDialogType(
-                                            OpenDialogType.DeleteField
-                                        );
-                                    }}
-                                    aria-label={`Delete field ${field.name}`}
-                                >
-                                    <MdDelete size={16} />
-                                </ActionIcon>
                             </Group>
-                        </Group>
-                    </Card>
-                ))}
+                        </Card>
+                    ))
+                ) : (
+                    <Paper withBorder p="xl" radius="md">
+                        <Stack gap="md" align="center">
+                            <Text size="lg" fw={500} c="dimmed">
+                                No Fields Available
+                            </Text>
+                            <Text ta="center" c="dimmed">
+                                Fields will appear here once you create them.
+                            </Text>
+                        </Stack>
+                    </Paper>
+                )}
             </Stack>
             {selectedField && openDialogType === OpenDialogType.DeleteField && (
                 <ConfirmationDialog

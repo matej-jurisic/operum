@@ -3,9 +3,11 @@ import {
     Button,
     Card,
     Group,
+    Paper,
     Stack,
     Text,
     Title,
+    Tooltip,
 } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
@@ -31,7 +33,7 @@ enum OpenDialogType {
 export default function ViewsList(props: Props) {
     const [selectedView, setSelectedView] = useState<ViewDto>();
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
-    const { views, refreshViewsIfDirty, DeleteView } = useTracker();
+    const { views, refreshViewsIfDirty, DeleteView, fields } = useTracker();
 
     useEffect(() => {
         refreshViewsIfDirty();
@@ -41,73 +43,97 @@ export default function ViewsList(props: Props) {
         <>
             <Stack gap="md">
                 <Group justify="space-between" w="100%" h={36}>
-                    <Button
-                        color={props.tracker.color}
-                        onClick={() =>
-                            setOpenDialogType(OpenDialogType.CreateView)
+                    <Tooltip
+                        label={
+                            fields.length === 0
+                                ? "Cannot create view: No fields available"
+                                : ""
                         }
-                        leftSection={<FiPlus size={18} />}
+                        disabled={fields.length > 0}
+                        withArrow
                     >
-                        Create
-                    </Button>
-                </Group>
-                {views.map((view) => (
-                    <Card key={view.id} p="md" radius="md" withBorder>
-                        <Group
-                            wrap="nowrap"
-                            justify="space-between"
-                            align="flex-start"
+                        <Button
+                            color={props.tracker.color}
+                            onClick={() =>
+                                setOpenDialogType(OpenDialogType.CreateView)
+                            }
+                            disabled={fields.length === 0}
+                            leftSection={<FiPlus size={18} />}
                         >
-                            <Stack gap="sm">
-                                <Title
-                                    order={4}
-                                    lineClamp={1}
-                                    className="wrapped-text"
-                                >
-                                    {view.name}
-                                </Title>
-                                <Text
-                                    c="dimmed"
-                                    size="sm"
-                                    lineClamp={3}
-                                    className="wrapped-text"
-                                >
-                                    {view.description || "No description"}
-                                </Text>
-                            </Stack>
-                            <Group gap="xs" wrap="nowrap">
-                                <ActionIcon
-                                    variant="outline"
-                                    color={props.tracker.color}
-                                    size="lg"
-                                    onClick={() => {
-                                        setSelectedView(view);
-                                        setOpenDialogType(
-                                            OpenDialogType.ViewDetails
-                                        );
-                                    }}
-                                    aria-label={`Edit field ${view.name}`}
-                                >
-                                    <RiFileListFill size={16} />
-                                </ActionIcon>
-                                <ActionIcon
-                                    variant="outline"
-                                    color="red"
-                                    size="lg"
-                                    onClick={() => {
-                                        setSelectedView(view);
-                                        setOpenDialogType(
-                                            OpenDialogType.DeleteView
-                                        );
-                                    }}
-                                    aria-label={`Delete view ${view.name}`}
-                                >
-                                    <MdDelete size={16} />
-                                </ActionIcon>
+                            Create
+                        </Button>
+                    </Tooltip>
+                </Group>
+                {views.length > 0 ? (
+                    views.map((view) => (
+                        <Card key={view.id} p="md" radius="md" withBorder>
+                            <Group
+                                wrap="nowrap"
+                                justify="space-between"
+                                align="flex-start"
+                            >
+                                <Stack gap="sm">
+                                    <Title
+                                        order={4}
+                                        lineClamp={1}
+                                        className="wrapped-text"
+                                    >
+                                        {view.name}
+                                    </Title>
+                                    <Text
+                                        c="dimmed"
+                                        size="sm"
+                                        lineClamp={3}
+                                        className="wrapped-text"
+                                    >
+                                        {view.description || "No description"}
+                                    </Text>
+                                </Stack>
+                                <Group gap="xs" wrap="nowrap">
+                                    <ActionIcon
+                                        variant="outline"
+                                        color={props.tracker.color}
+                                        size="lg"
+                                        onClick={() => {
+                                            setSelectedView(view);
+                                            setOpenDialogType(
+                                                OpenDialogType.ViewDetails
+                                            );
+                                        }}
+                                        aria-label={`Edit field ${view.name}`}
+                                    >
+                                        <RiFileListFill size={16} />
+                                    </ActionIcon>
+                                    <ActionIcon
+                                        variant="outline"
+                                        color="red"
+                                        size="lg"
+                                        onClick={() => {
+                                            setSelectedView(view);
+                                            setOpenDialogType(
+                                                OpenDialogType.DeleteView
+                                            );
+                                        }}
+                                        aria-label={`Delete view ${view.name}`}
+                                    >
+                                        <MdDelete size={16} />
+                                    </ActionIcon>
+                                </Group>
                             </Group>
-                        </Group>
-                    </Card>
-                ))}
+                        </Card>
+                    ))
+                ) : (
+                    <Paper withBorder p="xl" radius="md">
+                        <Stack gap="md" align="center">
+                            <Text size="lg" fw={500} c="dimmed">
+                                No Views Available
+                            </Text>
+                            <Text ta="center" c="dimmed">
+                                Views will appear here when you create them.
+                            </Text>
+                        </Stack>
+                    </Paper>
+                )}
             </Stack>
 
             {selectedView && openDialogType === OpenDialogType.ViewDetails && (

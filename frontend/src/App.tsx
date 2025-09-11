@@ -1,4 +1,4 @@
-import { Container, LoadingOverlay, ScrollArea } from "@mantine/core";
+import { LoadingOverlay, ScrollArea } from "@mantine/core";
 import { observer } from "mobx-react";
 import { useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
@@ -29,6 +29,9 @@ const App = observer(() => {
                 overlayProps={{
                     opacity: 0.5,
                 }}
+                loaderProps={{
+                    color: "gray",
+                }}
             />
         );
     }
@@ -40,46 +43,45 @@ const App = observer(() => {
                 overlayProps={{
                     opacity: 0.5,
                 }}
+                loaderProps={{
+                    color: "gray",
+                }}
             />
-            <ScrollArea h={"100vh"}>
-                <Container p="xl" size={"xl"}>
-                    <BrowserRouter>
-                        <Routes>
-                            <Route
-                                path="auth"
-                                element={<PublicRoute page={<Auth />} />}
-                            />
-                            <Route
-                                path="home"
-                                element={<PrivateRoute page={<Home />} />}
-                            />
-                            <Route
-                                path="trackers/:trackerId"
-                                element={<PrivateRoute page={<Tracker />} />}
-                            />
-                            <Route
-                                path="confirm-email"
-                                element={
-                                    <PublicRoute page={<ConfirmEmail />} />
-                                }
-                            />
-                            <Route
-                                path="admin-panel"
-                                element={<PrivateRoute page={<AdminPanel />} />}
-                            />
-                            <Route
-                                path="*"
-                                element={
-                                    globalStore.currentUser ? (
-                                        <Navigate to={"/home"} />
-                                    ) : (
-                                        <Navigate to={"/auth"} />
-                                    )
-                                }
-                            />
-                        </Routes>
-                    </BrowserRouter>
-                </Container>
+            <ScrollArea h={"100vh"} p="xl">
+                <BrowserRouter>
+                    <Routes>
+                        <Route
+                            path="auth"
+                            element={<PublicRoute page={<Auth />} />}
+                        />
+                        <Route
+                            path="home"
+                            element={<PrivateRoute page={<Home />} />}
+                        />
+                        <Route
+                            path="trackers/:trackerId"
+                            element={<PrivateRoute page={<Tracker />} />}
+                        />
+                        <Route
+                            path="confirm-email"
+                            element={<PublicRoute page={<ConfirmEmail />} />}
+                        />
+                        <Route
+                            path="admin-panel"
+                            element={<PrivateRoute page={<AdminPanel />} />}
+                        />
+                        <Route
+                            path="*"
+                            element={
+                                globalStore.currentUser ? (
+                                    <Navigate to={"/home"} />
+                                ) : (
+                                    <Navigate to={"/auth"} />
+                                )
+                            }
+                        />
+                    </Routes>
+                </BrowserRouter>
             </ScrollArea>
         </>
     );

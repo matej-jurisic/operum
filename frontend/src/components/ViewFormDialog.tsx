@@ -65,7 +65,7 @@ export default function ViewFormDialog({ tracker, onClose }: Props) {
             },
             filters: (filters) => {
                 if (filters.find((f) => !f.fieldId)) {
-                    return "All sorts must have a field selected";
+                    return "All filters must have a field selected";
                 }
                 if (filters.length > MAX_FILTERS) {
                     return `A maximum of ${MAX_FILTERS} filters are allowed`;

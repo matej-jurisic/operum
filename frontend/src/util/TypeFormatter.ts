@@ -33,6 +33,15 @@ export const formatDateOnly = (value?: string) =>
           })
         : "";
 
+export const formatDateOnlyFromDate = (date?: Date) =>
+    date
+        ? date.toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+          })
+        : "";
+
 export const formatTimeSpan = (value?: string) => {
     if (!value) return "";
     const [hours, minutes, seconds] = value.split(":");
