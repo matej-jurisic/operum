@@ -47,7 +47,7 @@ export default function Tracker() {
                     <Header
                         color={tracker.color}
                         items={[
-                            <SelectView />,
+                            <SelectView color={tracker.color} />,
                             <Button
                                 variant="outline"
                                 color={tracker.color}

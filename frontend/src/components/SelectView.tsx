@@ -1,14 +1,17 @@
-import { Select, useMantineTheme } from "@mantine/core";
+import { Select } from "@mantine/core";
 import { useEffect, useMemo } from "react";
 import { FaFilter } from "react-icons/fa";
 import { useTracker } from "../context/TrackerContext";
 import { SelectData } from "../model/common/SelectData";
 import { ViewDto } from "../model/ViewDto";
 
-export default function SelectView() {
+interface Props {
+    color?: string;
+}
+
+export default function SelectView(props: Props) {
     const { views, selectedViewId, setSelectedViewId, refreshViewsIfDirty } =
         useTracker();
-    const theme = useMantineTheme();
 
     useEffect(() => {
         refreshViewsIfDirty();
@@ -30,7 +33,7 @@ export default function SelectView() {
         <Select
             maw={130}
             clearable
-            leftSection={<FaFilter color={theme.primaryColor} size={16} />}
+            leftSection={<FaFilter color={props.color} size={16} />}
             leftSectionPointerEvents="none"
             allowDeselect={false}
             data={selectViewList}
