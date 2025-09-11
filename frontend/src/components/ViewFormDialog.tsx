@@ -334,7 +334,7 @@ export default function ViewFormDialog({ tracker, onClose }: Props) {
                                                     justify="flex-end"
                                                 >
                                                     {selectedField && (
-                                                        <Group flex={1} h={61}>
+                                                        <Group flex={1}>
                                                             <FieldValueInput
                                                                 field={
                                                                     selectedField

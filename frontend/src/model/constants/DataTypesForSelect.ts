@@ -14,14 +14,12 @@ export const dataPurposes = [
 
 export const operatorTypes = [
     { value: "Equals", label: "Equals" },
-    { value: "NotEquals", label: "Not Equals" },
-    { value: "GreaterThan", label: "Greater Than" },
-    { value: "GreaterThanOrEqual", label: "Greater or Equal" },
-    { value: "LessThan", label: "Less Than" },
-    { value: "LessThanOrEqual", label: "Less or Equal" },
+    { value: "Not Equals", label: "Not Equals" },
+    { value: "Greater Than", label: "Greater Than" },
+    { value: "Greater Than Or Equal", label: "Greater or Equal" },
+    { value: "Less Than", label: "Less Than" },
+    { value: "Less Than Or Equal", label: "Less or Equal" },
     { value: "Contains", label: "Contains" },
-    { value: "StartsWith", label: "Starts With" },
-    { value: "EndsWith", label: "Ends With" },
-    { value: "IsEmpty", label: "Is Empty" },
-    { value: "IsNotEmpty", label: "Is Not Empty" },
+    { value: "Starts With", label: "Starts With" },
+    { value: "Ends With", label: "Ends With" },
 ];

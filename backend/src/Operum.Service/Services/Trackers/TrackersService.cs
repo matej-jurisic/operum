@@ -11,7 +11,6 @@ using Operum.Model.Models;
 using Operum.Service.Helpers;
 using Operum.Service.Mappings.Mapper;
 using Operum.Service.Services.Authorization;
-using Operum.Service.Services.Trackers.Helpers;
 
 namespace Operum.Service.Services.Trackers
 {

@@ -200,7 +200,7 @@ const AnalyticsSection = ({
     if (analytic.truePercentage != null) {
         allStats.push({
             label: "True Percentage",
-            value: `${(analytic.truePercentage * 100).toFixed(1)}%`,
+            value: `${(analytic.truePercentage * 100).toFixed(2)}%`,
         });
     }
 

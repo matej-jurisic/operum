@@ -102,11 +102,11 @@ namespace Operum.Service.Services.Entries
                 .ThenInclude(x => x.Field)
                 .Where(x => x.TrackerId == trackerId);
 
-            if (view != null && view.Filters.Count != 0)
+            if (view != null)
             {
                 entriesQuery = ViewHelpers.ApplyViewFilters(entriesQuery, view.Filters);
             }
-            if (view != null && view.Sorts.Count != 0)
+            if (view != null)
             {
                 entriesQuery = ViewHelpers.ApplyViewSorting(entriesQuery, view.Sorts);
             }

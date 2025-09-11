@@ -1,7 +1,7 @@
 ﻿using Operum.Model.DTOs.Analytics;
 using Operum.Model.Models;
 
-namespace Operum.Service.Services.Trackers.Helpers
+namespace Operum.Service.Helpers
 {
     public static class TrackerAnalyticsHelpers
     {
@@ -24,7 +24,7 @@ namespace Operum.Service.Services.Trackers.Helpers
             var sumOfSquares = numericValues.Sum(v => v.NumberValue!.Value * v.NumberValue!.Value);
 
             var avg = sum / count;
-            var variance = sumOfSquares / count - (avg * avg);
+            var variance = sumOfSquares / count - avg * avg;
             var stdDev = Math.Sqrt(Math.Max(0, variance));
 
             return new FieldAnalyticsDto
@@ -137,7 +137,7 @@ namespace Operum.Service.Services.Trackers.Helpers
                 Count = count,
                 TrueCount = trueCount,
                 FalseCount = falseCount,
-                TruePercentage = Math.Round(truePercentage, 2)
+                TruePercentage = Math.Round(truePercentage, 4)
             };
         }
     }

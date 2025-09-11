@@ -13,15 +13,9 @@ interface EntryFormDialogProps {
 
 export function GetStringValue(type: string | unknown, value: unknown) {
     if (value === null || value === undefined) {
-        if (type === "bool") {
-            return "false";
-        }
         return "";
     }
     switch (type) {
-        case "bool":
-            return value ? "true" : "false";
-
         case "date":
             if (value instanceof Date) {
                 const utcMidnight = new Date(
@@ -57,7 +51,6 @@ export default function EntryFormDialog(props: EntryFormDialogProps) {
 
         fields.forEach((field) => {
             let value = values[field.name];
-
             fieldValues[field.name] = GetStringValue(field.type, value);
         });
 

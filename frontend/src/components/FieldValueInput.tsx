@@ -1,18 +1,18 @@
 // Updated FieldValueInput.tsx
-import { Checkbox, NumberInput, TextInput } from "@mantine/core";
+import { NumberInput, Select, TextInput } from "@mantine/core";
 import { DatePickerInput, DateTimePicker, TimePicker } from "@mantine/dates";
 import { UseFormReturnType } from "@mantine/form";
 import { CSSProperties } from "react";
 import { FieldDto } from "../model/FieldDto";
 
-interface FieldValueInputProps<T = any> {
+interface FieldValueInputProps<T extends Record<string, any> = any> {
     field: FieldDto;
     form: UseFormReturnType<T>;
-    fieldPath?: string; // Optional custom path for nested fields
+    fieldPath?: string;
     styles?: CSSProperties;
 }
 
-export default function FieldValueInput<T = any>({
+export default function FieldValueInput<T extends Record<string, any> = any>({
     field,
     form,
     fieldPath,
@@ -35,14 +35,23 @@ export default function FieldValueInput<T = any>({
             return <NumberInput {...baseProps} style={styles} />;
 
         case "bool":
+            const boolValue = baseProps.value;
+            const stringValue =
+                typeof boolValue === "boolean"
+                    ? boolValue.toString()
+                    : boolValue;
             return (
-                <Checkbox
-                    label={`${field.name}${
-                        field.description ? " - " + field.description : ""
-                    }`}
-                    key={field.id}
+                <Select
+                    label={field.name}
+                    placeholder="Select"
+                    data={[
+                        { value: "true", label: "Yes" },
+                        { value: "false", label: "No" },
+                    ]}
+                    clearable
                     style={styles}
-                    {...form.getInputProps(path, { type: "checkbox" })}
+                    {...form.getInputProps(path)}
+                    value={stringValue}
                 />
             );
 

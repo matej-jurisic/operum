@@ -33,25 +33,17 @@ namespace Operum.Model.Extensions
                         fieldValue.StringValue = !string.IsNullOrWhiteSpace(value) ? value : null;
                         break;
                     case DataTypes.Number:
-                        fieldValue.NumberValue = value == null ? null : Convert.ToDouble(value);
+                        fieldValue.NumberValue = value != null ? Convert.ToDouble(value) : null;
                         break;
                     case DataTypes.Date:
                     case DataTypes.DateTime:
                         if (!string.IsNullOrWhiteSpace(value))
                         {
-                            var parsed = DateTime.Parse(value, null, System.Globalization.DateTimeStyles.RoundtripKind);
-                            if (parsed.Kind == DateTimeKind.Unspecified)
-                                parsed = DateTime.SpecifyKind(parsed, DateTimeKind.Utc);
-
-                            fieldValue.DateTimeValue = parsed.ToUniversalTime();
-                        }
-                        else if (value == null)
-                        {
-                            fieldValue.DateTimeValue = null;
+                            fieldValue.DateTimeValue = DataHelpers.GetDateTimeFromString(value);
                         }
                         else
                         {
-                            throw new FormatException($"Invalid format for {currentField.Type} field '{currentField.Name}'.");
+                            fieldValue.DateTimeValue = null;
                         }
                         break;
                     case DataTypes.TimeSpan:
@@ -59,17 +51,20 @@ namespace Operum.Model.Extensions
                         {
                             fieldValue.TimeSpanValue = TimeSpan.Parse(value);
                         }
-                        else if (value == null)
+                        else
                         {
                             fieldValue.TimeSpanValue = null;
                         }
-                        else
-                        {
-                            throw new FormatException($"Invalid format for {currentField.Type} field '{currentField.Name}'.");
-                        }
                         break;
                     case DataTypes.Bool:
-                        fieldValue.BooleanValue = value != null && Convert.ToBoolean(value);
+                        if (!string.IsNullOrWhiteSpace(value))
+                        {
+                            fieldValue.BooleanValue = Convert.ToBoolean(value);
+                        }
+                        else
+                        {
+                            fieldValue.BooleanValue = null;
+                        }
                         break;
                     default:
                         return false;
