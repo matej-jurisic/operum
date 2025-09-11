@@ -55,6 +55,7 @@ namespace Operum.Service.Helpers
             var minValue = timeSpanValues.OrderBy(v => v.TimeSpanValue!.Value.Ticks).First();
             var maxValue = timeSpanValues.OrderByDescending(v => v.TimeSpanValue!.Value.Ticks).First();
             var avgTicks = timeSpanValues.Average(v => (double)v.TimeSpanValue!.Value.Ticks);
+            var sum = timeSpanValues.Sum(v => v.TimeSpanValue!.Value.Ticks);
 
             return new FieldAnalyticsDto
             {
@@ -63,7 +64,8 @@ namespace Operum.Service.Helpers
                 MinTimeSpanEntryId = minValue.EntryId,
                 MaxTimeSpan = maxValue.TimeSpanValue!.Value,
                 MaxTimeSpanEntryId = maxValue.EntryId,
-                AverageTimeSpan = TimeSpan.FromTicks((long)Math.Round(avgTicks))
+                AverageTimeSpan = TimeSpan.FromTicks((long)Math.Round(avgTicks)),
+                SumTimeSpan = TimeSpan.FromTicks(sum)
             };
         }
 

@@ -12,6 +12,7 @@ import {
 import { useEffect, useState } from "react";
 import { MdLink } from "react-icons/md";
 import { useTracker } from "../context/TrackerContext";
+import { FieldAnalyticsDto } from "../model/FieldAnalyticsDto";
 import { TrackerDto } from "../model/TrackerDto";
 import {
     formatDateOnly,
@@ -75,7 +76,7 @@ const AnalyticsSection = ({
     analytic,
     tracker,
 }: {
-    analytic: any;
+    analytic: FieldAnalyticsDto;
     tracker: TrackerDto;
 }) => {
     const allStats = [];
@@ -189,6 +190,12 @@ const AnalyticsSection = ({
         allStats.push({
             label: "Average",
             value: formatTimeSpan(analytic.averageTimeSpan),
+        });
+    }
+    if (analytic.sumTimeSpan) {
+        allStats.push({
+            label: "Sum",
+            value: formatTimeSpan(analytic.sumTimeSpan),
         });
     }
     if (analytic.trueCount != null) {

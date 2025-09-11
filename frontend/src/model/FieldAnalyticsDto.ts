@@ -32,6 +32,7 @@ export interface FieldAnalyticsDto {
     maxTimeSpan?: string;
     maxTimeSpanEntryId?: string;
     averageTimeSpan?: string;
+    sumTimeSpan?: string;
 
     // For Boolean
     trueCount?: number;

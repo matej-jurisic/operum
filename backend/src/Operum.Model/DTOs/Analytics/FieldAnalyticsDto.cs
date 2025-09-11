@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using Operum.Model.Converters;
+using System.Text.Json.Serialization;
 
 namespace Operum.Model.DTOs.Analytics
 {
@@ -61,6 +62,9 @@ namespace Operum.Model.DTOs.Analytics
         public string? MaxTimeSpanEntryId { get; set; }
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public TimeSpan? AverageTimeSpan { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonConverter(typeof(TotalHoursTimeSpanConverter))]
+        public TimeSpan? SumTimeSpan { get; set; }
 
         // For Bool
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
