@@ -39,7 +39,7 @@ export default function Tracker() {
     return (
         <TrackerProvider initialTracker={tracker}>
             <Stack gap="lg">
-                <Group justify="space-between" gap={"md"}>
+                <Group justify="space-between" gap={"xl"}>
                     <Title order={2} c={tracker.color} flex={1}>
                         {tracker.name}
                     </Title>
