@@ -16,6 +16,19 @@ class GlobalStore {
     setCheckingAuth(value: boolean) {
         this.checkingAuth = value;
     }
+
+    userHasRole(role: string) {
+        if (
+            this.currentUser === undefined ||
+            this.currentUser.roles === undefined
+        )
+            return false;
+        return (
+            this.currentUser.roles.find(
+                (x) => x.toLowerCase() === role.toLowerCase()
+            ) !== undefined
+        );
+    }
 }
 
 const globalStore = new GlobalStore();

@@ -137,6 +137,8 @@ namespace Operum.Service.Services.Authentication
             var foundUser = await userManager.FindByIdAsync(userId);
             if (foundUser == null) return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "User not found!");
             var user = mapper.Map<ApplicationUser, ApplicationUserDto>(foundUser);
+            var roles = await userManager.GetRolesAsync(foundUser);
+            user.Roles = [.. roles];
             return ServiceResponse.Success(user);
         }
 
@@ -172,12 +174,15 @@ namespace Operum.Service.Services.Authentication
             ServiceResponse<DateTime> expiry = await tokenService.SetAuthTokenCookie(user);
             await tokenService.SetRefreshTokenCookie(user);
 
+            var roles = await userManager.GetRolesAsync(user);
+
             return new ApplicationUserDto
             {
                 Id = user.Id,
                 Email = user.Email,
                 UserName = user.UserName,
-                TokenExpiry = expiry.Data
+                TokenExpiry = expiry.Data,
+                Roles = [.. roles]
             };
         }
 

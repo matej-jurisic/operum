@@ -3,4 +3,5 @@ export interface ApplicationUserDto {
     userName: string;
     email?: string;
     tokenExpiry?: Date;
+    roles: string[];
 }

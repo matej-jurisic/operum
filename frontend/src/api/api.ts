@@ -10,6 +10,7 @@ axios.defaults.withCredentials = true;
 const USERNAME_KEY = "username";
 const ID_KEY = "id";
 const EXP_KEY = "exp";
+const ROLES_KEY = "roles";
 
 // Use a local variable to prevent multiple concurrent refresh calls
 let isRefreshing = false;
@@ -35,10 +36,11 @@ const setUserData = (user: ApplicationUserDto) => {
     globalStore.setCurrentUser({
         userName: user.userName,
         id: user.id,
+        roles: user.roles,
     });
     localStorage.setItem(USERNAME_KEY, user.userName);
     localStorage.setItem(ID_KEY, user.id);
-    // Set a new expiration time, for example, 2 minutes from now
+    localStorage.setItem(ROLES_KEY, JSON.stringify(user.roles));
     localStorage.setItem(EXP_KEY, (Date.now() + 1000 * 60 * 2).toString());
 };
 

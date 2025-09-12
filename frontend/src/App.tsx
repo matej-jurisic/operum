@@ -1,8 +1,9 @@
-import { LoadingOverlay, ScrollArea } from "@mantine/core";
+import { ScrollArea } from "@mantine/core";
 import { observer } from "mobx-react";
 import { useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import "./App.css";
+import OperumLoader from "./components/OperumLoader";
 import { PrivateRoute } from "./components/routing/PrivateRoute";
 import PublicRoute from "./components/routing/PublicRoute";
 import { useLoading } from "./context/LoadingContext";
@@ -23,30 +24,12 @@ const App = observer(() => {
     }, []);
 
     if (globalStore.checkingAuth) {
-        return (
-            <LoadingOverlay
-                visible
-                overlayProps={{
-                    opacity: 0.5,
-                }}
-                loaderProps={{
-                    color: "gray",
-                }}
-            />
-        );
+        return <OperumLoader visible />;
     }
 
     return (
         <>
-            <LoadingOverlay
-                visible={loading}
-                overlayProps={{
-                    opacity: 0.5,
-                }}
-                loaderProps={{
-                    color: "gray",
-                }}
-            />
+            <OperumLoader visible={loading} />
             <ScrollArea h={"100vh"} p="xl">
                 <BrowserRouter>
                     <Routes>
@@ -68,7 +51,12 @@ const App = observer(() => {
                         />
                         <Route
                             path="admin-panel"
-                            element={<PrivateRoute page={<AdminPanel />} />}
+                            element={
+                                <PrivateRoute
+                                    allowedRoles={["admin"]}
+                                    page={<AdminPanel />}
+                                />
+                            }
                         />
                         <Route
                             path="*"

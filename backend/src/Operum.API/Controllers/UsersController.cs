@@ -24,7 +24,7 @@ namespace Operum.API.Controllers
             return GetApiResponse(rolesService.GetCurrentUserRoles());
         }
 
-        [AllowAnonymous]
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<IActionResult> GetAllUsers()
         {
@@ -45,17 +45,10 @@ namespace Operum.API.Controllers
         }
 
         [Authorize(Roles = "Admin")]
-        [HttpPost("{userId}/roles")]
-        public async Task<IActionResult> AddUserToRoles([FromRoute] string userId, [FromBody] ModifyUserRoleRequestDto request)
+        [HttpPost("{userId}/role")]
+        public async Task<IActionResult> ChangeUserRole([FromRoute] string userId, [FromBody] ModifyUserRoleRequestDto request)
         {
-            return GetApiResponse(await rolesService.AddUserToRole(userId, request));
-        }
-
-        [Authorize(Roles = "Admin")]
-        [HttpDelete("{userId}/roles")]
-        public async Task<IActionResult> RemoveUserFromRoles([FromRoute] string userId, [FromBody] ModifyUserRoleRequestDto request)
-        {
-            return GetApiResponse(await rolesService.RemoveUserFromRole(userId, request));
+            return GetApiResponse(await rolesService.ChangeUserRole(userId, request));
         }
     }
 }

@@ -14,8 +14,21 @@ namespace Operum.Service.Services.Users
     {
         public async Task<ServiceResponse<List<ApplicationUserDto>>> GetAllUsers()
         {
-            var users = mapper.Map<List<ApplicationUser>, List<ApplicationUserDto>>(await userManager.Users.ToListAsync());
-            return ServiceResponse.Success(users);
+            var users = await userManager.Users.ToListAsync();
+            var userDtos = new List<ApplicationUserDto>();
+
+            foreach (var user in users)
+            {
+                var userDto = mapper.Map<ApplicationUser, ApplicationUserDto>(user);
+
+                // Get roles for this user
+                var roles = await userManager.GetRolesAsync(user);
+                userDto.Roles = [.. roles];
+
+                userDtos.Add(userDto);
+            }
+
+            return ServiceResponse.Success(userDtos.OrderBy(x => x.UserName).ToList());
         }
 
         public async Task<ServiceResponse> UpdateApplicationUser(UpdateApplicationUserRequestDto request)

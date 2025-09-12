@@ -17,30 +17,38 @@ export const LoadingProvider: React.FC<{ children: React.ReactNode }> = ({
     children,
 }) => {
     const [loading, setLoading] = useState(false);
-    const timeoutRef = useRef<number>(null);
+    const timeoutRef = useRef<number | null>(null);
 
-    const setLoadingWithDebounce = (value: boolean) => {
+    const setLoadingWithDelay = (value: boolean) => {
         if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
         }
 
         if (value) {
-            setLoading(true);
+            // delay before showing loader
+            timeoutRef.current = window.setTimeout(() => {
+                setLoading(true);
+            }, 100); // show after 200ms
         } else {
-            // Delay hiding loading by 150ms to prevent flicker
-            timeoutRef.current = setTimeout(() => {
+            // debounce before hiding loader
+            timeoutRef.current = window.setTimeout(() => {
                 setLoading(false);
-            }, 150);
+            }, 150); // hide after 150ms
         }
     };
 
     useEffect(() => {
-        registerLoadingSetter(setLoadingWithDebounce);
+        registerLoadingSetter(setLoadingWithDelay);
+        return () => {
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+            }
+        };
     }, []);
 
     return (
         <LoadingContext.Provider
-            value={{ loading, setLoading: setLoadingWithDebounce }}
+            value={{ loading, setLoading: setLoadingWithDelay }}
         >
             {children}
         </LoadingContext.Provider>
