@@ -7,7 +7,7 @@ RUN npm install -g npm@11.5.2
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
+RUN npm ci --only=production=false
 
 COPY . .
 
@@ -18,8 +18,6 @@ RUN npm run build
 
 # Step 2: Serve with nginx
 FROM nginx:stable-alpine
-
-COPY --from=build /app/dist /usr/share/nginx/html
 
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY ./nginx.conf /etc/nginx/conf.d/default.conf
