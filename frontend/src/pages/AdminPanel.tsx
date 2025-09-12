@@ -12,8 +12,10 @@ import {
 } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { IoMdMail, IoMdPerson, IoMdReturnLeft } from "react-icons/io";
+import { MdMail } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import api from "../api/api";
+import ConfirmationDialog from "../components/ConfirmationDialog";
 import Header from "../components/Header";
 import UserRolesFormDialog from "../components/UserRolesFormDialog";
 import { ApplicationUserDto } from "../model/ApplicationUserDto";
@@ -24,8 +26,13 @@ const GetAllUsers = async () => {
     return users.data.data;
 };
 
+const ConfirmEmail = async (userId: string) => {
+    await api.post(`/users/${userId}/confirm-email`);
+};
+
 enum OpenDialogType {
     EditRoles,
+    ConfirmMail,
 }
 
 export default function AdminPanel() {
@@ -86,6 +93,7 @@ export default function AdminPanel() {
                                     <Table.Th miw={200}>User</Table.Th>
                                     <Table.Th miw={150}>Email</Table.Th>
                                     <Table.Th miw={120}>Roles</Table.Th>
+                                    <Table.Th>Mail Confirmed</Table.Th>
                                     <Table.Th>Actions</Table.Th>
                                 </Table.Tr>
                             </Table.Thead>
@@ -169,7 +177,18 @@ export default function AdminPanel() {
                                                     )}
                                                 </Group>
                                             </Table.Td>
-
+                                            <Table.Td>
+                                                <Badge
+                                                    color={
+                                                        user.mailConfirmed
+                                                            ? "green"
+                                                            : "red"
+                                                    }
+                                                    variant="outline"
+                                                >
+                                                    {String(user.mailConfirmed)}
+                                                </Badge>
+                                            </Table.Td>
                                             <Table.Td>
                                                 <Group gap="xs" wrap="nowrap">
                                                     {globalStore.currentUser !==
@@ -196,6 +215,23 @@ export default function AdminPanel() {
                                                                 />
                                                             </ActionIcon>
                                                         )}
+                                                    {!user.mailConfirmed && (
+                                                        <ActionIcon
+                                                            variant="light"
+                                                            color="blue"
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                setSelectedUser(
+                                                                    user
+                                                                );
+                                                                setOpenDialogType(
+                                                                    OpenDialogType.ConfirmMail
+                                                                );
+                                                            }}
+                                                        >
+                                                            <MdMail size={14} />
+                                                        </ActionIcon>
+                                                    )}
                                                 </Group>
                                             </Table.Td>
                                         </Table.Tr>
@@ -216,6 +252,24 @@ export default function AdminPanel() {
                     onRoleChange={async () => {
                         setUsers(await GetAllUsers());
                     }}
+                />
+            )}
+            {openDialogType === OpenDialogType.ConfirmMail && selectedUser && (
+                <ConfirmationDialog
+                    isOpen
+                    onClose={() => {
+                        setSelectedUser(undefined);
+                        setOpenDialogType(undefined);
+                    }}
+                    onConfirm={async () => {
+                        await ConfirmEmail(selectedUser.id);
+                        setUsers(await GetAllUsers());
+                        setSelectedUser(undefined);
+                        setOpenDialogType(undefined);
+                    }}
+                    title="Mail Confirmation"
+                    severity="info"
+                    message={`Set mail as confirmed for user ${selectedUser.userName}?`}
                 />
             )}
         </>

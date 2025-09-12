@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Operum.Model;
 using Operum.Model.Common;
 using Operum.Model.DTOs.Auth.Requests;
 using Operum.Model.Enums;
@@ -9,7 +8,7 @@ using Operum.Service.Services.Authorization;
 
 namespace Operum.Service.Services.Roles
 {
-    public class RolesService(RoleManager<IdentityRole> roleManager, UserManager<ApplicationUser> userManager, IAuthorizationService authorizationService, OperumContext db) : IRolesService
+    public class RolesService(RoleManager<IdentityRole> roleManager, UserManager<ApplicationUser> userManager, IAuthorizationService authorizationService) : IRolesService
     {
         public async Task<ServiceResponse> ChangeUserRole(string userId, ModifyUserRoleRequestDto request)
         {

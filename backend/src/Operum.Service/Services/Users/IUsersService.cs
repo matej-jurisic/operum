@@ -1,6 +1,6 @@
 ﻿using Operum.Model.Common;
-using Operum.Model.DTOs;
 using Operum.Model.DTOs.Auth.Requests;
+using Operum.Model.DTOs.Users;
 
 namespace Operum.Service.Services.Users
 {
@@ -8,5 +8,6 @@ namespace Operum.Service.Services.Users
     {
         Task<ServiceResponse<List<ApplicationUserDto>>> GetAllUsers();
         Task<ServiceResponse> UpdateApplicationUser(UpdateApplicationUserRequestDto request);
+        Task<ServiceResponse> ConfirmUserEmail(string userId);
     }
 }

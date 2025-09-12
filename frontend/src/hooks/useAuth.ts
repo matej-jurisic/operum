@@ -1,5 +1,5 @@
 import api from "../api/api";
-import { ApplicationUserDto } from "../model/ApplicationUserDto";
+import { AuhtResponseDto } from "../model/AuthResponseDto";
 import { LoginRequestDto } from "../model/requests/LoginRequestDto";
 import { RegisterRequestDto } from "../model/requests/RegisterRequestDto";
 import globalStore from "../stores/GlobalStore";
@@ -38,7 +38,7 @@ const useAuth = () => {
         globalStore.setCheckingAuth(false);
     };
 
-    const setUserData = (user: ApplicationUserDto) => {
+    const setUserData = (user: AuhtResponseDto) => {
         globalStore.setCurrentUser({
             userName: user.userName,
             id: user.id,

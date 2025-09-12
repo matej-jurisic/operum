@@ -1,7 +1,7 @@
 import { notifications } from "@mantine/notifications";
 import axios, { AxiosError, AxiosRequestConfig } from "axios";
 import { setGlobalLoading } from "../context/LoadingContext";
-import { ApplicationUserDto } from "../model/ApplicationUserDto";
+import { AuhtResponseDto as AuthResponseDto } from "../model/AuthResponseDto";
 import { ApiResponse } from "../model/common/ApiResponse";
 import globalStore from "../stores/GlobalStore";
 
@@ -32,7 +32,7 @@ const processQueue = (error: unknown, token: string | null = null) => {
 };
 
 // Centralized function to set user data and update localStorage
-const setUserData = (user: ApplicationUserDto) => {
+const setUserData = (user: AuthResponseDto) => {
     globalStore.setCurrentUser({
         userName: user.userName,
         id: user.id,

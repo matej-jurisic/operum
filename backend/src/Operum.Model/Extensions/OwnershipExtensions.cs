@@ -1,4 +1,4 @@
-﻿using Operum.Model.DTOs;
+﻿using Operum.Model.DTOs.Users;
 using Operum.Model.Models;
 
 namespace Operum.Model.Extensions

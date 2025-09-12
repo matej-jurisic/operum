@@ -1,15 +1,15 @@
 import { makeAutoObservable } from "mobx";
-import { ApplicationUserDto } from "../model/ApplicationUserDto";
+import { AuhtResponseDto } from "../model/AuthResponseDto";
 
 class GlobalStore {
-    currentUser: ApplicationUserDto | undefined;
+    currentUser: AuhtResponseDto | undefined;
     checkingAuth: boolean = true;
 
     constructor() {
         makeAutoObservable(this);
     }
 
-    setCurrentUser(user: ApplicationUserDto | undefined) {
+    setCurrentUser(user: AuhtResponseDto | undefined) {
         this.currentUser = user;
     }
 

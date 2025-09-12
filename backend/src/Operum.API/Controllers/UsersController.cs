@@ -50,5 +50,12 @@ namespace Operum.API.Controllers
         {
             return GetApiResponse(await rolesService.ChangeUserRole(userId, request));
         }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost("{userId}/confirm-email")]
+        public async Task<IActionResult> ConfirmUserEmail([FromRoute] string userId)
+        {
+            return GetApiResponse(await usersService.ConfirmUserEmail(userId));
+        }
     }
 }

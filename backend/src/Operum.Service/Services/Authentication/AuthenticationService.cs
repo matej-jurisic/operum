@@ -4,8 +4,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Operum.Model;
 using Operum.Model.Common;
-using Operum.Model.DTOs;
+using Operum.Model.DTOs.Auth;
 using Operum.Model.DTOs.Auth.Requests;
+using Operum.Model.DTOs.Users;
 using Operum.Model.Enums;
 using Operum.Model.Models;
 using Operum.Service.Integrations.MailSender;
@@ -18,7 +19,7 @@ namespace Operum.Service.Services.Authentication
 {
     public class AuthenticationService(UserManager<ApplicationUser> userManager, IMailSender mailSender, IConfiguration configuration, SignInManager<ApplicationUser> signInManager, OperumContext db, ITokenService tokenService, IAuthorizationService authorizationService, IMapper mapper, ILogger<AuthenticationService> logger) : IAuthenticationService
     {
-        public async Task<ServiceResponse<ApplicationUserDto>> Login(LoginRequestDto loginRequest)
+        public async Task<ServiceResponse<AuthResponseDto>> Login(LoginRequestDto loginRequest)
         {
             var normalizedCredentials = loginRequest.Credentials.ToUpper();
             var user = await userManager.Users.FirstOrDefaultAsync(x => x.NormalizedEmail == normalizedCredentials || x.NormalizedUserName == normalizedCredentials);
@@ -142,7 +143,7 @@ namespace Operum.Service.Services.Authentication
             return ServiceResponse.Success(user);
         }
 
-        public async Task<ServiceResponse<ApplicationUserDto>> RefreshToken()
+        public async Task<ServiceResponse<AuthResponseDto>> RefreshToken()
         {
             var token = tokenService.GetRefreshToken();
 
@@ -169,14 +170,14 @@ namespace Operum.Service.Services.Authentication
             return ServiceResponse.Success(userDto);
         }
 
-        private async Task<ApplicationUserDto> AuthenticateUser(ApplicationUser user)
+        private async Task<AuthResponseDto> AuthenticateUser(ApplicationUser user)
         {
             ServiceResponse<DateTime> expiry = await tokenService.SetAuthTokenCookie(user);
             await tokenService.SetRefreshTokenCookie(user);
 
             var roles = await userManager.GetRolesAsync(user);
 
-            return new ApplicationUserDto
+            return new AuthResponseDto
             {
                 Id = user.Id,
                 Email = user.Email,
@@ -194,6 +195,7 @@ namespace Operum.Service.Services.Authentication
             var user = await userManager.FindByIdAsync(userId);
             if (user == null)
                 return ServiceResponse.Failure(StatusCodeEnum.NotFound, "User not found");
+            if (user.EmailConfirmed) return ServiceResponse.Success("Email already confirmed!");
 
             var result = await userManager.ConfirmEmailAsync(user, token.Replace(' ', '+'));
             if (result.Succeeded)

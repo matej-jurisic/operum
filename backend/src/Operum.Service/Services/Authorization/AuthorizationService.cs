@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Operum.Model.DTOs;
+using Operum.Model.DTOs.Users;
 using Operum.Model.Models;
 using System.Security.Claims;
 
