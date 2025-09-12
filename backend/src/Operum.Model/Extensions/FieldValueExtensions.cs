@@ -1,5 +1,6 @@
 ﻿using Operum.Model.Constants;
 using Operum.Model.Models;
+using System.Globalization;
 
 namespace Operum.Model.Extensions
 {
@@ -77,6 +78,23 @@ namespace Operum.Model.Extensions
                 return false;
             }
         }
+
+        public static string? GetValueAsString(this FieldValue fieldValue)
+        {
+            if (fieldValue.Field == null) return null;
+
+            return fieldValue.Field.Type.ToLowerInvariant() switch
+            {
+                DataTypes.String => fieldValue.StringValue,
+                DataTypes.Number => fieldValue.NumberValue?.ToString(CultureInfo.InvariantCulture),
+                DataTypes.Date => fieldValue.DateTimeValue?.ToString("yyyy-MM-dd"),
+                DataTypes.DateTime => fieldValue.DateTimeValue?.ToString("yyyy-MM-dd HH:mm:ss"),
+                DataTypes.TimeSpan => fieldValue.TimeSpanValue?.ToString(),
+                DataTypes.Bool => fieldValue.BooleanValue?.ToString(),
+                _ => null
+            };
+        }
+
 
         private static void ClearOtherFieldValues(FieldValue fieldValue, string currentType)
         {

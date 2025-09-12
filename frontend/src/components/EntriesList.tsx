@@ -15,15 +15,17 @@ import {
     UnstyledButton,
 } from "@mantine/core";
 import { useEffect, useMemo, useState } from "react";
+import { CiExport } from "react-icons/ci";
 import { FiPlus } from "react-icons/fi";
 import { IoMdEye } from "react-icons/io";
 import { MdDelete, MdEdit, MdSelectAll } from "react-icons/md";
 import { PiFileCsvDuotone } from "react-icons/pi";
 import { RiFileListFill } from "react-icons/ri";
 import { RxCross2 } from "react-icons/rx";
+import api from "../api/api";
 import { useTracker } from "../context/TrackerContext";
 import { EntryDto } from "../model/EntryDto";
-import { TrackerDto } from "../model/TrackerDto";
+import { downloadBlob } from "../util/BlobDownloader";
 import {
     formatDateOnly,
     formatDateTime,
@@ -34,10 +36,6 @@ import ConfirmationDialog from "./ConfirmationDialog";
 import EntryDetailsDialog from "./EntryDetailsDialog"; // New import
 import EntryFormDialog from "./EntryFormDialog";
 import ImportEntriesDialog from "./ImportEntriesDialog";
-
-interface EntriesListProps {
-    tracker: TrackerDto;
-}
 
 const gridColumnSizes = {
     string: "auto",
@@ -67,9 +65,26 @@ enum OpenDialogType {
     ImportEntries,
     BulkDelete,
     ViewDetails,
+    ExportEntries,
 }
 
-export default function EntriesList(props: EntriesListProps) {
+const ExportCsv = async (trackerId: string, viewId?: string) => {
+    const response = await api.get(
+        `/trackers/${trackerId}/entries/export-csv`,
+        {
+            params: viewId ? { viewId } : {},
+            responseType: "blob",
+        }
+    );
+
+    downloadBlob(
+        new Blob([response.data]),
+        `tracker-export.csv`,
+        response.headers["content-disposition"]
+    );
+};
+
+export default function EntriesList() {
     const [selectedEntry, setSelectedEntry] = useState<EntryDto>();
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
     const [currentPage, setCurrentPage] = useState(1);
@@ -87,6 +102,8 @@ export default function EntriesList(props: EntriesListProps) {
         refreshFieldsIfDirty,
         DeleteEntry,
         DeleteEntries,
+        views,
+        tracker,
         selectedViewId,
     } = useTracker();
 
@@ -183,7 +200,7 @@ export default function EntriesList(props: EntriesListProps) {
                             indeterminate={someEntriesSelected}
                             onChange={toggleSelectAll}
                         />
-                        <Badge color={props.tracker.color} variant="filled">
+                        <Badge color={tracker.color} variant="filled">
                             {selectedEntryIds.size}
                         </Badge>
                     </Group>
@@ -271,7 +288,7 @@ export default function EntriesList(props: EntriesListProps) {
                                 {/* New ActionIcon for viewing details */}
                                 <ActionIcon
                                     variant="outline"
-                                    color={props.tracker.color}
+                                    color={tracker.color}
                                     onClick={() => {
                                         setSelectedEntry(entry);
                                         setOpenDialogType(
@@ -317,8 +334,12 @@ export default function EntriesList(props: EntriesListProps) {
         visibleColumns,
         isSelectMode,
         selectedEntryIds,
-        props.tracker.color,
+        tracker.color,
     ]);
+
+    const viewName = useMemo(() => {
+        return views.find((x) => x.id === selectedViewId)?.name;
+    }, [views, selectedViewId]);
 
     // Load data on component mount
     useEffect(() => {
@@ -364,12 +385,7 @@ export default function EntriesList(props: EntriesListProps) {
                                     withArrow
                                 >
                                     <Button
-                                        color={props.tracker.color}
-                                        onClick={() =>
-                                            setOpenDialogType(
-                                                OpenDialogType.CreateEntry
-                                            )
-                                        }
+                                        color={tracker.color}
                                         disabled={fields.length === 0}
                                         leftSection={<FiPlus size={18} />}
                                     >
@@ -407,7 +423,7 @@ export default function EntriesList(props: EntriesListProps) {
                         {!isSelectMode ? (
                             <ActionIcon
                                 variant="outline"
-                                color={props.tracker.color}
+                                color={tracker.color}
                                 onClick={enterSelectMode}
                                 disabled={entries.length === 0}
                                 size={"lg"}
@@ -449,7 +465,7 @@ export default function EntriesList(props: EntriesListProps) {
                             <Menu.Target>
                                 <ActionIcon
                                     variant="outline"
-                                    color={props.tracker.color}
+                                    color={tracker.color}
                                     size={"lg"}
                                     disabled={fields.length === 0}
                                 >
@@ -477,7 +493,7 @@ export default function EntriesList(props: EntriesListProps) {
                                                 </Text>
                                                 <Checkbox
                                                     size="sm"
-                                                    color={props.tracker.color}
+                                                    color={tracker.color}
                                                     checked={
                                                         visibleColumns[
                                                             field.id
@@ -504,7 +520,7 @@ export default function EntriesList(props: EntriesListProps) {
                                             <Text size="sm">Created At</Text>
                                             <Checkbox
                                                 size="sm"
-                                                color={props.tracker.color}
+                                                color={tracker.color}
                                                 checked={
                                                     visibleColumns[
                                                         "createdAt"
@@ -526,7 +542,7 @@ export default function EntriesList(props: EntriesListProps) {
                                         <Group justify="space-between">
                                             <Text size="sm">Actions</Text>
                                             <Checkbox
-                                                color={props.tracker.color}
+                                                color={tracker.color}
                                                 size="sm"
                                                 checked={
                                                     visibleColumns["actions"] ||
@@ -540,6 +556,16 @@ export default function EntriesList(props: EntriesListProps) {
                                 </Menu.Item>
                             </Menu.Dropdown>
                         </Menu>
+                        <ActionIcon
+                            variant="outline"
+                            color={tracker.color}
+                            size={"lg"}
+                            onClick={() =>
+                                setOpenDialogType(OpenDialogType.ExportEntries)
+                            }
+                        >
+                            <CiExport size={18} />
+                        </ActionIcon>
                     </Group>
                 </Group>
 
@@ -599,7 +625,7 @@ export default function EntriesList(props: EntriesListProps) {
                     onChange={setCurrentPage}
                     total={totalPages}
                     siblings={0}
-                    color={props.tracker.color}
+                    color={tracker.color}
                     size="md"
                 />
             </Stack>
@@ -610,7 +636,7 @@ export default function EntriesList(props: EntriesListProps) {
                     isOpen={selectedEntry !== undefined}
                     onClose={() => setSelectedEntry(undefined)}
                     onConfirm={async () => {
-                        await DeleteEntry(props.tracker.id, selectedEntry.id);
+                        await DeleteEntry(tracker.id, selectedEntry.id);
                         setSelectedEntry(undefined);
                     }}
                     severity="warning"
@@ -625,7 +651,7 @@ export default function EntriesList(props: EntriesListProps) {
                     onClose={() => setOpenDialogType(undefined)}
                     onConfirm={async () => {
                         await DeleteEntries(
-                            props.tracker.id,
+                            tracker.id,
                             Array.from(selectedEntryIds)
                         );
                         clearSelection();
@@ -642,7 +668,7 @@ export default function EntriesList(props: EntriesListProps) {
 
             {openDialogType === OpenDialogType.CreateEntry && (
                 <EntryFormDialog
-                    tracker={props.tracker}
+                    tracker={tracker}
                     onClose={() => {
                         setOpenDialogType(undefined);
                     }}
@@ -651,7 +677,7 @@ export default function EntriesList(props: EntriesListProps) {
 
             {openDialogType === OpenDialogType.UpdateEntry && selectedEntry && (
                 <EntryFormDialog
-                    tracker={props.tracker}
+                    tracker={tracker}
                     entryId={selectedEntry.id}
                     initialValues={selectedEntry.fieldValues.reduce(
                         (acc, field) => {
@@ -668,7 +694,7 @@ export default function EntriesList(props: EntriesListProps) {
             {openDialogType === OpenDialogType.ImportEntries && (
                 <ImportEntriesDialog
                     onClose={() => setOpenDialogType(undefined)}
-                    tracker={props.tracker}
+                    tracker={tracker}
                 />
             )}
 
@@ -679,7 +705,36 @@ export default function EntriesList(props: EntriesListProps) {
                         setSelectedEntry(undefined);
                     }}
                     entryId={selectedEntry.id}
-                    tracker={props.tracker}
+                    tracker={tracker}
+                />
+            )}
+
+            {openDialogType === OpenDialogType.ExportEntries && (
+                <ConfirmationDialog
+                    isOpen
+                    onClose={() => setOpenDialogType(undefined)}
+                    onConfirm={async () => {
+                        await ExportCsv(tracker.id, selectedViewId);
+                        setOpenDialogType(undefined);
+                    }}
+                    message={
+                        <Text>
+                            Would you like to export entries for{" "}
+                            <Text component="span" fw={700} c="blue">
+                                {tracker.name}
+                            </Text>
+                            {viewName && (
+                                <>
+                                    {" "}
+                                    with selected view{" "}
+                                    <Text component="span" fw={700} c="green">
+                                        {viewName}
+                                    </Text>
+                                </>
+                            )}{" "}
+                            to a CSV file?
+                        </Text>
+                    }
                 />
             )}
         </>

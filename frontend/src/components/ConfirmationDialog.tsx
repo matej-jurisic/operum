@@ -1,11 +1,12 @@
 import { Button, Group, Modal, Stack, Text } from "@mantine/core";
+import { JSX } from "react";
 
 interface ConfirmationDialogProps {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: () => void;
     title?: string;
-    message: string;
+    message: string | JSX.Element;
     severity?: "info" | "warning" | "important";
 }
 
@@ -35,7 +36,11 @@ export default function ConfirmationDialog({
             padding="lg"
         >
             <Stack gap="lg">
-                <Text className="truncated-text">{message}</Text>
+                {typeof message === "string" ? (
+                    <Text className="truncated-text">{message}</Text>
+                ) : (
+                    message
+                )}
 
                 <Group justify="center" gap="sm">
                     <Button variant="outline" onClick={onClose} color="gray">

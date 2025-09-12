@@ -61,7 +61,8 @@ namespace Operum.API.Configuration
                        .AllowAnyHeader()
                        .AllowAnyMethod()
                        .AllowCredentials()
-                       .WithOrigins(origins);
+                       .WithOrigins(origins)
+                       .WithExposedHeaders("Content-Disposition");
                 });
             });
         }

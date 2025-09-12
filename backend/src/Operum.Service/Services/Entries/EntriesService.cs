@@ -1,5 +1,6 @@
 ﻿using CsvHelper;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Operum.Model;
 using Operum.Model.Common;
@@ -105,9 +106,6 @@ namespace Operum.Service.Services.Entries
             if (view != null)
             {
                 entriesQuery = ViewHelpers.ApplyViewFilters(entriesQuery, view.Filters);
-            }
-            if (view != null)
-            {
                 entriesQuery = ViewHelpers.ApplyViewSorting(entriesQuery, view.Sorts);
             }
 
@@ -362,6 +360,100 @@ namespace Operum.Service.Services.Entries
             }
 
             return ServiceResponse.Success($"Entries imported successfully!");
+        }
+
+        public async Task<ServiceResponse<FileContentResult>> ExportEntriesToCsv(string trackerId, string? viewId = null)
+        {
+            var user = authorizationService.GetCurrentUserDto();
+            var tracker = await db.Trackers.FindAsync(trackerId);
+
+            if (tracker == null || !user.Owns(tracker))
+            {
+                return ServiceResponse.Failure(StatusCodeEnum.NotFound);
+            }
+
+            // Fetch view if provided
+            View? view = null;
+            if (!string.IsNullOrEmpty(viewId))
+            {
+                view = await db.Views
+                    .Include(v => v.Filters)
+                    .ThenInclude(f => f.Field)
+                    .Include(v => v.Sorts)
+                    .ThenInclude(s => s.Field)
+                    .FirstOrDefaultAsync(v => v.Id == viewId && v.TrackerId == trackerId);
+
+                if (view == null)
+                {
+                    return ServiceResponse.Failure(StatusCodeEnum.NotFound, "View not found or doesn't belong to this tracker");
+                }
+            }
+
+            var fields = await db.Fields
+                .Where(f => f.TrackerId == trackerId)
+                .OrderBy(f => f.Name)
+                .ToListAsync();
+
+            var entriesQuery = db.Entries
+                .Include(e => e.FieldValues)
+                .ThenInclude(fv => fv.Field)
+                .Where(e => e.TrackerId == trackerId);
+
+            if (view != null)
+            {
+                entriesQuery = ViewHelpers.ApplyViewFilters(entriesQuery, view.Filters);
+                entriesQuery = ViewHelpers.ApplyViewSorting(entriesQuery, view.Sorts);
+            }
+
+            var entries = await entriesQuery.ToListAsync();
+
+            if (entries.Count == 0)
+            {
+                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "No entries found to export.");
+            }
+
+            try
+            {
+                using var memoryStream = new MemoryStream();
+                using (var writer = new StreamWriter(memoryStream, leaveOpen: true))
+                using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+                {
+                    // Write header
+                    foreach (var field in fields)
+                    {
+                        csv.WriteField(field.Name);
+                    }
+                    await csv.NextRecordAsync();
+
+                    // Write each entry
+                    foreach (var entry in entries)
+                    {
+                        foreach (var field in fields)
+                        {
+                            var value = entry.FieldValues
+                                .FirstOrDefault(fv => fv.FieldId == field.Id)
+                                ?.GetValueAsString() ?? string.Empty;
+                            csv.WriteField(value);
+                        }
+                        await csv.NextRecordAsync();
+                    }
+
+                    await writer.FlushAsync();
+                }
+
+                memoryStream.Position = 0;
+                var fileName = $"Tracker_{tracker.Name}_Entries_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
+                var fileResult = new FileContentResult(memoryStream.ToArray(), "text/csv")
+                {
+                    FileDownloadName = fileName
+                };
+
+                return ServiceResponse.Success(fileResult);
+            }
+            catch (Exception ex)
+            {
+                return ServiceResponse.Failure(StatusCodeEnum.InternalServerError, $"Error exporting CSV: {ex.Message}");
+            }
         }
     }
 }

@@ -76,7 +76,7 @@ export default function Tracker() {
                     </StickyContainer>
                     <Container px={0} pt={"md"} fluid>
                         <Tabs.Panel value="entries">
-                            <EntriesList tracker={tracker} />
+                            <EntriesList />
                         </Tabs.Panel>
                         <Tabs.Panel value="views">
                             <ViewsList tracker={tracker} />

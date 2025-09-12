@@ -51,5 +51,18 @@ namespace Operum.API.Controllers
         {
             return GetApiResponse(await entriesService.ImportEntriesFromCsv(trackerId, file.File));
         }
+
+        [HttpGet("export-csv")]
+        public async Task<IActionResult> ExportCsv([FromRoute] string trackerId, [FromQuery] string? viewId)
+        {
+            var result = await entriesService.ExportEntriesToCsv(trackerId, viewId);
+
+            if (!result.IsSuccess)
+            {
+                return GetApiResponse(result);
+            }
+            var fileResult = result.Data!;
+            return File(fileResult.FileContents, fileResult.ContentType, fileResult.FileDownloadName);
+        }
     }
 }

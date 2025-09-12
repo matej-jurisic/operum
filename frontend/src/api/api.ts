@@ -84,6 +84,11 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => {
         setGlobalLoading(false);
+
+        if (response.config.responseType === "blob") {
+            return response;
+        }
+
         const messages = response.data?.messages;
         if (messages?.length) {
             messages.forEach((m: string) => {
@@ -152,24 +157,60 @@ api.interceptors.response.use(
                 }
             }
 
-            // Handle and show all other errors
-            const messages = error.response?.data?.messages;
-            if (messages?.length) {
-                messages.forEach((m: string) => {
+            if (
+                originalRequest.responseType === "blob" &&
+                error.response?.data instanceof Blob
+            ) {
+                // For blob requests that return JSON errors, we need to read the blob as text
+                try {
+                    const text = await error.response.data.text();
+                    const errorData = JSON.parse(text);
+                    const messages = errorData?.messages;
+                    if (messages?.length) {
+                        messages.forEach((m: string) => {
+                            notifications.show({
+                                title: "Error",
+                                message: m,
+                                color: "red",
+                                withBorder: true,
+                            });
+                        });
+                    } else {
+                        notifications.show({
+                            title: "Error",
+                            message:
+                                "An unknown error occurred. Please try again.",
+                            color: "red",
+                            withBorder: true,
+                        });
+                    }
+                } catch {
                     notifications.show({
                         title: "Error",
-                        message: m,
+                        message: "An unknown error occurred. Please try again.",
                         color: "red",
                         withBorder: true,
                     });
-                });
+                }
             } else {
-                notifications.show({
-                    title: "Error",
-                    message: "An unknown error occurred. Please try again.",
-                    color: "red",
-                    withBorder: true,
-                });
+                const messages = error.response?.data?.messages;
+                if (messages?.length) {
+                    messages.forEach((m: string) => {
+                        notifications.show({
+                            title: "Error",
+                            message: m,
+                            color: "red",
+                            withBorder: true,
+                        });
+                    });
+                } else {
+                    notifications.show({
+                        title: "Error",
+                        message: "An unknown error occurred. Please try again.",
+                        color: "red",
+                        withBorder: true,
+                    });
+                }
             }
 
             return Promise.reject(error);
