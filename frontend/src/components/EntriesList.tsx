@@ -37,9 +37,9 @@ import EntryDetailsDialog from "./EntryDetailsDialog"; // New import
 import EntryFormDialog from "./EntryFormDialog";
 import ImportEntriesDialog from "./ImportEntriesDialog";
 
-const gridColumnSizes = {
-    string: "auto",
-    number: "auto",
+const gridColumMinWidth = {
+    string: "200px",
+    number: "200px",
     date: "80px",
     datetime: "160px",
     timespan: "80px",
@@ -205,6 +205,7 @@ export default function EntriesList() {
                         </Badge>
                     </Group>
                 ),
+                minWidth: "100px",
                 width: "100px",
             });
         }
@@ -213,11 +214,12 @@ export default function EntriesList() {
             ...visibleFields.map((field) => ({
                 id: field.id,
                 label: field.name,
-                width: field.type
-                    ? gridColumnSizes[
-                          field.type as keyof typeof gridColumnSizes
+                minWidth: field.type
+                    ? gridColumMinWidth[
+                          field.type as keyof typeof gridColumMinWidth
                       ]
                     : "auto",
+                width: "auto",
             }))
         );
 
@@ -225,12 +227,18 @@ export default function EntriesList() {
             headers.push({
                 id: "createdAt",
                 label: "Created At",
-                width: gridColumnSizes.datetime,
+                minWidth: gridColumMinWidth.datetime,
+                width: "auto",
             });
         }
 
         if (visibleColumns["actions"]) {
-            headers.push({ id: "actions", label: "Actions", width: "125px" });
+            headers.push({
+                id: "actions",
+                label: "Actions",
+                minWidth: "125px",
+                width: "125px",
+            });
         }
 
         return headers;
@@ -585,8 +593,8 @@ export default function EntriesList() {
                                         {tableHeaders.map((header) => (
                                             <Table.Th
                                                 key={header.id}
+                                                miw={header.minWidth}
                                                 w={header.width}
-                                                miw={header.width}
                                             >
                                                 {typeof header.label ===
                                                 "string" ? (
