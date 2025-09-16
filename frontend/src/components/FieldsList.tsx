@@ -4,6 +4,7 @@ import {
     DragEndEvent,
     KeyboardSensor,
     PointerSensor,
+    TouchSensor,
     useSensor,
     useSensors,
 } from "@dnd-kit/core";
@@ -159,7 +160,12 @@ export default function FieldsList(props: FieldsListProps) {
         useSensor(PointerSensor, {
             activationConstraint: {
                 distance: 8,
-                delay: 100,
+            },
+        }),
+        useSensor(TouchSensor, {
+            activationConstraint: {
+                delay: 200,
+                tolerance: 5,
             },
         }),
         useSensor(KeyboardSensor, {
