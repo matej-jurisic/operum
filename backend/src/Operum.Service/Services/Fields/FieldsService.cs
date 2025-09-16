@@ -1,9 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Operum.Model;
 using Operum.Model.Common;
 using Operum.Model.Constants;
 using Operum.Model.DTOs.Fields;
 using Operum.Model.DTOs.Fields.Requests;
+using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Model.Enums;
 using Operum.Model.Extensions;
 using Operum.Model.Models;
@@ -12,7 +14,7 @@ using Operum.Service.Services.Authorization;
 
 namespace Operum.Service.Services.Fields
 {
-    public class FieldService(IAuthorizationService authorizationService, IMapper mapper, OperumContext db) : IFieldsService
+    public class FieldsService(IAuthorizationService authorizationService, IMapper mapper, OperumContext db, ILogger<FieldsService> logger) : IFieldsService
     {
         public async Task<ServiceResponse<FieldDto>> CreateField(string trackerId, CreateFieldDto field)
         {
@@ -35,6 +37,12 @@ namespace Operum.Service.Services.Fields
 
             newField.TrackerId = trackerId;
 
+            // Set the order to be last
+            var maxOrder = await db.Fields
+                .Where(x => x.TrackerId == trackerId)
+                .MaxAsync(x => (int?)x.Order) ?? 0;
+            newField.Order = maxOrder + 1;
+
             await db.Fields.AddAsync(newField);
             await db.SaveChangesAsync();
 
@@ -56,6 +64,10 @@ namespace Operum.Service.Services.Fields
 
             db.Fields.Remove(field);
             await db.SaveChangesAsync();
+
+            // Reorder remaining fields to fill the gap
+            await ReorderFieldsAfterDeletion(trackerId, field.Order);
+
             return ServiceResponse.Success();
         }
 
@@ -84,8 +96,67 @@ namespace Operum.Service.Services.Fields
                 return ServiceResponse.Failure(StatusCodeEnum.NotFound);
             }
 
-            var fields = await db.Fields.Where(x => x.TrackerId == trackerId).ToListAsync();
+            var fields = await db.Fields
+                .Where(x => x.TrackerId == trackerId)
+                .OrderBy(x => x.Order)
+                .ToListAsync();
+
             return ServiceResponse.Success(mapper.Map<List<Field>, List<FieldDto>>(fields));
+        }
+
+        public async Task<ServiceResponse> ReorderFields(string trackerId, ReorderFieldsDto reorderFields)
+        {
+            var user = authorizationService.GetCurrentUserDto();
+            var tracker = await db.Trackers.FindAsync(trackerId);
+
+            if (tracker == null || !user.Owns(tracker))
+            {
+                return ServiceResponse.Failure(StatusCodeEnum.NotFound);
+            }
+
+            // Validate that all field IDs belong to this tracker
+            var existingFields = await db.Fields
+                .Where(x => x.TrackerId == trackerId)
+                .Select(x => x.Id)
+                .ToListAsync();
+
+            var requestedFieldIds = reorderFields.FieldIds.ToHashSet();
+            var existingFieldIds = existingFields.ToHashSet();
+
+            // Check if all requested field IDs exist and belong to this tracker
+            if (!requestedFieldIds.SetEquals(existingFieldIds))
+            {
+                return ServiceResponse.Failure(StatusCodeEnum.BadRequest,
+                    "Invalid field IDs provided or missing fields in reorder request.");
+            }
+
+            using var transaction = await db.Database.BeginTransactionAsync();
+            try
+            {
+                for (int i = 0; i < reorderFields.FieldIds.Count; i++)
+                {
+                    var fieldId = reorderFields.FieldIds[i];
+                    var field = await db.Fields.FindAsync(fieldId);
+
+                    if (field != null && field.TrackerId == trackerId)
+                    {
+                        field.Order = i + 1;
+                        db.Fields.Update(field);
+                    }
+                }
+
+                await db.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return ServiceResponse.Success();
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                logger.LogError(ex, "Exception occurred while reordering fields.");
+                return ServiceResponse.Failure(StatusCodeEnum.InternalServerError,
+                    "Failed to reorder fields. Please try again.");
+            }
         }
 
         public async Task<ServiceResponse<FieldDto>> UpdateField(string trackerId, string fieldId, UpdateFieldDto field)
@@ -108,6 +179,21 @@ namespace Operum.Service.Services.Fields
 
             var updatedField = await GetField(trackerId, fieldId);
             return ServiceResponse.Success(updatedField.Data);
+        }
+
+        private async Task ReorderFieldsAfterDeletion(string trackerId, int deletedOrder)
+        {
+            var fieldsToUpdate = await db.Fields
+                .Where(x => x.TrackerId == trackerId && x.Order > deletedOrder)
+                .ToListAsync();
+
+            foreach (var field in fieldsToUpdate)
+            {
+                field.Order -= 1;
+                db.Fields.Update(field);
+            }
+
+            await db.SaveChangesAsync();
         }
     }
 }

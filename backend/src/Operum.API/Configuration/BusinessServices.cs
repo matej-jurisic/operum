@@ -39,7 +39,7 @@ namespace Operum.API.Configuration
             services.AddScoped<IUsersService, UsersService>();
             services.AddScoped<IRolesService, RolesService>();
             services.AddScoped<ITrackersService, TrackersService>();
-            services.AddScoped<IFieldsService, FieldService>();
+            services.AddScoped<IFieldsService, FieldsService>();
             services.AddScoped<IEntriesService, EntriesService>();
             services.AddScoped<IAnalyticsService, AnalyticsService>();
             services.AddScoped<IViewsService, ViewsService>();

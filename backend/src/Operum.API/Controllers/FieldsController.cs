@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Operum.API.Controllers.Base;
 using Operum.Model.DTOs.Fields.Requests;
+using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Service.Services.Fields;
 
 namespace Operum.API.Controllers
@@ -31,6 +32,12 @@ namespace Operum.API.Controllers
         public async Task<IActionResult> DeleteField([FromRoute] string trackerId, [FromRoute] string fieldId)
         {
             return GetApiResponse(await fieldsService.DeleteField(trackerId, fieldId));
+        }
+
+        [HttpPut("reorder")]
+        public async Task<IActionResult> ReorderFields([FromRoute] string trackerId, [FromBody] ReorderFieldsDto reorderFields)
+        {
+            return GetApiResponse(await fieldsService.ReorderFields(trackerId, reorderFields));
         }
 
         [HttpPut("{fieldId}")]

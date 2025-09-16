@@ -30,6 +30,7 @@ type TrackerContextType = {
     refreshViewsIfDirty: () => Promise<void>;
     refreshAnalyticsIfDirty: () => Promise<void>;
     CreateField: (trackerId: string, values: FieldUpsertDto) => Promise<void>;
+    UpdateFieldOrder: (trackerId: string, fieldIds: string[]) => Promise<void>;
     UpdateField: (
         trackerId: string,
         fieldId: string,
@@ -161,6 +162,14 @@ export const TrackerProvider: React.FC<{
         markAnalyticsDirty();
     };
 
+    const UpdateFieldOrder = async (trackerId: string, fieldIds: string[]) => {
+        await api.put(`/trackers/${trackerId}/fields/reorder`, {
+            fieldIds,
+        });
+        markEntriesDirty();
+        markAnalyticsDirty();
+    };
+
     const UpdateField = async (
         trackerId: string,
         fieldId: string,
@@ -278,6 +287,7 @@ export const TrackerProvider: React.FC<{
                 refreshViewsIfDirty: () => refreshIfDirty("views"),
                 CreateField,
                 UpdateField,
+                UpdateFieldOrder,
                 DeleteField,
                 DeleteEntry,
                 DeleteEntries,

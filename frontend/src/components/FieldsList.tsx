@@ -1,4 +1,21 @@
 import {
+    closestCenter,
+    DndContext,
+    DragEndEvent,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from "@dnd-kit/core";
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    useSortable,
+    verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
     ActionIcon,
     Badge,
     Button,
@@ -11,7 +28,7 @@ import {
 } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
-import { MdDelete, MdEdit } from "react-icons/md";
+import { MdDelete, MdDragHandle, MdEdit } from "react-icons/md";
 import { useTracker } from "../context/TrackerContext";
 import { FieldDto } from "../model/FieldDto";
 import { FieldUpsertDto } from "../model/requests/FieldUpsertDto";
@@ -29,15 +46,169 @@ enum OpenDialogType {
     EditField,
 }
 
+// Sortable Field Card Component
+interface SortableFieldCardProps {
+    field: FieldDto;
+    onEdit: (field: FieldDto) => void;
+    onDelete: (field: FieldDto) => void;
+    color?: string;
+}
+
+function SortableFieldCard({
+    field,
+    color,
+    onEdit,
+    onDelete,
+}: SortableFieldCardProps) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: field.id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+        <Card ref={setNodeRef} style={style} p="md" radius="md" withBorder>
+            <Group
+                align="flex-start"
+                justify="space-between"
+                wrap="nowrap"
+                gap={"xl"}
+                pl={"sm"}
+            >
+                {/* Drag handle */}
+                <ActionIcon
+                    variant="subtle"
+                    color={color}
+                    size="lg"
+                    {...attributes}
+                    {...listeners}
+                    style={{ cursor: "grab", alignSelf: "center" }}
+                    aria-label={`Drag to reorder field ${field.name}`}
+                >
+                    <MdDragHandle size={16} />
+                </ActionIcon>
+
+                {/* Field info section */}
+                <Stack gap={"sm"} flex={1}>
+                    <Title order={4} lineClamp={1} className="wrapped-text">
+                        {field.name}
+                    </Title>
+                    <Text
+                        c="dimmed"
+                        size="sm"
+                        lineClamp={3}
+                        className="wrapped-text"
+                    >
+                        {field.description || "No description"}
+                    </Text>
+                    <Group wrap="wrap">
+                        {field.required && (
+                            <Badge variant="light" color="red" size="sm">
+                                Required
+                            </Badge>
+                        )}
+                        <Badge variant="light" color="blue" size="sm">
+                            {field.type}
+                        </Badge>
+                    </Group>
+                </Stack>
+
+                {/* Action buttons */}
+                <Group gap="xs" wrap="nowrap">
+                    <ActionIcon
+                        variant="outline"
+                        color="green"
+                        size="lg"
+                        onClick={() => onEdit(field)}
+                        aria-label={`Edit field ${field.name}`}
+                    >
+                        <MdEdit size={16} />
+                    </ActionIcon>
+                    <ActionIcon
+                        variant="outline"
+                        color="red"
+                        size="lg"
+                        onClick={() => onDelete(field)}
+                        aria-label={`Delete field ${field.name}`}
+                    >
+                        <MdDelete size={16} />
+                    </ActionIcon>
+                </Group>
+            </Group>
+        </Card>
+    );
+}
+
 export default function FieldsList(props: FieldsListProps) {
     const [selectedField, setSelectedField] = useState<FieldDto>();
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
+    const [sortedFields, setSortedFields] = useState<FieldDto[]>([]);
 
-    const { fields, DeleteField, refreshFieldsIfDirty } = useTracker();
+    const { fields, DeleteField, refreshFieldsIfDirty, UpdateFieldOrder } =
+        useTracker();
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8, // Minimum distance to start dragging
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
 
     useEffect(() => {
         refreshFieldsIfDirty();
     }, []);
+
+    useEffect(() => {
+        setSortedFields([...fields]);
+    }, [fields]);
+
+    const handleDragEnd = async (event: DragEndEvent) => {
+        const { active, over } = event;
+
+        if (over && active.id !== over.id) {
+            const oldIndex = sortedFields.findIndex(
+                (field) => field.id === active.id
+            );
+            const newIndex = sortedFields.findIndex(
+                (field) => field.id === over.id
+            );
+
+            const newSortedFields = arrayMove(sortedFields, oldIndex, newIndex);
+            setSortedFields(newSortedFields);
+            try {
+                await UpdateFieldOrder(
+                    props.tracker.id,
+                    newSortedFields.map((f) => f.id)
+                );
+            } catch (error) {
+                setSortedFields([...fields]);
+                console.error("Failed to update field order:", error);
+            }
+        }
+    };
+
+    const handleEdit = (field: FieldDto) => {
+        setSelectedField(field);
+        setOpenDialogType(OpenDialogType.EditField);
+    };
+
+    const handleDelete = (field: FieldDto) => {
+        setSelectedField(field);
+        setOpenDialogType(OpenDialogType.DeleteField);
+    };
 
     return (
         <>
@@ -53,87 +224,30 @@ export default function FieldsList(props: FieldsListProps) {
                         Create
                     </Button>
                 </Group>
-                {fields.length > 0 ? (
-                    fields.map((field) => (
-                        <Card key={field.id} p="md" radius="md" withBorder>
-                            {/* Option 1: Stacked layout for mobile */}
-                            <Group
-                                align="flex-start"
-                                justify="space-between"
-                                wrap="nowrap"
-                            >
-                                {/* Field info section */}
-                                <Stack gap={"sm"} flex={1}>
-                                    <Title
-                                        order={4}
-                                        lineClamp={1}
-                                        className="wrapped-text"
-                                    >
-                                        {field.name}
-                                    </Title>
-                                    <Text
-                                        c="dimmed"
-                                        size="sm"
-                                        lineClamp={3}
-                                        className="wrapped-text"
-                                    >
-                                        {field.description || "No description"}
-                                    </Text>
-                                    <Group wrap="wrap">
-                                        {field.required && (
-                                            <Badge
-                                                variant="light"
-                                                color="red"
-                                                size="sm"
-                                            >
-                                                Required
-                                            </Badge>
-                                        )}
-                                        <Badge
-                                            variant="light"
-                                            color="blue"
-                                            size="sm"
-                                        >
-                                            {field.type}
-                                        </Badge>
-                                    </Group>
-                                </Stack>
 
-                                {/* Badges and actions section - always horizontal */}
-
-                                <Group gap="xs" wrap="nowrap">
-                                    <ActionIcon
-                                        variant="outline"
-                                        color="green"
-                                        size="lg"
-                                        onClick={() => {
-                                            setSelectedField(field);
-                                            setOpenDialogType(
-                                                OpenDialogType.EditField
-                                            );
-                                        }}
-                                        aria-label={`Edit field ${field.name}`}
-                                    >
-                                        <MdEdit size={16} />
-                                    </ActionIcon>
-                                    <ActionIcon
-                                        variant="outline"
-                                        color="red"
-                                        size="lg"
-                                        onClick={() => {
-                                            setSelectedField(field);
-                                            setOpenDialogType(
-                                                OpenDialogType.DeleteField
-                                            );
-                                        }}
-                                        aria-label={`Delete field ${field.name}`}
-                                    >
-                                        <MdDelete size={16} />
-                                    </ActionIcon>
-                                </Group>
-                            </Group>
-                        </Card>
-                    ))
+                {sortedFields.length > 0 ? (
+                    <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                    >
+                        <SortableContext
+                            items={sortedFields.map((field) => field.id)}
+                            strategy={verticalListSortingStrategy}
+                        >
+                            <Stack gap="md">
+                                {sortedFields.map((field) => (
+                                    <SortableFieldCard
+                                        key={field.id}
+                                        color={props.tracker.color}
+                                        field={field}
+                                        onEdit={handleEdit}
+                                        onDelete={handleDelete}
+                                    />
+                                ))}
+                            </Stack>
+                        </SortableContext>
+                    </DndContext>
                 ) : (
                     <Paper withBorder p="xl" radius="md">
                         <Stack gap="md" align="center">
@@ -147,6 +261,7 @@ export default function FieldsList(props: FieldsListProps) {
                     </Paper>
                 )}
             </Stack>
+
             {selectedField && openDialogType === OpenDialogType.DeleteField && (
                 <ConfirmationDialog
                     isOpen={selectedField !== undefined}
