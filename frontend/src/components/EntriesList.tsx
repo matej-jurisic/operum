@@ -38,8 +38,8 @@ import EntryFormDialog from "./EntryFormDialog";
 import ImportEntriesDialog from "./ImportEntriesDialog";
 
 const gridColumMinWidth = {
-    string: "auto",
-    number: "auto",
+    string: "100px",
+    number: "100px",
     date: "80px",
     datetime: "160px",
     timespan: "80px",

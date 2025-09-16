@@ -66,8 +66,8 @@ export default function Tracker() {
                     <StickyContainer>
                         <Tabs.List>
                             <Tabs.Tab value="entries">Entries</Tabs.Tab>
-                            <Tabs.Tab value="views">Views</Tabs.Tab>
                             <Tabs.Tab value="fields">Fields</Tabs.Tab>
+                            <Tabs.Tab value="views">Views</Tabs.Tab>
                             <Tabs.Tab value="analytics">Analytics</Tabs.Tab>
                         </Tabs.List>
                     </StickyContainer>
