@@ -38,8 +38,8 @@ import EntryFormDialog from "./EntryFormDialog";
 import ImportEntriesDialog from "./ImportEntriesDialog";
 
 const gridColumMinWidth = {
-    string: "200px",
-    number: "200px",
+    string: "auto",
+    number: "auto",
     date: "80px",
     datetime: "160px",
     timespan: "80px",
@@ -594,7 +594,7 @@ export default function EntriesList() {
                                             <Table.Th
                                                 key={header.id}
                                                 miw={header.minWidth}
-                                                w={header.width}
+                                                maw={header.width}
                                             >
                                                 {typeof header.label ===
                                                 "string" ? (
