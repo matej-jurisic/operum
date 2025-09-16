@@ -6,6 +6,7 @@ import {
     SelectProps,
     Stack,
     Text,
+    Textarea,
     TextInput,
     useMantineTheme,
 } from "@mantine/core";
@@ -182,8 +183,9 @@ export default function TrackerFormDialog(props: TrackerFormDialogProps) {
                         maxLength={30}
                         {...form.getInputProps("name")}
                     />
-                    <TextInput
+                    <Textarea
                         label={`${entityName} Description`}
+                        autosize
                         placeholder={`Enter ${entityName.toLowerCase()} description`}
                         maxLength={500}
                         {...form.getInputProps("description")}
