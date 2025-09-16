@@ -10,15 +10,26 @@ import {
     useMantineTheme,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import { useEffect, useMemo, useState } from "react";
 import { FaCheck, FaCircle } from "react-icons/fa";
 import api from "../api/api";
-import { TrackerUpsertDto } from "../model/requests/CreateTrackerDto";
+import { TrackerType } from "../model/enums/TrackerTypeEnum";
+import { TrackerUpsertDto } from "../model/requests/TrackerUpsertDto";
+import { TrackerDto } from "../model/TrackerDto";
 
 export interface TrackerFormDialogProps {
     onClose: () => void;
     onConfirm?: () => void;
     trackerId?: string;
     initialValues?: TrackerUpsertDto;
+    asTemplate?: boolean;
+    withTemplate?: boolean;
+}
+
+interface TemplateItem {
+    value: string;
+    label: string;
+    description?: string;
 }
 
 const colorOptions = [
@@ -38,6 +49,11 @@ const colorOptions = [
     { value: "violet", label: "Violet" },
 ];
 
+const trackerTypeOptions = [
+    { value: TrackerType.TemplateDraft.toString(), label: "Template Draft" },
+    { value: TrackerType.PublicTemplate.toString(), label: "Public Template" },
+];
+
 const renderColorOption = (
     theme: ReturnType<typeof useMantineTheme>
 ): SelectProps["renderOption"] => {
@@ -53,26 +69,60 @@ const renderColorOption = (
     );
 };
 
+const renderTemplateOption: SelectProps["renderOption"] = ({
+    option,
+    checked,
+}) => {
+    const o = option as TemplateItem;
+    return (
+        <Group gap="xs" wrap="nowrap">
+            <Stack gap={0} flex={1}>
+                <Text>{o.label}</Text>
+                {o.description && (
+                    <Text size="xs" c="dimmed">
+                        {o.description}
+                    </Text>
+                )}
+            </Stack>
+            {checked && <FaCheck color="gray" />}
+        </Group>
+    );
+};
+
+const GetPublicTemplateList = async () => {
+    const response = await api.get("/trackers/templates");
+    return response.data.data;
+};
+
 export default function TrackerFormDialog(props: TrackerFormDialogProps) {
     const theme = useMantineTheme();
+    const [templateList, setTemplateList] = useState<TrackerDto[]>([]);
+
+    // pick the right labels based on template/tracker
+    const entityName = props.asTemplate ? "Template" : "Tracker";
 
     const form = useForm<TrackerUpsertDto>({
         initialValues: props.initialValues || {
             name: "",
             description: "",
             color: "indigo",
+            trackerTypeId: props.asTemplate
+                ? TrackerType.TemplateDraft
+                : undefined,
         },
         validate: {
             name: (value) =>
                 value.trim().length === 0
-                    ? "Field name is required"
+                    ? `${entityName} name is required`
                     : value.length > 30
-                    ? "Name must be shorter than 50 characters"
+                    ? `${entityName} name must be shorter than 30 characters`
                     : null,
             description: (value) =>
                 value && value.length > 500
-                    ? "Description must be at most 500 characters"
+                    ? `${entityName} description must be at most 500 characters`
                     : null,
+            templateTrackerId: (value) =>
+                props.withTemplate && !value ? "Tracker is required" : null,
         },
     });
 
@@ -87,32 +137,79 @@ export default function TrackerFormDialog(props: TrackerFormDialogProps) {
         form.reset();
     };
 
+    useEffect(() => {
+        const GetData = async () => {
+            setTemplateList(await GetPublicTemplateList());
+        };
+
+        if (props.withTemplate) GetData();
+    }, []);
+
+    const trackerOptions: TemplateItem[] = useMemo(() => {
+        return templateList.map((t) => ({
+            label: t.name,
+            value: t.id.toString(),
+            description: t.description,
+        }));
+    }, [templateList]);
+
     return (
-        <Modal opened onClose={props.onClose} title="Create Tracker" centered>
+        <Modal
+            opened
+            onClose={props.onClose}
+            title={
+                props.trackerId
+                    ? `Update ${entityName}`
+                    : `Create ${entityName}`
+            }
+            centered
+        >
             <form onSubmit={form.onSubmit(handleSubmit)}>
                 <Stack>
+                    {props.withTemplate && !props.trackerId && (
+                        <Select
+                            label={`From Template`}
+                            placeholder={"Select template"}
+                            data={trackerOptions}
+                            renderOption={renderTemplateOption}
+                            {...form.getInputProps("templateTrackerId")}
+                            value={form.values.templateTrackerId}
+                        />
+                    )}
                     <TextInput
-                        label="Tracker Name"
-                        placeholder="Enter tracker name"
+                        label={`${entityName} Name`}
+                        placeholder={`Enter ${entityName.toLowerCase()} name`}
                         maxLength={30}
                         {...form.getInputProps("name")}
                     />
                     <TextInput
-                        label="Description"
-                        placeholder="Enter tracker description"
+                        label={`${entityName} Description`}
+                        placeholder={`Enter ${entityName.toLowerCase()} description`}
                         maxLength={500}
                         {...form.getInputProps("description")}
                     />
                     <Select
-                        label="Color"
-                        placeholder="Select tracker color"
+                        label={`${entityName} Color`}
+                        placeholder={`Select ${entityName.toLowerCase()} color`}
                         data={colorOptions}
                         allowDeselect={false}
                         renderOption={renderColorOption(theme)}
                         {...form.getInputProps("color")}
                     />
+                    {props.asTemplate && props.trackerId && (
+                        <Select
+                            label={`${entityName} Type`}
+                            placeholder={`Select ${entityName.toLowerCase()} type`}
+                            data={trackerTypeOptions}
+                            allowDeselect={false}
+                            {...form.getInputProps("trackerTypeId")}
+                            value={form.values.trackerTypeId?.toString()}
+                        />
+                    )}
                     <Button type="submit">
-                        {props.trackerId ? "Update Tracker" : "Create Tracker"}
+                        {props.trackerId
+                            ? `Update ${entityName}`
+                            : `Create ${entityName}`}
                     </Button>
                 </Stack>
             </form>

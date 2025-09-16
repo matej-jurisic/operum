@@ -33,6 +33,7 @@ public partial class Program
             using var scope = app.Services.CreateScope();
 
             var db = scope.ServiceProvider.GetRequiredService<OperumContext>();
+            await DataSeeder.SeedTrackerTypesAsync(db);
             db.Database.Migrate();
 
             var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();

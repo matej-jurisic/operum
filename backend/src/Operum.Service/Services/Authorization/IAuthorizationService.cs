@@ -8,5 +8,6 @@ namespace Operum.Service.Services.Authorization
         ApplicationUser GetCurrentUser();
         public ApplicationUserDto GetCurrentUserDto();
         List<string> GetCurrentUserRoles();
+        Task<bool> HasRole(string role);
     }
 }

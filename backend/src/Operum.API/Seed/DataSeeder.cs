@@ -1,11 +1,39 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Operum.Model;
 using Operum.Model.Constants;
+using Operum.Model.Enums;
 using Operum.Model.Models;
 
 namespace Operum.API.Seed
 {
     public class DataSeeder
     {
+        public async static Task SeedTrackerTypesAsync(OperumContext db)
+        {
+            TrackerType templateDraft = new()
+            {
+                Id = (int)TrackerTypeEnum.TemplateDraft,
+                Name = "Template Draft"
+            };
+            TrackerType publicTemplate = new()
+            {
+                Id = (int)TrackerTypeEnum.PublicTemplate,
+                Name = "Public Template"
+            };
+
+            List<TrackerType> trackerTypes = [templateDraft, publicTemplate];
+
+            foreach (TrackerType type in trackerTypes)
+            {
+                if (!await db.TrackerTypes.AnyAsync(x => x.Id == type.Id))
+                {
+                    db.TrackerTypes.Add(type);
+                }
+            }
+
+            await db.SaveChangesAsync();
+        }
         public async static Task SeedUsersAsync(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IConfiguration? configuration = null)
         {
             // First, ensure roles exist

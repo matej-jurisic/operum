@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Operum.API.Controllers.Base;
 using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Service.Services.Trackers;
@@ -13,6 +14,19 @@ namespace Operum.API.Controllers
         public async Task<IActionResult> GetTrackerList()
         {
             return GetApiResponse(await trackerService.GetTrackerList());
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet("admin-templates")]
+        public async Task<IActionResult> GetAllTemplateTrackerList()
+        {
+            return GetApiResponse(await trackerService.GetAllTemplateTrackerList());
+        }
+
+        [HttpGet("templates")]
+        public async Task<IActionResult> GetPublicTemplateTrackerList()
+        {
+            return GetApiResponse(await trackerService.GetPublicTemplateTrackerList());
         }
 
         [HttpGet("{id}")]

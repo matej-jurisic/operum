@@ -27,7 +27,7 @@ export default function Header(props: Props) {
     const navigate = useNavigate();
 
     return (
-        <Group align="flex-end">
+        <Group align="center">
             {props.items}
             <Button
                 variant="outline"

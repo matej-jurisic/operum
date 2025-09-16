@@ -6,4 +6,6 @@ export interface TrackerDto {
     description?: string;
     color?: string;
     fields: FieldDto[];
+    trackerTypeId?: number;
+    trackerTypeName?: string;
 }

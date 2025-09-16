@@ -1,9 +1,9 @@
-import { Button, Container, Group, Stack, Tabs, Title } from "@mantine/core";
+import { Badge, Container, Group, Stack, Tabs, Title } from "@mantine/core";
 import { useEffect, useState } from "react";
-import { IoMdReturnLeft } from "react-icons/io";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import api from "../api/api";
 import AnalyiticsList from "../components/AnalyticsList";
+import BackButton from "../components/BackButton";
 import EntriesList from "../components/EntriesList";
 import FieldsList from "../components/FieldsList";
 import Header from "../components/Header";
@@ -20,10 +20,7 @@ const GetTracker = async (trackerId: string) => {
 
 export default function Tracker() {
     const { trackerId } = useParams();
-    const navigate = useNavigate();
-
     const [tracker, setTracker] = useState<TrackerDto>();
-    const [activeTab, setActiveTab] = useState<string | null>("entries");
 
     useEffect(() => {
         const fetchData = async () => {
@@ -40,21 +37,22 @@ export default function Tracker() {
         <TrackerProvider initialTracker={tracker}>
             <Stack gap="lg">
                 <Group justify="space-between" gap={"xl"}>
-                    <Title order={2} c={tracker.color} flex={1}>
-                        {tracker.name}
-                    </Title>
+                    <Group align="center">
+                        <Title order={2} c={tracker.color} flex={1}>
+                            {tracker.name}
+                        </Title>
+                        {tracker.trackerTypeName && (
+                            <Badge variant="light">
+                                {tracker.trackerTypeName}
+                            </Badge>
+                        )}
+                    </Group>
 
                     <Header
                         color={tracker.color}
                         items={[
-                            <Button
-                                variant="outline"
-                                color={tracker.color}
-                                onClick={() => navigate("/home")}
-                            >
-                                <IoMdReturnLeft size={16} />
-                            </Button>,
                             <SelectView />,
+                            <BackButton color={tracker.color} />,
                         ]}
                     />
                 </Group>
@@ -62,9 +60,8 @@ export default function Tracker() {
                 <Tabs
                     variant="default"
                     color={tracker.color}
-                    value={activeTab}
-                    onChange={setActiveTab}
                     keepMounted={false}
+                    defaultValue={"entries"}
                 >
                     <StickyContainer>
                         <Tabs.List>

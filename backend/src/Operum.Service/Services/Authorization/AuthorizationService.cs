@@ -1,11 +1,12 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Operum.Model.DTOs.Users;
 using Operum.Model.Models;
 using System.Security.Claims;
 
 namespace Operum.Service.Services.Authorization
 {
-    public class AuthorizationService(IHttpContextAccessor httpContextAccessor) : IAuthorizationService
+    public class AuthorizationService(IHttpContextAccessor httpContextAccessor, UserManager<ApplicationUser> userManager) : IAuthorizationService
     {
         public ApplicationUserDto GetCurrentUserDto()
         {
@@ -60,6 +61,12 @@ namespace Operum.Service.Services.Authorization
                 return [];
 
             return [.. roleClaims.Select(claim => claim.Value)];
+        }
+
+        public async Task<bool> HasRole(string role)
+        {
+            var user = GetCurrentUser();
+            return await userManager.IsInRoleAsync(user, role);
         }
     }
 }

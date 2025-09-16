@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Operum.Model;
@@ -11,9 +12,11 @@ using Operum.Model;
 namespace Operum.Model.Migrations
 {
     [DbContext(typeof(OperumContext))]
-    partial class OperumContextModelSnapshot : ModelSnapshot
+    [Migration("20250916070417_AddTemplateTrackers")]
+    partial class AddTemplateTrackers
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -389,6 +392,9 @@ namespace Operum.Model.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("text");
 
+                    b.Property<bool>("IsTemplate")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -397,33 +403,11 @@ namespace Operum.Model.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int?>("TrackerTypeId")
-                        .HasColumnType("integer");
-
                     b.HasKey("Id");
 
                     b.HasIndex("OwnerId");
 
-                    b.HasIndex("TrackerTypeId");
-
                     b.ToTable("Trackers");
-                });
-
-            modelBuilder.Entity("Operum.Model.Models.TrackerType", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("TrackerTypes");
                 });
 
             modelBuilder.Entity("Operum.Model.Models.View", b =>
@@ -671,13 +655,7 @@ namespace Operum.Model.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Operum.Model.Models.TrackerType", "TrackerType")
-                        .WithMany()
-                        .HasForeignKey("TrackerTypeId");
-
                     b.Navigation("Owner");
-
-                    b.Navigation("TrackerType");
                 });
 
             modelBuilder.Entity("Operum.Model.Models.View", b =>

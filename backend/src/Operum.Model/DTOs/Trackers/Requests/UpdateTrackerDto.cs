@@ -7,6 +7,7 @@ namespace Operum.Model.DTOs.Trackers.Requests
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string? Color { get; set; }
+        public int? TrackerTypeId { get; set; } = null;
     }
 
     public class UpdateTrackerDtoValidator : AbstractValidator<UpdateTrackerDto>

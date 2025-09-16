@@ -27,6 +27,7 @@ namespace Operum.Service.Mappings.Profiles
             mapper.Register<Tracker, TrackerDto>((s, d) =>
             {
                 d.Fields = mapper.Map<ICollection<Field>, List<FieldDto>>(s.Fields);
+                d.TrackerTypeName = s.TrackerType?.Name;
             });
             mapper.Register<TrackerDto, Tracker>();
             mapper.Register<CreateTrackerDto, Tracker>();

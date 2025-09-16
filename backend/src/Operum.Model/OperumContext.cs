@@ -1,11 +1,12 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Operum.Model.Models;
 
 namespace Operum.Model
 {
-    public class OperumContext(DbContextOptions<OperumContext> options) : IdentityDbContext<ApplicationUser>(options)
+    public class OperumContext(DbContextOptions<OperumContext> options) : IdentityDbContext<ApplicationUser, IdentityRole, string>(options)
     {
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -40,5 +41,6 @@ namespace Operum.Model
         public DbSet<ViewFilter> ViewFilters { get; set; }
         public DbSet<ViewGroup> ViewGroups { get; set; }
         public DbSet<ViewColumn> ViewColumns { get; set; }
+        public DbSet<TrackerType> TrackerTypes { get; set; }
     }
 }

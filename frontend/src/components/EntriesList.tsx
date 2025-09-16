@@ -573,7 +573,6 @@ export default function EntriesList() {
                     {entries.length > 0 && !isLoadingData ? (
                         <Table.ScrollContainer minWidth={0}>
                             <Table
-                                h={"100%"}
                                 striped
                                 stickyHeader
                                 highlightOnHover

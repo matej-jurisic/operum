@@ -52,6 +52,12 @@ const App = observer(() => {
                         <Route
                             path="admin-panel"
                             element={
+                                <Navigate to="/admin-panel/users" replace />
+                            }
+                        />
+                        <Route
+                            path="admin-panel/*"
+                            element={
                                 <PrivateRoute
                                     allowedRoles={["admin"]}
                                     page={<AdminPanel />}

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Operum.Model;
@@ -11,9 +12,11 @@ using Operum.Model;
 namespace Operum.Model.Migrations
 {
     [DbContext(typeof(OperumContext))]
-    partial class OperumContextModelSnapshot : ModelSnapshot
+    [Migration("20250916081400_AddTrackerTypes")]
+    partial class AddTrackerTypes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -423,7 +426,7 @@ namespace Operum.Model.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("TrackerTypes");
+                    b.ToTable("TrackerType");
                 });
 
             modelBuilder.Entity("Operum.Model.Models.View", b =>
