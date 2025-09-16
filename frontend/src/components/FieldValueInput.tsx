@@ -1,5 +1,5 @@
 // Updated FieldValueInput.tsx
-import { NumberInput, Select, TextInput } from "@mantine/core";
+import { NumberInput, Select, Textarea } from "@mantine/core";
 import { DatePickerInput, DateTimePicker, TimePicker } from "@mantine/dates";
 import { UseFormReturnType } from "@mantine/form";
 import { CSSProperties } from "react";
@@ -29,7 +29,7 @@ export default function FieldValueInput<T extends Record<string, any> = any>({
 
     switch (field.type) {
         case "string":
-            return <TextInput {...baseProps} style={styles} />;
+            return <Textarea {...baseProps} style={styles} autosize />;
 
         case "number":
             return <NumberInput {...baseProps} style={styles} />;

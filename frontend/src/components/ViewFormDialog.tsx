@@ -8,6 +8,7 @@ import {
     Select,
     Stack,
     Text,
+    Textarea,
     TextInput,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
@@ -153,10 +154,11 @@ export default function ViewFormDialog({ tracker, onClose }: Props) {
                             maxLength={50}
                             {...form.getInputProps("name")}
                         />
-                        <TextInput
+                        <Textarea
                             label="Description"
                             placeholder="Enter view description"
                             maxLength={500}
+                            autosize
                             {...form.getInputProps("description")}
                         />
                     </Stack>

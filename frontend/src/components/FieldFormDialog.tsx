@@ -4,6 +4,7 @@ import {
     Modal,
     Select,
     Stack,
+    Textarea,
     TextInput,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
@@ -79,9 +80,10 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
                         {...form.getInputProps("type")}
                     />
 
-                    <TextInput
+                    <Textarea
                         label="Description"
                         placeholder="Enter field description"
+                        autosize
                         maxLength={500}
                         {...form.getInputProps("description")}
                     />
