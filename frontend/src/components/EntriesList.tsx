@@ -21,7 +21,6 @@ import { IoMdEye } from "react-icons/io";
 import { MdDelete, MdEdit, MdSelectAll } from "react-icons/md";
 import { PiFileCsvDuotone } from "react-icons/pi";
 import { RiFileListFill } from "react-icons/ri";
-import { RxCross2 } from "react-icons/rx";
 import api from "../api/api";
 import { useTracker } from "../context/TrackerContext";
 import { EntryDto } from "../model/EntryDto";
@@ -156,10 +155,6 @@ export default function EntriesList() {
     const clearSelection = () => {
         setSelectedEntryIds(new Set());
         setIsSelectMode(false);
-    };
-
-    const enterSelectMode = () => {
-        setIsSelectMode(true);
     };
 
     // Check if all entries are selected
@@ -428,41 +423,30 @@ export default function EntriesList() {
                     </Group>
                     <Group justify="flex-end" wrap="nowrap">
                         {/* Bulk actions */}
-                        {!isSelectMode ? (
+
+                        {isSelectMode && (
                             <ActionIcon
                                 variant="outline"
-                                color={tracker.color}
-                                onClick={enterSelectMode}
-                                disabled={entries.length === 0}
+                                color="red"
                                 size={"lg"}
+                                onClick={() =>
+                                    setOpenDialogType(OpenDialogType.BulkDelete)
+                                }
+                                disabled={selectedEntryIds.size === 0}
                             >
-                                <MdSelectAll size={18} />
+                                <MdDelete size={18} />
                             </ActionIcon>
-                        ) : (
-                            <Group>
-                                <ActionIcon
-                                    variant="outline"
-                                    color="red"
-                                    size={"lg"}
-                                    onClick={() =>
-                                        setOpenDialogType(
-                                            OpenDialogType.BulkDelete
-                                        )
-                                    }
-                                    disabled={selectedEntryIds.size === 0}
-                                >
-                                    <MdDelete size={18} />
-                                </ActionIcon>
-                                <ActionIcon
-                                    size={"lg"}
-                                    variant="outline"
-                                    color="gray"
-                                    onClick={clearSelection}
-                                >
-                                    <RxCross2 size={18} />
-                                </ActionIcon>
-                            </Group>
                         )}
+
+                        <ActionIcon
+                            variant={isSelectMode ? "filled" : "outline"}
+                            color={tracker.color}
+                            onClick={() => setIsSelectMode((prev) => !prev)}
+                            disabled={entries.length === 0}
+                            size={"lg"}
+                        >
+                            <MdSelectAll size={18} />
+                        </ActionIcon>
 
                         <Menu
                             shadow="md"
@@ -724,6 +708,7 @@ export default function EntriesList() {
                         await ExportCsv(tracker.id, selectedViewId);
                         setOpenDialogType(undefined);
                     }}
+                    title="Export data"
                     message={
                         <Text>
                             Would you like to export entries for{" "}

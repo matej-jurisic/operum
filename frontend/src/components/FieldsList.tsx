@@ -4,7 +4,6 @@ import {
     DragEndEvent,
     KeyboardSensor,
     PointerSensor,
-    TouchSensor,
     useSensor,
     useSensors,
 } from "@dnd-kit/core";
@@ -31,6 +30,7 @@ import {
 import { CSSProperties, useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { MdDelete, MdDragHandle, MdEdit } from "react-icons/md";
+import { RiListOrdered2 } from "react-icons/ri";
 import { useTracker } from "../context/TrackerContext";
 import { FieldDto } from "../model/FieldDto";
 import { FieldUpsertDto } from "../model/requests/FieldUpsertDto";
@@ -54,11 +54,13 @@ interface SortableFieldCardProps {
     onEdit: (field: FieldDto) => void;
     onDelete: (field: FieldDto) => void;
     color?: string;
+    isReordering: boolean;
 }
 
 function SortableFieldCard({
     field,
     color,
+    isReordering,
     onEdit,
     onDelete,
 }: SortableFieldCardProps) {
@@ -81,24 +83,25 @@ function SortableFieldCard({
         <Card ref={setNodeRef} style={style} p="md" radius="md" withBorder>
             <Group align="flex-start" justify="space-between" wrap="nowrap">
                 {/* Drag handle */}
-                <ActionIcon
-                    variant="subtle"
-                    color={color}
-                    size="lg"
-                    {...attributes}
-                    {...listeners}
-                    style={{
-                        cursor: "grab",
-                        alignSelf: "center",
-                        touchAction: "none",
-                    }}
-                    aria-label={`Drag to reorder field ${field.name}`}
-                >
-                    <MdDragHandle size={16} />
-                </ActionIcon>
-
+                {isReordering && (
+                    <ActionIcon
+                        variant="subtle"
+                        color={color}
+                        size="xl"
+                        {...attributes}
+                        {...listeners}
+                        style={{
+                            cursor: "grab",
+                            alignSelf: "center",
+                            touchAction: "none",
+                        }}
+                        aria-label={`Drag to reorder field ${field.name}`}
+                    >
+                        <MdDragHandle size={25} />
+                    </ActionIcon>
+                )}
                 {/* Field info section */}
-                <Stack gap={"xs"} flex={1}>
+                <Stack gap={"sm"} flex={1}>
                     <Title order={4} lineClamp={1} className="wrapped-text">
                         {field.name}
                     </Title>
@@ -152,6 +155,7 @@ export default function FieldsList(props: FieldsListProps) {
     const [selectedField, setSelectedField] = useState<FieldDto>();
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
     const [sortedFields, setSortedFields] = useState<FieldDto[]>([]);
+    const [isReordering, setIsReordering] = useState(false);
 
     const { fields, DeleteField, refreshFieldsIfDirty, UpdateFieldOrder } =
         useTracker();
@@ -159,13 +163,7 @@ export default function FieldsList(props: FieldsListProps) {
     const sensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: {
-                distance: 8,
-            },
-        }),
-        useSensor(TouchSensor, {
-            activationConstraint: {
-                delay: 200,
-                tolerance: 5,
+                distance: 4,
             },
         }),
         useSensor(KeyboardSensor, {
@@ -219,7 +217,7 @@ export default function FieldsList(props: FieldsListProps) {
     return (
         <>
             <Stack gap="md">
-                <Group justify="space-between" w="100%" h={36}>
+                <Group justify="space-between" w="100%">
                     <Button
                         color={props.tracker.color}
                         onClick={() =>
@@ -229,6 +227,16 @@ export default function FieldsList(props: FieldsListProps) {
                     >
                         Create
                     </Button>
+                    <Group>
+                        <ActionIcon
+                            size={"lg"}
+                            variant={isReordering ? "filled" : "outline"}
+                            onClick={() => setIsReordering((prev) => !prev)}
+                            color={props.tracker.color}
+                        >
+                            <RiListOrdered2 size={18} />
+                        </ActionIcon>
+                    </Group>
                 </Group>
 
                 {sortedFields.length > 0 ? (
@@ -245,6 +253,7 @@ export default function FieldsList(props: FieldsListProps) {
                             <Stack gap="md">
                                 {sortedFields.map((field) => (
                                     <SortableFieldCard
+                                        isReordering={isReordering}
                                         key={field.id}
                                         color={props.tracker.color}
                                         field={field}
