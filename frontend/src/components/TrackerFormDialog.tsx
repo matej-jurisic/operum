@@ -122,7 +122,7 @@ export default function TrackerFormDialog(props: TrackerFormDialogProps) {
                     ? `${entityName} description must be at most 500 characters`
                     : null,
             templateTrackerId: (value) =>
-                props.withTemplate && !value ? "Tracker is required" : null,
+                props.withTemplate && !value ? "Template is required" : null,
         },
     });
 

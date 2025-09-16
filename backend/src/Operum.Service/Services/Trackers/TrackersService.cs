@@ -180,12 +180,31 @@ namespace Operum.Service.Services.Trackers
         public async Task<ServiceResponse<TrackerDto>> GetTracker(string id)
         {
             var user = authorizationService.GetCurrentUserDto();
+
+            var isAdmin = await authorizationService.HasRole("Admin");
+
             var tracker = await db.Trackers
                 .Include(x => x.Fields)
                 .Include(x => x.TrackerType)
                 .FirstOrDefaultAsync(x => x.Id == id);
 
-            if (tracker == null || tracker.OwnerId != user.Id)
+            bool hasAccess = false;
+
+            if (tracker != null)
+            {
+                if (isAdmin)
+                {
+                    // Owner or any template
+                    hasAccess = tracker.OwnerId == user.Id || tracker.TrackerTypeId != null;
+                }
+                else
+                {
+                    // Owner
+                    hasAccess = tracker.OwnerId == user.Id;
+                }
+            }
+
+            if (tracker == null || !hasAccess)
             {
                 return ServiceResponse.Failure(StatusCodeEnum.NotFound);
             }
