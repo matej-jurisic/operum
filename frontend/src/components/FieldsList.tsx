@@ -7,6 +7,7 @@ import {
     useSensor,
     useSensors,
 } from "@dnd-kit/core";
+import { restrictToParentElement } from "@dnd-kit/modifiers";
 import {
     arrayMove,
     SortableContext,
@@ -26,7 +27,7 @@ import {
     Text,
     Title,
 } from "@mantine/core";
-import { useEffect, useState } from "react";
+import { CSSProperties, useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { MdDelete, MdDragHandle, MdEdit } from "react-icons/md";
 import { useTracker } from "../context/TrackerContext";
@@ -73,17 +74,11 @@ function SortableFieldCard({
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0.5 : 1,
-    };
+    } as CSSProperties;
 
     return (
         <Card ref={setNodeRef} style={style} p="md" radius="md" withBorder>
-            <Group
-                align="flex-start"
-                justify="space-between"
-                wrap="nowrap"
-                gap={"xl"}
-                pl={"sm"}
-            >
+            <Group align="flex-start" justify="space-between" wrap="nowrap">
                 {/* Drag handle */}
                 <ActionIcon
                     variant="subtle"
@@ -91,14 +86,18 @@ function SortableFieldCard({
                     size="lg"
                     {...attributes}
                     {...listeners}
-                    style={{ cursor: "grab", alignSelf: "center" }}
+                    style={{
+                        cursor: "grab",
+                        alignSelf: "center",
+                        touchAction: "none",
+                    }}
                     aria-label={`Drag to reorder field ${field.name}`}
                 >
                     <MdDragHandle size={16} />
                 </ActionIcon>
 
                 {/* Field info section */}
-                <Stack gap={"sm"} flex={1}>
+                <Stack gap={"xs"} flex={1}>
                     <Title order={4} lineClamp={1} className="wrapped-text">
                         {field.name}
                     </Title>
@@ -159,7 +158,7 @@ export default function FieldsList(props: FieldsListProps) {
     const sensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: {
-                distance: 8, // Minimum distance to start dragging
+                distance: 8,
             },
         }),
         useSensor(KeyboardSensor, {
@@ -230,6 +229,7 @@ export default function FieldsList(props: FieldsListProps) {
                         sensors={sensors}
                         collisionDetection={closestCenter}
                         onDragEnd={handleDragEnd}
+                        modifiers={[restrictToParentElement]}
                     >
                         <SortableContext
                             items={sortedFields.map((field) => field.id)}
