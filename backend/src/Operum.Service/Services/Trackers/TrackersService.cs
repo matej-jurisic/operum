@@ -81,7 +81,8 @@ namespace Operum.Service.Services.Trackers
                     Type = templateField.Type,
                     Required = templateField.Required,
                     Visible = templateField.Visible,
-                    TrackerId = newTracker.Id
+                    Order = templateField.Order,
+                    TrackerId = newTracker.Id,
                 };
 
                 fieldIdMapping[templateField.Id] = newField.Id;
