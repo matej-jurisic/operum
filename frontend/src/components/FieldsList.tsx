@@ -159,6 +159,7 @@ export default function FieldsList(props: FieldsListProps) {
         useSensor(PointerSensor, {
             activationConstraint: {
                 distance: 8,
+                delay: 100,
             },
         }),
         useSensor(KeyboardSensor, {
