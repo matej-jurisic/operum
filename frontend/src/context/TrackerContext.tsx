@@ -166,6 +166,7 @@ export const TrackerProvider: React.FC<{
         await api.put(`/trackers/${trackerId}/fields/reorder`, {
             fieldIds,
         });
+        refreshFields();
         markEntriesDirty();
         markAnalyticsDirty();
     };
