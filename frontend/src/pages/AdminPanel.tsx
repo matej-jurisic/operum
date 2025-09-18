@@ -22,7 +22,7 @@ export default function AdminPanel() {
     return (
         <>
             <Stack gap="lg">
-                <Group justify="space-between" w={"100%"}>
+                <Group justify="space-between" w={"100%"} align="flex-start">
                     <Group align="center" flex={1} justify="space-between">
                         <Title c={theme.primaryColor} order={2}>
                             Admin Panel
