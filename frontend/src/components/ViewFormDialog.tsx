@@ -1,6 +1,7 @@
 import {
     ActionIcon,
     Button,
+    Card,
     Group,
     Modal,
     Paper,
@@ -12,10 +13,15 @@ import {
     TextInput,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import { useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { MdDelete } from "react-icons/md";
 import { useTracker } from "../context/TrackerContext";
 import { operatorTypes } from "../model/constants/DataTypesForSelect";
+import {
+    FilterTemplate,
+    filterTemplates,
+} from "../model/constants/ViewFilterTemplates";
 import { CreateViewDto } from "../model/requests/CreateViewDto";
 import { TrackerDto } from "../model/TrackerDto";
 import { GetStringValue } from "./EntryFormDialog";
@@ -26,11 +32,18 @@ interface Props {
     onClose: () => void;
 }
 
+enum OpenDialogTypes {
+    AddFilterFromTemplate,
+}
+
 const MAX_SORTS = 3;
 const MAX_FILTERS = 6;
 
 export default function ViewFormDialog({ tracker, onClose }: Props) {
     const { fields, CreateView } = useTracker();
+    const [openDialogType, setOpenDialogType] = useState<OpenDialogTypes>();
+    const [selectedFieldForTemplate, setSelectedFieldForTemplate] =
+        useState<string>("");
 
     const form = useForm<CreateViewDto>({
         initialValues: {
@@ -118,6 +131,47 @@ export default function ViewFormDialog({ tracker, onClose }: Props) {
 
     const getFieldById = (fieldId: string) =>
         fields.find((f) => f.id === fieldId);
+
+    const applyTemplate = (template: FilterTemplate) => {
+        if (!selectedFieldForTemplate) return;
+
+        const remainingSlots = MAX_FILTERS - form.values.filters.length;
+        const filtersToAdd = template.filters.slice(0, remainingSlots);
+
+        filtersToAdd.forEach((templateFilter) => {
+            // Generate the value
+            let value = templateFilter.value;
+            if (templateFilter.valueGenerator) {
+                value = templateFilter.valueGenerator();
+            }
+
+            form.insertListItem("filters", {
+                fieldId: selectedFieldForTemplate,
+                operator: templateFilter.operator,
+                value: value,
+            });
+        });
+
+        setOpenDialogType(undefined);
+        setSelectedFieldForTemplate("");
+    };
+
+    const getAvailableTemplatesForField = (fieldId: string) => {
+        const field = getFieldById(fieldId);
+        if (!field) return [];
+
+        return filterTemplates.filter((template) => {
+            const wouldExceedLimit =
+                form.values.filters.length + template.filters.length >
+                MAX_FILTERS;
+            if (wouldExceedLimit) return false;
+
+            return (
+                field.type !== undefined &&
+                template.fieldTypes.includes(field.type)
+            );
+        });
+    };
 
     const handleSubmit = async (values: CreateViewDto) => {
         const valuesToSend = {
@@ -261,16 +315,33 @@ export default function ViewFormDialog({ tracker, onClose }: Props) {
                                     </Text>
                                 )}
                             </Text>
-                            <Button
-                                color={tracker.color}
-                                variant="light"
-                                leftSection={<FiPlus size={14} />}
-                                onClick={addFilter}
-                                size="sm"
-                                disabled={!canAddFilter}
-                            >
-                                Add Filter
-                            </Button>
+                            <Group>
+                                <Button
+                                    color={tracker.color}
+                                    variant="outline"
+                                    leftSection={<FiPlus size={14} />}
+                                    onClick={() => {
+                                        setSelectedFieldForTemplate("");
+                                        setOpenDialogType(
+                                            OpenDialogTypes.AddFilterFromTemplate
+                                        );
+                                    }}
+                                    size="sm"
+                                    disabled={!canAddFilter}
+                                >
+                                    From Template
+                                </Button>
+                                <Button
+                                    color={tracker.color}
+                                    variant="light"
+                                    leftSection={<FiPlus size={14} />}
+                                    onClick={addFilter}
+                                    size="sm"
+                                    disabled={!canAddFilter}
+                                >
+                                    Add Filter
+                                </Button>
+                            </Group>
                         </Group>
 
                         {form.values.filters.length === 0 ? (
@@ -388,6 +459,119 @@ export default function ViewFormDialog({ tracker, onClose }: Props) {
                     </Stack>
                 </Stack>
             </form>
+
+            {/* Template Selection Modal */}
+            {openDialogType === OpenDialogTypes.AddFilterFromTemplate && (
+                <Modal
+                    opened
+                    onClose={() => {
+                        setOpenDialogType(undefined);
+                        setSelectedFieldForTemplate("");
+                    }}
+                    centered
+                    title="Choose Filter Template"
+                    size="md"
+                >
+                    <Stack gap="md">
+                        <Text size="sm" c="dimmed">
+                            First select a field, then choose from available
+                            templates for that field type
+                        </Text>
+
+                        {/* Field Selection */}
+                        <Select
+                            label="Select Field"
+                            placeholder="Choose a field to filter on"
+                            allowDeselect={false}
+                            data={fieldOptions}
+                            value={selectedFieldForTemplate}
+                            onChange={(value) =>
+                                setSelectedFieldForTemplate(value || "")
+                            }
+                            clearable
+                        />
+
+                        {/* Templates for Selected Field */}
+                        {selectedFieldForTemplate && (
+                            <>
+                                <Text size="sm" fw={500}>
+                                    Available Templates for "
+                                    {
+                                        getFieldById(selectedFieldForTemplate)
+                                            ?.name
+                                    }
+                                    "
+                                </Text>
+
+                                {getAvailableTemplatesForField(
+                                    selectedFieldForTemplate
+                                ).length === 0 ? (
+                                    <Paper p="md" withBorder bg="gray.0">
+                                        <Text c="dimmed" ta="center" size="sm">
+                                            No templates available for this
+                                            field type or you've reached the
+                                            filter limit.
+                                        </Text>
+                                    </Paper>
+                                ) : (
+                                    <Stack gap="sm">
+                                        {getAvailableTemplatesForField(
+                                            selectedFieldForTemplate
+                                        ).map((template) => (
+                                            <Card
+                                                key={template.id}
+                                                withBorder
+                                                p="md"
+                                                style={{ cursor: "pointer" }}
+                                                onClick={() =>
+                                                    applyTemplate(template)
+                                                }
+                                            >
+                                                <Group
+                                                    justify="space-between"
+                                                    align="flex-start"
+                                                >
+                                                    <Group gap="sm">
+                                                        {template.icon}
+                                                        <div>
+                                                            <Text
+                                                                fw={500}
+                                                                size="sm"
+                                                            >
+                                                                {template.name}
+                                                            </Text>
+                                                            <Text
+                                                                c="dimmed"
+                                                                size="xs"
+                                                            >
+                                                                {
+                                                                    template.description
+                                                                }
+                                                            </Text>
+                                                        </div>
+                                                    </Group>
+                                                    <Text c="dimmed" size="xs">
+                                                        +
+                                                        {
+                                                            template.filters
+                                                                .length
+                                                        }{" "}
+                                                        filter
+                                                        {template.filters
+                                                            .length > 1
+                                                            ? "s"
+                                                            : ""}
+                                                    </Text>
+                                                </Group>
+                                            </Card>
+                                        ))}
+                                    </Stack>
+                                )}
+                            </>
+                        )}
+                    </Stack>
+                </Modal>
+            )}
         </Modal>
     );
 }

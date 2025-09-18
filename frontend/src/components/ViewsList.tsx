@@ -100,6 +100,7 @@ export default function ViewsList(props: Props) {
                     <Select
                         label="Default View"
                         data={selectViewList}
+                        allowDeselect={false}
                         value={defaultView}
                         clearable
                         onChange={async (e) => {
