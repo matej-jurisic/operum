@@ -326,13 +326,14 @@ namespace Operum.Service.Services.Trackers
                     {
                         analytics.FieldName = field.Name;
                         analytics.FieldType = field.Type;
+                        analytics.FieldOrder = field.Order;
                     }
 
                     return analytics;
                 })
                 .Where(analytics => analytics != null)
                 .Cast<FieldAnalyticsDto>()
-                .OrderBy(a => a.FieldName)
+                .OrderBy(a => a.FieldOrder)
                 .ToList();
 
             return ServiceResponse.Success(analyticsResult);

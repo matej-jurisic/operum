@@ -7,6 +7,7 @@ namespace Operum.Model.DTOs.Analytics
     {
         public string FieldName { get; set; } = string.Empty;
         public string FieldType { get; set; } = string.Empty;
+        public int? FieldOrder { get; set; }
 
         // Common
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
