@@ -19,4 +19,13 @@ export const FieldTypes = {
     DateTime: "datetime",
     TimeSpan: "timespan",
 } as const;
-export type FieldType = keyof typeof FieldTypes;
+export type FieldType = (typeof FieldTypes)[keyof typeof FieldTypes];
+
+export const DataTypeColor: Record<FieldType, string> = {
+    string: "red",
+    number: "blue",
+    bool: "green",
+    date: "orange",
+    datetime: "purple",
+    timespan: "black",
+};

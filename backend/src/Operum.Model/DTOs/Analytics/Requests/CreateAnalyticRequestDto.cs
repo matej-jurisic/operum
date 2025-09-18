@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using Operum.Model.Enums;
 
 namespace Operum.Model.DTOs.Analytics.Requests
 {
@@ -6,6 +7,8 @@ namespace Operum.Model.DTOs.Analytics.Requests
     {
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
+        public string Code { get; set; } = string.Empty;
+        public int AnalyticTypeId { get; set; }
         public List<CreateAnalyticRequiredDataTypeDto> AnalyticRequiredDataTypes { get; set; } = [];
     }
 
@@ -17,12 +20,21 @@ namespace Operum.Model.DTOs.Analytics.Requests
                 .NotEmpty().WithMessage("Analytic name is required")
                 .MaximumLength(100).WithMessage("Analytic name cannot exceed 100 characters.");
 
+            RuleFor(x => x.Code)
+                .NotEmpty().WithMessage("Analytic code is required")
+                .MaximumLength(100).WithMessage("Analytic code cannot exceed 100 characters.");
+
+            RuleFor(x => x.AnalyticTypeId)
+                .NotNull().WithMessage("Analytic type is required.")
+                .Must(x => Enum.IsDefined(typeof(AnalyticTypeEnum), x))
+                .WithMessage("Analytic type is invalid.");
+
             RuleFor(x => x.Description)
                 .MaximumLength(500).WithMessage("Description cannot exceed 500 characters.")
                 .When(x => !string.IsNullOrEmpty(x.Description));
 
-            RuleFor(x => x.AnalyticRequiredDataTypes)
-                .NotEmpty().WithMessage("At least one data type is required.");
+            RuleForEach(x => x.AnalyticRequiredDataTypes)
+                .SetValidator(new CreateAnalyticRequiredDataTypeDtoValidator());
         }
     }
 }

@@ -171,6 +171,33 @@ export default function ViewsList(props: Props) {
                                     >
                                         {view.description || "No description"}
                                     </Text>
+                                    {/* <Group>
+                                        {view.sorts.map((sort) => (
+                                            <Badge size="sm" variant="outline">
+                                                {sort.order + 1}.{" SORT "}
+                                                {sort.field.name}{" "}
+                                                {sort.descending
+                                                    ? "DESC"
+                                                    : "ASC"}
+                                            </Badge>
+                                        ))}
+                                        {view.filters.map((filter) => (
+                                            <Badge
+                                                size="sm"
+                                                variant="outline"
+                                                color="green"
+                                            >
+                                                {filter.field.name}{" "}
+                                                {filter.operator}{" "}
+                                                {filter.value
+                                                    ? renderValue(
+                                                          filter.field.type,
+                                                          filter.value
+                                                      )
+                                                    : "Empty"}
+                                            </Badge>
+                                        ))}
+                                    </Group> */}
                                 </Stack>
                                 <Group gap="xs" wrap="nowrap">
                                     <ActionIcon

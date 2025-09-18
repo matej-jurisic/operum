@@ -69,7 +69,10 @@ export default function TrackerList({ isTemplates = false }: Props) {
                 <Group w={"100%"} justify="space-between">
                     <Menu shadow="md" position="bottom-start">
                         <Menu.Target>
-                            <Button leftSection={<FiPlus size={18} />}>
+                            <Button
+                                variant="outline"
+                                leftSection={<FiPlus size={18} />}
+                            >
                                 Create
                             </Button>
                         </Menu.Target>
@@ -96,7 +99,7 @@ export default function TrackerList({ isTemplates = false }: Props) {
                             </Menu.Item>
                         </Menu.Dropdown>
                     </Menu>
-                    <Header />
+                    {!isTemplates && <Header />}
                 </Group>
 
                 {trackerList.map((x) => {

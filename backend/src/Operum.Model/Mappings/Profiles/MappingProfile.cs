@@ -59,6 +59,7 @@ namespace Operum.Service.Mappings.Profiles
             mapper.Register<Analytic, AnalyticDto>((s, d) =>
             {
                 d.AnalyticRequiredDataTypes = mapper.Map<List<AnalyticRequiredDataType>, List<AnalyticRequiredDataTypeDto>>(s.AnalyticRequiredDataTypes);
+                d.AnalyticTypeName = s.AnalyticType.Name;
             });
             mapper.Register<View, ViewDto>((s, d) =>
             {

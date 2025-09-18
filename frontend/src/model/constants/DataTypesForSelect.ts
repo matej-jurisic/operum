@@ -7,11 +7,6 @@ export const fieldTypes = [
     { value: "datetime", label: "Datetime" },
 ];
 
-export const dataPurposes = [
-    { value: "main", label: "Main" },
-    { value: "secondary", label: "Secondary" },
-];
-
 export const operatorTypes = [
     { value: "Equals", label: "Equals" },
     { value: "Not Equals", label: "Not Equals" },

@@ -32,6 +32,7 @@ namespace Operum.Service.Services.Analytics
         {
             var analytic = await db.Analytics
                 .Include(x => x.AnalyticRequiredDataTypes)
+                .Include(x => x.AnalyticType)
                 .FirstOrDefaultAsync(x => x.Id == analyticId);
 
             if (analytic == null)
@@ -46,6 +47,7 @@ namespace Operum.Service.Services.Analytics
         {
             var analytics = await db.Analytics
                 .Include(x => x.AnalyticRequiredDataTypes)
+                .Include(x => x.AnalyticType)
                 .ToListAsync();
 
             return ServiceResponse.Success(mapper.Map<List<Analytic>, List<AnalyticDto>>(analytics));

@@ -1,8 +1,9 @@
 import {
-    Box,
+    ActionIcon,
     Button,
     Group,
     Modal,
+    Paper,
     Select,
     Stack,
     Text,
@@ -12,11 +13,14 @@ import { useForm } from "@mantine/form";
 import { FiPlus } from "react-icons/fi";
 import { MdDelete } from "react-icons/md";
 import api from "../api/api";
-import {
-    dataPurposes,
-    fieldTypes,
-} from "../model/constants/DataTypesForSelect";
+import { fieldTypes } from "../model/constants/DataTypesForSelect";
+import { AnalyticType } from "../model/enums/AnalyticTypeEnum";
 import { CreateAnalyticDto } from "../model/requests/CreateAnalyticDto";
+
+const analyticTypeOptions = [
+    { value: AnalyticType.Draft.toString(), label: "Draft" },
+    { value: AnalyticType.Public.toString(), label: "Public" },
+];
 
 interface CreateAnalyticDialogProps {
     onClose: () => void;
@@ -31,11 +35,29 @@ export function CreateAnalyticDialog(props: CreateAnalyticDialogProps) {
             name: "",
             description: "",
             analyticRequiredDataTypes: [],
+            analyticTypeId: AnalyticType.Draft.toString(),
+            code: "",
         },
 
         validate: {
             name: (value) =>
-                value.trim().length === 0 ? "Field name is required" : null,
+                !value.trim()
+                    ? "Analytic name is required"
+                    : value.length > 100
+                    ? "Analytic name must be at most 100 characters"
+                    : null,
+            description: (value) =>
+                value && value.length > 500
+                    ? "Description must be at most 500 characters"
+                    : null,
+            code: (value) =>
+                !value.trim()
+                    ? "Analytic code is required"
+                    : value.length > 100
+                    ? "Analytic code must be at most 100 characters"
+                    : null,
+            analyticTypeId: (value) =>
+                !value ? "Analytic type is required" : null,
             analyticRequiredDataTypes: {
                 type: (value) =>
                     value.trim().length === 0 ? "Type is required" : null,
@@ -52,92 +74,152 @@ export function CreateAnalyticDialog(props: CreateAnalyticDialogProps) {
         props.onClose();
     };
 
-    const dataTypeFields = form.values.analyticRequiredDataTypes.map(
-        (_, index) => (
-            <Group key={index} mt="xs">
-                <Select
-                    allowDeselect={false}
-                    label="Type"
-                    data={fieldTypes}
-                    flex={1}
-                    required
-                    {...form.getInputProps(
-                        `analyticRequiredDataTypes.${index}.type`
-                    )}
-                />
-                <Select
-                    allowDeselect={false}
-                    label="Purpose"
-                    data={dataPurposes}
-                    flex={1}
-                    required
-                    {...form.getInputProps(
-                        `analyticRequiredDataTypes.${index}.purpose`
-                    )}
-                />
-                <Button
-                    color="red"
-                    variant="outline"
-                    onClick={() =>
-                        form.removeListItem("analyticRequiredDataTypes", index)
-                    }
-                    style={{ alignSelf: "flex-end" }}
-                >
-                    <MdDelete size={18} />
-                </Button>
-            </Group>
-        )
-    );
+    const canAddDataType =
+        form.values.analyticRequiredDataTypes.length < MAX_DATA_TYPES;
 
-    const isLimitReached =
-        form.values.analyticRequiredDataTypes.length >= MAX_DATA_TYPES;
+    const addDataType = () => {
+        if (!canAddDataType) return;
+
+        form.insertListItem("analyticRequiredDataTypes", {
+            type: "",
+            purpose: "",
+        });
+    };
+
+    const removeDataType = (index: number) => {
+        form.removeListItem("analyticRequiredDataTypes", index);
+    };
 
     return (
-        <Modal opened onClose={props.onClose} title="Add Analytic" centered>
+        <Modal
+            opened
+            centered
+            onClose={props.onClose}
+            title="Create Analytic"
+            size="lg"
+        >
             <form onSubmit={form.onSubmit(handleSubmit)}>
-                <Stack align="stretch">
-                    <TextInput
-                        label="Name"
-                        placeholder="Enter analytic name"
-                        {...form.getInputProps("name")}
-                    />
+                <Stack gap="lg">
+                    {/* Basic Info Section */}
+                    <Stack gap="md">
+                        <TextInput
+                            label="Analytic Name"
+                            placeholder="Enter analytic name"
+                            required
+                            maxLength={100}
+                            {...form.getInputProps("name")}
+                        />
+                        <TextInput
+                            label="Description"
+                            placeholder="Enter analytic description"
+                            maxLength={500}
+                            {...form.getInputProps("description")}
+                        />
+                        <TextInput
+                            label="Code"
+                            placeholder="Enter analytic code"
+                            required
+                            maxLength={100}
+                            {...form.getInputProps("code")}
+                        />
+                        <Select
+                            label={`Analytic Type`}
+                            placeholder={`Select analytic type`}
+                            data={analyticTypeOptions}
+                            allowDeselect={false}
+                            {...form.getInputProps("analyticTypeId")}
+                            value={form.values.analyticTypeId?.toString()}
+                        />
+                    </Stack>
 
-                    <TextInput
-                        label="Description"
-                        placeholder="Enter analytic description"
-                        {...form.getInputProps("description")}
-                    />
-
-                    <Box>
-                        <Group justify="space-between" mb="xs">
-                            {!isLimitReached && (
-                                <Button
-                                    color="gray"
-                                    onClick={() =>
-                                        form.insertListItem(
-                                            "analyticRequiredDataTypes",
-                                            { type: "", purpose: "" }
-                                        )
-                                    }
-                                    leftSection={<FiPlus size={16} />}
-                                    variant="outline"
-                                >
-                                    Add new
-                                </Button>
-                            )}
-                        </Group>
-                        {dataTypeFields.length > 0 ? (
-                            dataTypeFields
-                        ) : (
-                            <Text c="dimmed" size="sm">
-                                No required data types added yet.
+                    {/* Required Data Types Section */}
+                    <Stack gap="md">
+                        <Group justify="space-between" align="center">
+                            <Text fw={500} size="md">
+                                Required Data Types
+                                {form.values.analyticRequiredDataTypes.length >
+                                    0 && (
+                                    <Text span c="dimmed" size="sm" ml="xs">
+                                        (
+                                        {
+                                            form.values
+                                                .analyticRequiredDataTypes
+                                                .length
+                                        }
+                                        /{MAX_DATA_TYPES})
+                                    </Text>
+                                )}
                             </Text>
-                        )}
-                    </Box>
+                            <Button
+                                color="indigo"
+                                variant="outline"
+                                leftSection={<FiPlus size={14} />}
+                                onClick={addDataType}
+                                size="sm"
+                                disabled={!canAddDataType}
+                            >
+                                Add
+                            </Button>
+                        </Group>
 
-                    <Button color={"indigo"} type="submit">
-                        Create
-                    </Button>
+                        {form.values.analyticRequiredDataTypes.length === 0 ? (
+                            <Paper p="md" withBorder>
+                                <Text c="dimmed" ta="center" size="sm">
+                                    No required data types added yet
+                                </Text>
+                            </Paper>
+                        ) : (
+                            <Stack gap="sm">
+                                {form.values.analyticRequiredDataTypes.map(
+                                    (_, index) => (
+                                        <Paper key={index} p="md" withBorder>
+                                            <Group gap="md" align="flex-end">
+                                                <Select
+                                                    allowDeselect={false}
+                                                    label="Type"
+                                                    placeholder="Select type"
+                                                    data={fieldTypes}
+                                                    flex={1}
+                                                    required
+                                                    {...form.getInputProps(
+                                                        `analyticRequiredDataTypes.${index}.type`
+                                                    )}
+                                                />
+                                                <TextInput
+                                                    label="Purpose"
+                                                    placeholder="Enter purpose"
+                                                    flex={1}
+                                                    required
+                                                    {...form.getInputProps(
+                                                        `analyticRequiredDataTypes.${index}.purpose`
+                                                    )}
+                                                />
+
+                                                <ActionIcon
+                                                    color="red"
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                        removeDataType(index)
+                                                    }
+                                                    aria-label="Remove data type"
+                                                    size="lg"
+                                                >
+                                                    <MdDelete size={18} />
+                                                </ActionIcon>
+                                            </Group>
+                                        </Paper>
+                                    )
+                                )}
+                            </Stack>
+                        )}
+                    </Stack>
+
+                    {/* Submit Section */}
+                    <Stack>
+                        <Button color="indigo" type="submit" size="md">
+                            Create Analytic
+                        </Button>
+                    </Stack>
                 </Stack>
             </form>
         </Modal>

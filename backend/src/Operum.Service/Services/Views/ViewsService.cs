@@ -75,9 +75,9 @@ namespace Operum.Service.Services.Views
             var userView = await db.Views
                 .Include(x => x.Tracker)
                 .Include(x => x.Sorts.OrderBy(s => s.Order))
-                .ThenInclude(x => x.Field)
+                    .ThenInclude(x => x.Field)
                 .Include(x => x.Filters)
-                .ThenInclude(x => x.Field)
+                    .ThenInclude(x => x.Field)
                 .FirstOrDefaultAsync(x => x.Id == viewId && x.TrackerId == trackerId);
 
 
@@ -102,6 +102,10 @@ namespace Operum.Service.Services.Views
 
             var userViews = await db.Views
                 .Include(x => x.Tracker)
+                .Include(x => x.Filters)
+                    .ThenInclude(x => x.Field)
+                .Include(x => x.Sorts.OrderBy(s => s.Order))
+                    .ThenInclude(x => x.Field)
                 .Where(x => x.TrackerId == trackerId)
                 .ToListAsync();
 

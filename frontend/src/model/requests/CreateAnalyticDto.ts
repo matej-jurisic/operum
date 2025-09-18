@@ -1,6 +1,8 @@
 export interface CreateAnalyticDto {
     name: string;
     description?: string;
+    code: string;
+    analyticTypeId: string;
     analyticRequiredDataTypes: CreateAnalyticRequiredDataTypeDto[];
 }
 

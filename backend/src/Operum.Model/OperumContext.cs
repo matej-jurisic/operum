@@ -56,5 +56,6 @@ namespace Operum.Model
         public DbSet<ViewGroup> ViewGroups { get; set; }
         public DbSet<ViewColumn> ViewColumns { get; set; }
         public DbSet<TrackerType> TrackerTypes { get; set; }
+        public DbSet<AnalyticType> AnalyticTypes { get; set; }
     }
 }

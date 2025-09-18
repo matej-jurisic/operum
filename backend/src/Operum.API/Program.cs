@@ -38,6 +38,7 @@ public partial class Program
             db.Database.Migrate();
 
             await DataSeeder.SeedTrackerTypesAsync(db);
+            await DataSeeder.SeedAnalyticTypesAsync(db);
             await DataSeeder.SeedUsersAsync(userManager, roleManager, configuration);
         }
 

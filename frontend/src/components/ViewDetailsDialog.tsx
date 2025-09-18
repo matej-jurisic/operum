@@ -105,10 +105,12 @@ export default function ViewDetailsDialog(props: Props) {
                                         color={props.tracker.color}
                                         variant="outline"
                                     >
-                                        {renderValue(
-                                            filter.field.type,
-                                            filter.value
-                                        )}
+                                        {filter.value
+                                            ? renderValue(
+                                                  filter.field.type,
+                                                  filter.value
+                                              )
+                                            : "Empty"}
                                     </Badge>
                                 </Group>
                             </Group>

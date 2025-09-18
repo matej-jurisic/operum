@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using Operum.Model.Enums;
 
 namespace Operum.Model.DTOs.Trackers.Requests
 {
@@ -21,6 +22,10 @@ namespace Operum.Model.DTOs.Trackers.Requests
             RuleFor(x => x.Description)
                 .MaximumLength(500).WithMessage("Description cannot exceed 500 characters.")
                 .When(x => !string.IsNullOrEmpty(x.Description));
+
+            RuleFor(x => x.TrackerTypeId)
+                .Must(x => !x.HasValue || Enum.IsDefined(typeof(TrackerTypeEnum), x.Value))
+                .WithMessage("Tracker type is invalid.");
 
             RuleFor(x => x.Color)
                 .MaximumLength(50)
