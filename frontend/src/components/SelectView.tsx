@@ -1,6 +1,6 @@
 import { Button, Menu } from "@mantine/core";
 import { useEffect, useMemo } from "react";
-import { CiViewColumn } from "react-icons/ci";
+import { LuFilter } from "react-icons/lu";
 import { MdCheck } from "react-icons/md";
 import { useTracker } from "../context/TrackerContext";
 import { ViewDto } from "../model/ViewDto";
@@ -39,13 +39,13 @@ export default function SelectViewMenu() {
     }, [views, selectedViewId]);
 
     return (
-        <Menu position="bottom" width={200}>
+        <Menu position="bottom-start" width={200}>
             <Menu.Target>
                 <Button
                     variant={selectedViewId ? "filled" : "outline"}
                     color={tracker.color}
                 >
-                    <CiViewColumn size={16} />
+                    <LuFilter size={16} />
                 </Button>
             </Menu.Target>
 

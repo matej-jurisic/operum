@@ -220,6 +220,7 @@ export default function FieldsList(props: FieldsListProps) {
                 <Group justify="space-between" w="100%">
                     <Button
                         color={props.tracker.color}
+                        variant="outline"
                         onClick={() =>
                             setOpenDialogType(OpenDialogType.CreateField)
                         }

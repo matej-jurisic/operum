@@ -8,6 +8,7 @@ import {
     Pagination,
     Paper,
     ScrollArea,
+    Skeleton,
     Stack,
     Table,
     Text,
@@ -373,254 +374,270 @@ export default function EntriesList() {
 
     return (
         <>
-            <Stack gap="md">
-                <Group justify="space-between" w="100%">
-                    <Group>
-                        <Menu shadow="md" position="bottom-start">
-                            <Menu.Target>
-                                <Tooltip
-                                    label={
-                                        fields.length === 0
-                                            ? "Cannot create entry: No fields available"
-                                            : ""
-                                    }
-                                    disabled={fields.length > 0}
-                                    withArrow
-                                >
-                                    <Button
-                                        color={tracker.color}
-                                        disabled={fields.length === 0}
-                                        leftSection={<FiPlus size={18} />}
+            <Skeleton visible={isLoadingData} h={"100vh"}>
+                <Stack gap="md">
+                    <Group justify="space-between" w="100%">
+                        <Group>
+                            <Menu shadow="md" position="bottom-start">
+                                <Menu.Target>
+                                    <Tooltip
+                                        label={
+                                            fields.length === 0
+                                                ? "Cannot create entry: No fields available"
+                                                : ""
+                                        }
+                                        disabled={fields.length > 0}
+                                        withArrow
                                     >
-                                        Create
-                                    </Button>
-                                </Tooltip>
-                            </Menu.Target>
+                                        <Button
+                                            variant="outline"
+                                            color={tracker.color}
+                                            disabled={fields.length === 0}
+                                            leftSection={<FiPlus size={18} />}
+                                        >
+                                            Create
+                                        </Button>
+                                    </Tooltip>
+                                </Menu.Target>
 
-                            <Menu.Dropdown>
-                                <Menu.Item
-                                    leftSection={<FiPlus size={16} />}
-                                    onClick={() =>
-                                        setOpenDialogType(
-                                            OpenDialogType.CreateEntry
-                                        )
-                                    }
-                                >
-                                    Create Entry
-                                </Menu.Item>
-                                <Menu.Item
-                                    leftSection={<PiFileCsvDuotone size={16} />}
-                                    onClick={() =>
-                                        setOpenDialogType(
-                                            OpenDialogType.ImportEntries
-                                        )
-                                    }
-                                >
-                                    Import Entries
-                                </Menu.Item>
-                            </Menu.Dropdown>
-                        </Menu>
-                    </Group>
-                    <Group justify="flex-end" wrap="nowrap">
-                        {/* Bulk actions */}
+                                <Menu.Dropdown>
+                                    <Menu.Item
+                                        leftSection={<FiPlus size={16} />}
+                                        onClick={() =>
+                                            setOpenDialogType(
+                                                OpenDialogType.CreateEntry
+                                            )
+                                        }
+                                    >
+                                        Create Entry
+                                    </Menu.Item>
+                                    <Menu.Item
+                                        leftSection={
+                                            <PiFileCsvDuotone size={16} />
+                                        }
+                                        onClick={() =>
+                                            setOpenDialogType(
+                                                OpenDialogType.ImportEntries
+                                            )
+                                        }
+                                    >
+                                        Import Entries
+                                    </Menu.Item>
+                                </Menu.Dropdown>
+                            </Menu>
+                        </Group>
+                        <Group justify="flex-end" wrap="nowrap">
+                            {/* Bulk actions */}
 
-                        {isSelectMode && (
-                            <ActionIcon
-                                variant="outline"
-                                color="red"
-                                size={"lg"}
-                                onClick={() =>
-                                    setOpenDialogType(OpenDialogType.BulkDelete)
-                                }
-                                disabled={selectedEntryIds.size === 0}
-                            >
-                                <MdDelete size={18} />
-                            </ActionIcon>
-                        )}
-
-                        <ActionIcon
-                            variant={isSelectMode ? "filled" : "outline"}
-                            color={tracker.color}
-                            onClick={() => setIsSelectMode((prev) => !prev)}
-                            disabled={entries.length === 0}
-                            size={"lg"}
-                        >
-                            <MdSelectAll size={18} />
-                        </ActionIcon>
-
-                        <Menu
-                            shadow="md"
-                            position="bottom-end"
-                            closeOnItemClick={false}
-                            width={200}
-                        >
-                            <Menu.Target>
+                            {isSelectMode && (
                                 <ActionIcon
                                     variant="outline"
-                                    color={tracker.color}
+                                    color="red"
                                     size={"lg"}
-                                    disabled={fields.length === 0}
+                                    onClick={() =>
+                                        setOpenDialogType(
+                                            OpenDialogType.BulkDelete
+                                        )
+                                    }
+                                    disabled={selectedEntryIds.size === 0}
                                 >
-                                    <IoMdEye size={18} />
+                                    <MdDelete size={18} />
                                 </ActionIcon>
-                            </Menu.Target>
+                            )}
 
-                            <Menu.Dropdown>
-                                {fields.map((field) => (
-                                    <Menu.Item key={field.id} p={0}>
+                            <ActionIcon
+                                variant={isSelectMode ? "filled" : "outline"}
+                                color={tracker.color}
+                                onClick={() => setIsSelectMode((prev) => !prev)}
+                                disabled={entries.length === 0}
+                                size={"lg"}
+                            >
+                                <MdSelectAll size={18} />
+                            </ActionIcon>
+
+                            <Menu
+                                shadow="md"
+                                position="bottom-end"
+                                closeOnItemClick={false}
+                                width={200}
+                            >
+                                <Menu.Target>
+                                    <ActionIcon
+                                        variant="outline"
+                                        color={tracker.color}
+                                        size={"lg"}
+                                        disabled={fields.length === 0}
+                                    >
+                                        <IoMdEye size={18} />
+                                    </ActionIcon>
+                                </Menu.Target>
+
+                                <Menu.Dropdown>
+                                    {fields.map((field) => (
+                                        <Menu.Item key={field.id} p={0}>
+                                            <UnstyledButton
+                                                p="xs"
+                                                w="100%"
+                                                onClick={() =>
+                                                    toggleColumn(field.id)
+                                                }
+                                            >
+                                                <Group justify="space-between">
+                                                    <Text
+                                                        className="wrapped-text"
+                                                        size="sm"
+                                                        maw={"70%"}
+                                                    >
+                                                        {field.name}
+                                                    </Text>
+                                                    <Checkbox
+                                                        size="sm"
+                                                        color={tracker.color}
+                                                        checked={
+                                                            visibleColumns[
+                                                                field.id
+                                                            ] || false
+                                                        }
+                                                        onChange={() => {}}
+                                                    />
+                                                </Group>
+                                            </UnstyledButton>
+                                        </Menu.Item>
+                                    ))}
+
+                                    <Menu.Divider />
+
+                                    <Menu.Item p={0}>
                                         <UnstyledButton
                                             p="xs"
                                             w="100%"
                                             onClick={() =>
-                                                toggleColumn(field.id)
+                                                toggleColumn("createdAt")
                                             }
                                         >
                                             <Group justify="space-between">
-                                                <Text
-                                                    className="wrapped-text"
-                                                    size="sm"
-                                                    maw={"70%"}
-                                                >
-                                                    {field.name}
+                                                <Text size="sm">
+                                                    Created At
                                                 </Text>
                                                 <Checkbox
                                                     size="sm"
                                                     color={tracker.color}
                                                     checked={
                                                         visibleColumns[
-                                                            field.id
+                                                            "createdAt"
                                                         ] || false
                                                     }
                                                     onChange={() => {}}
+                                                    tabIndex={-1}
                                                 />
                                             </Group>
                                         </UnstyledButton>
                                     </Menu.Item>
-                                ))}
 
-                                <Menu.Divider />
-
-                                <Menu.Item p={0}>
-                                    <UnstyledButton
-                                        p="xs"
-                                        w="100%"
-                                        onClick={() =>
-                                            toggleColumn("createdAt")
-                                        }
-                                    >
-                                        <Group justify="space-between">
-                                            <Text size="sm">Created At</Text>
-                                            <Checkbox
-                                                size="sm"
-                                                color={tracker.color}
-                                                checked={
-                                                    visibleColumns[
-                                                        "createdAt"
-                                                    ] || false
-                                                }
-                                                onChange={() => {}}
-                                                tabIndex={-1}
-                                            />
-                                        </Group>
-                                    </UnstyledButton>
-                                </Menu.Item>
-
-                                <Menu.Item p={0}>
-                                    <UnstyledButton
-                                        p="xs"
-                                        w="100%"
-                                        onClick={() => toggleColumn("actions")}
-                                    >
-                                        <Group justify="space-between">
-                                            <Text size="sm">Actions</Text>
-                                            <Checkbox
-                                                color={tracker.color}
-                                                size="sm"
-                                                checked={
-                                                    visibleColumns["actions"] ||
-                                                    false
-                                                }
-                                                onChange={() => {}}
-                                                tabIndex={-1}
-                                            />
-                                        </Group>
-                                    </UnstyledButton>
-                                </Menu.Item>
-                            </Menu.Dropdown>
-                        </Menu>
-                        <ActionIcon
-                            variant="outline"
-                            color={tracker.color}
-                            size={"lg"}
-                            onClick={() =>
-                                setOpenDialogType(OpenDialogType.ExportEntries)
-                            }
-                        >
-                            <CiExport size={18} />
-                        </ActionIcon>
-                    </Group>
-                </Group>
-
-                <ScrollArea flex={1}>
-                    {entries.length > 0 && !isLoadingData ? (
-                        <Table.ScrollContainer minWidth={0}>
-                            <Table
-                                striped
-                                stickyHeader
-                                highlightOnHover
-                                withColumnBorders
-                                withTableBorder
-                                verticalSpacing={"sm"}
+                                    <Menu.Item p={0}>
+                                        <UnstyledButton
+                                            p="xs"
+                                            w="100%"
+                                            onClick={() =>
+                                                toggleColumn("actions")
+                                            }
+                                        >
+                                            <Group justify="space-between">
+                                                <Text size="sm">Actions</Text>
+                                                <Checkbox
+                                                    color={tracker.color}
+                                                    size="sm"
+                                                    checked={
+                                                        visibleColumns[
+                                                            "actions"
+                                                        ] || false
+                                                    }
+                                                    onChange={() => {}}
+                                                    tabIndex={-1}
+                                                />
+                                            </Group>
+                                        </UnstyledButton>
+                                    </Menu.Item>
+                                </Menu.Dropdown>
+                            </Menu>
+                            <ActionIcon
+                                variant="outline"
+                                color={tracker.color}
+                                size={"lg"}
+                                onClick={() =>
+                                    setOpenDialogType(
+                                        OpenDialogType.ExportEntries
+                                    )
+                                }
                             >
-                                <Table.Thead>
-                                    <Table.Tr>
-                                        {tableHeaders.map((header) => (
-                                            <Table.Th
-                                                key={header.id}
-                                                miw={header.minWidth}
-                                                w={header.width}
-                                            >
-                                                {typeof header.label ===
-                                                "string" ? (
-                                                    <Text fw={600} size="sm">
-                                                        {header.label}
-                                                    </Text>
-                                                ) : (
-                                                    header.label
-                                                )}
-                                            </Table.Th>
-                                        ))}
-                                    </Table.Tr>
-                                </Table.Thead>
-                                <Table.Tbody>{tableRows}</Table.Tbody>
-                            </Table>
-                        </Table.ScrollContainer>
-                    ) : isLoadingData ? (
-                        <></>
-                    ) : (
-                        <Paper withBorder p="xl" radius="md">
-                            <Stack gap="md" align="center">
-                                <Text size="lg" fw={500} c="dimmed">
-                                    No Entries Available
-                                </Text>
-                                <Text ta="center" c="dimmed">
-                                    Entries will appear here when you create
-                                    them.
-                                </Text>
-                            </Stack>
-                        </Paper>
-                    )}
-                </ScrollArea>
-                <Pagination
-                    value={currentPage}
-                    onChange={setCurrentPage}
-                    total={totalPages}
-                    siblings={0}
-                    color={tracker.color}
-                    size="md"
-                />
-            </Stack>
+                                <CiExport size={18} />
+                            </ActionIcon>
+                        </Group>
+                    </Group>
 
+                    <ScrollArea flex={1}>
+                        {entries.length > 0 && !isLoadingData ? (
+                            <Table.ScrollContainer minWidth={0}>
+                                <Table
+                                    striped
+                                    stickyHeader
+                                    highlightOnHover
+                                    withColumnBorders
+                                    withTableBorder
+                                    verticalSpacing={"sm"}
+                                >
+                                    <Table.Thead>
+                                        <Table.Tr>
+                                            {tableHeaders.map((header) => (
+                                                <Table.Th
+                                                    key={header.id}
+                                                    miw={header.minWidth}
+                                                    w={header.width}
+                                                >
+                                                    {typeof header.label ===
+                                                    "string" ? (
+                                                        <Text
+                                                            fw={600}
+                                                            size="sm"
+                                                        >
+                                                            {header.label}
+                                                        </Text>
+                                                    ) : (
+                                                        header.label
+                                                    )}
+                                                </Table.Th>
+                                            ))}
+                                        </Table.Tr>
+                                    </Table.Thead>
+                                    <Table.Tbody>{tableRows}</Table.Tbody>
+                                </Table>
+                            </Table.ScrollContainer>
+                        ) : isLoadingData ? (
+                            <></>
+                        ) : (
+                            <Paper withBorder p="xl" radius="md">
+                                <Stack gap="md" align="center">
+                                    <Text size="lg" fw={500} c="dimmed">
+                                        No Entries Available
+                                    </Text>
+                                    <Text ta="center" c="dimmed">
+                                        Entries will appear here when you create
+                                        them.
+                                    </Text>
+                                </Stack>
+                            </Paper>
+                        )}
+                    </ScrollArea>
+                    <Pagination
+                        value={currentPage}
+                        onChange={setCurrentPage}
+                        total={totalPages}
+                        siblings={0}
+                        color={tracker.color}
+                        size="md"
+                    />
+                </Stack>
+            </Skeleton>
             {/* Single entry delete dialog */}
             {selectedEntry && openDialogType === OpenDialogType.DeleteEntry && (
                 <ConfirmationDialog

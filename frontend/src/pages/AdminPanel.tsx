@@ -1,6 +1,12 @@
-import { Container, Group, Stack, Tabs, Title } from "@mantine/core";
+import {
+    Container,
+    Group,
+    Stack,
+    Tabs,
+    Title,
+    useMantineTheme,
+} from "@mantine/core";
 import { useLocation, useNavigate } from "react-router-dom";
-import BackButton from "../components/BackButton";
 import Header from "../components/Header";
 import StickyContainer from "../components/StickyContainer";
 import TrackerList from "../components/TrackerList";
@@ -10,15 +16,18 @@ export default function AdminPanel() {
     const location = useLocation();
     const navigate = useNavigate();
     const currentTab = location.pathname.split("/").pop() || "users";
+    const theme = useMantineTheme();
 
     return (
         <>
-            <Stack gap="xl">
-                <Group justify="space-between">
-                    <Title c={"indigo"} order={2}>
-                        Admin Panel
-                    </Title>
-                    <Header items={[<BackButton />]} />
+            <Stack gap="lg">
+                <Group justify="space-between" w={"100%"}>
+                    <Group align="center" flex={1} justify="space-between">
+                        <Title c={theme.primaryColor} order={2}>
+                            Admin Panel
+                        </Title>
+                    </Group>
+                    <Header />
                 </Group>
                 <Tabs
                     variant="default"

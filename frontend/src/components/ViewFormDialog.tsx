@@ -3,6 +3,7 @@ import {
     Button,
     Card,
     Group,
+    Menu,
     Modal,
     Paper,
     SegmentedControl,
@@ -14,7 +15,7 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useState } from "react";
-import { FiPlus } from "react-icons/fi";
+import { FiPlus, FiPlusSquare } from "react-icons/fi";
 import { MdDelete } from "react-icons/md";
 import { useTracker } from "../context/TrackerContext";
 import { operatorTypes } from "../model/constants/DataTypesForSelect";
@@ -230,18 +231,18 @@ export default function ViewFormDialog({ tracker, onClose }: Props) {
                             </Text>
                             <Button
                                 color={tracker.color}
-                                variant="light"
+                                variant="outline"
                                 leftSection={<FiPlus size={14} />}
                                 onClick={addSort}
                                 size="sm"
                                 disabled={!canAddSort}
                             >
-                                Add Sort
+                                Add
                             </Button>
                         </Group>
 
                         {form.values.sorts.length === 0 ? (
-                            <Paper p="md" withBorder bg="gray.0">
+                            <Paper p="md" withBorder>
                                 <Text c="dimmed" ta="center" size="sm">
                                     No sorting rules added yet
                                 </Text>
@@ -316,36 +317,45 @@ export default function ViewFormDialog({ tracker, onClose }: Props) {
                                 )}
                             </Text>
                             <Group>
-                                <Button
-                                    color={tracker.color}
-                                    variant="outline"
-                                    leftSection={<FiPlus size={14} />}
-                                    onClick={() => {
-                                        setSelectedFieldForTemplate("");
-                                        setOpenDialogType(
-                                            OpenDialogTypes.AddFilterFromTemplate
-                                        );
-                                    }}
-                                    size="sm"
-                                    disabled={!canAddFilter}
-                                >
-                                    From Template
-                                </Button>
-                                <Button
-                                    color={tracker.color}
-                                    variant="light"
-                                    leftSection={<FiPlus size={14} />}
-                                    onClick={addFilter}
-                                    size="sm"
-                                    disabled={!canAddFilter}
-                                >
-                                    Add Filter
-                                </Button>
+                                <Menu position="bottom-end">
+                                    <Menu.Target>
+                                        <Button
+                                            color={tracker.color}
+                                            variant="outline"
+                                            leftSection={<FiPlus size={14} />}
+                                            size="sm"
+                                            disabled={!canAddFilter}
+                                        >
+                                            Add
+                                        </Button>
+                                    </Menu.Target>
+                                    <Menu.Dropdown>
+                                        <Menu.Item
+                                            leftSection={<FiPlus size={16} />}
+                                            onClick={addFilter}
+                                        >
+                                            Add Manually
+                                        </Menu.Item>
+                                        <Menu.Item
+                                            leftSection={
+                                                <FiPlusSquare size={14} />
+                                            }
+                                            onClick={() => {
+                                                setSelectedFieldForTemplate("");
+                                                setOpenDialogType(
+                                                    OpenDialogTypes.AddFilterFromTemplate
+                                                );
+                                            }}
+                                        >
+                                            Add From Template
+                                        </Menu.Item>
+                                    </Menu.Dropdown>
+                                </Menu>
                             </Group>
                         </Group>
 
                         {form.values.filters.length === 0 ? (
-                            <Paper p="md" withBorder bg="gray.0">
+                            <Paper p="md" withBorder>
                                 <Text c="dimmed" ta="center" size="sm">
                                     No filtering rules added yet
                                 </Text>
@@ -506,7 +516,7 @@ export default function ViewFormDialog({ tracker, onClose }: Props) {
                                 {getAvailableTemplatesForField(
                                     selectedFieldForTemplate
                                 ).length === 0 ? (
-                                    <Paper p="md" withBorder bg="gray.0">
+                                    <Paper p="md" withBorder>
                                         <Text c="dimmed" ta="center" size="sm">
                                             No templates available for this
                                             field type or you've reached the

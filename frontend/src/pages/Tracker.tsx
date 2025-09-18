@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api/api";
 import AnalyiticsList from "../components/AnalyticsList";
-import BackButton from "../components/BackButton";
 import EntriesList from "../components/EntriesList";
 import FieldsList from "../components/FieldsList";
 import Header from "../components/Header";
@@ -36,9 +35,13 @@ export default function Tracker() {
     return (
         <TrackerProvider initialTracker={tracker}>
             <Stack gap="lg">
-                <Group justify="space-between" gap={"xl"}>
-                    <Group align="center">
-                        <Title order={2} c={tracker.color} flex={1}>
+                <Stack justify="space-between" w={"100%"}>
+                    <Group justify="space-between">
+                        <SelectView />
+                        <Header color={tracker.color} />
+                    </Group>
+                    <Group align="center" flex={1} justify="space-between">
+                        <Title order={2} c={tracker.color}>
                             {tracker.name}
                         </Title>
                         {tracker.trackerTypeName && (
@@ -47,15 +50,7 @@ export default function Tracker() {
                             </Badge>
                         )}
                     </Group>
-
-                    <Header
-                        color={tracker.color}
-                        items={[
-                            <SelectView />,
-                            <BackButton color={tracker.color} />,
-                        ]}
-                    />
-                </Group>
+                </Stack>
 
                 <Tabs
                     variant="default"

@@ -3,8 +3,8 @@ import {
     Button,
     Card,
     Group,
+    Menu,
     Paper,
-    Select,
     Stack,
     Text,
     Title,
@@ -12,7 +12,8 @@ import {
 } from "@mantine/core";
 import { useEffect, useMemo, useState } from "react";
 import { FiPlus } from "react-icons/fi";
-import { MdDelete } from "react-icons/md";
+import { IoChevronDownCircle } from "react-icons/io5";
+import { MdCheck, MdDelete } from "react-icons/md";
 import { RiFileListFill } from "react-icons/ri";
 import api from "../api/api";
 import { useTracker } from "../context/TrackerContext";
@@ -54,9 +55,9 @@ export default function ViewsList(props: Props) {
         }));
 
         // If something is selected, move it to the top
-        if (tracker.defaultViewId) {
+        if (defaultView) {
             const selectedIndex = list.findIndex(
-                (v) => v.value === tracker.defaultViewId
+                (v) => v.value === defaultView
             );
             if (selectedIndex > -1) {
                 const [selected] = list.splice(selectedIndex, 1);
@@ -67,7 +68,7 @@ export default function ViewsList(props: Props) {
         }
 
         return list;
-    }, [views, tracker.defaultViewId]);
+    }, [views, defaultView]);
 
     useEffect(() => {
         refreshViewsIfDirty();
@@ -76,7 +77,7 @@ export default function ViewsList(props: Props) {
     return (
         <>
             <Stack gap="md">
-                <Group justify="space-between" align="flex-start" w="100%">
+                <Group justify="space-between" w="100%">
                     <Tooltip
                         label={
                             fields.length === 0
@@ -92,22 +93,59 @@ export default function ViewsList(props: Props) {
                                 setOpenDialogType(OpenDialogType.CreateView)
                             }
                             disabled={fields.length === 0}
+                            variant="outline"
                             leftSection={<FiPlus size={18} />}
                         >
                             Create
                         </Button>
                     </Tooltip>
-                    <Select
-                        label="Default View"
-                        data={selectViewList}
-                        allowDeselect={false}
-                        value={defaultView}
-                        clearable
-                        onChange={async (e) => {
-                            setDefaultView(e);
-                            await SetDefaultView(tracker.id, e ?? undefined);
-                        }}
-                    />
+                    <Menu position="bottom-end">
+                        <Menu.Target>
+                            <ActionIcon
+                                variant="outline"
+                                color={tracker.color}
+                                size={"lg"}
+                            >
+                                <IoChevronDownCircle size={18} />
+                            </ActionIcon>
+                        </Menu.Target>
+                        <Menu.Dropdown>
+                            <Menu.Label>Default View</Menu.Label>
+                            <Menu.Divider />
+                            <Menu.Item
+                                onClick={async () => {
+                                    setDefaultView(null);
+                                    await SetDefaultView(tracker.id, undefined);
+                                }}
+                                rightSection={
+                                    !defaultView ? <MdCheck size={16} /> : null
+                                }
+                                c="dimmed"
+                                style={{ fontStyle: "italic" }}
+                            >
+                                None
+                            </Menu.Item>
+                            {selectViewList.map((x) => (
+                                <Menu.Item
+                                    onClick={async () => {
+                                        setDefaultView(x.value);
+                                        await SetDefaultView(
+                                            tracker.id,
+                                            x.value
+                                        );
+                                    }}
+                                    rightSection={
+                                        defaultView === x.value ? (
+                                            <MdCheck size={16} />
+                                        ) : null
+                                    }
+                                    key={x.value}
+                                >
+                                    {x.label}
+                                </Menu.Item>
+                            ))}
+                        </Menu.Dropdown>
+                    </Menu>
                 </Group>
                 {views.length > 0 ? (
                     views.map((view) => (

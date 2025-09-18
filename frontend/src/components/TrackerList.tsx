@@ -16,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../api/api";
 import { TrackerDto } from "../model/TrackerDto";
 import ConfirmationDialog from "./ConfirmationDialog";
+import Header from "./Header";
 import TrackerFormDialog from "./TrackerFormDialog";
 
 const GetAdminTemplateList = async () => {
@@ -65,7 +66,7 @@ export default function TrackerList({ isTemplates = false }: Props) {
     return (
         <>
             <Stack gap="md" align="stretch">
-                <Group>
+                <Group w={"100%"} justify="space-between">
                     <Menu shadow="md" position="bottom-start">
                         <Menu.Target>
                             <Button leftSection={<FiPlus size={18} />}>
@@ -95,7 +96,9 @@ export default function TrackerList({ isTemplates = false }: Props) {
                             </Menu.Item>
                         </Menu.Dropdown>
                     </Menu>
+                    <Header />
                 </Group>
+
                 {trackerList.map((x) => {
                     const isValidColor =
                         x.color !== undefined && x.color in theme.colors;
