@@ -47,6 +47,12 @@ namespace Operum.API.Controllers
             return GetApiResponse(await trackerService.UpdateTracker(id, tracker));
         }
 
+        [HttpPut("{id}/default-view")]
+        public async Task<IActionResult> UpdateDefaultView([FromRoute] string id, [FromQuery] string? defaultViewId)
+        {
+            return GetApiResponse(await trackerService.UpdateDefaultView(id, defaultViewId));
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTracker(string id)
         {

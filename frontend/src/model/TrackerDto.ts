@@ -7,5 +7,6 @@ export interface TrackerDto {
     color?: string;
     fields: FieldDto[];
     trackerTypeId?: number;
+    defaultViewId?: string;
     trackerTypeName?: string;
 }

@@ -4,15 +4,17 @@ import {
     Card,
     Group,
     Paper,
+    Select,
     Stack,
     Text,
     Title,
     Tooltip,
 } from "@mantine/core";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { MdDelete } from "react-icons/md";
 import { RiFileListFill } from "react-icons/ri";
+import api from "../api/api";
 import { useTracker } from "../context/TrackerContext";
 import { TrackerDto } from "../model/TrackerDto";
 import { ViewDto } from "../model/ViewDto";
@@ -30,10 +32,42 @@ enum OpenDialogType {
     DeleteView,
 }
 
+const SetDefaultView = async (trackerId: string, viewId?: string) => {
+    await api.put(`/trackers/${trackerId}/default-view`, null, {
+        params: { defaultViewId: viewId },
+    });
+};
+
 export default function ViewsList(props: Props) {
     const [selectedView, setSelectedView] = useState<ViewDto>();
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
-    const { views, refreshViewsIfDirty, DeleteView, fields } = useTracker();
+    const { views, refreshViewsIfDirty, DeleteView, fields, tracker } =
+        useTracker();
+    const [defaultView, setDefaultView] = useState<string | null>(
+        tracker.defaultViewId ?? null
+    );
+
+    const selectViewList = useMemo(() => {
+        const list = views.map((v: ViewDto) => ({
+            value: v.id,
+            label: v.name,
+        }));
+
+        // If something is selected, move it to the top
+        if (tracker.defaultViewId) {
+            const selectedIndex = list.findIndex(
+                (v) => v.value === tracker.defaultViewId
+            );
+            if (selectedIndex > -1) {
+                const [selected] = list.splice(selectedIndex, 1);
+                list.unshift(selected);
+            }
+        } else {
+            setDefaultView(null);
+        }
+
+        return list;
+    }, [views, tracker.defaultViewId]);
 
     useEffect(() => {
         refreshViewsIfDirty();
@@ -42,7 +76,7 @@ export default function ViewsList(props: Props) {
     return (
         <>
             <Stack gap="md">
-                <Group justify="space-between" w="100%" h={36}>
+                <Group justify="space-between" align="flex-start" w="100%">
                     <Tooltip
                         label={
                             fields.length === 0
@@ -63,6 +97,16 @@ export default function ViewsList(props: Props) {
                             Create
                         </Button>
                     </Tooltip>
+                    <Select
+                        label="Default View"
+                        data={selectViewList}
+                        value={defaultView}
+                        clearable
+                        onChange={async (e) => {
+                            setDefaultView(e);
+                            await SetDefaultView(tracker.id, e ?? undefined);
+                        }}
+                    />
                 </Group>
                 {views.length > 0 ? (
                     views.map((view) => (

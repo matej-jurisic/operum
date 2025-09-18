@@ -13,6 +13,7 @@ namespace Operum.Service.Services.Trackers
         public Task<ServiceResponse<List<TrackerDto>>> GetAllTemplateTrackerList();
         public Task<ServiceResponse<List<TrackerDto>>> GetPublicTemplateTrackerList();
         public Task<ServiceResponse<TrackerDto>> UpdateTracker(string id, UpdateTrackerDto tracker);
+        public Task<ServiceResponse> UpdateDefaultView(string id, string? defaultViewId);
         public Task<ServiceResponse> DeleteTracker(string id);
         public Task<ServiceResponse<List<FieldAnalyticsDto>>> GetTrackerAnalytics(string trackerId, string? viewId);
     }

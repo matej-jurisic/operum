@@ -90,8 +90,9 @@ export const TrackerProvider: React.FC<{
     const [analytics, setAnalytics] = useState<FieldAnalyticsDto[]>([]);
     const [views, setViews] = useState<ViewDto[]>([]);
     const [tracker, setTracker] = useState<TrackerDto>(initialTracker);
-    const [internalSelectedViewId, setInternalSelectedViewId] =
-        useState<string>();
+    const [internalSelectedViewId, setInternalSelectedViewId] = useState<
+        string | undefined
+    >(initialTracker.defaultViewId);
 
     const [entriesDirty, setEntriesDirty] = useState(true);
     const [fieldsDirty, setFieldsDirty] = useState(true);

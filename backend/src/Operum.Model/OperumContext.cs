@@ -26,6 +26,20 @@ namespace Operum.Model
                 }
             }
             base.OnModelCreating(builder);
+
+            // Tracker ↔ Views (one-to-many)
+            builder.Entity<View>()
+                .HasOne(v => v.Tracker)
+                .WithMany(t => t.Views)
+                .HasForeignKey(v => v.TrackerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Tracker ↔ DefaultView (one-to-one / optional)
+            builder.Entity<Tracker>()
+                .HasOne(t => t.DefaultView)
+                .WithMany()
+                .HasForeignKey(t => t.DefaultViewId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
 
         public DbSet<ApplicationUser> ApplicationUsers { get; set; }

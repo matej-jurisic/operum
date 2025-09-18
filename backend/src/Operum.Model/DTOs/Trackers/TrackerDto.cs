@@ -10,6 +10,7 @@ namespace Operum.Model.DTOs.Trackers
         public string? Color { get; set; }
         public int? TrackerTypeId { get; set; } = null;
         public string? TrackerTypeName { get; set; }
+        public string? DefaultViewId { get; set; }
         public List<FieldDto> Fields { get; set; } = [];
     }
 }

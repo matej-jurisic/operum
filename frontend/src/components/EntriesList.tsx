@@ -578,7 +578,7 @@ export default function EntriesList() {
                                             <Table.Th
                                                 key={header.id}
                                                 miw={header.minWidth}
-                                                maw={header.width}
+                                                w={header.width}
                                             >
                                                 {typeof header.label ===
                                                 "string" ? (

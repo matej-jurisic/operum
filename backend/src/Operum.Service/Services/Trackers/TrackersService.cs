@@ -337,5 +337,35 @@ namespace Operum.Service.Services.Trackers
 
             return ServiceResponse.Success(analyticsResult);
         }
+
+        public async Task<ServiceResponse> UpdateDefaultView(string trackerId, string? defaultViewId)
+        {
+            var user = authorizationService.GetCurrentUserDto();
+
+            Tracker? tracker;
+
+            if (string.IsNullOrEmpty(defaultViewId))
+            {
+                tracker = await db.Trackers.FindAsync(trackerId);
+            }
+            else
+            {
+                tracker = await db.Trackers
+                    .Include(t => t.Views)
+                    .FirstOrDefaultAsync(t => t.Id == trackerId && t.Views.Any(v => v.Id == defaultViewId));
+            }
+
+            if (tracker == null || !user.Owns(tracker))
+            {
+                return ServiceResponse.Failure(StatusCodeEnum.NotFound);
+            }
+
+            tracker.DefaultViewId = defaultViewId;
+            db.Update(tracker);
+            await db.SaveChangesAsync();
+
+            return ServiceResponse.Success();
+        }
+
     }
 }
