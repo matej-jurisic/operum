@@ -154,35 +154,46 @@ export default function AnalyticsConfiguration() {
                                                     radius="sm"
                                                     withBorder
                                                 >
-                                                    <Group
-                                                        wrap="nowrap"
-                                                        justify="space-between"
-                                                        align="flex-start"
-                                                    >
-                                                        <Stack
-                                                            flex={1}
-                                                            gap={"sm"}
+                                                    <Stack gap={"sm"}>
+                                                        <Group
+                                                            justify="space-between"
+                                                            wrap="nowrap"
                                                         >
-                                                            <Group>
-                                                                <Text fw={500}>
-                                                                    {
-                                                                        analytic.code
-                                                                    }
-                                                                </Text>
-                                                            </Group>
                                                             <Text
-                                                                c="dimmed"
-                                                                size="sm"
-                                                                lineClamp={2}
+                                                                flex={1}
+                                                                fw={500}
                                                                 className="wrapped-text"
                                                             >
-                                                                {analytic.description ||
-                                                                    "No description"}
+                                                                {analytic.code}
                                                             </Text>
-                                                            <Group
-                                                                gap="xs"
-                                                                wrap="wrap"
+                                                            <Badge
+                                                                variant="outline"
+                                                                color={
+                                                                    analytic.analyticTypeId ===
+                                                                    AnalyticType.Public
+                                                                        ? "green"
+                                                                        : "yellow"
+                                                                }
                                                             >
+                                                                {
+                                                                    analytic.analyticTypeName
+                                                                }
+                                                            </Badge>
+                                                        </Group>
+                                                        <Text
+                                                            c="dimmed"
+                                                            size="sm"
+                                                            lineClamp={2}
+                                                            className="wrapped-text"
+                                                        >
+                                                            {analytic.description ||
+                                                                "No description"}
+                                                        </Text>
+                                                        <Group
+                                                            justify="space-between"
+                                                            w={"100%"}
+                                                        >
+                                                            <Stack gap="xs">
                                                                 {analytic.analyticRequiredDataTypes.map(
                                                                     (r) => (
                                                                         <Badge
@@ -212,48 +223,39 @@ export default function AnalyticsConfiguration() {
                                                                         </Badge>
                                                                     )
                                                                 )}
+                                                            </Stack>
+                                                            <Group
+                                                                gap="sm"
+                                                                wrap="nowrap"
+                                                                justify="flex-end"
+                                                                flex={1}
+                                                            >
+                                                                <ActionIcon
+                                                                    variant="outline"
+                                                                    color="red"
+                                                                    size={"lg"}
+                                                                    onClick={(
+                                                                        e
+                                                                    ) => {
+                                                                        e.stopPropagation(); // Prevent group toggle
+                                                                        setSelectedAnalytic(
+                                                                            analytic
+                                                                        );
+                                                                        setOpenDialogType(
+                                                                            OpenDialogType.DeleteAnalytic
+                                                                        );
+                                                                    }}
+                                                                    aria-label={`Delete analytic ${analytic.name} - ${analytic.code}`}
+                                                                >
+                                                                    <MdDelete
+                                                                        size={
+                                                                            16
+                                                                        }
+                                                                    />
+                                                                </ActionIcon>
                                                             </Group>
-                                                        </Stack>
-                                                        <Group
-                                                            gap="sm"
-                                                            wrap="nowrap"
-                                                        >
-                                                            <Badge
-                                                                variant="outline"
-                                                                color={
-                                                                    analytic.analyticTypeId ===
-                                                                    AnalyticType.Public
-                                                                        ? "green"
-                                                                        : "yellow"
-                                                                }
-                                                            >
-                                                                {
-                                                                    analytic.analyticTypeName
-                                                                }
-                                                            </Badge>
-                                                            <ActionIcon
-                                                                variant="outline"
-                                                                color="red"
-                                                                size={"lg"}
-                                                                onClick={(
-                                                                    e
-                                                                ) => {
-                                                                    e.stopPropagation(); // Prevent group toggle
-                                                                    setSelectedAnalytic(
-                                                                        analytic
-                                                                    );
-                                                                    setOpenDialogType(
-                                                                        OpenDialogType.DeleteAnalytic
-                                                                    );
-                                                                }}
-                                                                aria-label={`Delete analytic ${analytic.name} - ${analytic.code}`}
-                                                            >
-                                                                <MdDelete
-                                                                    size={16}
-                                                                />
-                                                            </ActionIcon>
                                                         </Group>
-                                                    </Group>
+                                                    </Stack>
                                                 </Card>
                                             ))}
                                         </Stack>
