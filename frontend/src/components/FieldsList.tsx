@@ -23,6 +23,7 @@ import {
     Card,
     Group,
     Paper,
+    ScrollArea,
     Stack,
     Text,
     Title,
@@ -216,7 +217,7 @@ export default function FieldsList(props: FieldsListProps) {
 
     return (
         <>
-            <Stack gap="md">
+            <Stack gap="md" h={"100%"}>
                 <Group justify="space-between" w="100%">
                     <Button
                         color={props.tracker.color}
@@ -240,43 +241,46 @@ export default function FieldsList(props: FieldsListProps) {
                     </Group>
                 </Group>
 
-                {sortedFields.length > 0 ? (
-                    <DndContext
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={handleDragEnd}
-                        modifiers={[restrictToParentElement]}
-                    >
-                        <SortableContext
-                            items={sortedFields.map((field) => field.id)}
-                            strategy={verticalListSortingStrategy}
+                <ScrollArea flex={1} mih={0}>
+                    {sortedFields.length > 0 ? (
+                        <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={handleDragEnd}
+                            modifiers={[restrictToParentElement]}
                         >
-                            <Stack gap="md">
-                                {sortedFields.map((field) => (
-                                    <SortableFieldCard
-                                        isReordering={isReordering}
-                                        key={field.id}
-                                        color={props.tracker.color}
-                                        field={field}
-                                        onEdit={handleEdit}
-                                        onDelete={handleDelete}
-                                    />
-                                ))}
+                            <SortableContext
+                                items={sortedFields.map((field) => field.id)}
+                                strategy={verticalListSortingStrategy}
+                            >
+                                <Stack gap="md">
+                                    {sortedFields.map((field) => (
+                                        <SortableFieldCard
+                                            isReordering={isReordering}
+                                            key={field.id}
+                                            color={props.tracker.color}
+                                            field={field}
+                                            onEdit={handleEdit}
+                                            onDelete={handleDelete}
+                                        />
+                                    ))}
+                                </Stack>
+                            </SortableContext>
+                        </DndContext>
+                    ) : (
+                        <Paper withBorder p="xl" radius="md">
+                            <Stack gap="md" align="center">
+                                <Text size="lg" fw={500} c="dimmed">
+                                    No Fields Available
+                                </Text>
+                                <Text ta="center" c="dimmed">
+                                    Fields will appear here once you create
+                                    them.
+                                </Text>
                             </Stack>
-                        </SortableContext>
-                    </DndContext>
-                ) : (
-                    <Paper withBorder p="xl" radius="md">
-                        <Stack gap="md" align="center">
-                            <Text size="lg" fw={500} c="dimmed">
-                                No Fields Available
-                            </Text>
-                            <Text ta="center" c="dimmed">
-                                Fields will appear here once you create them.
-                            </Text>
-                        </Stack>
-                    </Paper>
-                )}
+                        </Paper>
+                    )}
+                </ScrollArea>
             </Stack>
 
             {selectedField && openDialogType === OpenDialogType.DeleteField && (

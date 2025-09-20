@@ -1,16 +1,19 @@
 import {
     ActionIcon,
     Badge,
+    Collapse,
     Divider,
     Group,
     Paper,
+    ScrollArea,
     SimpleGrid,
     Stack,
     Text,
     Title,
+    UnstyledButton,
 } from "@mantine/core";
 import { useEffect, useState } from "react";
-import { MdLink } from "react-icons/md";
+import { MdExpandLess, MdExpandMore, MdLink } from "react-icons/md";
 import { useTracker } from "../context/TrackerContext";
 import { FieldAnalyticsDto } from "../model/FieldAnalyticsDto";
 import { TrackerDto } from "../model/TrackerDto";
@@ -81,6 +84,7 @@ const AnalyticsSection = ({
 }) => {
     const allStats = [];
     const [selectedEntryId, setSelectedEntryId] = useState<string>();
+    const [opened, setOpened] = useState(false);
 
     // Add all available stats
     if (analytic.min != null) {
@@ -230,36 +234,52 @@ const AnalyticsSection = ({
         <>
             <Paper withBorder p="lg" radius="md">
                 <Stack gap="lg">
-                    <Group align="center">
-                        <Title c={tracker.color} order={4}>
-                            {analytic.fieldName}
-                        </Title>
-                        <Badge variant="outline" color={tracker.color}>
-                            {analytic.fieldType}
-                        </Badge>
-                        <Badge variant="light" color={tracker.color}>
-                            {allStats.length} stat
-                            {allStats.length !== 1 ? "s" : ""}
-                        </Badge>
-                    </Group>
-
-                    <Divider />
-
-                    <SimpleGrid
-                        cols={{ base: 1, xs: 2, sm: 2, md: 3, lg: 4 }}
-                        spacing="md"
-                        verticalSpacing="md"
+                    <UnstyledButton
+                        onClick={() => setOpened((o) => !o)}
+                        style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            width: "100%",
+                        }}
                     >
-                        {allStats.map((stat, index) => (
-                            <StatCard
-                                tracker={tracker}
-                                key={`${stat.label}-${index}`}
-                                label={stat.label}
-                                value={stat.value}
-                                onClick={stat.onClick}
-                            />
-                        ))}
-                    </SimpleGrid>
+                        <Group align="center">
+                            <Title c={tracker.color} order={4}>
+                                {analytic.fieldName}
+                            </Title>
+                            <Badge variant="outline" color={tracker.color}>
+                                {analytic.fieldType}
+                            </Badge>
+                            <Badge variant="light" color={tracker.color}>
+                                {allStats.length} stat
+                                {allStats.length !== 1 ? "s" : ""}
+                            </Badge>
+                        </Group>
+                        {opened ? (
+                            <MdExpandLess size={24} />
+                        ) : (
+                            <MdExpandMore size={24} />
+                        )}
+                    </UnstyledButton>
+
+                    <Collapse in={opened}>
+                        <Divider />
+                        <SimpleGrid
+                            cols={{ base: 1, xs: 2, sm: 2, md: 3, lg: 4 }}
+                            spacing="md"
+                            verticalSpacing="md"
+                        >
+                            {allStats.map((stat, index) => (
+                                <StatCard
+                                    tracker={tracker}
+                                    key={`${stat.label}-${index}`}
+                                    label={stat.label}
+                                    value={stat.value}
+                                    onClick={stat.onClick}
+                                />
+                            ))}
+                        </SimpleGrid>
+                    </Collapse>
                 </Stack>
             </Paper>
             {selectedEntryId && (
@@ -307,14 +327,16 @@ export default function AnalyticsList(props: AnalyticsListProps) {
     });
 
     return (
-        <Stack gap="xl">
-            {sortedAnalytics.map((analytic, index) => (
-                <AnalyticsSection
-                    key={`${analytic.fieldName}-${index}`}
-                    analytic={analytic}
-                    tracker={props.tracker}
-                />
-            ))}
-        </Stack>
+        <ScrollArea flex={1} mih={0} h={"100%"}>
+            <Stack gap="md">
+                {sortedAnalytics.map((analytic, index) => (
+                    <AnalyticsSection
+                        key={`${analytic.fieldName}-${index}`}
+                        analytic={analytic}
+                        tracker={props.tracker}
+                    />
+                ))}
+            </Stack>
+        </ScrollArea>
     );
 }

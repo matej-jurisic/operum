@@ -5,6 +5,7 @@ import React, {
     SetStateAction,
     useCallback,
     useContext,
+    useEffect,
     useState,
 } from "react";
 import api from "../api/api";
@@ -53,6 +54,20 @@ type TrackerContextType = {
     ImportEntries: (trackerId: string, file: File | null) => Promise<void>;
     analyticsDirty: boolean;
     entriesDirty: boolean;
+    // Column visibility state
+    visibleColumns: Record<string, boolean>;
+    visibleFields: FieldDto[];
+    toggleColumn: (columnId: string) => void;
+    setAllColumnsVisible: (visible: boolean) => void;
+    // Selection state
+    selectedEntryIds: Set<string>;
+    isSelectMode: boolean;
+    allEntriesSelected: boolean;
+    someEntriesSelected: boolean;
+    toggleEntrySelection: (entryId: string) => void;
+    toggleSelectAll: () => void;
+    clearSelection: () => void;
+    setIsSelectMode: Dispatch<SetStateAction<boolean>>;
 };
 
 const TrackerContext = createContext<TrackerContextType | undefined>(undefined);
@@ -98,6 +113,107 @@ export const TrackerProvider: React.FC<{
     const [fieldsDirty, setFieldsDirty] = useState(true);
     const [analyticsDirty, setAnalyticsDirty] = useState(true);
     const [viewsDirty, setViewsDirty] = useState(true);
+
+    // Column visibility state
+    const [visibleColumns, setVisibleColumns] = useState<
+        Record<string, boolean>
+    >({});
+
+    // Selection state
+    const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(
+        new Set()
+    );
+    const [isSelectMode, setIsSelectMode] = useState(false);
+
+    // Initialize column visibility when fields are loaded
+    useEffect(() => {
+        if (fields.length > 0) {
+            const initialVisibility: Record<string, boolean> = {};
+
+            // Set all fields as visible by default
+            fields.forEach((field) => {
+                if (!visibleColumns.hasOwnProperty(field.id)) {
+                    initialVisibility[field.id] = true;
+                }
+            });
+
+            // Always show these system columns by default if not set
+            if (!visibleColumns.hasOwnProperty("createdAt")) {
+                initialVisibility["createdAt"] = true;
+            }
+            if (!visibleColumns.hasOwnProperty("actions")) {
+                initialVisibility["actions"] = true;
+            }
+
+            // Only update if we have new columns to set
+            if (Object.keys(initialVisibility).length > 0) {
+                setVisibleColumns((prev) => ({
+                    ...prev,
+                    ...initialVisibility,
+                }));
+            }
+        }
+    }, [fields]);
+
+    // Get visible fields based on visibility state
+    const visibleFields = fields.filter((field) => visibleColumns[field.id]);
+
+    // Selection computed properties
+    const allEntriesSelected =
+        entries.length > 0 && selectedEntryIds.size === entries.length;
+    const someEntriesSelected =
+        selectedEntryIds.size > 0 && selectedEntryIds.size < entries.length;
+
+    // Toggle column visibility
+    const toggleColumn = useCallback((columnId: string) => {
+        setVisibleColumns((prev) => ({
+            ...prev,
+            [columnId]: !prev[columnId],
+        }));
+    }, []);
+
+    // Set all columns visible/hidden
+    const setAllColumnsVisible = useCallback(
+        (visible: boolean) => {
+            const newVisibility: Record<string, boolean> = {};
+            fields.forEach((field) => {
+                newVisibility[field.id] = visible;
+            });
+            newVisibility["createdAt"] = visible;
+            newVisibility["actions"] = visible;
+            setVisibleColumns(newVisibility);
+        },
+        [fields]
+    );
+
+    // Selection functions
+    const toggleEntrySelection = useCallback((entryId: string) => {
+        setSelectedEntryIds((prev) => {
+            const newSet = new Set(prev);
+            if (newSet.has(entryId)) {
+                newSet.delete(entryId);
+            } else {
+                newSet.add(entryId);
+            }
+            return newSet;
+        });
+    }, []);
+
+    const toggleSelectAll = useCallback(() => {
+        const allEntryIds = new Set(entries.map((entry) => entry.id));
+        const allSelected = selectedEntryIds.size === allEntryIds.size;
+
+        if (allSelected) {
+            setSelectedEntryIds(new Set()); // Deselect all
+        } else {
+            setSelectedEntryIds(allEntryIds); // Select all
+        }
+    }, [entries, selectedEntryIds.size]);
+
+    const clearSelection = useCallback(() => {
+        setSelectedEntryIds(new Set());
+        setIsSelectMode(false);
+    }, []);
 
     const refreshEntries = useCallback(
         async (implicitViewId?: string) => {
@@ -194,8 +310,13 @@ export const TrackerProvider: React.FC<{
 
     const DeleteEntry = async (trackerId: string, entryId: string) => {
         await api.delete(`/trackers/${trackerId}/entries/${entryId}`);
+        // Remove from selection if selected
+        setSelectedEntryIds((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(entryId);
+            return newSet;
+        });
         refreshEntries();
-
         markAnalyticsDirty();
     };
 
@@ -203,8 +324,9 @@ export const TrackerProvider: React.FC<{
         await api.delete(`/trackers/${trackerId}/entries`, {
             data: { entryIds },
         });
+        // Clear selection after bulk delete
+        clearSelection();
         refreshEntries();
-
         markAnalyticsDirty();
     };
 
@@ -300,6 +422,20 @@ export const TrackerProvider: React.FC<{
                 ImportEntries,
                 analyticsDirty,
                 entriesDirty,
+                // Column visibility
+                visibleColumns,
+                visibleFields,
+                toggleColumn,
+                setAllColumnsVisible,
+                // Selection
+                selectedEntryIds,
+                isSelectMode,
+                allEntriesSelected,
+                someEntriesSelected,
+                toggleEntrySelection,
+                toggleSelectAll,
+                clearSelection,
+                setIsSelectMode,
             }}
         >
             {children}

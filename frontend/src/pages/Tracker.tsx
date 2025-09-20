@@ -7,7 +7,6 @@ import EntriesList from "../components/EntriesList";
 import FieldsList from "../components/FieldsList";
 import Header from "../components/Header";
 import SelectView from "../components/SelectView";
-import StickyContainer from "../components/StickyContainer";
 import ViewsList from "../components/ViewsList";
 import { TrackerProvider } from "../context/TrackerContext";
 import { TrackerDto } from "../model/TrackerDto";
@@ -34,8 +33,8 @@ export default function Tracker() {
 
     return (
         <TrackerProvider initialTracker={tracker}>
-            <Stack gap="lg">
-                <Stack justify="space-between" w={"100%"}>
+            <Stack h="100%" display="flex" gap={"md"}>
+                <Stack justify="space-between" w="100%">
                     <Group justify="space-between">
                         <SelectView />
                         <Header color={tracker.color} />
@@ -52,35 +51,46 @@ export default function Tracker() {
                     </Group>
                 </Stack>
 
-                <Tabs
-                    variant="default"
-                    color={tracker.color}
-                    keepMounted={false}
-                    defaultValue={"entries"}
-                >
-                    <StickyContainer>
+                <Stack flex="1" mih={0}>
+                    <Tabs
+                        variant="default"
+                        color={tracker.color}
+                        keepMounted={false}
+                        defaultValue="entries"
+                        h="100%"
+                        display={"flex"}
+                        style={{ flexDirection: "column" }}
+                    >
                         <Tabs.List>
                             <Tabs.Tab value="entries">Entries</Tabs.Tab>
                             <Tabs.Tab value="fields">Fields</Tabs.Tab>
                             <Tabs.Tab value="views">Views</Tabs.Tab>
                             <Tabs.Tab value="analytics">Analytics</Tabs.Tab>
                         </Tabs.List>
-                    </StickyContainer>
-                    <Container px={0} pt={"md"} fluid>
-                        <Tabs.Panel value="entries">
-                            <EntriesList />
-                        </Tabs.Panel>
-                        <Tabs.Panel value="views">
-                            <ViewsList tracker={tracker} />
-                        </Tabs.Panel>
-                        <Tabs.Panel value="fields">
-                            <FieldsList tracker={tracker} />
-                        </Tabs.Panel>
-                        <Tabs.Panel value="analytics">
-                            <AnalyiticsList tracker={tracker} />
-                        </Tabs.Panel>
-                    </Container>
-                </Tabs>
+
+                        <Container
+                            fluid
+                            flex={1}
+                            w="100%"
+                            py="md"
+                            px={0}
+                            mih={0}
+                        >
+                            <Tabs.Panel value="entries" h="100%">
+                                <EntriesList />
+                            </Tabs.Panel>
+                            <Tabs.Panel value="views" h="100%">
+                                <ViewsList tracker={tracker} />
+                            </Tabs.Panel>
+                            <Tabs.Panel value="fields" h="100%">
+                                <FieldsList tracker={tracker} />
+                            </Tabs.Panel>
+                            <Tabs.Panel value="analytics" h="100%">
+                                <AnalyiticsList tracker={tracker} />
+                            </Tabs.Panel>
+                        </Container>
+                    </Tabs>
+                </Stack>
             </Stack>
         </TrackerProvider>
     );

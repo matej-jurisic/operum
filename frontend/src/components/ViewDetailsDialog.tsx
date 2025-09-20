@@ -11,7 +11,7 @@ import { useEffect, useState } from "react";
 import api from "../api/api";
 import { TrackerDto } from "../model/TrackerDto";
 import { ViewDto } from "../model/ViewDto";
-import { renderValue } from "./EntriesList";
+import { renderValue } from "../util/ValueRenderer";
 
 interface Props {
     viewId: string;

@@ -5,6 +5,7 @@ import {
     Group,
     Menu,
     Paper,
+    ScrollArea,
     Stack,
     Text,
     Title,
@@ -76,7 +77,7 @@ export default function ViewsList(props: Props) {
 
     return (
         <>
-            <Stack gap="md">
+            <Stack gap="md" h={"100%"}>
                 <Group justify="space-between" w="100%">
                     <Tooltip
                         label={
@@ -147,103 +148,87 @@ export default function ViewsList(props: Props) {
                         </Menu.Dropdown>
                     </Menu>
                 </Group>
-                {views.length > 0 ? (
-                    views.map((view) => (
-                        <Card key={view.id} p="md" radius="md" withBorder>
-                            <Group
-                                wrap="nowrap"
-                                justify="space-between"
-                                align="flex-start"
-                            >
-                                <Stack gap="sm">
-                                    <Title
-                                        order={4}
-                                        lineClamp={1}
-                                        className="wrapped-text"
+                <ScrollArea flex={1} mih={0}>
+                    <Stack gap="md">
+                        {views.length > 0 ? (
+                            views.map((view) => (
+                                <Card
+                                    key={view.id}
+                                    p="md"
+                                    radius="md"
+                                    withBorder
+                                >
+                                    <Group
+                                        wrap="nowrap"
+                                        justify="space-between"
+                                        align="flex-start"
                                     >
-                                        {view.name}
-                                    </Title>
-                                    <Text
-                                        c="dimmed"
-                                        size="sm"
-                                        lineClamp={3}
-                                        className="wrapped-text"
-                                    >
-                                        {view.description || "No description"}
-                                    </Text>
-                                    {/* <Group>
-                                        {view.sorts.map((sort) => (
-                                            <Badge size="sm" variant="outline">
-                                                {sort.order + 1}.{" SORT "}
-                                                {sort.field.name}{" "}
-                                                {sort.descending
-                                                    ? "DESC"
-                                                    : "ASC"}
-                                            </Badge>
-                                        ))}
-                                        {view.filters.map((filter) => (
-                                            <Badge
-                                                size="sm"
-                                                variant="outline"
-                                                color="green"
+                                        <Stack gap="sm">
+                                            <Title
+                                                order={4}
+                                                lineClamp={1}
+                                                className="wrapped-text"
                                             >
-                                                {filter.field.name}{" "}
-                                                {filter.operator}{" "}
-                                                {filter.value
-                                                    ? renderValue(
-                                                          filter.field.type,
-                                                          filter.value
-                                                      )
-                                                    : "Empty"}
-                                            </Badge>
-                                        ))}
-                                    </Group> */}
+                                                {view.name}
+                                            </Title>
+                                            <Text
+                                                c="dimmed"
+                                                size="sm"
+                                                lineClamp={3}
+                                                className="wrapped-text"
+                                            >
+                                                {view.description ||
+                                                    "No description"}
+                                            </Text>
+                                        </Stack>
+                                        <Group gap="xs" wrap="nowrap">
+                                            <ActionIcon
+                                                variant="outline"
+                                                color={props.tracker.color}
+                                                size="lg"
+                                                onClick={() => {
+                                                    setSelectedView(view);
+                                                    setOpenDialogType(
+                                                        OpenDialogType.ViewDetails
+                                                    );
+                                                }}
+                                                aria-label={`Edit field ${view.name}`}
+                                            >
+                                                <RiFileListFill size={16} />
+                                            </ActionIcon>
+                                            <ActionIcon
+                                                variant="outline"
+                                                color="red"
+                                                size="lg"
+                                                onClick={() => {
+                                                    setSelectedView(view);
+                                                    setOpenDialogType(
+                                                        OpenDialogType.DeleteView
+                                                    );
+                                                }}
+                                                aria-label={`Delete view ${view.name}`}
+                                            >
+                                                <MdDelete size={16} />
+                                            </ActionIcon>
+                                        </Group>
+                                    </Group>
+                                </Card>
+                            ))
+                        ) : (
+                            <Paper withBorder p="xl" radius="md">
+                                <Stack gap="md" align="center">
+                                    <Text size="lg" fw={500} c="dimmed">
+                                        No Views Available
+                                    </Text>
+                                    <Text ta="center" c="dimmed">
+                                        Views will appear here when you create
+                                        them.
+                                    </Text>
                                 </Stack>
-                                <Group gap="xs" wrap="nowrap">
-                                    <ActionIcon
-                                        variant="outline"
-                                        color={props.tracker.color}
-                                        size="lg"
-                                        onClick={() => {
-                                            setSelectedView(view);
-                                            setOpenDialogType(
-                                                OpenDialogType.ViewDetails
-                                            );
-                                        }}
-                                        aria-label={`Edit field ${view.name}`}
-                                    >
-                                        <RiFileListFill size={16} />
-                                    </ActionIcon>
-                                    <ActionIcon
-                                        variant="outline"
-                                        color="red"
-                                        size="lg"
-                                        onClick={() => {
-                                            setSelectedView(view);
-                                            setOpenDialogType(
-                                                OpenDialogType.DeleteView
-                                            );
-                                        }}
-                                        aria-label={`Delete view ${view.name}`}
-                                    >
-                                        <MdDelete size={16} />
-                                    </ActionIcon>
-                                </Group>
-                            </Group>
-                        </Card>
-                    ))
-                ) : (
-                    <Paper withBorder p="xl" radius="md">
-                        <Stack gap="md" align="center">
-                            <Text size="lg" fw={500} c="dimmed">
-                                No Views Available
-                            </Text>
-                            <Text ta="center" c="dimmed">
-                                Views will appear here when you create them.
-                            </Text>
-                        </Stack>
-                    </Paper>
-                )}
+                            </Paper>
+                        )}
+                    </Stack>
+                </ScrollArea>
             </Stack>
 
             {selectedView && openDialogType === OpenDialogType.ViewDetails && (

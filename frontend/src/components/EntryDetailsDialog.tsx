@@ -12,7 +12,7 @@ import api from "../api/api";
 import { EntryDto } from "../model/EntryDto";
 import { TrackerDto } from "../model/TrackerDto";
 import { formatDateTimeFromDate } from "../util/TypeFormatter";
-import { renderValue } from "./EntriesList";
+import { renderValue } from "../util/ValueRenderer";
 
 interface EntryDetailsDialogProps {
     onClose: () => void;
@@ -72,10 +72,10 @@ export default function EntryDetailsDialog({
                         justify="space-between"
                         wrap="nowrap"
                     >
-                        <Title maw={"50%"} order={5} className="wrapped-text">
+                        <Text fw={500} maw={"50%"} className="wrapped-text">
                             {fieldValue.fieldName}
-                        </Title>
-                        <Text maw={"50%"} className="wrapped-text">
+                        </Text>
+                        <Text w={"50%"} className="wrapped-text">
                             {renderValue(
                                 fieldValue.fieldType,
                                 fieldValue.value
@@ -85,8 +85,10 @@ export default function EntryDetailsDialog({
                 ))}
                 <Divider label="Information" />
                 <Group justify="space-between">
-                    <Text fw={500}>Created At</Text>
-                    <Text>
+                    <Text maw={"50%"} className="wrapped-text">
+                        Created At
+                    </Text>
+                    <Text className="wrapped-text">
                         {formatDateTimeFromDate(new Date(entry.createdAt))}
                     </Text>
                 </Group>
