@@ -88,6 +88,13 @@ export default function EntriesList() {
         return Math.ceil(entries.length / pageSize);
     }, [entries]);
 
+    const message = useMemo(() => {
+        return `Showing ${pageSize * (currentPage - 1) + 1} – ${Math.min(
+            entries.length,
+            pageSize * currentPage
+        )} of ${entries.length}`;
+    }, [currentPage, totalPages]);
+
     const paginatedEntries = useMemo(() => {
         return entries.slice(
             (currentPage - 1) * pageSize,
@@ -167,6 +174,31 @@ export default function EntriesList() {
                         <Group justify="flex-end" wrap="nowrap">
                             {/* Bulk actions */}
 
+                            {isSelectMode && !isMobile && (
+                                <ActionIcon
+                                    variant="outline"
+                                    color="red"
+                                    size="lg"
+                                    onClick={() =>
+                                        setOpenDialogType(
+                                            OpenDialogType.BulkDelete
+                                        )
+                                    }
+                                    disabled={selectedEntryIds.size === 0}
+                                >
+                                    <MdDelete size={18} />
+                                </ActionIcon>
+                            )}
+
+                            <ActionIcon
+                                variant={isSelectMode ? "filled" : "outline"}
+                                color={tracker.color}
+                                onClick={() => setIsSelectMode((prev) => !prev)}
+                                disabled={entries.length === 0}
+                                size="lg"
+                            >
+                                <MdSelectAll size={18} />
+                            </ActionIcon>
                             <ColumnVisibilityMenu />
 
                             <ActionIcon
@@ -181,19 +213,10 @@ export default function EntriesList() {
                             >
                                 <CiExport size={18} />
                             </ActionIcon>
-                            <ActionIcon
-                                variant={isSelectMode ? "filled" : "outline"}
-                                color={tracker.color}
-                                onClick={() => setIsSelectMode((prev) => !prev)}
-                                disabled={entries.length === 0}
-                                size="lg"
-                            >
-                                <MdSelectAll size={18} />
-                            </ActionIcon>
                         </Group>
                     </Group>
 
-                    {isSelectMode && (
+                    {isSelectMode && isMobile && (
                         <Group justify="space-between" w="100%" align="center">
                             <Group>
                                 {isMobile && isSelectMode && (
@@ -205,39 +228,41 @@ export default function EntriesList() {
                                     </Badge>
                                 )}
                             </Group>
-                            <Group>
-                                <Button
-                                    variant={
-                                        allEntriesSelected
-                                            ? "filled"
-                                            : "outline"
-                                    }
-                                    color={tracker.color}
-                                    leftSection={
-                                        allEntriesSelected ? (
-                                            <MdClose size={18} />
-                                        ) : (
-                                            <MdCheck size={18} />
-                                        )
-                                    }
-                                    onClick={toggleSelectAll}
-                                >
-                                    Select All
-                                </Button>
-                                <ActionIcon
-                                    variant="outline"
-                                    color="red"
-                                    size="lg"
-                                    onClick={() =>
-                                        setOpenDialogType(
-                                            OpenDialogType.BulkDelete
-                                        )
-                                    }
-                                    disabled={selectedEntryIds.size === 0}
-                                >
-                                    <MdDelete size={18} />
-                                </ActionIcon>
-                            </Group>
+                            {isMobile && (
+                                <Group>
+                                    <Button
+                                        variant={
+                                            allEntriesSelected
+                                                ? "filled"
+                                                : "outline"
+                                        }
+                                        color={tracker.color}
+                                        leftSection={
+                                            allEntriesSelected ? (
+                                                <MdClose size={18} />
+                                            ) : (
+                                                <MdCheck size={18} />
+                                            )
+                                        }
+                                        onClick={toggleSelectAll}
+                                    >
+                                        Select All
+                                    </Button>
+                                    <ActionIcon
+                                        variant="outline"
+                                        color="red"
+                                        size="lg"
+                                        onClick={() =>
+                                            setOpenDialogType(
+                                                OpenDialogType.BulkDelete
+                                            )
+                                        }
+                                        disabled={selectedEntryIds.size === 0}
+                                    >
+                                        <MdDelete size={18} />
+                                    </ActionIcon>
+                                </Group>
+                            )}
                         </Group>
                     )}
 
@@ -304,14 +329,17 @@ export default function EntriesList() {
                             </Paper>
                         )}
                     </ScrollArea>
-                    <Pagination
-                        value={currentPage}
-                        onChange={setCurrentPage}
-                        total={totalPages}
-                        siblings={0}
-                        color={tracker.color}
-                        size="md"
-                    />
+                    <Stack align="center" gap={"xs"}>
+                        <Text size="sm">{message}</Text>
+                        <Pagination
+                            siblings={0}
+                            value={currentPage}
+                            onChange={setCurrentPage}
+                            total={totalPages}
+                            color={tracker.color}
+                            size="md"
+                        />
+                    </Stack>
                 </Stack>
             </Skeleton>
 
