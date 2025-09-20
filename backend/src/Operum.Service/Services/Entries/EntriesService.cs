@@ -391,7 +391,7 @@ namespace Operum.Service.Services.Entries
 
             var fields = await db.Fields
                 .Where(f => f.TrackerId == trackerId)
-                .OrderBy(f => f.Name)
+                .OrderBy(f => f.Order)
                 .ToListAsync();
 
             var entriesQuery = db.Entries
