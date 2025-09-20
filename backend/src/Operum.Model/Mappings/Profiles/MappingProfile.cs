@@ -44,8 +44,8 @@ namespace Operum.Service.Mappings.Profiles
 
             mapper.Register<Entry, EntryDto>((s, d) =>
             {
-                var sortedByName = s.FieldValues.OrderBy(x => x.Field.Name);
-                foreach (var v in sortedByName)
+                var sorted = s.FieldValues.OrderBy(x => x.Field.Order);
+                foreach (var v in sorted)
                 {
                     d.FieldValues.Add(mapper.Map<FieldValue, FieldValueDto>(v));
                 }
