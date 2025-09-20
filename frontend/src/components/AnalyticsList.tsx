@@ -2,11 +2,11 @@ import {
     ActionIcon,
     Badge,
     Collapse,
-    Divider,
     Group,
     Paper,
     ScrollArea,
     SimpleGrid,
+    Skeleton,
     Stack,
     Text,
     Title,
@@ -263,7 +263,6 @@ const AnalyticsSection = ({
                     </UnstyledButton>
 
                     <Collapse in={opened}>
-                        <Divider />
                         <SimpleGrid
                             cols={{ base: 1, xs: 2, sm: 2, md: 3, lg: 4 }}
                             spacing="md"
@@ -295,24 +294,33 @@ const AnalyticsSection = ({
 
 export default function AnalyticsList(props: AnalyticsListProps) {
     const { analytics, refreshAnalyticsIfDirty, selectedViewId } = useTracker();
+    const [isLoadingData, setIsLoadingData] = useState(false);
 
     useEffect(() => {
-        refreshAnalyticsIfDirty();
+        const loadData = async () => {
+            setIsLoadingData(true);
+            await refreshAnalyticsIfDirty();
+            setIsLoadingData(false);
+        };
+
+        loadData();
     }, [selectedViewId]);
 
     if (!analytics || analytics.length === 0) {
         return (
-            <Paper withBorder p="xl" radius="md">
-                <Stack gap="md" align="center">
-                    <Text size="lg" fw={500} c="dimmed">
-                        No Analytics Available
-                    </Text>
-                    <Text ta="center" c="dimmed">
-                        Analytics will appear here once you have data entries
-                        for your tracker fields.
-                    </Text>
-                </Stack>
-            </Paper>
+            <Skeleton visible={isLoadingData} h={"100%"}>
+                <Paper withBorder p="xl" radius="md">
+                    <Stack gap="md" align="center">
+                        <Text size="lg" fw={500} c="dimmed">
+                            No Analytics Available
+                        </Text>
+                        <Text ta="center" c="dimmed">
+                            Analytics will appear here once you have data
+                            entries for your tracker fields.
+                        </Text>
+                    </Stack>
+                </Paper>
+            </Skeleton>
         );
     }
 
@@ -327,16 +335,18 @@ export default function AnalyticsList(props: AnalyticsListProps) {
     });
 
     return (
-        <ScrollArea flex={1} mih={0} h={"100%"}>
-            <Stack gap="md">
-                {sortedAnalytics.map((analytic, index) => (
-                    <AnalyticsSection
-                        key={`${analytic.fieldName}-${index}`}
-                        analytic={analytic}
-                        tracker={props.tracker}
-                    />
-                ))}
-            </Stack>
-        </ScrollArea>
+        <Skeleton visible={isLoadingData} h={"100%"}>
+            <ScrollArea flex={1} mih={0} h={"100%"}>
+                <Stack gap="md">
+                    {sortedAnalytics.map((analytic, index) => (
+                        <AnalyticsSection
+                            key={`${analytic.fieldName}-${index}`}
+                            analytic={analytic}
+                            tracker={props.tracker}
+                        />
+                    ))}
+                </Stack>
+            </ScrollArea>
+        </Skeleton>
     );
 }
