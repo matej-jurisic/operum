@@ -6,9 +6,11 @@ import {
     Collapse,
     Group,
     Paper,
+    ScrollArea,
     Stack,
     Text,
     Title,
+    useMantineTheme,
 } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { FiChevronDown, FiChevronRight, FiPlus } from "react-icons/fi";
@@ -75,13 +77,14 @@ export default function AnalyticsConfiguration() {
     }, []);
 
     const groupedAnalytics = groupAnalyticsByName(analytics);
+    const theme = useMantineTheme();
 
     return (
         <>
-            <Stack gap="md">
+            <Stack gap="md" h={"100%"}>
                 <Group justify="space-between" w="100%">
                     <Button
-                        color="indigo"
+                        color={theme.primaryColor}
                         variant="outline"
                         leftSection={<FiPlus size={18} />}
                         onClick={() =>
@@ -92,190 +95,234 @@ export default function AnalyticsConfiguration() {
                     </Button>
                 </Group>
 
-                {Object.keys(groupedAnalytics).length > 0 ? (
-                    Object.entries(groupedAnalytics).map(
-                        ([groupName, groupAnalytics]) => (
-                            <Card key={groupName} radius="md" withBorder>
-                                <Stack gap="sm">
-                                    {/* Group Header - Clickable */}
-                                    <Group
-                                        wrap="nowrap"
-                                        justify="space-between"
-                                        style={{ cursor: "pointer" }}
-                                        onClick={() => toggleGroup(groupName)}
+                <ScrollArea flex={1}>
+                    <Stack>
+                        {Object.keys(groupedAnalytics).length > 0 ? (
+                            Object.entries(groupedAnalytics).map(
+                                ([groupName, groupAnalytics]) => (
+                                    <Card
+                                        key={groupName}
+                                        radius="md"
+                                        withBorder
                                     >
-                                        <Group
-                                            gap="xs"
-                                            align="center"
-                                            w={"100%"}
-                                        >
-                                            <ActionIcon
-                                                variant="transparent"
-                                                size="sm"
-                                                color="gray"
-                                            >
-                                                {expandedGroups.has(
-                                                    groupName
-                                                ) ? (
-                                                    <FiChevronDown size={16} />
-                                                ) : (
-                                                    <FiChevronRight size={16} />
-                                                )}
-                                            </ActionIcon>
+                                        <Stack gap="sm">
+                                            {/* Group Header - Clickable */}
                                             <Group
-                                                flex={1}
+                                                wrap="nowrap"
                                                 justify="space-between"
+                                                style={{ cursor: "pointer" }}
+                                                onClick={() =>
+                                                    toggleGroup(groupName)
+                                                }
                                             >
-                                                <Title order={4}>
-                                                    {groupName}
-                                                </Title>
-                                                <Badge
-                                                    variant="transparent"
-                                                    size="md"
+                                                <Group
+                                                    gap="xs"
+                                                    align="center"
+                                                    w={"100%"}
                                                 >
-                                                    {groupAnalytics.length}{" "}
-                                                    variant
-                                                    {groupAnalytics.length !== 1
-                                                        ? "s"
-                                                        : ""}
-                                                </Badge>
+                                                    <ActionIcon
+                                                        variant="transparent"
+                                                        size="sm"
+                                                        color="gray"
+                                                    >
+                                                        {expandedGroups.has(
+                                                            groupName
+                                                        ) ? (
+                                                            <FiChevronDown
+                                                                size={16}
+                                                            />
+                                                        ) : (
+                                                            <FiChevronRight
+                                                                size={16}
+                                                            />
+                                                        )}
+                                                    </ActionIcon>
+                                                    <Group
+                                                        flex={1}
+                                                        justify="space-between"
+                                                    >
+                                                        <Title order={4}>
+                                                            {groupName}
+                                                        </Title>
+                                                        <Badge
+                                                            variant="transparent"
+                                                            size="md"
+                                                        >
+                                                            {
+                                                                groupAnalytics.length
+                                                            }{" "}
+                                                            variant
+                                                            {groupAnalytics.length !==
+                                                            1
+                                                                ? "s"
+                                                                : ""}
+                                                        </Badge>
+                                                    </Group>
+                                                </Group>
                                             </Group>
-                                        </Group>
-                                    </Group>
 
-                                    {/* Collapsible Content */}
-                                    <Collapse
-                                        in={expandedGroups.has(groupName)}
-                                    >
-                                        <Stack gap="sm" pl={"xl"}>
-                                            {groupAnalytics.map((analytic) => (
-                                                <Card
-                                                    key={analytic.id}
-                                                    radius="sm"
-                                                    withBorder
-                                                >
-                                                    <Stack gap={"sm"}>
-                                                        <Group
-                                                            justify="space-between"
-                                                            wrap="nowrap"
-                                                        >
-                                                            <Text
-                                                                flex={1}
-                                                                fw={500}
-                                                                className="wrapped-text"
-                                                            >
-                                                                {analytic.code}
-                                                            </Text>
-                                                            <Badge
-                                                                variant="outline"
-                                                                color={
-                                                                    analytic.analyticTypeId ===
-                                                                    AnalyticType.Public
-                                                                        ? "green"
-                                                                        : "yellow"
+                                            {/* Collapsible Content */}
+                                            <Collapse
+                                                in={expandedGroups.has(
+                                                    groupName
+                                                )}
+                                            >
+                                                <Stack gap="sm" pl={"xl"}>
+                                                    {groupAnalytics.map(
+                                                        (analytic) => (
+                                                            <Card
+                                                                key={
+                                                                    analytic.id
                                                                 }
+                                                                radius="sm"
+                                                                withBorder
                                                             >
-                                                                {
-                                                                    analytic.analyticTypeName
-                                                                }
-                                                            </Badge>
-                                                        </Group>
-                                                        <Text
-                                                            c="dimmed"
-                                                            size="sm"
-                                                            lineClamp={2}
-                                                            className="wrapped-text"
-                                                        >
-                                                            {analytic.description ||
-                                                                "No description"}
-                                                        </Text>
-                                                        <Group
-                                                            justify="space-between"
-                                                            w={"100%"}
-                                                        >
-                                                            <Stack gap="xs">
-                                                                {analytic.analyticRequiredDataTypes.map(
-                                                                    (r) => (
-                                                                        <Badge
-                                                                            key={
-                                                                                r.id
+                                                                <Stack
+                                                                    gap={"sm"}
+                                                                >
+                                                                    <Group
+                                                                        justify="space-between"
+                                                                        wrap="nowrap"
+                                                                    >
+                                                                        <Text
+                                                                            flex={
+                                                                                1
                                                                             }
-                                                                            color={
-                                                                                isFieldType(
-                                                                                    r.type
-                                                                                )
-                                                                                    ? DataTypeColor[
-                                                                                          r
-                                                                                              .type
-                                                                                      ]
-                                                                                    : "gray"
+                                                                            fw={
+                                                                                500
                                                                             }
-                                                                            variant="outline"
+                                                                            className="wrapped-text"
                                                                         >
                                                                             {
-                                                                                r.purpose
-                                                                            }{" "}
-                                                                            (
-                                                                            {
-                                                                                r.type
+                                                                                analytic.code
                                                                             }
-                                                                            )
+                                                                        </Text>
+                                                                        <Badge
+                                                                            variant="outline"
+                                                                            color={
+                                                                                analytic.analyticTypeId ===
+                                                                                AnalyticType.Public
+                                                                                    ? "green"
+                                                                                    : "yellow"
+                                                                            }
+                                                                        >
+                                                                            {
+                                                                                analytic.analyticTypeName
+                                                                            }
                                                                         </Badge>
-                                                                    )
-                                                                )}
-                                                            </Stack>
-                                                            <Group
-                                                                gap="sm"
-                                                                wrap="nowrap"
-                                                                justify="flex-end"
-                                                                flex={1}
-                                                            >
-                                                                <ActionIcon
-                                                                    variant="outline"
-                                                                    color="red"
-                                                                    size={"lg"}
-                                                                    onClick={(
-                                                                        e
-                                                                    ) => {
-                                                                        e.stopPropagation(); // Prevent group toggle
-                                                                        setSelectedAnalytic(
-                                                                            analytic
-                                                                        );
-                                                                        setOpenDialogType(
-                                                                            OpenDialogType.DeleteAnalytic
-                                                                        );
-                                                                    }}
-                                                                    aria-label={`Delete analytic ${analytic.name} - ${analytic.code}`}
-                                                                >
-                                                                    <MdDelete
-                                                                        size={
-                                                                            16
+                                                                    </Group>
+                                                                    <Text
+                                                                        c="dimmed"
+                                                                        size="sm"
+                                                                        lineClamp={
+                                                                            2
                                                                         }
-                                                                    />
-                                                                </ActionIcon>
-                                                            </Group>
-                                                        </Group>
-                                                    </Stack>
-                                                </Card>
-                                            ))}
+                                                                        className="wrapped-text"
+                                                                    >
+                                                                        {analytic.description ||
+                                                                            "No description"}
+                                                                    </Text>
+                                                                    <Group
+                                                                        justify="space-between"
+                                                                        w={
+                                                                            "100%"
+                                                                        }
+                                                                        align="flex-end"
+                                                                    >
+                                                                        <Stack gap="xs">
+                                                                            {analytic.analyticRequiredDataTypes.map(
+                                                                                (
+                                                                                    r
+                                                                                ) => (
+                                                                                    <Badge
+                                                                                        key={
+                                                                                            r.id
+                                                                                        }
+                                                                                        color={
+                                                                                            isFieldType(
+                                                                                                r.type
+                                                                                            )
+                                                                                                ? DataTypeColor[
+                                                                                                      r
+                                                                                                          .type
+                                                                                                  ]
+                                                                                                : "gray"
+                                                                                        }
+                                                                                        variant="outline"
+                                                                                    >
+                                                                                        {
+                                                                                            r.purpose
+                                                                                        }{" "}
+                                                                                        (
+                                                                                        {
+                                                                                            r.type
+                                                                                        }
+
+                                                                                        )
+                                                                                    </Badge>
+                                                                                )
+                                                                            )}
+                                                                        </Stack>
+                                                                        <Group
+                                                                            gap="sm"
+                                                                            wrap="nowrap"
+                                                                            justify="flex-end"
+                                                                            flex={
+                                                                                1
+                                                                            }
+                                                                        >
+                                                                            <ActionIcon
+                                                                                variant="outline"
+                                                                                color="red"
+                                                                                size={
+                                                                                    "lg"
+                                                                                }
+                                                                                onClick={(
+                                                                                    e
+                                                                                ) => {
+                                                                                    e.stopPropagation(); // Prevent group toggle
+                                                                                    setSelectedAnalytic(
+                                                                                        analytic
+                                                                                    );
+                                                                                    setOpenDialogType(
+                                                                                        OpenDialogType.DeleteAnalytic
+                                                                                    );
+                                                                                }}
+                                                                                aria-label={`Delete analytic ${analytic.name} - ${analytic.code}`}
+                                                                            >
+                                                                                <MdDelete
+                                                                                    size={
+                                                                                        16
+                                                                                    }
+                                                                                />
+                                                                            </ActionIcon>
+                                                                        </Group>
+                                                                    </Group>
+                                                                </Stack>
+                                                            </Card>
+                                                        )
+                                                    )}
+                                                </Stack>
+                                            </Collapse>
                                         </Stack>
-                                    </Collapse>
+                                    </Card>
+                                )
+                            )
+                        ) : (
+                            <Paper withBorder p="xl" radius="md">
+                                <Stack gap="md" align="center">
+                                    <Text size="lg" fw={500} c="dimmed">
+                                        No Analytics Available
+                                    </Text>
+                                    <Text ta="center" c="dimmed">
+                                        Analytics will appear here when you
+                                        create them.
+                                    </Text>
                                 </Stack>
-                            </Card>
-                        )
-                    )
-                ) : (
-                    <Paper withBorder p="xl" radius="md">
-                        <Stack gap="md" align="center">
-                            <Text size="lg" fw={500} c="dimmed">
-                                No Analytics Available
-                            </Text>
-                            <Text ta="center" c="dimmed">
-                                Analytics will appear here when you create them.
-                            </Text>
-                        </Stack>
-                    </Paper>
-                )}
+                            </Paper>
+                        )}
+                    </Stack>
+                </ScrollArea>
             </Stack>
 
             {openDialogType === OpenDialogType.CreateAnalytic && (

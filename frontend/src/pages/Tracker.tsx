@@ -33,7 +33,7 @@ export default function Tracker() {
 
     return (
         <TrackerProvider initialTracker={tracker}>
-            <Stack h="100%" display="flex" gap={"md"}>
+            <Stack h="100%"  gap={"md"}>
                 <Stack justify="space-between" w="100%">
                     <Group justify="space-between">
                         <SelectView />
