@@ -1,10 +1,12 @@
 import {
     ActionIcon,
+    Badge,
     Button,
     Card,
     Group,
     Menu,
     ScrollArea,
+    Select,
     Stack,
     Text,
     Title,
@@ -15,7 +17,12 @@ import { FiPlus, FiPlusSquare } from "react-icons/fi";
 import { MdDelete, MdEdit } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import api from "../api/api";
+import {
+    TrackerFilters,
+    TrackerFiltersForSelect,
+} from "../model/constants/TrackerFilters";
 import { TrackerDto } from "../model/TrackerDto";
+import globalStore from "../stores/GlobalStore";
 import ConfirmationDialog from "./ConfirmationDialog";
 import Header from "./Header";
 import TrackerFormDialog from "./TrackerFormDialog";
@@ -25,8 +32,10 @@ const GetAdminTemplateList = async () => {
     return response.data.data;
 };
 
-const GetTrackerList = async () => {
-    const response = await api.get("/trackers");
+const GetTrackerList = async (filter?: string) => {
+    const response = await api.get("/trackers", {
+        params: filter ? { filter } : {},
+    });
     return response.data.data;
 };
 
@@ -49,6 +58,9 @@ export default function TrackerList({ isTemplates = false }: Props) {
     const [trackerList, setTrackerList] = useState<TrackerDto[]>([]);
     const [selectedTracker, setSelectedTracker] = useState<TrackerDto>();
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
+    const [selectedFilter, setSelectedFilter] = useState<string>(
+        TrackerFilters.Owned
+    );
     const theme = useMantineTheme();
     const navigate = useNavigate();
 
@@ -56,25 +68,43 @@ export default function TrackerList({ isTemplates = false }: Props) {
         if (isTemplates) {
             setTrackerList(await GetAdminTemplateList());
         } else {
-            setTrackerList(await GetTrackerList());
+            setTrackerList(await GetTrackerList(selectedFilter));
         }
     };
 
     useEffect(() => {
         GetData();
-    }, []);
+    }, [selectedFilter]);
 
     return (
         <>
             <Stack gap="md" h={"100%"}>
-                <Group w={"100%"} justify="space-between">
+                {!isTemplates && (
+                    <Group w={"100%"} justify="space-between">
+                        <Title order={2} c={theme.primaryColor}>
+                            Operum
+                        </Title>
+                        <Header />
+                    </Group>
+                )}
+                <Group justify="space-between" align="flex-end">
+                    <Select
+                        value={selectedFilter}
+                        w={150}
+                        label={"Filter"}
+                        data={TrackerFiltersForSelect}
+                        allowDeselect={false}
+                        onChange={(e) => {
+                            if (e) setSelectedFilter(e);
+                        }}
+                    />
                     <Menu shadow="md" position="bottom-start">
                         <Menu.Target>
                             <Button
                                 variant="outline"
                                 leftSection={<FiPlus size={18} />}
                             >
-                                Create
+                                Create Tracker
                             </Button>
                         </Menu.Target>
                         <Menu.Dropdown>
@@ -100,9 +130,7 @@ export default function TrackerList({ isTemplates = false }: Props) {
                             </Menu.Item>
                         </Menu.Dropdown>
                     </Menu>
-                    {!isTemplates && <Header />}
                 </Group>
-
                 <ScrollArea flex={1}>
                     <Stack>
                         {trackerList.map((x) => {
@@ -159,34 +187,47 @@ export default function TrackerList({ isTemplates = false }: Props) {
                                             justify="flex-end"
                                             wrap="nowrap"
                                         >
-                                            <ActionIcon
-                                                size={"lg"}
-                                                variant="outline"
-                                                color="green"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setSelectedTracker(x);
-                                                    setOpenDialogType(
-                                                        OpenDialogType.UpdateTracker
-                                                    );
-                                                }}
-                                            >
-                                                <MdEdit size={18} />
-                                            </ActionIcon>
-                                            <ActionIcon
-                                                size={"lg"}
-                                                variant="outline"
-                                                color="red"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setSelectedTracker(x);
-                                                    setOpenDialogType(
-                                                        OpenDialogType.DeleteTracker
-                                                    );
-                                                }}
-                                            >
-                                                <MdDelete size={18} />
-                                            </ActionIcon>
+                                            {globalStore.currentUser?.id ===
+                                            x.ownerId ? (
+                                                <>
+                                                    <ActionIcon
+                                                        size={"lg"}
+                                                        variant="outline"
+                                                        color="green"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSelectedTracker(
+                                                                x
+                                                            );
+                                                            setOpenDialogType(
+                                                                OpenDialogType.UpdateTracker
+                                                            );
+                                                        }}
+                                                    >
+                                                        <MdEdit size={18} />
+                                                    </ActionIcon>
+                                                    <ActionIcon
+                                                        size={"lg"}
+                                                        variant="outline"
+                                                        color="red"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSelectedTracker(
+                                                                x
+                                                            );
+                                                            setOpenDialogType(
+                                                                OpenDialogType.DeleteTracker
+                                                            );
+                                                        }}
+                                                    >
+                                                        <MdDelete size={18} />
+                                                    </ActionIcon>
+                                                </>
+                                            ) : (
+                                                <Badge variant="outline">
+                                                    Owned by: {x.ownerName}
+                                                </Badge>
+                                            )}
                                         </Group>
                                     </Group>
                                 </Card>

@@ -36,6 +36,7 @@ import { useTracker } from "../context/TrackerContext";
 import { FieldDto } from "../model/FieldDto";
 import { FieldUpsertDto } from "../model/requests/FieldUpsertDto";
 import { TrackerDto } from "../model/TrackerDto";
+import globalStore from "../stores/GlobalStore";
 import ConfirmationDialog from "./ConfirmationDialog";
 import { FieldFormDialog } from "./FieldFormDialog";
 
@@ -79,6 +80,8 @@ function SortableFieldCard({
         transition,
         opacity: isDragging ? 0.5 : 1,
     } as CSSProperties;
+
+    const { tracker } = useTracker();
 
     return (
         <Card ref={setNodeRef} style={style} p="md" radius="md" withBorder>
@@ -127,26 +130,28 @@ function SortableFieldCard({
                 </Stack>
 
                 {/* Action buttons */}
-                <Group gap="xs" wrap="nowrap">
-                    <ActionIcon
-                        variant="outline"
-                        color="green"
-                        size="lg"
-                        onClick={() => onEdit(field)}
-                        aria-label={`Edit field ${field.name}`}
-                    >
-                        <MdEdit size={16} />
-                    </ActionIcon>
-                    <ActionIcon
-                        variant="outline"
-                        color="red"
-                        size="lg"
-                        onClick={() => onDelete(field)}
-                        aria-label={`Delete field ${field.name}`}
-                    >
-                        <MdDelete size={16} />
-                    </ActionIcon>
-                </Group>
+                {globalStore.currentUser?.id === tracker.ownerId && (
+                    <Group gap="xs" wrap="nowrap">
+                        <ActionIcon
+                            variant="outline"
+                            color="green"
+                            size="lg"
+                            onClick={() => onEdit(field)}
+                            aria-label={`Edit field ${field.name}`}
+                        >
+                            <MdEdit size={16} />
+                        </ActionIcon>
+                        <ActionIcon
+                            variant="outline"
+                            color="red"
+                            size="lg"
+                            onClick={() => onDelete(field)}
+                            aria-label={`Delete field ${field.name}`}
+                        >
+                            <MdDelete size={16} />
+                        </ActionIcon>
+                    </Group>
+                )}
             </Group>
         </Card>
     );
@@ -218,28 +223,30 @@ export default function FieldsList(props: FieldsListProps) {
     return (
         <>
             <Stack gap="md" h={"100%"}>
-                <Group justify="space-between" w="100%">
-                    <Button
-                        color={props.tracker.color}
-                        variant="outline"
-                        onClick={() =>
-                            setOpenDialogType(OpenDialogType.CreateField)
-                        }
-                        leftSection={<FiPlus size={18} />}
-                    >
-                        Create
-                    </Button>
-                    <Group>
-                        <ActionIcon
-                            size={"lg"}
-                            variant={isReordering ? "filled" : "outline"}
-                            onClick={() => setIsReordering((prev) => !prev)}
+                {globalStore.currentUser?.id === props.tracker.ownerId && (
+                    <Group justify="space-between" w="100%">
+                        <Button
                             color={props.tracker.color}
+                            variant="outline"
+                            onClick={() =>
+                                setOpenDialogType(OpenDialogType.CreateField)
+                            }
+                            leftSection={<FiPlus size={18} />}
                         >
-                            <RiListOrdered2 size={18} />
-                        </ActionIcon>
+                            Create
+                        </Button>
+                        <Group>
+                            <ActionIcon
+                                size={"lg"}
+                                variant={isReordering ? "filled" : "outline"}
+                                onClick={() => setIsReordering((prev) => !prev)}
+                                color={props.tracker.color}
+                            >
+                                <RiListOrdered2 size={18} />
+                            </ActionIcon>
+                        </Group>
                     </Group>
-                </Group>
+                )}
 
                 <ScrollArea flex={1} mih={0}>
                     {sortedFields.length > 0 ? (

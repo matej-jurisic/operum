@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Operum.API.Controllers.Base;
+using Operum.Model.Constants;
 using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Service.Services.Trackers;
 
@@ -11,9 +12,9 @@ namespace Operum.API.Controllers
     public class TrackersController(ITrackersService trackerService) : BaseController
     {
         [HttpGet]
-        public async Task<IActionResult> GetTrackerList()
+        public async Task<IActionResult> GetTrackerList([FromQuery] string filter = TrackerFilters.Owned)
         {
-            return GetApiResponse(await trackerService.GetTrackerList());
+            return GetApiResponse(await trackerService.GetTrackerList(filter));
         }
 
         [Authorize(Roles = "Admin")]
@@ -63,6 +64,24 @@ namespace Operum.API.Controllers
         public async Task<IActionResult> GetTrackerAnalytics([FromRoute] string trackerId, [FromQuery] string? viewId)
         {
             return GetApiResponse(await trackerService.GetTrackerAnalytics(trackerId, viewId));
+        }
+
+        [HttpPost("{trackerId}/users")]
+        public async Task<IActionResult> AddUserToTracker([FromRoute] string trackerId, [FromBody] ModifyUserTrackerDto request)
+        {
+            return GetApiResponse(await trackerService.AddUserToTracker(trackerId, request));
+        }
+
+        [HttpGet("{trackerId}/users")]
+        public async Task<IActionResult> GetApplicationUserTrackerList([FromRoute] string trackerId)
+        {
+            return GetApiResponse(await trackerService.GetApplicationUserTrackerList(trackerId));
+        }
+
+        [HttpDelete("{trackerId}/users")]
+        public async Task<IActionResult> RemoveUserFromTracker([FromRoute] string trackerId, [FromBody] ModifyUserTrackerDto request)
+        {
+            return GetApiResponse(await trackerService.RemoveUserFromTracker(trackerId, request));
         }
     }
 }

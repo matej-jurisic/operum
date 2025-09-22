@@ -76,11 +76,14 @@ namespace Operum.Service.Services.Fields
             var user = authorizationService.GetCurrentUserDto();
             var field = await db.Fields
                  .Include(x => x.Tracker)
+                    .ThenInclude(x => x.ApplicationUserTrackers)
                  .FirstOrDefaultAsync(x => x.Id == fieldId && x.TrackerId == trackerId);
 
-            if (field == null || !user.Owns(field))
+            var hasAccess = field != null && (field.Tracker.OwnerId == user.Id || field.Tracker.ApplicationUserTrackers.Any(x => x.ApplicationUserId == user.Id));
+
+            if (field == null || !hasAccess)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.NotFound);
+                return ServiceResponse.Failure(StatusCodeEnum.Forbidden);
             }
 
             return ServiceResponse.Success(mapper.Map<Field, FieldDto>(field));
@@ -89,11 +92,15 @@ namespace Operum.Service.Services.Fields
         public async Task<ServiceResponse<List<FieldDto>>> GetFieldList(string trackerId)
         {
             var user = authorizationService.GetCurrentUserDto();
-            var tracker = await db.Trackers.FindAsync(trackerId);
+            var tracker = await db.Trackers
+                 .Include(x => x.ApplicationUserTrackers)
+                 .FirstOrDefaultAsync(x => x.Id == trackerId);
 
-            if (tracker == null || !user.Owns(tracker))
+            var hasAccess = tracker != null && (tracker.OwnerId == user.Id || tracker.ApplicationUserTrackers.Any(x => x.ApplicationUserId == user.Id));
+
+            if (tracker == null || !hasAccess)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.NotFound);
+                return ServiceResponse.Failure(StatusCodeEnum.Forbidden);
             }
 
             var fields = await db.Fields

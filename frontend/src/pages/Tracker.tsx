@@ -7,9 +7,11 @@ import EntriesList from "../components/EntriesList";
 import FieldsList from "../components/FieldsList";
 import Header from "../components/Header";
 import SelectView from "../components/SelectView";
+import TrackerUserList from "../components/TrackerUserList";
 import ViewsList from "../components/ViewsList";
 import { TrackerProvider } from "../context/TrackerContext";
 import { TrackerDto } from "../model/TrackerDto";
+import globalStore from "../stores/GlobalStore";
 
 const GetTracker = async (trackerId: string) => {
     const response = await api.get(`/trackers/${trackerId}`);
@@ -33,7 +35,7 @@ export default function Tracker() {
 
     return (
         <TrackerProvider initialTracker={tracker}>
-            <Stack h="100%"  gap={"md"}>
+            <Stack h="100%" gap={"md"}>
                 <Stack justify="space-between" w="100%">
                     <Group justify="space-between">
                         <SelectView />
@@ -46,6 +48,11 @@ export default function Tracker() {
                         {tracker.trackerTypeName && (
                             <Badge variant="light">
                                 {tracker.trackerTypeName}
+                            </Badge>
+                        )}
+                        {tracker.ownerId !== globalStore.currentUser?.id && (
+                            <Badge variant="light" color={tracker.color}>
+                                Owned by: {tracker.ownerName}
                             </Badge>
                         )}
                     </Group>
@@ -66,6 +73,10 @@ export default function Tracker() {
                             <Tabs.Tab value="fields">Fields</Tabs.Tab>
                             <Tabs.Tab value="views">Views</Tabs.Tab>
                             <Tabs.Tab value="analytics">Analytics</Tabs.Tab>
+                            {globalStore.currentUser?.id ===
+                                tracker.ownerId && (
+                                <Tabs.Tab value="users">Users</Tabs.Tab>
+                            )}
                         </Tabs.List>
 
                         <Container
@@ -87,6 +98,9 @@ export default function Tracker() {
                             </Tabs.Panel>
                             <Tabs.Panel value="analytics" h="100%">
                                 <AnalyiticsList tracker={tracker} />
+                            </Tabs.Panel>
+                            <Tabs.Panel value="users" h="100%">
+                                <TrackerUserList />
                             </Tabs.Panel>
                         </Container>
                     </Tabs>

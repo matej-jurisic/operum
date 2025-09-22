@@ -95,7 +95,7 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
                     />
 
                     <Button color={props.tracker.color} type="submit">
-                        Create
+                        {props.fieldId ? "Update" : "Create"}
                     </Button>
                 </Stack>
             </form>

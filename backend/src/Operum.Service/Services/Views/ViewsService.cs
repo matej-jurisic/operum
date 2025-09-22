@@ -4,7 +4,6 @@ using Operum.Model.Common;
 using Operum.Model.DTOs.Views;
 using Operum.Model.DTOs.Views.Requests;
 using Operum.Model.Enums;
-using Operum.Model.Extensions;
 using Operum.Model.Models;
 using Operum.Service.Helpers;
 using Operum.Service.Mappings.Mapper;
@@ -74,16 +73,18 @@ namespace Operum.Service.Services.Views
 
             var userView = await db.Views
                 .Include(x => x.Tracker)
+                    .ThenInclude(x => x.ApplicationUserTrackers)
                 .Include(x => x.Sorts.OrderBy(s => s.Order))
                     .ThenInclude(x => x.Field)
                 .Include(x => x.Filters)
                     .ThenInclude(x => x.Field)
                 .FirstOrDefaultAsync(x => x.Id == viewId && x.TrackerId == trackerId);
 
+            var hasAccess = userView != null && (userView.Tracker.OwnerId == user.Id || userView.Tracker.ApplicationUserTrackers.Any(x => x.ApplicationUserId == user.Id));
 
-            if (userView == null || userView.Tracker.OwnerId != user.Id)
+            if (userView == null || !hasAccess)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.NotFound);
+                return ServiceResponse.Failure(StatusCodeEnum.Forbidden);
             }
 
             return ServiceResponse.Success(mapper.Map<View, ViewDto>(userView));
@@ -93,11 +94,15 @@ namespace Operum.Service.Services.Views
         {
             var user = authorizationService.GetCurrentUserDto();
 
-            var tracker = await db.Trackers.FindAsync(trackerId);
+            var tracker = await db.Trackers
+                .Include(x => x.ApplicationUserTrackers)
+                .FirstOrDefaultAsync(x => x.Id == trackerId);
 
-            if (tracker == null || !user.Owns(tracker))
+            var hasAccess = tracker != null && (tracker.OwnerId == user.Id || tracker.ApplicationUserTrackers.Any(x => x.ApplicationUserId == user.Id));
+
+            if (tracker == null || !hasAccess)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.NotFound);
+                return ServiceResponse.Failure(StatusCodeEnum.Forbidden);
             }
 
             var userViews = await db.Views

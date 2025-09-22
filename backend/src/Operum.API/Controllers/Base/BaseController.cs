@@ -48,7 +48,7 @@ namespace Operum.API.Controllers.Base
                 StatusCodeEnum.Ok => Ok(apiResponse),
                 StatusCodeEnum.BadRequest => BadRequest(apiResponse),
                 StatusCodeEnum.Unauthorized => Unauthorized(apiResponse),
-                StatusCodeEnum.Forbidden => Forbid(),
+                StatusCodeEnum.Forbidden => StatusCode(StatusCodes.Status403Forbidden, apiResponse),
                 StatusCodeEnum.NotFound => NotFound(apiResponse),
                 StatusCodeEnum.Conflict => Conflict(apiResponse),
                 StatusCodeEnum.InternalServerError => StatusCode(500, apiResponse),

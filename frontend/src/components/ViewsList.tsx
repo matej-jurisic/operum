@@ -20,6 +20,7 @@ import api from "../api/api";
 import { useTracker } from "../context/TrackerContext";
 import { TrackerDto } from "../model/TrackerDto";
 import { ViewDto } from "../model/ViewDto";
+import globalStore from "../stores/GlobalStore";
 import ConfirmationDialog from "./ConfirmationDialog";
 import ViewDetailsDialog from "./ViewDetailsDialog";
 import ViewFormDialog from "./ViewFormDialog";
@@ -78,76 +79,83 @@ export default function ViewsList(props: Props) {
     return (
         <>
             <Stack gap="md" h={"100%"}>
-                <Group justify="space-between" w="100%">
-                    <Tooltip
-                        label={
-                            fields.length === 0
-                                ? "Cannot create view: No fields available"
-                                : ""
-                        }
-                        disabled={fields.length > 0}
-                        withArrow
-                    >
-                        <Button
-                            color={props.tracker.color}
-                            onClick={() =>
-                                setOpenDialogType(OpenDialogType.CreateView)
+                {globalStore.currentUser?.id === tracker.ownerId && (
+                    <Group justify="space-between" w="100%">
+                        <Tooltip
+                            label={
+                                fields.length === 0
+                                    ? "Cannot create view: No fields available"
+                                    : ""
                             }
-                            disabled={fields.length === 0}
-                            variant="outline"
-                            leftSection={<FiPlus size={18} />}
+                            disabled={fields.length > 0}
+                            withArrow
                         >
-                            Create
-                        </Button>
-                    </Tooltip>
-                    <Menu position="bottom-end">
-                        <Menu.Target>
-                            <ActionIcon
-                                variant="outline"
-                                color={tracker.color}
-                                size={"lg"}
-                            >
-                                <IoChevronDownCircle size={18} />
-                            </ActionIcon>
-                        </Menu.Target>
-                        <Menu.Dropdown>
-                            <Menu.Label>Default View</Menu.Label>
-                            <Menu.Divider />
-                            <Menu.Item
-                                onClick={async () => {
-                                    setDefaultView(null);
-                                    await SetDefaultView(tracker.id, undefined);
-                                }}
-                                rightSection={
-                                    !defaultView ? <MdCheck size={16} /> : null
+                            <Button
+                                color={props.tracker.color}
+                                onClick={() =>
+                                    setOpenDialogType(OpenDialogType.CreateView)
                                 }
-                                c="dimmed"
-                                style={{ fontStyle: "italic" }}
+                                disabled={fields.length === 0}
+                                variant="outline"
+                                leftSection={<FiPlus size={18} />}
                             >
-                                None
-                            </Menu.Item>
-                            {selectViewList.map((x) => (
+                                Create
+                            </Button>
+                        </Tooltip>
+                        <Menu position="bottom-end">
+                            <Menu.Target>
+                                <ActionIcon
+                                    variant="outline"
+                                    color={tracker.color}
+                                    size={"lg"}
+                                >
+                                    <IoChevronDownCircle size={18} />
+                                </ActionIcon>
+                            </Menu.Target>
+                            <Menu.Dropdown>
+                                <Menu.Label>Default View</Menu.Label>
+                                <Menu.Divider />
                                 <Menu.Item
                                     onClick={async () => {
-                                        setDefaultView(x.value);
+                                        setDefaultView(null);
                                         await SetDefaultView(
                                             tracker.id,
-                                            x.value
+                                            undefined
                                         );
                                     }}
                                     rightSection={
-                                        defaultView === x.value ? (
+                                        !defaultView ? (
                                             <MdCheck size={16} />
                                         ) : null
                                     }
-                                    key={x.value}
+                                    c="dimmed"
+                                    style={{ fontStyle: "italic" }}
                                 >
-                                    {x.label}
+                                    None
                                 </Menu.Item>
-                            ))}
-                        </Menu.Dropdown>
-                    </Menu>
-                </Group>
+                                {selectViewList.map((x) => (
+                                    <Menu.Item
+                                        onClick={async () => {
+                                            setDefaultView(x.value);
+                                            await SetDefaultView(
+                                                tracker.id,
+                                                x.value
+                                            );
+                                        }}
+                                        rightSection={
+                                            defaultView === x.value ? (
+                                                <MdCheck size={16} />
+                                            ) : null
+                                        }
+                                        key={x.value}
+                                    >
+                                        {x.label}
+                                    </Menu.Item>
+                                ))}
+                            </Menu.Dropdown>
+                        </Menu>
+                    </Group>
+                )}
                 <ScrollArea flex={1} mih={0}>
                     <Stack gap="md">
                         {views.length > 0 ? (
@@ -196,20 +204,23 @@ export default function ViewsList(props: Props) {
                                             >
                                                 <RiFileListFill size={16} />
                                             </ActionIcon>
-                                            <ActionIcon
-                                                variant="outline"
-                                                color="red"
-                                                size="lg"
-                                                onClick={() => {
-                                                    setSelectedView(view);
-                                                    setOpenDialogType(
-                                                        OpenDialogType.DeleteView
-                                                    );
-                                                }}
-                                                aria-label={`Delete view ${view.name}`}
-                                            >
-                                                <MdDelete size={16} />
-                                            </ActionIcon>
+                                            {globalStore.currentUser?.id ===
+                                                tracker.ownerId && (
+                                                <ActionIcon
+                                                    variant="outline"
+                                                    color="red"
+                                                    size="lg"
+                                                    onClick={() => {
+                                                        setSelectedView(view);
+                                                        setOpenDialogType(
+                                                            OpenDialogType.DeleteView
+                                                        );
+                                                    }}
+                                                    aria-label={`Delete view ${view.name}`}
+                                                >
+                                                    <MdDelete size={16} />
+                                                </ActionIcon>
+                                            )}
                                         </Group>
                                     </Group>
                                 </Card>

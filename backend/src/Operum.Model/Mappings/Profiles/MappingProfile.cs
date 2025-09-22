@@ -24,9 +24,12 @@ namespace Operum.Service.Mappings.Profiles
                 d.MailConfirmed = s.EmailConfirmed;
             });
 
+            mapper.Register<ApplicationUser, PublicApplicationUserDto>();
+
             mapper.Register<Tracker, TrackerDto>((s, d) =>
             {
                 d.Fields = mapper.Map<ICollection<Field>, List<FieldDto>>(s.Fields);
+                d.OwnerName = s.Owner?.UserName;
                 d.TrackerTypeName = s.TrackerType?.Name;
             });
             mapper.Register<TrackerDto, Tracker>();

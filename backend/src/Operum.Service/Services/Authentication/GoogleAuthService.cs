@@ -86,7 +86,7 @@ namespace Operum.Service.Services.Authentication
                 var userName = await GenerateUniqueUsername(payload.GivenName ?? payload.Email.Split('@')[0]);
                 var newUser = new ApplicationUser(payload.Email, userName)
                 {
-                    EmailConfirmed = payload.EmailVerified
+                    EmailConfirmed = payload.EmailVerified,
                 };
 
                 var result = await userManager.CreateAsync(newUser);
