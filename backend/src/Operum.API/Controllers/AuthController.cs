@@ -50,5 +50,12 @@ namespace Operum.API.Controllers
         {
             return GetApiResponse(await authenticationService.ConfirmEmail(userId, token));
         }
+
+        [AllowAnonymous]
+        [HttpPost("google")]
+        public async Task<IActionResult> GoogleLogin(GoogleLoginRequestDto request)
+        {
+            return GetApiResponse(await authenticationService.GoogleLogin(request));
+        }
     }
 }

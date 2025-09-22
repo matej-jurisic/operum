@@ -14,11 +14,20 @@ using Operum.Service.Mappings.Mapper;
 using Operum.Service.Services.Authorization;
 using Operum.Service.Services.Token;
 using RestSharp;
+using System.Text.Json;
 
 namespace Operum.Service.Services.Authentication
 {
-    public class AuthenticationService(UserManager<ApplicationUser> userManager, IMailSender mailSender, IConfiguration configuration, SignInManager<ApplicationUser> signInManager, OperumContext db, ITokenService tokenService, IAuthorizationService authorizationService, IMapper mapper, ILogger<AuthenticationService> logger) : IAuthenticationService
+    public class AuthenticationService(UserManager<ApplicationUser> userManager, IGoogleAuthService googleAuthService, IMailSender mailSender, IConfiguration configuration, SignInManager<ApplicationUser> signInManager, OperumContext db, ITokenService tokenService, IAuthorizationService authorizationService, IMapper mapper, ILogger<AuthenticationService> logger) : IAuthenticationService
     {
+        private readonly string? _googleClientId = configuration["Google:ClientId"];
+        private static readonly JsonSerializerOptions _jsonOptions = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+            PropertyNameCaseInsensitive = true
+        };
+
+
         public async Task<ServiceResponse<AuthResponseDto>> Login(LoginRequestDto loginRequest)
         {
             var normalizedCredentials = loginRequest.Credentials.ToUpper();
@@ -132,6 +141,34 @@ namespace Operum.Service.Services.Authentication
             return ServiceResponse.Success("A confirmation mail has been sent to your inbox!");
         }
 
+        public async Task<ServiceResponse<AuthResponseDto>> GoogleLogin(GoogleLoginRequestDto request)
+        {
+            try
+            {
+                var payload = await googleAuthService.ValidateTokenAsync(request.Credential);
+                if (!payload.IsSuccess)
+                {
+                    return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "Invalid Google token.");
+                }
+
+                var user = await googleAuthService.FindOrCreateUserAsync(payload.Data);
+                if (!user.IsSuccess)
+                {
+                    return ServiceResponse.Failure(StatusCodeEnum.InternalServerError, "Failed to create or find user.");
+                }
+
+                var userDto = await AuthenticateUser(user.Data);
+                logger.LogInformation("User {userId} logged in successfully via Google.", userDto.Id);
+
+                return ServiceResponse.Success(userDto, "Successfully logged in with Google!");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error during Google authentication");
+                return ServiceResponse.Failure(StatusCodeEnum.InternalServerError, "Google authentication failed.");
+            }
+        }
+
         public async Task<ServiceResponse<ApplicationUserDto>> GetCurrentApplicationUser()
         {
             var userId = authorizationService.GetCurrentUserDto().Id;
@@ -170,7 +207,7 @@ namespace Operum.Service.Services.Authentication
             return ServiceResponse.Success(userDto);
         }
 
-        private async Task<AuthResponseDto> AuthenticateUser(ApplicationUser user)
+        public async Task<AuthResponseDto> AuthenticateUser(ApplicationUser user)
         {
             ServiceResponse<DateTime> expiry = await tokenService.SetAuthTokenCookie(user);
             await tokenService.SetRefreshTokenCookie(user);

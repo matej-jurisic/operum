@@ -72,7 +72,7 @@ export default function Header(props: Props) {
                             leftSection={<CiLogout size={16} />}
                             onClick={async () => {
                                 await auth.logout();
-                                window.location.reload();
+                                navigate("/auth");
                             }}
                         >
                             Logout

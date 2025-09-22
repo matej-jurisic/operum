@@ -1,17 +1,13 @@
-import {
-    Box,
-    Button,
-    Group,
-    Paper,
-    PasswordInput,
-    Stack,
-    Tabs,
-    Text,
-    TextInput,
-    Title,
-} from "@mantine/core";
+import { Group, Paper, PasswordInput, Stack, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import { notifications } from "@mantine/notifications";
+import {
+    CredentialResponse,
+    GoogleLogin,
+    GoogleOAuthProvider,
+} from "@react-oauth/google";
 import { useState } from "react";
+import { AuthForm } from "../components/AuthForm";
 import useAuth from "../hooks/useAuth";
 import { LoginRequestDto } from "../model/requests/LoginRequestDto";
 import { RegisterRequestDto } from "../model/requests/RegisterRequestDto";
@@ -84,43 +80,39 @@ export default function Auth() {
         auth.register(values);
     };
 
+    const handleGoogleSuccess = (credentialResponse: CredentialResponse) => {
+        if (credentialResponse.credential) {
+            auth.loginWithGoogle(credentialResponse.credential);
+        }
+    };
+
+    const handleGoogleError = () => {
+        notifications.show({
+            message: "Google Login Failed",
+            color: "red",
+            withBorder: true,
+        });
+    };
+
     const [selectedTab, setSelectedTab] = useState("login");
 
     return (
         <>
-            <Box
-                style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    position: "absolute",
-                    top: "50%",
-                    left: "50%",
-                    transform: "translate(-50%, -50%)",
-                    width: "100%",
-                }}
+            <GoogleOAuthProvider
+                clientId={import.meta.env.VITE_REACT_GOOGLE_CLIENT}
             >
-                <Tabs
-                    defaultValue={"login"}
-                    variant="outline"
-                    value={selectedTab}
-                    onChange={(v) => {
-                        if (v) setSelectedTab(v);
-                    }}
-                >
-                    <Tabs.Panel value="login">
-                        <Paper p="xl" shadow="xl" w={350}>
-                            <form onSubmit={loginForm.onSubmit(onLogin)}>
-                                <Stack>
-                                    <Title
-                                        order={3}
-                                        ta="center"
-                                        variant="gradient"
-                                    >
-                                        Welcome to Operum
-                                    </Title>
-                                    <Text ta="center" size="sm" c="dimmed">
-                                        Please log in to continue.
-                                    </Text>
+                <Stack w="100%" h="100%" justify="center" align="center">
+                    <Paper withBorder p={"xl"} maw={"100%"}>
+                        <Stack gap={"xs"} align="stretch">
+                            {selectedTab === "login" ? (
+                                <AuthForm<LoginRequestDto>
+                                    mode="login"
+                                    form={loginForm}
+                                    onSubmit={onLogin}
+                                    onSwitchMode={() =>
+                                        setSelectedTab("register")
+                                    }
+                                >
                                     <TextInput
                                         label="Username or Email"
                                         {...loginForm.getInputProps(
@@ -131,40 +123,14 @@ export default function Auth() {
                                         label="Password"
                                         {...loginForm.getInputProps("password")}
                                     />
-                                    <Group>
-                                        <Button type="submit" fullWidth>
-                                            Login
-                                        </Button>
-                                    </Group>
-                                    <Text>
-                                        Don't have an account?{" "}
-                                        <Button
-                                            variant="transparent"
-                                            onClick={() =>
-                                                setSelectedTab("register")
-                                            }
-                                        >
-                                            Register
-                                        </Button>
-                                    </Text>
-                                </Stack>
-                            </form>
-                        </Paper>
-                    </Tabs.Panel>
-                    <Tabs.Panel value="register">
-                        <Paper p="xl" shadow="xl" w={350}>
-                            <form onSubmit={registerForm.onSubmit(onRegister)}>
-                                <Stack gap="sm">
-                                    <Title
-                                        order={3}
-                                        ta="center"
-                                        variant="gradient"
-                                    >
-                                        Welcome to Operum
-                                    </Title>
-                                    <Text ta="center" size="sm" c="dimmed">
-                                        Please register to continue.
-                                    </Text>
+                                </AuthForm>
+                            ) : (
+                                <AuthForm<RegisterRequestDto>
+                                    mode="register"
+                                    form={registerForm}
+                                    onSubmit={onRegister}
+                                    onSwitchMode={() => setSelectedTab("login")}
+                                >
                                     <TextInput
                                         label="Email"
                                         {...registerForm.getInputProps("email")}
@@ -187,28 +153,20 @@ export default function Auth() {
                                             "confirmPassword"
                                         )}
                                     />
-                                    <Group>
-                                        <Button type="submit" fullWidth>
-                                            Register
-                                        </Button>
-                                    </Group>
-                                    <Text>
-                                        Already have an account?{" "}
-                                        <Button
-                                            variant="transparent"
-                                            onClick={() =>
-                                                setSelectedTab("login")
-                                            }
-                                        >
-                                            Login
-                                        </Button>
-                                    </Text>
-                                </Stack>
-                            </form>
-                        </Paper>
-                    </Tabs.Panel>
-                </Tabs>
-            </Box>
+                                </AuthForm>
+                            )}
+                            <Group justify="center">
+                                <GoogleLogin
+                                    onSuccess={handleGoogleSuccess}
+                                    onError={handleGoogleError}
+                                    theme="outline"
+                                    text="signup_with"
+                                />
+                            </Group>
+                        </Stack>
+                    </Paper>
+                </Stack>
+            </GoogleOAuthProvider>
         </>
     );
 }

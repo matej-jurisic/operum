@@ -1,5 +1,6 @@
 import api from "../api/api";
 import { AuhtResponseDto } from "../model/AuthResponseDto";
+import { GoogleLoginRequestDto } from "../model/GoogleLoginRequestDto";
 import { LoginRequestDto } from "../model/requests/LoginRequestDto";
 import { RegisterRequestDto } from "../model/requests/RegisterRequestDto";
 import globalStore from "../stores/GlobalStore";
@@ -65,27 +66,69 @@ const useAuth = () => {
     };
 
     const login = async (loginRequest: LoginRequestDto) => {
-        const user = await api.post("/auth/login", loginRequest);
-        setUserData(user.data.data);
+        try {
+            const user = await api.post("/auth/login", loginRequest);
+            setUserData(user.data.data);
+        } catch (error) {
+            console.error("Login failed:", error);
+            throw error;
+        }
     };
 
     const register = async (registerRequest: RegisterRequestDto) => {
-        await api.post("/auth/register", registerRequest);
+        try {
+            await api.post("/auth/register", registerRequest);
+        } catch (error) {
+            console.error("Registration failed:", error);
+            throw error;
+        }
+    };
+
+    const loginWithGoogle = async (credential: string) => {
+        try {
+            const googleLoginRequest: GoogleLoginRequestDto = {
+                credential: credential,
+            };
+
+            const user = await api.post("/auth/google", googleLoginRequest);
+            setUserData(user.data.data);
+        } catch (error) {
+            console.error("Google login failed:", error);
+            throw error;
+        }
     };
 
     const getUser = async () => {
-        const user = await api.get("/auth/me");
-        setUserData(user.data.data);
+        try {
+            const user = await api.get("/auth/me");
+            setUserData(user.data.data);
+        } catch (error) {
+            console.error("Get user failed:", error);
+            clearUserData();
+            throw error;
+        }
     };
 
     const refresh = async () => {
-        const user = await api.post("/auth/refresh");
-        setUserData(user.data.data);
+        try {
+            const user = await api.post("/auth/refresh");
+            setUserData(user.data.data);
+        } catch (error) {
+            console.error("Token refresh failed:", error);
+            clearUserData();
+            throw error;
+        }
     };
 
     const logout = async () => {
-        await api.post("/auth/logout");
-        clearUserData();
+        try {
+            await api.post("/auth/logout");
+            clearUserData();
+        } catch (error) {
+            console.error("Logout failed:", error);
+            // Clear local data even if server request fails
+            clearUserData();
+        }
     };
 
     return {
@@ -94,6 +137,7 @@ const useAuth = () => {
         handleUserLoggedInCheck,
         refresh,
         register,
+        loginWithGoogle,
     };
 };
 
