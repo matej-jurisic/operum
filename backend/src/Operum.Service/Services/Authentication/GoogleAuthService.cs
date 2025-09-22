@@ -6,6 +6,7 @@ using Operum.Model.Common;
 using Operum.Model.DTOs.Auth;
 using Operum.Model.Enums;
 using Operum.Model.Models;
+using Operum.Service.Helpers;
 using RestSharp;
 using System.Text.Json;
 
@@ -118,8 +119,9 @@ namespace Operum.Service.Services.Authentication
 
         private async Task<string> GenerateUniqueUsername(string baseName)
         {
-            var username = new string(baseName.ToLower().Where(char.IsLetterOrDigit).ToArray());
-            username = username.Length >= 3 ? username : "user" + DateTime.UtcNow.Ticks % 1000000;
+            var username = StringHelpers.ToAscii(baseName);
+            if (username.Length < 3 || username.Length > 20)
+                username = "user" + DateTime.UtcNow.Ticks % 1000000;
 
             var original = username;
             var counter = 1;
