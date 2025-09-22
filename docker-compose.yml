@@ -36,6 +36,7 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_REACT_API_URL: ${VITE_REACT_API_URL}
+        VITE_REACT_GOOGLE_CLIENT: ${VITE_REACT_GOOGLE_CLIENT}
     depends_on:
       - backend
     ports:
