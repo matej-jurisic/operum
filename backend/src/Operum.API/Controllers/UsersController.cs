@@ -25,10 +25,16 @@ namespace Operum.API.Controllers
         }
 
         [Authorize(Roles = "Admin")]
-        [HttpGet]
+        [HttpGet("all")]
         public async Task<IActionResult> GetAllUsers()
         {
             return GetApiResponse(await usersService.GetAllUsers());
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetUserList([FromQuery] string search)
+        {
+            return GetApiResponse(await usersService.SearchUsers(search));
         }
 
         [HttpPut("me")]

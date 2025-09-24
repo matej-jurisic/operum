@@ -62,6 +62,14 @@ namespace Operum.Service.Services.Users
             return ServiceResponse.Success(userDtos.OrderBy(x => x.UserName).ToList());
         }
 
+        public async Task<ServiceResponse<List<PublicApplicationUserDto>>> SearchUsers(string search)
+        {
+            var lowerSearch = search.ToLower();
+            var users = await userManager.Users.Where(x => x.UserName != null && x.UserName.ToLower().Contains(lowerSearch)).ToListAsync();
+
+            return ServiceResponse.Success(mapper.Map<List<ApplicationUser>, List<PublicApplicationUserDto>>(users));
+        }
+
         public async Task<ServiceResponse> UpdateApplicationUser(UpdateApplicationUserRequestDto request)
         {
             var currentApplicationUser = authorizationService.GetCurrentUser();

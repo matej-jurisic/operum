@@ -22,7 +22,7 @@ import UserRolesFormDialog from "./UserRolesFormDialog";
 import { UsersCards } from "./UsersCards";
 
 const GetAllUsers = async () => {
-    const users = await api.get("/users");
+    const users = await api.get("/users/all");
     return users.data.data;
 };
 

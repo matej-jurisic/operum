@@ -88,16 +88,18 @@ export default function TrackerList({ isTemplates = false }: Props) {
                     </Group>
                 )}
                 <Group justify="space-between" align="flex-end">
-                    <Select
-                        value={selectedFilter}
-                        w={150}
-                        label={"Filter"}
-                        data={TrackerFiltersForSelect}
-                        allowDeselect={false}
-                        onChange={(e) => {
-                            if (e) setSelectedFilter(e);
-                        }}
-                    />
+                    {!isTemplates && (
+                        <Select
+                            value={selectedFilter}
+                            w={150}
+                            label={"Filter"}
+                            data={TrackerFiltersForSelect}
+                            allowDeselect={false}
+                            onChange={(e) => {
+                                if (e) setSelectedFilter(e);
+                            }}
+                        />
+                    )}
                     <Menu shadow="md" position="bottom-start">
                         <Menu.Target>
                             <Button
