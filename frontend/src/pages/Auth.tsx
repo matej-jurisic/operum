@@ -1,11 +1,15 @@
-import { Group, Paper, PasswordInput, Stack, TextInput } from "@mantine/core";
+import {
+    Box,
+    Group,
+    Paper,
+    PasswordInput,
+    Stack,
+    TextInput,
+    useMantineTheme,
+} from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
-import {
-    CredentialResponse,
-    GoogleLogin,
-    GoogleOAuthProvider,
-} from "@react-oauth/google";
+import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
 import { useState } from "react";
 import { AuthForm } from "../components/AuthForm";
 import useAuth from "../hooks/useAuth";
@@ -14,6 +18,7 @@ import { RegisterRequestDto } from "../model/requests/RegisterRequestDto";
 
 export default function Auth() {
     const auth = useAuth();
+    const theme = useMantineTheme();
 
     const loginForm = useForm<LoginRequestDto>({
         initialValues: {
@@ -98,75 +103,71 @@ export default function Auth() {
 
     return (
         <>
-            <GoogleOAuthProvider
-                clientId={import.meta.env.VITE_REACT_GOOGLE_CLIENT}
-            >
-                <Stack w="100%" h="100%" justify="center" align="center">
-                    <Paper withBorder p={"xl"} maw={"100%"}>
-                        <Stack gap={"xs"} align="stretch">
-                            {selectedTab === "login" ? (
-                                <AuthForm<LoginRequestDto>
-                                    mode="login"
-                                    form={loginForm}
-                                    onSubmit={onLogin}
-                                    onSwitchMode={() =>
-                                        setSelectedTab("register")
-                                    }
-                                >
-                                    <TextInput
-                                        label="Username or Email"
-                                        {...loginForm.getInputProps(
-                                            "credentials"
-                                        )}
-                                    />
-                                    <PasswordInput
-                                        label="Password"
-                                        {...loginForm.getInputProps("password")}
-                                    />
-                                </AuthForm>
-                            ) : (
-                                <AuthForm<RegisterRequestDto>
-                                    mode="register"
-                                    form={registerForm}
-                                    onSubmit={onRegister}
-                                    onSwitchMode={() => setSelectedTab("login")}
-                                >
-                                    <TextInput
-                                        label="Email"
-                                        {...registerForm.getInputProps("email")}
-                                    />
-                                    <TextInput
-                                        label="Username"
-                                        {...registerForm.getInputProps(
-                                            "userName"
-                                        )}
-                                    />
-                                    <PasswordInput
-                                        label="Password"
-                                        {...registerForm.getInputProps(
-                                            "password"
-                                        )}
-                                    />
-                                    <PasswordInput
-                                        label="Confirm Password"
-                                        {...registerForm.getInputProps(
-                                            "confirmPassword"
-                                        )}
-                                    />
-                                </AuthForm>
-                            )}
-                            <Group justify="center">
+            <Stack w="100%" h="100%" justify="center" align="center">
+                <Paper withBorder p={"xl"} maw={"100%"}>
+                    <Stack gap={"xs"} align="stretch">
+                        {selectedTab === "login" ? (
+                            <AuthForm<LoginRequestDto>
+                                mode="login"
+                                form={loginForm}
+                                onSubmit={onLogin}
+                                onSwitchMode={() => setSelectedTab("register")}
+                            >
+                                <TextInput
+                                    label="Username or Email"
+                                    required
+                                    {...loginForm.getInputProps("credentials")}
+                                />
+                                <PasswordInput
+                                    required
+                                    label="Password"
+                                    {...loginForm.getInputProps("password")}
+                                />
+                            </AuthForm>
+                        ) : (
+                            <AuthForm<RegisterRequestDto>
+                                mode="register"
+                                form={registerForm}
+                                onSubmit={onRegister}
+                                onSwitchMode={() => setSelectedTab("login")}
+                            >
+                                <TextInput
+                                    required
+                                    label="Email"
+                                    {...registerForm.getInputProps("email")}
+                                />
+                                <TextInput
+                                    required
+                                    label="Username"
+                                    {...registerForm.getInputProps("userName")}
+                                />
+                                <PasswordInput
+                                    required
+                                    label="Password"
+                                    {...registerForm.getInputProps("password")}
+                                />
+                                <PasswordInput
+                                    required
+                                    label="Confirm Password"
+                                    {...registerForm.getInputProps(
+                                        "confirmPassword"
+                                    )}
+                                />
+                            </AuthForm>
+                        )}
+                        <Group justify="center">
+                            <Box className="google-login-wrapper">
                                 <GoogleLogin
                                     onSuccess={handleGoogleSuccess}
                                     onError={handleGoogleError}
-                                    theme="outline"
-                                    text="signup_with"
+                                    size="large"
+                                    width="280"
                                 />
-                            </Group>
-                        </Stack>
-                    </Paper>
-                </Stack>
-            </GoogleOAuthProvider>
+                            </Box>
+                        </Group>
+                    </Stack>
+                </Paper>
+            </Stack>
         </>
     );
 }

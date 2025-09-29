@@ -36,7 +36,7 @@ export function AuthForm<T extends Record<string, any>>({
             </Text>
 
             <form onSubmit={form.onSubmit(onSubmit)}>
-                <Stack gap={0}>
+                <Stack gap={5}>
                     {children} {/* form fields */}
                     <Group>
                         <Button type="submit" fullWidth mt={"sm"}>

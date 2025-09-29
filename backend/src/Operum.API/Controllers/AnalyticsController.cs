@@ -10,11 +10,17 @@ namespace Operum.API.Controllers
     [Route("api/[controller]")]
     public class AnalyticsController(IAnalyticsService analyticsService) : BaseController
     {
-        [HttpGet]
+        [HttpGet("admin-analytics")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAnalyticList()
         {
             return GetApiResponse(await analyticsService.GetAnalyticList());
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetPublicAnalyticList()
+        {
+            return GetApiResponse(await analyticsService.GetPublicAnalyticList());
         }
 
         [HttpPost]

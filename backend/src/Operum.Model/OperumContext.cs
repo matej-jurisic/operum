@@ -58,5 +58,7 @@ namespace Operum.Model
         public DbSet<TrackerType> TrackerTypes { get; set; }
         public DbSet<AnalyticType> AnalyticTypes { get; set; }
         public DbSet<ApplicationUserTracker> ApplicationUserTrackers { get; set; }
+        public DbSet<TrackerAnalytic> TrackerAnalytics { get; set; }
+        public DbSet<TrackerAnalyticField> TrackerAnalyticDataTypesField { get; set; }
     }
 }

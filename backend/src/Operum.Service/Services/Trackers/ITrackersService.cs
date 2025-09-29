@@ -20,5 +20,6 @@ namespace Operum.Service.Services.Trackers
         public Task<ServiceResponse<List<PublicApplicationUserDto>>> GetApplicationUserTrackerList(string trackerId);
         public Task<ServiceResponse> AddUserToTracker(string trackerId, ModifyUserTrackerDto addUserToTracker);
         public Task<ServiceResponse> RemoveUserFromTracker(string trackerId, ModifyUserTrackerDto addUserToTracker);
+        public Task<ServiceResponse> AddAnalytic(string trackerId, AddTrackerAnalyticDto addTrackerAnalytic);
     }
 }

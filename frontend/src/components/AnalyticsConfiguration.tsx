@@ -54,7 +54,7 @@ export default function AnalyticsConfiguration() {
     );
 
     const GetAnalytics = async () => {
-        const response = await api.get("/analytics");
+        const response = await api.get("/analytics/admin-analytics");
         setAnalytics(response.data.data);
     };
 

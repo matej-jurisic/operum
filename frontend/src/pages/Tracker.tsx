@@ -73,10 +73,10 @@ export default function Tracker() {
                             <Tabs.Tab value="fields">Fields</Tabs.Tab>
                             <Tabs.Tab value="views">Views</Tabs.Tab>
                             <Tabs.Tab value="analytics">Analytics</Tabs.Tab>
-                            {globalStore.currentUser?.id ===
-                                tracker.ownerId && (
-                                <Tabs.Tab value="users">Users</Tabs.Tab>
-                            )}
+                            {globalStore.currentUser?.id === tracker.ownerId &&
+                                !tracker.trackerTypeId && (
+                                    <Tabs.Tab value="users">Users</Tabs.Tab>
+                                )}
                         </Tabs.List>
 
                         <Container
@@ -97,7 +97,7 @@ export default function Tracker() {
                                 <FieldsList tracker={tracker} />
                             </Tabs.Panel>
                             <Tabs.Panel value="analytics" h="100%">
-                                <AnalyiticsList tracker={tracker} />
+                                <AnalyiticsList />
                             </Tabs.Panel>
                             <Tabs.Panel value="users" h="100%">
                                 <TrackerUserList />

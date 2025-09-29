@@ -481,5 +481,74 @@ namespace Operum.Service.Services.Trackers
 
             return ServiceResponse.Success();
         }
+
+        public async Task<ServiceResponse> AddAnalytic(string trackerId, AddTrackerAnalyticDto addTrackerAnalytic)
+        {
+            var user = authorizationService.GetCurrentUserDto();
+            var tracker = await db.Trackers.FindAsync(trackerId);
+            if (tracker == null || !user.Owns(tracker))
+            {
+                return ServiceResponse.Failure(StatusCodeEnum.NotFound, "Tracker not found.");
+            }
+
+            var analytic = await db.Analytics.FindAsync(addTrackerAnalytic.AnalyticId);
+            if (analytic == null || analytic.AnalyticTypeId != (int)AnalyticTypeEnum.PublicAnalytic)
+            {
+                return ServiceResponse.Failure(StatusCodeEnum.NotFound, "Analytic not found.");
+            }
+
+            var requiredDataTypeIds = addTrackerAnalytic.TrackerAnalyticFieldList
+                .Select(x => x.AnalyticRequiredDataTypeId)
+                .Distinct()
+                .ToList();
+
+            var fieldIds = addTrackerAnalytic.TrackerAnalyticFieldList
+                .Select(x => x.FieldId)
+                .Distinct()
+                .ToList();
+
+            var requiredDataTypes = await db.AnalyticRequiredDataTypes
+                .Where(x => requiredDataTypeIds.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id);
+
+            var fields = await db.Fields
+                .Where(x => fieldIds.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id);
+
+            foreach (var trackerField in addTrackerAnalytic.TrackerAnalyticFieldList)
+            {
+                if (!requiredDataTypes.ContainsKey(trackerField.AnalyticRequiredDataTypeId))
+                {
+                    return ServiceResponse.Failure(StatusCodeEnum.NotFound,
+                        $"Required data type {trackerField.AnalyticRequiredDataTypeId} not found.");
+                }
+
+                if (!fields.ContainsKey(trackerField.FieldId))
+                {
+                    return ServiceResponse.Failure(StatusCodeEnum.NotFound,
+                        $"Field {trackerField.FieldId} not found.");
+                }
+            }
+
+            TrackerAnalytic trackerAnalytic = new()
+            {
+                AnalyticId = analytic.Id,
+                TrackerId = tracker.Id,
+            };
+
+            foreach (var trackerField in addTrackerAnalytic.TrackerAnalyticFieldList)
+            {
+                trackerAnalytic.TrackerAnalyticFields.Add(new TrackerAnalyticField()
+                {
+                    AnalyticRequiredDataTypeId = trackerField.AnalyticRequiredDataTypeId,
+                    FieldId = trackerField.FieldId
+                });
+            }
+
+            db.TrackerAnalytics.Add(trackerAnalytic);
+            await db.SaveChangesAsync();
+
+            return ServiceResponse.Success();
+        }
     }
 }

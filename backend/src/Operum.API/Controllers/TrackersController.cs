@@ -83,5 +83,11 @@ namespace Operum.API.Controllers
         {
             return GetApiResponse(await trackerService.RemoveUserFromTracker(trackerId, request));
         }
+
+        [HttpPost("{trackerId}/analytics")]
+        public async Task<IActionResult> AddTrackerAnalytic([FromRoute] string trackerId, [FromBody] AddTrackerAnalyticDto request)
+        {
+            return GetApiResponse(await trackerService.AddAnalytic(trackerId, request));
+        }
     }
 }

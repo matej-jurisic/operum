@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Operum.Model;
@@ -11,9 +12,11 @@ using Operum.Model;
 namespace Operum.Model.Migrations
 {
     [DbContext(typeof(OperumContext))]
-    partial class OperumContextModelSnapshot : ModelSnapshot
+    [Migration("20250929215836_AddTrackerAnalytics")]
+    partial class AddTrackerAnalytics
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -503,11 +506,11 @@ namespace Operum.Model.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("text");
 
-                    b.Property<string>("AnalyticRequiredDataTypeId")
+                    b.Property<string>("FieldId")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("FieldId")
+                    b.Property<string>("Purpose")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -516,8 +519,6 @@ namespace Operum.Model.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("AnalyticRequiredDataTypeId");
 
                     b.HasIndex("FieldId");
 
@@ -855,12 +856,6 @@ namespace Operum.Model.Migrations
 
             modelBuilder.Entity("Operum.Model.Models.TrackerAnalyticField", b =>
                 {
-                    b.HasOne("Operum.Model.Models.AnalyticRequiredDataType", "AnalyticRequiredDataType")
-                        .WithMany()
-                        .HasForeignKey("AnalyticRequiredDataTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("Operum.Model.Models.Field", "Field")
                         .WithMany()
                         .HasForeignKey("FieldId")
@@ -868,12 +863,10 @@ namespace Operum.Model.Migrations
                         .IsRequired();
 
                     b.HasOne("Operum.Model.Models.TrackerAnalytic", "TrackerAnalytic")
-                        .WithMany("TrackerAnalyticFields")
+                        .WithMany()
                         .HasForeignKey("TrackerAnalyticId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("AnalyticRequiredDataType");
 
                     b.Navigation("Field");
 
@@ -978,11 +971,6 @@ namespace Operum.Model.Migrations
                     b.Navigation("Fields");
 
                     b.Navigation("Views");
-                });
-
-            modelBuilder.Entity("Operum.Model.Models.TrackerAnalytic", b =>
-                {
-                    b.Navigation("TrackerAnalyticFields");
                 });
 
             modelBuilder.Entity("Operum.Model.Models.View", b =>

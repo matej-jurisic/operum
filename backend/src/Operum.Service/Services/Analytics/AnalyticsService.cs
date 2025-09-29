@@ -53,5 +53,17 @@ namespace Operum.Service.Services.Analytics
 
             return ServiceResponse.Success(mapper.Map<List<Analytic>, List<AnalyticDto>>(analytics));
         }
+
+        public async Task<ServiceResponse<List<AnalyticDto>>> GetPublicAnalyticList()
+        {
+            var analytics = await db.Analytics
+                .Include(x => x.AnalyticRequiredDataTypes)
+                .Include(x => x.AnalyticType)
+                .OrderBy(x => x.Name)
+                .Where(x => x.AnalyticTypeId == (int)AnalyticTypeEnum.PublicAnalytic)
+                .ToListAsync();
+
+            return ServiceResponse.Success(mapper.Map<List<Analytic>, List<AnalyticDto>>(analytics));
+        }
     }
 }

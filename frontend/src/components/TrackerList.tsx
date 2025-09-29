@@ -106,7 +106,7 @@ export default function TrackerList({ isTemplates = false }: Props) {
                                 variant="outline"
                                 leftSection={<FiPlus size={18} />}
                             >
-                                Create Tracker
+                                Create
                             </Button>
                         </Menu.Target>
                         <Menu.Dropdown>

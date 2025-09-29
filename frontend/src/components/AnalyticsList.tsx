@@ -13,20 +13,19 @@ import {
     UnstyledButton,
 } from "@mantine/core";
 import { useEffect, useState } from "react";
+import { FiSettings } from "react-icons/fi";
 import { MdExpandLess, MdExpandMore, MdLink } from "react-icons/md";
 import { useTracker } from "../context/TrackerContext";
 import { FieldAnalyticsDto } from "../model/FieldAnalyticsDto";
 import { TrackerDto } from "../model/TrackerDto";
+import globalStore from "../stores/GlobalStore";
 import {
     formatDateOnly,
     formatDateTime,
     formatTimeSpan,
 } from "../util/TypeFormatter";
 import EntryDetailsDialog from "./EntryDetailsDialog";
-
-interface AnalyticsListProps {
-    tracker: TrackerDto;
-}
+import TrackerAnalyticFormDialog from "./TrackerAnalyticFormDialog";
 
 const StatCard = ({
     label,
@@ -292,9 +291,15 @@ const AnalyticsSection = ({
     );
 };
 
-export default function AnalyticsList(props: AnalyticsListProps) {
-    const { analytics, refreshAnalyticsIfDirty, selectedViewId } = useTracker();
+enum OpenDialogType {
+    ConfigureAnalytics,
+}
+
+export default function AnalyticsList() {
+    const { analytics, refreshAnalyticsIfDirty, selectedViewId, tracker } =
+        useTracker();
     const [isLoadingData, setIsLoadingData] = useState(false);
+    const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
 
     useEffect(() => {
         const loadData = async () => {
@@ -335,18 +340,43 @@ export default function AnalyticsList(props: AnalyticsListProps) {
     });
 
     return (
-        <Skeleton visible={isLoadingData} h={"100%"}>
-            <ScrollArea flex={1} mih={0} h={"100%"}>
-                <Stack gap="md">
-                    {sortedAnalytics.map((analytic, index) => (
-                        <AnalyticsSection
-                            key={`${analytic.fieldName}-${index}`}
-                            analytic={analytic}
-                            tracker={props.tracker}
-                        />
-                    ))}
+        <>
+            <Skeleton visible={isLoadingData} h={"100%"}>
+                <Stack gap="md" h={"100%"}>
+                    {globalStore.currentUser?.id === tracker.ownerId && (
+                        <Group justify="flex-end" w="100%">
+                            <ActionIcon
+                                color={tracker.color}
+                                onClick={() =>
+                                    setOpenDialogType(
+                                        OpenDialogType.ConfigureAnalytics
+                                    )
+                                }
+                                size={"lg"}
+                                variant="outline"
+                            >
+                                <FiSettings size={18} />
+                            </ActionIcon>
+                        </Group>
+                    )}
+                    <ScrollArea flex={1} mih={0}>
+                        <Stack gap="md">
+                            {sortedAnalytics.map((analytic, index) => (
+                                <AnalyticsSection
+                                    key={`${analytic.fieldName}-${index}`}
+                                    analytic={analytic}
+                                    tracker={tracker}
+                                />
+                            ))}
+                        </Stack>
+                    </ScrollArea>
                 </Stack>
-            </ScrollArea>
-        </Skeleton>
+            </Skeleton>
+            {openDialogType === OpenDialogType.ConfigureAnalytics && (
+                <TrackerAnalyticFormDialog
+                    onClose={() => setOpenDialogType(undefined)}
+                />
+            )}
+        </>
     );
 }

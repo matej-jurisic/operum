@@ -10,5 +10,6 @@ namespace Operum.Service.Services.Analytics
         Task<ServiceResponse<AnalyticDto>> CreateAnalytic(CreateAnalyticRequestDto createAnalytic);
         Task<ServiceResponse> DeleteAnalytic(string analyticId);
         Task<ServiceResponse<List<AnalyticDto>>> GetAnalyticList();
+        Task<ServiceResponse<List<AnalyticDto>>> GetPublicAnalyticList();
     }
 }
