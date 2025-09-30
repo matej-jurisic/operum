@@ -103,7 +103,7 @@ namespace Operum.Service.Mappings.Profiles
             mapper.Register<TrackerAnalytic, TrackerAnalyticDto>((s, d) =>
             {
                 d.Code = s.Analytic.Code;
-                d.TrackerAnalyticFields = mapper.Map<List<TrackerAnalyticField>, List<TrackerAnalyticFieldDto>>(s.TrackerAnalyticFields);
+                d.TrackerAnalyticFields = [.. mapper.Map<List<TrackerAnalyticField>, List<TrackerAnalyticFieldDto>>(s.TrackerAnalyticFields).OrderBy(x => x.Purpose)];
                 d.Description = s.Analytic.Description;
                 d.Name = s.Analytic.Name;
             });

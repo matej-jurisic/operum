@@ -22,6 +22,11 @@ const analyticTypeOptions = [
     { value: AnalyticType.Public.toString(), label: "Public" },
 ];
 
+const analyticResultTypeOptions = [
+    { value: "SingleValue", label: "Single Value" },
+    { value: "NumericChart", label: "Numeric Chart" },
+];
+
 interface CreateAnalyticDialogProps {
     onClose: () => void;
     onFieldAdded?: () => void;
@@ -34,6 +39,7 @@ export function CreateAnalyticDialog(props: CreateAnalyticDialogProps) {
         initialValues: {
             name: "",
             description: "",
+            resultType: "",
             analyticRequiredDataTypes: [],
             analyticTypeId: AnalyticType.Draft.toString(),
             code: "",
@@ -58,6 +64,7 @@ export function CreateAnalyticDialog(props: CreateAnalyticDialogProps) {
                     : null,
             analyticTypeId: (value) =>
                 !value ? "Analytic type is required" : null,
+            resultType: (value) => (!value ? "Result type is required" : null),
             analyticRequiredDataTypes: {
                 type: (value) =>
                     value.trim().length === 0 ? "Type is required" : null,
@@ -121,6 +128,14 @@ export function CreateAnalyticDialog(props: CreateAnalyticDialogProps) {
                             required
                             maxLength={100}
                             {...form.getInputProps("code")}
+                        />
+                        <Select
+                            label={`Result Type`}
+                            placeholder={`Select result type`}
+                            data={analyticResultTypeOptions}
+                            allowDeselect={false}
+                            {...form.getInputProps("resultType")}
+                            value={form.values.resultType}
                         />
                         <Select
                             label={`Analytic Type`}

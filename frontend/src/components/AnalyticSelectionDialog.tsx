@@ -1,15 +1,17 @@
 import {
+    Accordion,
     Badge,
-    Card,
-    Grid,
+    Button,
+    Divider,
     Group,
     Modal,
     Stack,
     Text,
-    TextInput,
+    Title,
 } from "@mantine/core";
 import { useEffect, useMemo, useState } from "react";
 import api from "../api/api";
+import { useTracker } from "../context/TrackerContext";
 import { AnalyticDto } from "../model/AnalyticDto";
 import { DataTypeColor, FieldType } from "../model/constants/DataTypes";
 
@@ -24,7 +26,7 @@ function isFieldType(value: string): value is FieldType {
 
 export default function AnalyticSelectionDialog({ onSelect, onClose }: Props) {
     const [analytics, setAnalytics] = useState<AnalyticDto[]>([]);
-    const [searchQuery, setSearchQuery] = useState("");
+    const { tracker } = useTracker();
 
     const fetchAnalytics = async () => {
         const response = await api.get("/analytics");
@@ -35,16 +37,16 @@ export default function AnalyticSelectionDialog({ onSelect, onClose }: Props) {
         fetchAnalytics();
     }, []);
 
-    const filteredAnalytics = useMemo(() => {
-        if (!searchQuery) return analytics;
-        const query = searchQuery.toLowerCase();
-        return analytics.filter(
-            (analytic) =>
-                analytic.name.toLowerCase().includes(query) ||
-                analytic.description?.toLowerCase().includes(query) ||
-                analytic.analyticTypeName.toLowerCase().includes(query)
-        );
-    }, [analytics, searchQuery]);
+    // Group analytics by name
+    const groupedAnalytics = useMemo(() => {
+        return analytics.reduce((acc, analytic) => {
+            if (!acc[analytic.name]) {
+                acc[analytic.name] = [];
+            }
+            acc[analytic.name].push(analytic);
+            return acc;
+        }, {} as Record<string, AnalyticDto[]>);
+    }, [analytics]);
 
     return (
         <Modal
@@ -55,65 +57,111 @@ export default function AnalyticSelectionDialog({ onSelect, onClose }: Props) {
             size="lg"
         >
             <Stack>
-                <TextInput
-                    placeholder="Search analytics..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.currentTarget.value)}
-                />
-                <Grid>
-                    {filteredAnalytics.map((analytic) => (
-                        <Grid.Col span={6} key={analytic.id}>
-                            <Card
-                                radius="sm"
-                                withBorder
-                                onClick={() => onSelect(analytic)}
-                                style={{ cursor: "pointer" }}
-                            >
-                                <Stack gap="sm">
-                                    <Group
-                                        justify="space-between"
-                                        wrap="nowrap"
-                                    >
-                                        <Text flex={1} fw={500}>
-                                            {analytic.name}
-                                        </Text>
-                                    </Group>
-                                    <Text c="dimmed" size="sm" lineClamp={2}>
-                                        {analytic.description ||
-                                            "No description"}
-                                    </Text>
-                                    <Group
-                                        justify="flex-start"
-                                        w="100%"
-                                        align="flex-end"
-                                    >
-                                        {analytic.analyticRequiredDataTypes.map(
-                                            (r) => (
-                                                <Badge
-                                                    color={
-                                                        isFieldType(r.type)
-                                                            ? DataTypeColor[
-                                                                  r.type
-                                                              ]
-                                                            : "gray"
-                                                    }
-                                                    key={r.id}
-                                                    variant="outline"
-                                                >
-                                                    {r.purpose} ({r.type})
-                                                </Badge>
-                                            )
-                                        )}
-                                    </Group>
-                                </Stack>
-                            </Card>
-                        </Grid.Col>
-                    ))}
-                </Grid>
-                {filteredAnalytics.length === 0 && (
+                {Object.keys(groupedAnalytics).length === 0 ? (
                     <Text c="dimmed" ta="center" py="xl">
                         No analytics found
                     </Text>
+                ) : (
+                    <Accordion variant="contained" chevronPosition="left">
+                        {Object.entries(groupedAnalytics).map(
+                            ([name, analyticGroup]) => (
+                                <Accordion.Item key={name} value={name}>
+                                    <Accordion.Control>
+                                        <Group justify="space-between">
+                                            <Text fw={500}>{name}</Text>
+                                            <Badge size="sm" variant="light">
+                                                {analyticGroup.length}{" "}
+                                                {analyticGroup.length === 1
+                                                    ? "variant"
+                                                    : "variants"}
+                                            </Badge>
+                                        </Group>
+                                    </Accordion.Control>
+                                    <Accordion.Panel>
+                                        <Stack gap="md">
+                                            {analyticGroup.map((analytic) => (
+                                                <>
+                                                    <Divider />
+                                                    <Group
+                                                        w={"100%"}
+                                                        justify="space-between"
+                                                    >
+                                                        <Stack gap="sm">
+                                                            <Title order={4}>
+                                                                {`${analytic.name}`}
+                                                            </Title>
+                                                            {analytic.description && (
+                                                                <Text
+                                                                    c="dimmed"
+                                                                    size="sm"
+                                                                    lineClamp={
+                                                                        2
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        analytic.description
+                                                                    }
+                                                                </Text>
+                                                            )}
+                                                            <Group
+                                                                justify="flex-start"
+                                                                w="100%"
+                                                                align="flex-end"
+                                                            >
+                                                                {analytic.analyticRequiredDataTypes.map(
+                                                                    (r) => (
+                                                                        <Badge
+                                                                            color={
+                                                                                isFieldType(
+                                                                                    r.type
+                                                                                )
+                                                                                    ? DataTypeColor[
+                                                                                          r
+                                                                                              .type
+                                                                                      ]
+                                                                                    : "gray"
+                                                                            }
+                                                                            key={
+                                                                                r.id
+                                                                            }
+                                                                            variant="outline"
+                                                                        >
+                                                                            {
+                                                                                r.purpose
+                                                                            }{" "}
+                                                                            (
+                                                                            {
+                                                                                r.type
+                                                                            }
+                                                                            )
+                                                                        </Badge>
+                                                                    )
+                                                                )}
+                                                            </Group>
+                                                        </Stack>
+                                                        <Button
+                                                            size="xs"
+                                                            variant="outline"
+                                                            color={
+                                                                tracker.color
+                                                            }
+                                                            onClick={() =>
+                                                                onSelect(
+                                                                    analytic
+                                                                )
+                                                            }
+                                                        >
+                                                            Select
+                                                        </Button>
+                                                    </Group>
+                                                </>
+                                            ))}
+                                        </Stack>
+                                    </Accordion.Panel>
+                                </Accordion.Item>
+                            )
+                        )}
+                    </Accordion>
                 )}
             </Stack>
         </Modal>

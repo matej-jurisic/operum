@@ -10,17 +10,18 @@ import React, {
 } from "react";
 import api from "../api/api";
 import { EntryDto } from "../model/EntryDto";
-import { FieldAnalyticsDto } from "../model/FieldAnalyticsDto";
 import { FieldDto } from "../model/FieldDto";
+import { AddTrackerAnalyticDto } from "../model/requests/AddTrackerAnalyticDto";
 import { CreateViewDto } from "../model/requests/CreateViewDto";
 import { FieldUpsertDto } from "../model/requests/FieldUpsertDto";
+import { TrackerAnalyticsResponseDto } from "../model/TrackerAnalyticsResponseDto";
 import { TrackerDto } from "../model/TrackerDto";
 import { ViewDto } from "../model/ViewDto";
 
 type TrackerContextType = {
     entries: EntryDto[];
     fields: FieldDto[];
-    analytics: FieldAnalyticsDto[];
+    analytics: TrackerAnalyticsResponseDto | undefined;
     views: ViewDto[];
     tracker: TrackerDto;
     selectedViewId: string | undefined;
@@ -51,6 +52,10 @@ type TrackerContextType = {
     ) => Promise<void>;
     DeleteView: (trackerId: string, viewId: string) => Promise<void>;
     CreateView: (trackerId: string, view: CreateViewDto) => Promise<void>;
+    AddAnalyticToTracker: (
+        trackerAnalytic: AddTrackerAnalyticDto
+    ) => Promise<void>;
+    RemoveAnalyticFromTracker: (trackerAnalyticId: string) => Promise<void>;
     ImportEntries: (trackerId: string, file: File | null) => Promise<void>;
     analyticsDirty: boolean;
     entriesDirty: boolean;
@@ -102,7 +107,7 @@ export const TrackerProvider: React.FC<{
 }> = ({ initialTracker, children }) => {
     const [entries, setEntries] = useState<EntryDto[]>([]);
     const [fields, setFields] = useState<FieldDto[]>([]);
-    const [analytics, setAnalytics] = useState<FieldAnalyticsDto[]>([]);
+    const [analytics, setAnalytics] = useState<TrackerAnalyticsResponseDto>();
     const [views, setViews] = useState<ViewDto[]>([]);
     const [tracker, setTracker] = useState<TrackerDto>(initialTracker);
     const [internalSelectedViewId, setInternalSelectedViewId] = useState<
@@ -368,6 +373,20 @@ export const TrackerProvider: React.FC<{
         refreshViews();
     };
 
+    const AddAnalyticToTracker = async (
+        trackerAnalytic: AddTrackerAnalyticDto
+    ) => {
+        await api.post(`/trackers/${tracker.id}/analytics`, trackerAnalytic);
+        refreshAnalytics();
+    };
+
+    const RemoveAnalyticFromTracker = async (trackerAnalyticId: string) => {
+        await api.delete(
+            `/trackers/${tracker.id}/analytics/${trackerAnalyticId}`
+        );
+        refreshAnalytics();
+    };
+
     const ImportEntries = async (trackerId: string, file: File | null) => {
         if (!file) return;
         const formData = new FormData();
@@ -420,6 +439,8 @@ export const TrackerProvider: React.FC<{
                 DeleteView,
                 CreateView,
                 ImportEntries,
+                AddAnalyticToTracker,
+                RemoveAnalyticFromTracker,
                 analyticsDirty,
                 entriesDirty,
                 // Column visibility

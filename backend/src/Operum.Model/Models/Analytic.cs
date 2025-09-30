@@ -15,6 +15,8 @@ namespace Operum.Model.Models
         [ForeignKey(nameof(AnalyticTypeId))]
         public virtual AnalyticType AnalyticType { get; set; } = null!;
 
+        public string ResultType { get; set; } = string.Empty;
+
         public virtual List<AnalyticRequiredDataType> AnalyticRequiredDataTypes { get; set; } = [];
     }
 }

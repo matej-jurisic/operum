@@ -1,7 +1,6 @@
 import { Button, Group, Modal, Select, Stack, Text } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useMemo } from "react";
-import api from "../api/api";
 import { useTracker } from "../context/TrackerContext";
 import { AnalyticDto } from "../model/AnalyticDto";
 import { AddTrackerAnalyticDto } from "../model/requests/AddTrackerAnalyticDto";
@@ -15,7 +14,7 @@ export default function TrackerAnalyticFormDialog({
     onClose,
     selectedAnalytic,
 }: Props) {
-    const { tracker, fields } = useTracker();
+    const { tracker, fields, AddAnalyticToTracker } = useTracker();
 
     const form = useForm<AddTrackerAnalyticDto>({
         initialValues: {
@@ -64,7 +63,7 @@ export default function TrackerAnalyticFormDialog({
             );
             return;
         }
-        await api.post(`/trackers/${tracker.id}/analytics`, values);
+        await AddAnalyticToTracker(values);
         onClose();
     };
 

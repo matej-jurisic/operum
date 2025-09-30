@@ -197,19 +197,29 @@ export default function AnalyticsConfiguration() {
                                                                                 analytic.code
                                                                             }
                                                                         </Text>
-                                                                        <Badge
-                                                                            variant="outline"
-                                                                            color={
-                                                                                analytic.analyticTypeId ===
-                                                                                AnalyticType.Public
-                                                                                    ? "green"
-                                                                                    : "yellow"
-                                                                            }
-                                                                        >
-                                                                            {
-                                                                                analytic.analyticTypeName
-                                                                            }
-                                                                        </Badge>
+                                                                        <Group>
+                                                                            <Badge
+                                                                                variant="outline"
+                                                                                color={
+                                                                                    analytic.analyticTypeId ===
+                                                                                    AnalyticType.Public
+                                                                                        ? "green"
+                                                                                        : "yellow"
+                                                                                }
+                                                                            >
+                                                                                {
+                                                                                    analytic.analyticTypeName
+                                                                                }
+                                                                            </Badge>
+                                                                            <Badge
+                                                                                variant="outline"
+                                                                                color="blue"
+                                                                            >
+                                                                                {
+                                                                                    analytic.resultType
+                                                                                }
+                                                                            </Badge>
+                                                                        </Group>
                                                                     </Group>
                                                                     <Text
                                                                         c="dimmed"

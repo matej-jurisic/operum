@@ -1,8 +1,9 @@
 import {
+    Accordion,
     ActionIcon,
     Badge,
     Button,
-    Card,
+    Divider,
     Group,
     Modal,
     Stack,
@@ -25,13 +26,6 @@ const getTrackerAnalytics = async (trackerId: string) => {
     return response.data.data;
 };
 
-const removeTrackerAnalytic = async (
-    trackerId: string,
-    trackerAnalyticId: string
-) => {
-    await api.delete(`/trackers/${trackerId}/analytics/${trackerAnalyticId}`);
-};
-
 interface Props {
     onClose: () => void;
 }
@@ -41,7 +35,7 @@ function isFieldType(value: string): value is FieldType {
 }
 
 export default function TrackerAnalyticsDialog({ onClose }: Props) {
-    const { tracker } = useTracker();
+    const { tracker, RemoveAnalyticFromTracker } = useTracker();
     const [analytics, setAnalytics] = useState<TrackerAnalyticDto[]>([]);
     const [isSelectionOpen, setIsSelectionOpen] = useState(false);
     const [isMappingOpen, setIsMappingOpen] = useState(false);
@@ -70,9 +64,18 @@ export default function TrackerAnalyticsDialog({ onClose }: Props) {
     };
 
     const handleRemoveAnalytic = async (trackerAnalyticId: string) => {
-        await removeTrackerAnalytic(tracker.id, trackerAnalyticId);
+        await RemoveAnalyticFromTracker(trackerAnalyticId);
         fetchAnalytics();
     };
+
+    // Group analytics by name
+    const groupedAnalytics = analytics.reduce((acc, analytic) => {
+        if (!acc[analytic.name]) {
+            acc[analytic.name] = [];
+        }
+        acc[analytic.name].push(analytic);
+        return acc;
+    }, {} as Record<string, TrackerAnalyticDto[]>);
 
     return (
         <>
@@ -89,78 +92,106 @@ export default function TrackerAnalyticsDialog({ onClose }: Props) {
                             No analytics configured yet. Add one to get started.
                         </Text>
                     ) : (
-                        <Stack gap="md">
-                            {analytics.map((analytic) => (
-                                <Card
-                                    key={analytic.id}
-                                    shadow="sm"
-                                    padding="md"
-                                    radius="md"
-                                    withBorder
-                                >
-                                    <Stack gap="xs">
-                                        <Group
-                                            justify="space-between"
-                                            align="start"
-                                        >
-                                            <Group>
-                                                <Text fw={500} size="lg">
-                                                    {analytic.name}
-                                                </Text>
-                                                <Text size="xs" c="dimmed">
-                                                    {analytic.code}
-                                                </Text>
+                        <Accordion variant="contained" chevronPosition="left">
+                            {Object.entries(groupedAnalytics).map(
+                                ([name, analyticGroup]) => (
+                                    <Accordion.Item key={name} value={name}>
+                                        <Accordion.Control>
+                                            <Group justify="space-between">
+                                                <Text fw={500}>{name}</Text>
+                                                <Badge
+                                                    size="sm"
+                                                    variant="light"
+                                                >
+                                                    {analyticGroup.length}{" "}
+                                                    {analyticGroup.length === 1
+                                                        ? "instance"
+                                                        : "instances"}
+                                                </Badge>
                                             </Group>
-                                            <ActionIcon
-                                                color="red"
-                                                variant="outline"
-                                                onClick={() =>
-                                                    handleRemoveAnalytic(
-                                                        analytic.id
+                                        </Accordion.Control>
+                                        <Accordion.Panel>
+                                            <Stack gap="md">
+                                                {analyticGroup.map(
+                                                    (analytic) => (
+                                                        <>
+                                                            <Divider />
+                                                            <Stack>
+                                                                {analytic.description && (
+                                                                    <Text
+                                                                        size="sm"
+                                                                        c="dimmed"
+                                                                    >
+                                                                        {
+                                                                            analytic.description
+                                                                        }
+                                                                    </Text>
+                                                                )}
+                                                                <Group
+                                                                    justify="space-between"
+                                                                    wrap="nowrap"
+                                                                >
+                                                                    <Group gap="md">
+                                                                        {analytic.trackerAnalyticFields.map(
+                                                                            (
+                                                                                field
+                                                                            ) => (
+                                                                                <Group
+                                                                                    wrap="nowrap"
+                                                                                    gap="xs"
+                                                                                    key={
+                                                                                        field.id
+                                                                                    }
+                                                                                >
+                                                                                    <Badge
+                                                                                        size="sm"
+                                                                                        variant="light"
+                                                                                        color={
+                                                                                            isFieldType(
+                                                                                                field.type
+                                                                                            )
+                                                                                                ? DataTypeColor[
+                                                                                                      field
+                                                                                                          .type
+                                                                                                  ]
+                                                                                                : "gray"
+                                                                                        }
+                                                                                    >{`${field.purpose} (${field.type})`}</Badge>
+                                                                                    <Text size="sm">
+                                                                                        {
+                                                                                            field.fieldName
+                                                                                        }
+                                                                                    </Text>
+                                                                                </Group>
+                                                                            )
+                                                                        )}
+                                                                    </Group>
+                                                                    <ActionIcon
+                                                                        color="red"
+                                                                        variant="outline"
+                                                                        onClick={() =>
+                                                                            handleRemoveAnalytic(
+                                                                                analytic.id
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <MdDelete
+                                                                            size={
+                                                                                18
+                                                                            }
+                                                                        />
+                                                                    </ActionIcon>
+                                                                </Group>
+                                                            </Stack>
+                                                        </>
                                                     )
-                                                }
-                                            >
-                                                <MdDelete size={18} />
-                                            </ActionIcon>
-                                        </Group>
-                                        {analytic.description && (
-                                            <Text size="sm" c="dimmed">
-                                                {analytic.description}
-                                            </Text>
-                                        )}
-                                        <Group gap="md">
-                                            {analytic.trackerAnalyticFields.map(
-                                                (field) => (
-                                                    <Group
-                                                        wrap="nowrap"
-                                                        gap="xs"
-                                                        key={field.id}
-                                                    >
-                                                        <Badge
-                                                            size="sm"
-                                                            variant="light"
-                                                            color={
-                                                                isFieldType(
-                                                                    field.type
-                                                                )
-                                                                    ? DataTypeColor[
-                                                                          field
-                                                                              .type
-                                                                      ]
-                                                                    : "gray"
-                                                            }
-                                                        >{`${field.purpose} (${field.type})`}</Badge>
-                                                        <Text size="sm">
-                                                            {field.fieldName}
-                                                        </Text>
-                                                    </Group>
-                                                )
-                                            )}
-                                        </Group>
-                                    </Stack>
-                                </Card>
-                            ))}
-                        </Stack>
+                                                )}
+                                            </Stack>
+                                        </Accordion.Panel>
+                                    </Accordion.Item>
+                                )
+                            )}
+                        </Accordion>
                     )}
                     <Button
                         color={tracker.color}

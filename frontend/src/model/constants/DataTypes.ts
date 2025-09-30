@@ -26,6 +26,6 @@ export const DataTypeColor: Record<FieldType, string> = {
     number: "blue",
     bool: "green",
     date: "orange",
-    datetime: "purple",
+    datetime: "yellow",
     timespan: "brown",
 };

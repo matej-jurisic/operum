@@ -2,7 +2,6 @@
 using Operum.Model;
 using Operum.Model.Common;
 using Operum.Model.Constants;
-using Operum.Model.DTOs.Analytics;
 using Operum.Model.DTOs.Trackers;
 using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Model.DTOs.Users;
@@ -281,7 +280,7 @@ namespace Operum.Service.Services.Trackers
             return Result.Success(updatedTracker.Data);
         }
 
-        public async Task<Result<List<FieldAnalyticsDto>>> GetTrackerAnalytics(string trackerId, string? viewId)
+        public async Task<Result<TrackerAnalyticsResponseDto>> GetTrackerAnalytics(string trackerId, string? viewId)
         {
             var user = authorizationService.GetCurrentUserDto();
             var tracker = await db.Trackers
@@ -300,6 +299,8 @@ namespace Operum.Service.Services.Trackers
             {
                 view = await db.Views
                     .Include(v => v.Filters)
+                    .ThenInclude(v => v.Field)
+                    .Include(v => v.Sorts)
                     .ThenInclude(s => s.Field)
                     .FirstOrDefaultAsync(v => v.Id == viewId && v.TrackerId == trackerId);
 
@@ -314,48 +315,96 @@ namespace Operum.Service.Services.Trackers
                 .ThenInclude(x => x.Field)
                 .Where(x => x.TrackerId == trackerId);
 
-            if (view != null && view.Filters.Count != 0)
+            if (view != null)
             {
                 entriesQuery = ViewHelpers.ApplyViewFilters(entriesQuery, view.Filters);
+                entriesQuery = ViewHelpers.ApplyViewSorting(entriesQuery, view.Sorts);
             }
 
             var entries = await entriesQuery.ToListAsync();
 
+            var trackerAnalytics = await db.TrackerAnalytics
+                .Include(x => x.TrackerAnalyticFields)
+                    .ThenInclude(x => x.AnalyticRequiredDataType)
+                .Include(x => x.TrackerAnalyticFields)
+                    .ThenInclude(x => x.Field)
+                .Include(x => x.Analytic)
+                .AsSplitQuery()
+                .Where(x => x.TrackerId == trackerId)
+                .ToListAsync();
+
             // Process analytics in parallel with proper null handling
-            var analyticsResult = entries
-                .SelectMany(e => e.FieldValues)
-                .GroupBy(fv => fv.Field.Id)
-                .AsParallel()
-                .Select(group =>
+            //var analyticsResult = entries
+            //    .SelectMany(e => e.FieldValues)
+            //    .GroupBy(fv => fv.Field.Id)
+            //    .AsParallel()
+            //    .Select(group =>
+            //    {
+            //        var field = group.First().Field;
+            //        var fieldValues = group.ToList();
+
+            //        var analytics = field.Type switch
+            //        {
+            //            DataTypes.Number => TrackerAnalyticsHelpers.GetNumericAnalytics(fieldValues),
+            //            DataTypes.DateTime => TrackerAnalyticsHelpers.GetDateTimeAnalytics(fieldValues),
+            //            DataTypes.Date => TrackerAnalyticsHelpers.GetDateAnalytics(fieldValues),
+            //            DataTypes.TimeSpan => TrackerAnalyticsHelpers.GetTimeSpanAnalytics(fieldValues),
+            //            DataTypes.Bool => TrackerAnalyticsHelpers.GetBooleanAnalytics(fieldValues),
+            //            _ => null
+            //        };
+
+            //        if (analytics != null)
+            //        {
+            //            analytics.FieldName = field.Name;
+            //            analytics.FieldType = field.Type;
+            //            analytics.FieldOrder = field.Order;
+            //        }
+
+            //        return analytics;
+            //    })
+            //    .Where(analytics => analytics != null)
+            //    .Cast<FieldAnalyticsDto>()
+            //    .OrderBy(a => a.FieldOrder)
+            //    .ToList();
+
+            //return Result.Success(analyticsResult);
+
+            TrackerAnalyticsResponseDto calculatedAnalytics = new();
+
+            foreach (var trackerAnalytic in trackerAnalytics)
+            {
+                switch (trackerAnalytic.Analytic.ResultType)
                 {
-                    var field = group.First().Field;
-                    var fieldValues = group.ToList();
+                    case AnalyticResultTypes.SingleValue:
+                        var field = trackerAnalytic.TrackerAnalyticFields.FirstOrDefault(x => x.AnalyticRequiredDataType.Purpose == AnalyticDataTypePurposes.Value)?.Field;
 
-                    var analytics = field.Type switch
-                    {
-                        DataTypes.Number => TrackerAnalyticsHelpers.GetNumericAnalytics(fieldValues),
-                        DataTypes.DateTime => TrackerAnalyticsHelpers.GetDateTimeAnalytics(fieldValues),
-                        DataTypes.Date => TrackerAnalyticsHelpers.GetDateAnalytics(fieldValues),
-                        DataTypes.TimeSpan => TrackerAnalyticsHelpers.GetTimeSpanAnalytics(fieldValues),
-                        DataTypes.Bool => TrackerAnalyticsHelpers.GetBooleanAnalytics(fieldValues),
-                        _ => null
-                    };
+                        if (field != null)
+                        {
+                            var fieldValues = entries.SelectMany(x => x.FieldValues.Where(x => x.FieldId == field.Id));
+                            var calculationResult = TrackerAnalyticsHelpers.GetSingleValueAnalyticResult(trackerAnalytic.Analytic, fieldValues, field);
+                            if (calculationResult.IsSuccess)
+                            {
+                                calculatedAnalytics.SingleValueAnalytics.Add(calculationResult.Data);
+                            }
+                        }
+                        break;
+                    case AnalyticResultTypes.NumericChart:
+                        var xAxisField = trackerAnalytic.TrackerAnalyticFields.FirstOrDefault(x => x.AnalyticRequiredDataType.Purpose == AnalyticDataTypePurposes.Xaxis)?.Field;
+                        var yAxisField = trackerAnalytic.TrackerAnalyticFields.FirstOrDefault(x => x.AnalyticRequiredDataType.Purpose == AnalyticDataTypePurposes.Yaxis)?.Field;
 
-                    if (analytics != null)
-                    {
-                        analytics.FieldName = field.Name;
-                        analytics.FieldType = field.Type;
-                        analytics.FieldOrder = field.Order;
-                    }
+                        if (xAxisField != null && yAxisField != null)
+                        {
+                            var calculationResult = TrackerAnalyticsHelpers.GetNumericChartAnalyticResult(trackerAnalytic.Analytic, entries, xAxisField, yAxisField);
+                            if (calculationResult.IsSuccess)
+                            {
+                                calculatedAnalytics.NumericChartAnalytics.Add(calculationResult.Data);
+                            }
+                        }
+                        break;
+                }
+            }
 
-                    return analytics;
-                })
-                .Where(analytics => analytics != null)
-                .Cast<FieldAnalyticsDto>()
-                .OrderBy(a => a.FieldOrder)
-                .ToList();
-
-            return Result.Success(analyticsResult);
+            return Result.Success(calculatedAnalytics);
         }
 
         public async Task<Result> UpdateDefaultView(string trackerId, string? defaultViewId)

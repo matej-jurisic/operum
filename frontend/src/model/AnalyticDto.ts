@@ -2,6 +2,7 @@ export interface AnalyticDto {
     id: string;
     name: string;
     code: string;
+    resultType: string;
     description?: string;
     analyticTypeId: number;
     analyticTypeName: string;

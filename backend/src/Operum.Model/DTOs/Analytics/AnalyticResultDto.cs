@@ -1,4 +1,6 @@
-﻿namespace Operum.Model.DTOs.Analytics
+﻿using Operum.Model.Constants;
+
+namespace Operum.Model.DTOs.Analytics
 {
     public class TrackerAnalyticsResultDto
     {
@@ -6,34 +8,41 @@
         public List<AnalyticResultDto> Analytics { get; set; } = [];
     }
 
-    public class AnalyticResultDto
+    public abstract class AnalyticResultDto
     {
         public string AnalyticId { get; set; } = string.Empty;
         public string Name { get; set; } = null!;
         public string? Description { get; set; }
-        public string Code { get; set; } = null!;
-        public AnalyticResultType Type { get; set; }
+        public string ResultType { get; set; } = string.Empty;
     }
 
-    public enum AnalyticResultType
+    public class SingleValueAnalyticResult : AnalyticResultDto
     {
-        SingleValue,
-        Chart2D
+        public string Value { get; set; } = string.Empty;
+        public string FieldName { get; set; } = string.Empty;
+        public string? EntryId { get; set; }
+
+        public SingleValueAnalyticResult()
+        {
+            ResultType = AnalyticResultTypes.SingleValue;
+        }
     }
 
-    public class SingleValueAnalyticResult(string result) : AnalyticResultDto
-    {
-        public string Value { get; set; } = result;
-    }
-
-    public class Chart2DAnalyticResultDto : AnalyticResultDto
+    public class NumericChartAnalyticResult : AnalyticResultDto
     {
         public List<ChartPointDto> Points { get; set; } = [];
+        public string XFieldName { get; set; } = string.Empty;
+        public string YFieldName { get; set; } = string.Empty;
+
+        public NumericChartAnalyticResult()
+        {
+            ResultType = AnalyticResultTypes.NumericChart;
+        }
     }
 
     public class ChartPointDto
     {
-        public string X { get; set; } = string.Empty;
-        public double Y { get; set; }
+        public string? X { get; set; }
+        public double? Y { get; set; }
     }
 }
