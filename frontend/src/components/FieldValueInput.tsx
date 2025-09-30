@@ -58,6 +58,7 @@ export default function FieldValueInput<T extends Record<string, any> = any>({
         case "date":
             return (
                 <DatePickerInput
+                    dropdownType="modal"
                     style={styles}
                     valueFormat="DD/MM/YYYY"
                     placeholder="Pick date"
@@ -84,7 +85,7 @@ export default function FieldValueInput<T extends Record<string, any> = any>({
                     withSeconds
                     placeholder="Pick date/time"
                     {...baseProps}
-                    dropdownType="popover"
+                    dropdownType="modal"
                     styles={{
                         input: {
                             cursor: "pointer",
