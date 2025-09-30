@@ -69,7 +69,11 @@ export default function AnalyticSelectionDialog({ onSelect, onClose }: Props) {
                                     <Accordion.Control>
                                         <Group justify="space-between">
                                             <Text fw={500}>{name}</Text>
-                                            <Badge size="sm" variant="light">
+                                            <Badge
+                                                size="sm"
+                                                variant="light"
+                                                color={tracker.color}
+                                            >
                                                 {analyticGroup.length}{" "}
                                                 {analyticGroup.length === 1
                                                     ? "variant"
@@ -85,6 +89,7 @@ export default function AnalyticSelectionDialog({ onSelect, onClose }: Props) {
                                                     <Group
                                                         w={"100%"}
                                                         justify="space-between"
+                                                        wrap="nowrap"
                                                     >
                                                         <Stack gap="sm">
                                                             <Title order={4}>
@@ -110,36 +115,45 @@ export default function AnalyticSelectionDialog({ onSelect, onClose }: Props) {
                                                             >
                                                                 {analytic.analyticRequiredDataTypes.map(
                                                                     (r) => (
-                                                                        <Badge
-                                                                            color={
-                                                                                isFieldType(
-                                                                                    r.type
-                                                                                )
-                                                                                    ? DataTypeColor[
-                                                                                          r
-                                                                                              .type
-                                                                                      ]
-                                                                                    : "gray"
+                                                                        <Group
+                                                                            gap={
+                                                                                5
                                                                             }
-                                                                            key={
-                                                                                r.id
-                                                                            }
-                                                                            variant="outline"
+                                                                            wrap="nowrap"
                                                                         >
-                                                                            {
-                                                                                r.purpose
-                                                                            }{" "}
-                                                                            (
-                                                                            {
-                                                                                r.type
-                                                                            }
-                                                                            )
-                                                                        </Badge>
+                                                                            <Text>
+                                                                                {
+                                                                                    r.purpose
+                                                                                }{" "}
+                                                                                -
+                                                                            </Text>
+                                                                            <Badge
+                                                                                color={
+                                                                                    isFieldType(
+                                                                                        r.type
+                                                                                    )
+                                                                                        ? DataTypeColor[
+                                                                                              r
+                                                                                                  .type
+                                                                                          ]
+                                                                                        : "gray"
+                                                                                }
+                                                                                key={
+                                                                                    r.id
+                                                                                }
+                                                                                variant="outline"
+                                                                            >
+                                                                                {
+                                                                                    r.type
+                                                                                }
+                                                                            </Badge>
+                                                                        </Group>
                                                                     )
                                                                 )}
                                                             </Group>
                                                         </Stack>
                                                         <Button
+                                                            miw={"max-content"}
                                                             size="xs"
                                                             variant="outline"
                                                             color={

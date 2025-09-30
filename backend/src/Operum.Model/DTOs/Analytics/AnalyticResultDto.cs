@@ -33,6 +33,7 @@ namespace Operum.Model.DTOs.Analytics
         public List<ChartPointDto> Points { get; set; } = [];
         public string XFieldName { get; set; } = string.Empty;
         public string YFieldName { get; set; } = string.Empty;
+        public string YFieldType { get; set; } = string.Empty;
 
         public NumericChartAnalyticResult()
         {

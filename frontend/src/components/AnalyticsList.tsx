@@ -1,6 +1,7 @@
 import { LineChart } from "@mantine/charts";
 import {
     ActionIcon,
+    Box,
     Button,
     Group,
     Paper,
@@ -18,8 +19,10 @@ import {
     NumericChartAnalyticResultDto,
     SingleValueAnalyticResultDto,
 } from "../model/AnalyticResultDto";
+import { FieldTypes } from "../model/constants/DataTypes";
 import { TrackerDto } from "../model/TrackerDto";
 import globalStore from "../stores/GlobalStore";
+import { formatBoolean, formatMinutesToTime } from "../util/TypeFormatter";
 import EntryDetailsDialog from "./EntryDetailsDialog";
 import TrackerAnalyticsDialog from "./TrackerAnalyticsDialog";
 
@@ -60,6 +63,57 @@ const StatCard = ({
     );
 };
 
+const getYAxisFormatter = (fieldType: string) => {
+    if (fieldType === FieldTypes.TimeSpan) {
+        return formatMinutesToTime;
+    }
+    if (fieldType === FieldTypes.Bool) {
+        return formatBoolean;
+    }
+    return undefined;
+};
+
+const createTooltipContent = (
+    fieldType: string,
+    fieldName: string,
+    color: string
+) => {
+    if (fieldType !== FieldTypes.TimeSpan && fieldType !== FieldTypes.Bool) {
+        return undefined;
+    }
+
+    return ({ payload, label }: any) => {
+        if (!payload?.[0]) return null;
+        const value = payload[0].value as number;
+        const formatted =
+            fieldType === FieldTypes.TimeSpan
+                ? formatMinutesToTime(value)
+                : formatBoolean(value);
+
+        return (
+            <Paper p="sm" shadow="sm" withBorder>
+                <Text size="sm" c="dimmed" mb="xs">
+                    {label}
+                </Text>
+                <Group gap="xs">
+                    <Box
+                        w={10}
+                        h={10}
+                        style={{ borderRadius: "50%" }}
+                        bg={color}
+                    />
+                    <Text size="sm" c="white">
+                        {fieldName}
+                    </Text>
+                    <Text size="sm" c="white" ml="auto">
+                        {formatted}
+                    </Text>
+                </Group>
+            </Paper>
+        );
+    };
+};
+
 const ChartCard = ({
     analytic,
 }: {
@@ -87,6 +141,16 @@ const ChartCard = ({
                             label: analytic.yFieldName,
                         },
                     ]}
+                    yAxisProps={{
+                        tickFormatter: getYAxisFormatter(analytic.yFieldType),
+                    }}
+                    tooltipProps={{
+                        content: createTooltipContent(
+                            analytic.yFieldType,
+                            analytic.yFieldName,
+                            tracker.color ?? "blue"
+                        ),
+                    }}
                 />
             </Stack>
         </Paper>
@@ -129,15 +193,18 @@ export default function AnalyticsList() {
                     </Group>
                 )}
 
-                {!analytics ? (
+                {!analytics ||
+                analytics.numericChartAnalytics.length +
+                    analytics.singleValueAnalytics.length ===
+                    0 ? (
                     <Paper withBorder p="xl" radius="md">
                         <Stack gap="md" align="center">
                             <Text size="lg" fw={500} c="dimmed">
                                 No Analytics Available
                             </Text>
                             <Text ta="center" c="dimmed">
-                                Analytics will appear here once you have data
-                                entries for your tracker.
+                                Analytics will appear here once you configure
+                                them and have data entries for your tracker.
                             </Text>
                         </Stack>
                     </Paper>

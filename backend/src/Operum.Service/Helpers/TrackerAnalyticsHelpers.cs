@@ -303,7 +303,8 @@ namespace Operum.Service.Helpers
                 YFieldName = yAxisField.Name,
                 Name = analytic.Name,
                 Description = analytic.Description,
-                AnalyticId = analytic.Id
+                AnalyticId = analytic.Id,
+                YFieldType = yAxisField.Type
             };
 
             switch (analytic.Code)

@@ -47,3 +47,19 @@ export const formatTimeSpan = (value?: string) => {
     const [hours, minutes, seconds] = value.split(":");
     return `${hours}:${minutes}:${seconds.split(".")[0]}`;
 };
+
+export const formatMinutesToTime = (minutes?: number): string => {
+    if (minutes === undefined || minutes === null) return "";
+
+    const hours = Math.floor(minutes / 60);
+    const mins = Math.floor(minutes % 60);
+    const seconds = Math.floor((minutes % 1) * 60);
+    return `${hours.toString().padStart(2, "0")}:${mins
+        .toString()
+        .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+};
+
+export const formatBoolean = (value?: number): string => {
+    if (value === undefined || value === null) return "";
+    return value === 1 ? "Yes" : "No";
+};

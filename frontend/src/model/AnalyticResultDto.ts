@@ -15,5 +15,6 @@ export interface SingleValueAnalyticResultDto extends AnalyticResultDto {
 export interface NumericChartAnalyticResultDto extends AnalyticResultDto {
     xFieldName: string;
     yFieldName: string;
+    yFieldType: string;
     points: { x: string; y: number }[];
 }
