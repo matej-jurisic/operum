@@ -20,7 +20,7 @@
 
         public static readonly HashSet<string> All =
         [
-            Count, Min, Max, Average, Sum, StdDev, TrueCount, FalseCount, TruePercentage, AggregatedLineChart, CumulativeLineChart
+            Count, Min, Max, Average, Sum, StdDev, TrueCount, FalseCount, TruePercentage, AggregatedLineChart, CumulativeLineChart, LineChart
         ];
 
         public static bool IsValid(string op) => All.Contains(op);
