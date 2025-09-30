@@ -210,18 +210,17 @@ namespace Operum.Service.Helpers
 
             var points = analytic.Code switch
             {
-                AnalyticCodes.AggregatedLineChart => dataPoints
+                AnalyticCodes.AggregatedLineChart => [.. dataPoints
                     .GroupBy(e => e.X)
                     .Select(g => new ChartPointDto
                     {
                         X = g.Key,
                         Y = Math.Round(g.Sum(e => e.Y ?? 0), 2)
-                    })
-                    .ToList(),
-
+                    })],
+                AnalyticCodes.LineChart => dataPoints,
                 AnalyticCodes.CumulativeLineChart => CalculateCumulativePoints(dataPoints),
 
-                _ => new List<ChartPointDto>()
+                _ => []
             };
 
             result.Points = points;

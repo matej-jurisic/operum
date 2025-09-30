@@ -149,7 +149,7 @@ const ChartCard = ({
         <Paper withBorder p="md" radius="md">
             <Stack gap="xs">
                 <Group justify="space-between" wrap="nowrap" align="flex-start">
-                    <Text size="sm" c="dimmed" mb="sm">
+                    <Text size="sm" mb="sm">
                         {`${analytic.name}: ${analytic.xFieldName} - ${analytic.yFieldName}`}
                     </Text>
                     {isConfiguring && (
@@ -265,7 +265,9 @@ export default function AnalyticsList() {
                             {/* Masonry Grid Container */}
                             <Stack gap="md" pb={"md"}>
                                 {/* Single value analytics grid */}
-                                {analytics.singleValueAnalytics.length > 0 && (
+                                {(isConfiguring ||
+                                    analytics.singleValueAnalytics.length >
+                                        0) && (
                                     <SimpleGrid
                                         cols={{
                                             base: 1,

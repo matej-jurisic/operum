@@ -39,6 +39,7 @@ const analyticCodeOptions = [
     { value: "TruePercentage", label: "TruePercentage" },
     { value: "AggregatedLineChart", label: "AggregatedLineChart" },
     { value: "CumulativeLineChart", label: "CumulativeLineChart" },
+    { value: "LineChart", label: "LineChart" },
 ];
 
 interface CreateAnalyticDialogProps {

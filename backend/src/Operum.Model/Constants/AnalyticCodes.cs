@@ -15,6 +15,7 @@
 
         public const string AggregatedLineChart = "AggregatedLineChart";
         public const string CumulativeLineChart = "CumulativeLineChart";
+        public const string LineChart = "LineChart";
 
 
         public static readonly HashSet<string> All =
