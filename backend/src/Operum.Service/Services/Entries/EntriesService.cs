@@ -20,7 +20,7 @@ namespace Operum.Service.Services.Entries
 {
     public class EntriesService(IAuthorizationService authorizationService, OperumContext db, IMapper mapper) : IEntriesService
     {
-        public async Task<ServiceResponse<EntryDto>> CreateEntry(string trackerId, CreateEntryDto entry)
+        public async Task<Result<EntryDto>> CreateEntry(string trackerId, CreateEntryDto entry)
         {
             var user = authorizationService.GetCurrentUserDto();
             var tracker = await db.Trackers
@@ -31,13 +31,13 @@ namespace Operum.Service.Services.Entries
 
             if (tracker == null || !hasAccess)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.Forbidden);
+                return Result.Failure(StatusCodeEnum.Forbidden);
             }
 
             var entryCount = await db.Entries.Where(x => x.TrackerId == trackerId).CountAsync();
             if (entryCount >= DataLimits.MaxEntryCount)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, $"Maximum number of entries {DataLimits.MaxEntryCount} reached.");
+                return Result.Failure(StatusCodeEnum.BadRequest, $"Maximum number of entries {DataLimits.MaxEntryCount} reached.");
             }
 
             var fields = await db.Fields.Where(x => x.TrackerId == trackerId).ToListAsync();
@@ -66,7 +66,7 @@ namespace Operum.Service.Services.Entries
                 }
                 else if (field.Required)
                 {
-                    return ServiceResponse.Failure(StatusCodeEnum.BadRequest, $"Field {field.Name} is required!");
+                    return Result.Failure(StatusCodeEnum.BadRequest, $"Field {field.Name} is required!");
                 }
             }
 
@@ -75,10 +75,10 @@ namespace Operum.Service.Services.Entries
 
             var created = await GetEntry(trackerId, newEntry.Id);
 
-            return ServiceResponse.Success(created.Data, "Entry created successfully!");
+            return Result.Success(created.Data, "Entry created successfully!");
         }
 
-        public async Task<ServiceResponse<List<EntryDto>>> GetEntries(string trackerId, string? viewId)
+        public async Task<Result<List<EntryDto>>> GetEntries(string trackerId, string? viewId)
         {
             var user = authorizationService.GetCurrentUserDto();
             var tracker = await db.Trackers
@@ -89,7 +89,7 @@ namespace Operum.Service.Services.Entries
 
             if (tracker == null || !hasAccess)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.Forbidden);
+                return Result.Failure(StatusCodeEnum.Forbidden);
             }
 
             View? view = null;
@@ -104,7 +104,7 @@ namespace Operum.Service.Services.Entries
 
                 if (view == null)
                 {
-                    return ServiceResponse.Failure(StatusCodeEnum.NotFound, "View not found or doesn't belong to this tracker");
+                    return Result.Failure(StatusCodeEnum.NotFound, "View not found or doesn't belong to this tracker");
                 }
             }
 
@@ -120,10 +120,10 @@ namespace Operum.Service.Services.Entries
             }
 
             var entries = await entriesQuery.ToListAsync();
-            return ServiceResponse.Success(mapper.Map<List<Entry>, List<EntryDto>>(entries));
+            return Result.Success(mapper.Map<List<Entry>, List<EntryDto>>(entries));
         }
 
-        public async Task<ServiceResponse<EntryDto>> GetEntry(string trackerId, string entryId)
+        public async Task<Result<EntryDto>> GetEntry(string trackerId, string entryId)
         {
             var user = authorizationService.GetCurrentUserDto();
             var tracker = await db.Trackers
@@ -134,7 +134,7 @@ namespace Operum.Service.Services.Entries
 
             if (tracker == null || !hasAccess)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.Forbidden);
+                return Result.Failure(StatusCodeEnum.Forbidden);
             }
 
             var entry = await db.Entries
@@ -144,13 +144,13 @@ namespace Operum.Service.Services.Entries
 
             if (entry == null)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.NotFound);
+                return Result.Failure(StatusCodeEnum.NotFound);
             }
 
-            return ServiceResponse.Success(mapper.Map<Entry, EntryDto>(entry));
+            return Result.Success(mapper.Map<Entry, EntryDto>(entry));
         }
 
-        public async Task<ServiceResponse<EntryDto>> UpdateEntry(string trackerId, string entryId, UpdateEntryDto updateEntry)
+        public async Task<Result<EntryDto>> UpdateEntry(string trackerId, string entryId, UpdateEntryDto updateEntry)
         {
             var user = authorizationService.GetCurrentUserDto();
             var entry = await db.Entries
@@ -162,7 +162,7 @@ namespace Operum.Service.Services.Entries
 
             if (entry == null || !hasAccess)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.Forbidden);
+                return Result.Failure(StatusCodeEnum.Forbidden);
             }
 
             var fieldValues = await db.FieldValues
@@ -211,10 +211,10 @@ namespace Operum.Service.Services.Entries
             await db.FieldValues.AddRangeAsync(newFieldValues);
             await db.SaveChangesAsync();
             var updatedEntry = await GetEntry(trackerId, entryId);
-            return ServiceResponse.Success(updatedEntry.Data);
+            return Result.Success(updatedEntry.Data);
         }
 
-        public async Task<ServiceResponse> DeleteEntry(string trackerId, string entryId)
+        public async Task<Result> DeleteEntry(string trackerId, string entryId)
         {
             var user = authorizationService.GetCurrentUserDto();
             var entry = await db.Entries
@@ -226,16 +226,16 @@ namespace Operum.Service.Services.Entries
 
             if (entry == null || !hasAccess)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.Forbidden);
+                return Result.Failure(StatusCodeEnum.Forbidden);
             }
 
             db.Entries.Remove(entry);
             await db.SaveChangesAsync();
 
-            return ServiceResponse.Success();
+            return Result.Success();
         }
 
-        public async Task<ServiceResponse> DeleteEntries(string trackerId, List<string> entryIdList)
+        public async Task<Result> DeleteEntries(string trackerId, List<string> entryIdList)
         {
             var user = authorizationService.GetCurrentUserDto();
             var entries = await db.Entries
@@ -244,14 +244,14 @@ namespace Operum.Service.Services.Entries
                 .Where(x => entryIdList.Contains(x.Id) && x.TrackerId == trackerId && (x.Tracker.OwnerId == user.Id || x.Tracker.ApplicationUserTrackers.Any(a => a.ApplicationUserId == user.Id)))
                 .ExecuteDeleteAsync();
 
-            return ServiceResponse.Success();
+            return Result.Success();
         }
 
-        public async Task<ServiceResponse<List<EntryDto>>> ImportEntriesFromCsv(string trackerId, IFormFile file)
+        public async Task<Result<List<EntryDto>>> ImportEntriesFromCsv(string trackerId, IFormFile file)
         {
             if (file == null || file.Length == 0)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "File is empty.");
+                return Result.Failure(StatusCodeEnum.BadRequest, "File is empty.");
             }
 
             var user = authorizationService.GetCurrentUserDto();
@@ -263,7 +263,7 @@ namespace Operum.Service.Services.Entries
 
             if (tracker == null || !hasAccess)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.Forbidden);
+                return Result.Failure(StatusCodeEnum.Forbidden);
             }
 
             // Check entry count limit upfront
@@ -323,14 +323,14 @@ namespace Operum.Service.Services.Entries
             // Return validation errors if any
             if (validationErrors.Count > 0)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.BadRequest,
+                return Result.Failure(StatusCodeEnum.BadRequest,
                     validationErrors.Take(5));
             }
 
             // Check if importing would exceed the limit
             if (currentEntryCount + parsedRecords.Count > DataLimits.MaxEntryCount)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.BadRequest,
+                return Result.Failure(StatusCodeEnum.BadRequest,
                     $"Import would exceed maximum entry limit. Current: {currentEntryCount}, " +
                     $"Import: {parsedRecords.Count}, Max: {DataLimits.MaxEntryCount}");
             }
@@ -385,10 +385,10 @@ namespace Operum.Service.Services.Entries
                 throw;
             }
 
-            return ServiceResponse.Success($"Entries imported successfully!");
+            return Result.Success($"Entries imported successfully!");
         }
 
-        public async Task<ServiceResponse<FileContentResult>> ExportEntriesToCsv(string trackerId, string? viewId = null)
+        public async Task<Result<FileContentResult>> ExportEntriesToCsv(string trackerId, string? viewId = null)
         {
             var user = authorizationService.GetCurrentUserDto();
             var tracker = await db.Trackers
@@ -399,7 +399,7 @@ namespace Operum.Service.Services.Entries
 
             if (tracker == null || !hasAccess)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.Forbidden);
+                return Result.Failure(StatusCodeEnum.Forbidden);
             }
 
             // Fetch view if provided
@@ -415,7 +415,7 @@ namespace Operum.Service.Services.Entries
 
                 if (view == null)
                 {
-                    return ServiceResponse.Failure(StatusCodeEnum.NotFound, "View not found or doesn't belong to this tracker");
+                    return Result.Failure(StatusCodeEnum.NotFound, "View not found or doesn't belong to this tracker");
                 }
             }
 
@@ -439,7 +439,7 @@ namespace Operum.Service.Services.Entries
 
             if (entries.Count == 0)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "No entries found to export.");
+                return Result.Failure(StatusCodeEnum.BadRequest, "No entries found to export.");
             }
 
             try
@@ -478,11 +478,11 @@ namespace Operum.Service.Services.Entries
                     FileDownloadName = fileName
                 };
 
-                return ServiceResponse.Success(fileResult);
+                return Result.Success(fileResult);
             }
             catch (Exception ex)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.InternalServerError, $"Error exporting CSV: {ex.Message}");
+                return Result.Failure(StatusCodeEnum.InternalServerError, $"Error exporting CSV: {ex.Message}");
             }
         }
     }

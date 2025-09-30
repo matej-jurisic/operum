@@ -11,7 +11,7 @@ namespace Operum.Service.Services.Analytics
 {
     public class AnalyticsService(OperumContext db, IMapper mapper) : IAnalyticsService
     {
-        public async Task<ServiceResponse<AnalyticDto>> CreateAnalytic(CreateAnalyticRequestDto createAnalytic)
+        public async Task<Result<AnalyticDto>> CreateAnalytic(CreateAnalyticRequestDto createAnalytic)
         {
             var newAnalytic = mapper.Map<CreateAnalyticRequestDto, Analytic>(createAnalytic);
             await db.Analytics.AddAsync(newAnalytic);
@@ -19,16 +19,16 @@ namespace Operum.Service.Services.Analytics
             return await GetAnalytic(newAnalytic.Id);
         }
 
-        public async Task<ServiceResponse> DeleteAnalytic(string analyticId)
+        public async Task<Result> DeleteAnalytic(string analyticId)
         {
             await db.Analytics
                 .Where(x => x.Id == analyticId)
                 .ExecuteDeleteAsync();
 
-            return ServiceResponse.Success();
+            return Result.Success();
         }
 
-        public async Task<ServiceResponse<AnalyticDto>> GetAnalytic(string analyticId)
+        public async Task<Result<AnalyticDto>> GetAnalytic(string analyticId)
         {
             var analytic = await db.Analytics
                 .Include(x => x.AnalyticRequiredDataTypes)
@@ -37,13 +37,13 @@ namespace Operum.Service.Services.Analytics
 
             if (analytic == null)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.NotFound, "Analytic not found.");
+                return Result.Failure(StatusCodeEnum.NotFound, "Analytic not found.");
             }
 
-            return ServiceResponse.Success(mapper.Map<Analytic, AnalyticDto>(analytic));
+            return Result.Success(mapper.Map<Analytic, AnalyticDto>(analytic));
         }
 
-        public async Task<ServiceResponse<List<AnalyticDto>>> GetAnalyticList()
+        public async Task<Result<List<AnalyticDto>>> GetAnalyticList()
         {
             var analytics = await db.Analytics
                 .Include(x => x.AnalyticRequiredDataTypes)
@@ -51,10 +51,10 @@ namespace Operum.Service.Services.Analytics
                 .OrderBy(x => x.Name)
                 .ToListAsync();
 
-            return ServiceResponse.Success(mapper.Map<List<Analytic>, List<AnalyticDto>>(analytics));
+            return Result.Success(mapper.Map<List<Analytic>, List<AnalyticDto>>(analytics));
         }
 
-        public async Task<ServiceResponse<List<AnalyticDto>>> GetPublicAnalyticList()
+        public async Task<Result<List<AnalyticDto>>> GetPublicAnalyticList()
         {
             var analytics = await db.Analytics
                 .Include(x => x.AnalyticRequiredDataTypes)
@@ -63,7 +63,7 @@ namespace Operum.Service.Services.Analytics
                 .Where(x => x.AnalyticTypeId == (int)AnalyticTypeEnum.PublicAnalytic)
                 .ToListAsync();
 
-            return ServiceResponse.Success(mapper.Map<List<Analytic>, List<AnalyticDto>>(analytics));
+            return Result.Success(mapper.Map<List<Analytic>, List<AnalyticDto>>(analytics));
         }
     }
 }

@@ -7,11 +7,11 @@ namespace Operum.Service.Services.Fields
 {
     public interface IFieldsService
     {
-        public Task<ServiceResponse<FieldDto>> CreateField(string trackerId, CreateFieldDto field);
-        public Task<ServiceResponse<FieldDto>> GetField(string trackerId, string fieldId);
-        public Task<ServiceResponse<List<FieldDto>>> GetFieldList(string trackerId);
-        public Task<ServiceResponse<FieldDto>> UpdateField(string trackerId, string fieldId, UpdateFieldDto field);
-        public Task<ServiceResponse> ReorderFields(string trackerId, ReorderFieldsDto reorderFields);
-        public Task<ServiceResponse> DeleteField(string trackerId, string fieldId);
+        public Task<Result<FieldDto>> CreateField(string trackerId, CreateFieldDto field);
+        public Task<Result<FieldDto>> GetField(string trackerId, string fieldId);
+        public Task<Result<List<FieldDto>>> GetFieldList(string trackerId);
+        public Task<Result<FieldDto>> UpdateField(string trackerId, string fieldId, UpdateFieldDto field);
+        public Task<Result> ReorderFields(string trackerId, ReorderFieldsDto reorderFields);
+        public Task<Result> DeleteField(string trackerId, string fieldId);
     }
 }

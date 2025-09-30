@@ -16,22 +16,22 @@ namespace Operum.Service.Services.Fields
 {
     public class FieldsService(IAuthorizationService authorizationService, IMapper mapper, OperumContext db, ILogger<FieldsService> logger) : IFieldsService
     {
-        public async Task<ServiceResponse<FieldDto>> CreateField(string trackerId, CreateFieldDto field)
+        public async Task<Result<FieldDto>> CreateField(string trackerId, CreateFieldDto field)
         {
             var user = authorizationService.GetCurrentUserDto();
             var tracker = await db.Trackers.FindAsync(trackerId);
             if (tracker == null || !user.Owns(tracker))
             {
-                return ServiceResponse.Failure(StatusCodeEnum.NotFound);
+                return Result.Failure(StatusCodeEnum.NotFound);
             }
 
             var fieldCount = await db.Fields.Where(x => x.TrackerId == trackerId).CountAsync();
             if (fieldCount >= DataLimits.MaxFieldCount)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, $"Maximum number of fields {DataLimits.MaxFieldCount} reached.");
+                return Result.Failure(StatusCodeEnum.BadRequest, $"Maximum number of fields {DataLimits.MaxFieldCount} reached.");
             }
 
-            if (!DataTypes.IsValid(field.Type)) return ServiceResponse.Failure(StatusCodeEnum.BadRequest, $"Field type {field.Type} is not allowed.");
+            if (!DataTypes.IsValid(field.Type)) return Result.Failure(StatusCodeEnum.BadRequest, $"Field type {field.Type} is not allowed.");
 
             var newField = mapper.Map<CreateFieldDto, Field>(field);
 
@@ -47,10 +47,10 @@ namespace Operum.Service.Services.Fields
             await db.SaveChangesAsync();
 
             var created = await GetField(trackerId, newField.Id);
-            return ServiceResponse.Success(created.Data);
+            return Result.Success(created.Data);
         }
 
-        public async Task<ServiceResponse> DeleteField(string trackerId, string fieldId)
+        public async Task<Result> DeleteField(string trackerId, string fieldId)
         {
             var user = authorizationService.GetCurrentUserDto();
             var field = await db.Fields
@@ -59,7 +59,7 @@ namespace Operum.Service.Services.Fields
 
             if (field == null || !user.Owns(field))
             {
-                return ServiceResponse.Failure(StatusCodeEnum.NotFound);
+                return Result.Failure(StatusCodeEnum.NotFound);
             }
 
             db.Fields.Remove(field);
@@ -68,10 +68,10 @@ namespace Operum.Service.Services.Fields
             // Reorder remaining fields to fill the gap
             await ReorderFieldsAfterDeletion(trackerId, field.Order);
 
-            return ServiceResponse.Success();
+            return Result.Success();
         }
 
-        public async Task<ServiceResponse<FieldDto>> GetField(string trackerId, string fieldId)
+        public async Task<Result<FieldDto>> GetField(string trackerId, string fieldId)
         {
             var user = authorizationService.GetCurrentUserDto();
             var field = await db.Fields
@@ -83,13 +83,13 @@ namespace Operum.Service.Services.Fields
 
             if (field == null || !hasAccess)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.Forbidden);
+                return Result.Failure(StatusCodeEnum.Forbidden);
             }
 
-            return ServiceResponse.Success(mapper.Map<Field, FieldDto>(field));
+            return Result.Success(mapper.Map<Field, FieldDto>(field));
         }
 
-        public async Task<ServiceResponse<List<FieldDto>>> GetFieldList(string trackerId)
+        public async Task<Result<List<FieldDto>>> GetFieldList(string trackerId)
         {
             var user = authorizationService.GetCurrentUserDto();
             var tracker = await db.Trackers
@@ -100,7 +100,7 @@ namespace Operum.Service.Services.Fields
 
             if (tracker == null || !hasAccess)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.Forbidden);
+                return Result.Failure(StatusCodeEnum.Forbidden);
             }
 
             var fields = await db.Fields
@@ -108,17 +108,17 @@ namespace Operum.Service.Services.Fields
                 .OrderBy(x => x.Order)
                 .ToListAsync();
 
-            return ServiceResponse.Success(mapper.Map<List<Field>, List<FieldDto>>(fields));
+            return Result.Success(mapper.Map<List<Field>, List<FieldDto>>(fields));
         }
 
-        public async Task<ServiceResponse> ReorderFields(string trackerId, ReorderFieldsDto reorderFields)
+        public async Task<Result> ReorderFields(string trackerId, ReorderFieldsDto reorderFields)
         {
             var user = authorizationService.GetCurrentUserDto();
             var tracker = await db.Trackers.FindAsync(trackerId);
 
             if (tracker == null || !user.Owns(tracker))
             {
-                return ServiceResponse.Failure(StatusCodeEnum.NotFound);
+                return Result.Failure(StatusCodeEnum.NotFound);
             }
 
             // Validate that all field IDs belong to this tracker
@@ -133,7 +133,7 @@ namespace Operum.Service.Services.Fields
             // Check if all requested field IDs exist and belong to this tracker
             if (!requestedFieldIds.SetEquals(existingFieldIds))
             {
-                return ServiceResponse.Failure(StatusCodeEnum.BadRequest,
+                return Result.Failure(StatusCodeEnum.BadRequest,
                     "Invalid field IDs provided or missing fields in reorder request.");
             }
 
@@ -155,18 +155,18 @@ namespace Operum.Service.Services.Fields
                 await db.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                return ServiceResponse.Success();
+                return Result.Success();
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
                 logger.LogError(ex, "Exception occurred while reordering fields.");
-                return ServiceResponse.Failure(StatusCodeEnum.InternalServerError,
+                return Result.Failure(StatusCodeEnum.InternalServerError,
                     "Failed to reorder fields. Please try again.");
             }
         }
 
-        public async Task<ServiceResponse<FieldDto>> UpdateField(string trackerId, string fieldId, UpdateFieldDto field)
+        public async Task<Result<FieldDto>> UpdateField(string trackerId, string fieldId, UpdateFieldDto field)
         {
             var user = authorizationService.GetCurrentUserDto();
             var originalField = await db.Fields
@@ -175,17 +175,17 @@ namespace Operum.Service.Services.Fields
 
             if (originalField == null || !user.Owns(originalField))
             {
-                return ServiceResponse.Failure(StatusCodeEnum.NotFound);
+                return Result.Failure(StatusCodeEnum.NotFound);
             }
 
-            if (!DataTypes.IsValid(field.Type)) return ServiceResponse.Failure(StatusCodeEnum.BadRequest, $"Field type {field.Type} is not allowed.");
+            if (!DataTypes.IsValid(field.Type)) return Result.Failure(StatusCodeEnum.BadRequest, $"Field type {field.Type} is not allowed.");
 
             mapper.Map(field, originalField);
             db.Fields.Update(originalField);
             await db.SaveChangesAsync();
 
             var updatedField = await GetField(trackerId, fieldId);
-            return ServiceResponse.Success(updatedField.Data);
+            return Result.Success(updatedField.Data);
         }
 
         private async Task ReorderFieldsAfterDeletion(string trackerId, int deletedOrder)

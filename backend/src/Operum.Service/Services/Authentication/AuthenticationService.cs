@@ -28,7 +28,7 @@ namespace Operum.Service.Services.Authentication
         };
 
 
-        public async Task<ServiceResponse<AuthResponseDto>> Login(LoginRequestDto loginRequest)
+        public async Task<Result<AuthResponseDto>> Login(LoginRequestDto loginRequest)
         {
             var normalizedCredentials = loginRequest.Credentials.ToUpper();
             var user = await userManager.Users.FirstOrDefaultAsync(x => x.NormalizedEmail == normalizedCredentials || x.NormalizedUserName == normalizedCredentials);
@@ -36,13 +36,13 @@ namespace Operum.Service.Services.Authentication
             if (user == null)
             {
                 logger.LogWarning("Failed login attempt. Reason: User not found.");
-                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "Invalid login attempt.");
+                return Result.Failure(StatusCodeEnum.BadRequest, "Invalid login attempt.");
             }
 
             if (!user.EmailConfirmed)
             {
                 logger.LogWarning("Failed login attempt. Reason: Email not confirmed.");
-                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "Email address has not been confirmed.");
+                return Result.Failure(StatusCodeEnum.BadRequest, "Email address has not been confirmed.");
             }
 
             var signInResult = await signInManager.CheckPasswordSignInAsync(user, loginRequest.Password, true);
@@ -50,21 +50,21 @@ namespace Operum.Service.Services.Authentication
             if (signInResult.IsLockedOut)
             {
                 logger.LogWarning("Failed login attempt. Reason: User is locked out.");
-                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "You are currently locked out.");
+                return Result.Failure(StatusCodeEnum.BadRequest, "You are currently locked out.");
             }
             if (!signInResult.Succeeded)
             {
                 logger.LogWarning("Failed login attempt. Reason: Wrong password.");
-                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "Invalid login attempt.");
+                return Result.Failure(StatusCodeEnum.BadRequest, "Invalid login attempt.");
             }
 
             var userDto = await AuthenticateUser(user);
             logger.LogInformation("User {userId} logged in successfully.", userDto.Id);
 
-            return ServiceResponse.Success(userDto, "Successfully logged in!");
+            return Result.Success(userDto, "Successfully logged in!");
         }
 
-        public async Task<ServiceResponse> Logout()
+        public async Task<Result> Logout()
         {
             var token = tokenService.GetRefreshToken();
             if (token != null)
@@ -80,10 +80,10 @@ namespace Operum.Service.Services.Authentication
             }
 
             tokenService.ClearAuthCookies();
-            return ServiceResponse.Success();
+            return Result.Success();
         }
 
-        public async Task<ServiceResponse> Register(RegisterRequestDto registerRequest)
+        public async Task<Result> Register(RegisterRequestDto registerRequest)
         {
             await using var transaction = await db.Database.BeginTransactionAsync();
 
@@ -91,13 +91,13 @@ namespace Operum.Service.Services.Authentication
             if (await userManager.Users.AnyAsync(x => x.NormalizedUserName == normalizedUserNameRequest))
             {
                 await transaction.RollbackAsync();
-                return ServiceResponse.Failure(StatusCodeEnum.Conflict, $"User with username {registerRequest.UserName} already exists!");
+                return Result.Failure(StatusCodeEnum.Conflict, $"User with username {registerRequest.UserName} already exists!");
             }
             var normalizedEmailRequest = registerRequest.Email.ToUpper();
             if (await userManager.Users.AnyAsync(x => x.NormalizedEmail == normalizedEmailRequest))
             {
                 await transaction.RollbackAsync();
-                return ServiceResponse.Failure(StatusCodeEnum.Conflict, $"User with email {registerRequest.Email} already exists!");
+                return Result.Failure(StatusCodeEnum.Conflict, $"User with email {registerRequest.Email} already exists!");
             }
 
             var newUser = new ApplicationUser(registerRequest.Email, registerRequest.UserName);
@@ -106,14 +106,14 @@ namespace Operum.Service.Services.Authentication
             if (!registerResult.Succeeded)
             {
                 await transaction.RollbackAsync();
-                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, registerResult.Errors.Select(x => x.Description));
+                return Result.Failure(StatusCodeEnum.BadRequest, registerResult.Errors.Select(x => x.Description));
             }
 
             IdentityResult roleResult = await userManager.AddToRoleAsync(newUser, "User");
             if (!roleResult.Succeeded)
             {
                 await transaction.RollbackAsync();
-                return ServiceResponse.Failure(StatusCodeEnum.InternalServerError, roleResult.Errors.Select(x => x.Description));
+                return Result.Failure(StatusCodeEnum.InternalServerError, roleResult.Errors.Select(x => x.Description));
             }
 
             var token = await userManager.GenerateEmailConfirmationTokenAsync(newUser);
@@ -122,7 +122,7 @@ namespace Operum.Service.Services.Authentication
             if (baseUrl == null)
             {
                 await transaction.RollbackAsync();
-                return ServiceResponse.Failure(StatusCodeEnum.InternalServerError, "Missing configuration for mail sender.");
+                return Result.Failure(StatusCodeEnum.InternalServerError, "Missing configuration for mail sender.");
             }
             var confirmationLink = $"?userId={newUser.Id}&token={token}";
 
@@ -134,59 +134,59 @@ namespace Operum.Service.Services.Authentication
                 logger.LogError("Failed to send confirmation mail. StatusCode: {StatusCode}, Response: {ResponseContent}",
                                 mailSenderResult.StatusCode,
                                 responseContent);
-                return ServiceResponse.Failure(StatusCodeEnum.InternalServerError, "Error sending confirmation mail.");
+                return Result.Failure(StatusCodeEnum.InternalServerError, "Error sending confirmation mail.");
             }
 
             await transaction.CommitAsync();
-            return ServiceResponse.Success("A confirmation mail has been sent to your inbox!");
+            return Result.Success("A confirmation mail has been sent to your inbox!");
         }
 
-        public async Task<ServiceResponse<AuthResponseDto>> GoogleLogin(GoogleLoginRequestDto request)
+        public async Task<Result<AuthResponseDto>> GoogleLogin(GoogleLoginRequestDto request)
         {
             try
             {
                 var payload = await googleAuthService.ValidateTokenAsync(request.Credential);
                 if (!payload.IsSuccess)
                 {
-                    return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "Invalid Google token.");
+                    return Result.Failure(StatusCodeEnum.BadRequest, "Invalid Google token.");
                 }
 
                 var user = await googleAuthService.FindOrCreateUserAsync(payload.Data);
                 if (!user.IsSuccess)
                 {
-                    return ServiceResponse.Failure(StatusCodeEnum.InternalServerError, "Failed to create or find user.");
+                    return Result.Failure(StatusCodeEnum.InternalServerError, "Failed to create or find user.");
                 }
 
                 var userDto = await AuthenticateUser(user.Data);
                 logger.LogInformation("User {userId} logged in successfully via Google.", userDto.Id);
 
-                return ServiceResponse.Success(userDto, "Successfully logged in with Google!");
+                return Result.Success(userDto, "Successfully logged in with Google!");
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error during Google authentication");
-                return ServiceResponse.Failure(StatusCodeEnum.InternalServerError, "Google authentication failed.");
+                return Result.Failure(StatusCodeEnum.InternalServerError, "Google authentication failed.");
             }
         }
 
-        public async Task<ServiceResponse<ApplicationUserDto>> GetCurrentApplicationUser()
+        public async Task<Result<ApplicationUserDto>> GetCurrentApplicationUser()
         {
             var userId = authorizationService.GetCurrentUserDto().Id;
             var foundUser = await userManager.FindByIdAsync(userId);
-            if (foundUser == null) return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "User not found!");
+            if (foundUser == null) return Result.Failure(StatusCodeEnum.BadRequest, "User not found!");
             var user = mapper.Map<ApplicationUser, ApplicationUserDto>(foundUser);
             var roles = await userManager.GetRolesAsync(foundUser);
             user.Roles = [.. roles];
-            return ServiceResponse.Success(user);
+            return Result.Success(user);
         }
 
-        public async Task<ServiceResponse<AuthResponseDto>> RefreshToken()
+        public async Task<Result<AuthResponseDto>> RefreshToken()
         {
             var token = tokenService.GetRefreshToken();
 
             if (string.IsNullOrWhiteSpace(token))
             {
-                return ServiceResponse.Failure(StatusCodeEnum.Unauthorized);
+                return Result.Failure(StatusCodeEnum.Unauthorized);
             }
 
             var storedToken = await db.RefreshTokens
@@ -196,7 +196,7 @@ namespace Operum.Service.Services.Authentication
 
             if (storedToken == null || storedToken.ExpiresAt < DateTime.UtcNow)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.Unauthorized);
+                return Result.Failure(StatusCodeEnum.Unauthorized);
             }
 
             var userDto = await AuthenticateUser(storedToken.User);
@@ -204,12 +204,12 @@ namespace Operum.Service.Services.Authentication
             storedToken.IsRevoked = true;
             await db.SaveChangesAsync();
 
-            return ServiceResponse.Success(userDto);
+            return Result.Success(userDto);
         }
 
         public async Task<AuthResponseDto> AuthenticateUser(ApplicationUser user)
         {
-            ServiceResponse<DateTime> expiry = await tokenService.SetAuthTokenCookie(user);
+            Result<DateTime> expiry = await tokenService.SetAuthTokenCookie(user);
             await tokenService.SetRefreshTokenCookie(user);
 
             var roles = await userManager.GetRolesAsync(user);
@@ -224,21 +224,21 @@ namespace Operum.Service.Services.Authentication
             };
         }
 
-        public async Task<ServiceResponse> ConfirmEmail(string userId, string token)
+        public async Task<Result> ConfirmEmail(string userId, string token)
         {
             if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(token))
-                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "User ID and token are required");
+                return Result.Failure(StatusCodeEnum.BadRequest, "User ID and token are required");
 
             var user = await userManager.FindByIdAsync(userId);
             if (user == null)
-                return ServiceResponse.Failure(StatusCodeEnum.NotFound, "User not found");
-            if (user.EmailConfirmed) return ServiceResponse.Success("Email already confirmed!");
+                return Result.Failure(StatusCodeEnum.NotFound, "User not found");
+            if (user.EmailConfirmed) return Result.Success("Email already confirmed!");
 
             var result = await userManager.ConfirmEmailAsync(user, token.Replace(' ', '+'));
             if (result.Succeeded)
-                return ServiceResponse.Success("Email confirmed successfully!");
+                return Result.Success("Email confirmed successfully!");
 
-            return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "Error while confirming mail address!");
+            return Result.Failure(StatusCodeEnum.BadRequest, "Error while confirming mail address!");
         }
     }
 }

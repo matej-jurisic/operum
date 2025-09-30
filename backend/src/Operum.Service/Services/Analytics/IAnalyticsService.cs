@@ -6,10 +6,10 @@ namespace Operum.Service.Services.Analytics
 {
     public interface IAnalyticsService
     {
-        Task<ServiceResponse<AnalyticDto>> GetAnalytic(string analyticId);
-        Task<ServiceResponse<AnalyticDto>> CreateAnalytic(CreateAnalyticRequestDto createAnalytic);
-        Task<ServiceResponse> DeleteAnalytic(string analyticId);
-        Task<ServiceResponse<List<AnalyticDto>>> GetAnalyticList();
-        Task<ServiceResponse<List<AnalyticDto>>> GetPublicAnalyticList();
+        Task<Result<AnalyticDto>> GetAnalytic(string analyticId);
+        Task<Result<AnalyticDto>> CreateAnalytic(CreateAnalyticRequestDto createAnalytic);
+        Task<Result> DeleteAnalytic(string analyticId);
+        Task<Result<List<AnalyticDto>>> GetAnalyticList();
+        Task<Result<List<AnalyticDto>>> GetPublicAnalyticList();
     }
 }

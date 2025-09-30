@@ -6,7 +6,7 @@ namespace Operum.Service.Services.Authentication
 {
     public interface IGoogleAuthService
     {
-        Task<ServiceResponse<GoogleTokenPayloadDto>> ValidateTokenAsync(string idToken);
-        Task<ServiceResponse<ApplicationUser>> FindOrCreateUserAsync(GoogleTokenPayloadDto payload);
+        Task<Result<GoogleTokenPayloadDto>> ValidateTokenAsync(string idToken);
+        Task<Result<ApplicationUser>> FindOrCreateUserAsync(GoogleTokenPayloadDto payload);
     }
 }

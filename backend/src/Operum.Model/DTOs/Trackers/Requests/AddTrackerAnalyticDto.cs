@@ -9,6 +9,6 @@
     public class AddTrackerAnalyticDto
     {
         public string AnalyticId { get; set; } = string.Empty;
-        public List<AddTrackerAnalyticFieldDto> TrackerAnalyticFieldList { get; set; } = [];
+        public List<AddTrackerAnalyticFieldDto> TrackerAnalyticFields { get; set; } = [];
     }
 }

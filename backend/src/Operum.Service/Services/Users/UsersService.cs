@@ -12,24 +12,24 @@ namespace Operum.Service.Services.Users
 {
     public class UsersService(UserManager<ApplicationUser> userManager, IMapper mapper, IAuthorizationService authorizationService) : IUsersService
     {
-        public async Task<ServiceResponse> ConfirmUserEmail(string userId)
+        public async Task<Result> ConfirmUserEmail(string userId)
         {
             var user = authorizationService.GetCurrentUserDto();
             if (user.Id == userId)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "Can't confirm your own email.");
+                return Result.Failure(StatusCodeEnum.BadRequest, "Can't confirm your own email.");
             }
 
             var appUser = await userManager.FindByIdAsync(userId);
 
             if (appUser == null)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.NotFound, "User not found.");
+                return Result.Failure(StatusCodeEnum.NotFound, "User not found.");
             }
 
             if (appUser.EmailConfirmed)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, "Email already confirmed.");
+                return Result.Failure(StatusCodeEnum.BadRequest, "Email already confirmed.");
             }
 
             appUser.EmailConfirmed = true;
@@ -37,13 +37,13 @@ namespace Operum.Service.Services.Users
 
             if (!result.Succeeded)
             {
-                return ServiceResponse.Failure(StatusCodeEnum.InternalServerError, "Failed to confirm email.");
+                return Result.Failure(StatusCodeEnum.InternalServerError, "Failed to confirm email.");
             }
 
-            return ServiceResponse.Success("Email confirmed successfully.");
+            return Result.Success("Email confirmed successfully.");
         }
 
-        public async Task<ServiceResponse<List<ApplicationUserDto>>> GetAllUsers()
+        public async Task<Result<List<ApplicationUserDto>>> GetAllUsers()
         {
             var users = await userManager.Users.ToListAsync();
             var userDtos = new List<ApplicationUserDto>();
@@ -59,18 +59,18 @@ namespace Operum.Service.Services.Users
                 userDtos.Add(userDto);
             }
 
-            return ServiceResponse.Success(userDtos.OrderBy(x => x.UserName).ToList());
+            return Result.Success(userDtos.OrderBy(x => x.UserName).ToList());
         }
 
-        public async Task<ServiceResponse<List<PublicApplicationUserDto>>> SearchUsers(string search)
+        public async Task<Result<List<PublicApplicationUserDto>>> SearchUsers(string search)
         {
             var lowerSearch = search.ToLower();
             var users = await userManager.Users.Where(x => x.UserName != null && x.UserName.ToLower().Contains(lowerSearch)).ToListAsync();
 
-            return ServiceResponse.Success(mapper.Map<List<ApplicationUser>, List<PublicApplicationUserDto>>(users));
+            return Result.Success(mapper.Map<List<ApplicationUser>, List<PublicApplicationUserDto>>(users));
         }
 
-        public async Task<ServiceResponse> UpdateApplicationUser(UpdateApplicationUserRequestDto request)
+        public async Task<Result> UpdateApplicationUser(UpdateApplicationUserRequestDto request)
         {
             var currentApplicationUser = authorizationService.GetCurrentUser();
             var applicationUser = await userManager.FindByIdAsync(currentApplicationUser.Id) ?? throw new UnauthorizedAccessException();
@@ -79,12 +79,12 @@ namespace Operum.Service.Services.Users
             var updateResult = await userManager.UpdateAsync(applicationUser);
             if (updateResult.Errors.Any())
             {
-                return ServiceResponse.Failure(StatusCodeEnum.BadRequest, updateResult.Errors.Select(x => x.Description));
+                return Result.Failure(StatusCodeEnum.BadRequest, updateResult.Errors.Select(x => x.Description));
             }
 
             await userManager.UpdateSecurityStampAsync(applicationUser);
 
-            return ServiceResponse.Success();
+            return Result.Success();
         }
     }
 }

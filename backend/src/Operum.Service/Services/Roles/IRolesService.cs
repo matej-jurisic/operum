@@ -5,8 +5,8 @@ namespace Operum.Service.Services.Roles
 {
     public interface IRolesService
     {
-        Task<ServiceResponse> ChangeUserRole(string userId, ModifyUserRoleRequestDto request);
-        ServiceResponse<List<string>> GetCurrentUserRoles();
-        Task<ServiceResponse<List<string>>> GetAllRoles();
+        Task<Result> ChangeUserRole(string userId, ModifyUserRoleRequestDto request);
+        Result<List<string>> GetCurrentUserRoles();
+        Task<Result<List<string>>> GetAllRoles();
     }
 }

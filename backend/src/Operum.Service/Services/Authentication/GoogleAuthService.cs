@@ -22,7 +22,7 @@ namespace Operum.Service.Services.Authentication
             PropertyNameCaseInsensitive = true
         };
 
-        public async Task<ServiceResponse<GoogleTokenPayloadDto>> ValidateTokenAsync(string idToken)
+        public async Task<Result<GoogleTokenPayloadDto>> ValidateTokenAsync(string idToken)
         {
             try
             {
@@ -34,39 +34,39 @@ namespace Operum.Service.Services.Authentication
                 {
                     logger.LogError("Failed to validate Google token. Status: {StatusCode}, Content: {Content}",
                                      response.StatusCode, response.Content);
-                    return ServiceResponse.Failure(StatusCodeEnum.BadRequest);
+                    return Result.Failure(StatusCodeEnum.BadRequest);
                 }
 
                 var payload = JsonSerializer.Deserialize<GoogleTokenPayloadDto>(response.Content, jsonOptions);
                 if (payload == null)
                 {
                     logger.LogError("Failed to deserialize Google token payload");
-                    return ServiceResponse.Failure(StatusCodeEnum.BadRequest);
+                    return Result.Failure(StatusCodeEnum.BadRequest);
                 }
 
                 if (payload.Audience != googleClientId)
                 {
                     logger.LogError("Google token audience mismatch. Expected: {Expected}, Actual: {Actual}", googleClientId, payload.Audience);
-                    return ServiceResponse.Failure(StatusCodeEnum.BadRequest);
+                    return Result.Failure(StatusCodeEnum.BadRequest);
                 }
 
                 var currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                 if (payload.ExpirationTime < currentTime)
                 {
                     logger.LogError("Google token has expired");
-                    return ServiceResponse.Failure(StatusCodeEnum.BadRequest);
+                    return Result.Failure(StatusCodeEnum.BadRequest);
                 }
 
-                return ServiceResponse.Success(payload);
+                return Result.Success(payload);
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error validating Google token");
-                return ServiceResponse.Failure(StatusCodeEnum.BadRequest);
+                return Result.Failure(StatusCodeEnum.BadRequest);
             }
         }
 
-        public async Task<ServiceResponse<ApplicationUser>> FindOrCreateUserAsync(GoogleTokenPayloadDto payload)
+        public async Task<Result<ApplicationUser>> FindOrCreateUserAsync(GoogleTokenPayloadDto payload)
         {
             await using var transaction = await db.Database.BeginTransactionAsync();
             try
@@ -81,7 +81,7 @@ namespace Operum.Service.Services.Authentication
                     }
 
                     await transaction.CommitAsync();
-                    return ServiceResponse.Success(existingUser);
+                    return Result.Success(existingUser);
                 }
 
                 var userName = await GenerateUniqueUsername(payload.GivenName ?? payload.Email.Split('@')[0]);
@@ -95,7 +95,7 @@ namespace Operum.Service.Services.Authentication
                 {
                     logger.LogError("Failed to create Google user: {Errors}", string.Join(", ", result.Errors.Select(e => e.Description)));
                     await transaction.RollbackAsync();
-                    return ServiceResponse.Failure(StatusCodeEnum.BadRequest);
+                    return Result.Failure(StatusCodeEnum.BadRequest);
                 }
 
                 var roleResult = await userManager.AddToRoleAsync(newUser, "User");
@@ -103,17 +103,17 @@ namespace Operum.Service.Services.Authentication
                 {
                     logger.LogError("Failed to assign role to Google user: {Errors}", string.Join(", ", roleResult.Errors.Select(e => e.Description)));
                     await transaction.RollbackAsync();
-                    return ServiceResponse.Failure(StatusCodeEnum.BadRequest);
+                    return Result.Failure(StatusCodeEnum.BadRequest);
                 }
 
                 await transaction.CommitAsync();
-                return ServiceResponse.Success(newUser);
+                return Result.Success(newUser);
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error creating Google user");
                 await transaction.RollbackAsync();
-                return ServiceResponse.Failure(StatusCodeEnum.BadRequest);
+                return Result.Failure(StatusCodeEnum.BadRequest);
             }
         }
 

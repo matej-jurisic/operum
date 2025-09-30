@@ -6,9 +6,9 @@ namespace Operum.Service.Services.Views
 {
     public interface IViewsService
     {
-        public Task<ServiceResponse<ViewDto>> CreateView(string trackerId, CreateViewDto view);
-        public Task<ServiceResponse<ViewDto>> GetView(string trackerId, string viewId);
-        public Task<ServiceResponse<List<ViewDto>>> GetViewList(string trackerId);
-        public Task<ServiceResponse> DeleteView(string trackerId, string viewId);
+        public Task<Result<ViewDto>> CreateView(string trackerId, CreateViewDto view);
+        public Task<Result<ViewDto>> GetView(string trackerId, string viewId);
+        public Task<Result<List<ViewDto>>> GetViewList(string trackerId);
+        public Task<Result> DeleteView(string trackerId, string viewId);
     }
 }

@@ -25,7 +25,7 @@ import {
     formatTimeSpan,
 } from "../util/TypeFormatter";
 import EntryDetailsDialog from "./EntryDetailsDialog";
-import TrackerAnalyticFormDialog from "./TrackerAnalyticFormDialog";
+import TrackerAnalyticsDialog from "./TrackerAnalyticsDialog";
 
 const StatCard = ({
     label,
@@ -373,7 +373,7 @@ export default function AnalyticsList() {
                 </Stack>
             </Skeleton>
             {openDialogType === OpenDialogType.ConfigureAnalytics && (
-                <TrackerAnalyticFormDialog
+                <TrackerAnalyticsDialog
                     onClose={() => setOpenDialogType(undefined)}
                 />
             )}

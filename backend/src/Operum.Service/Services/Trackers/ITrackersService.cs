@@ -8,18 +8,20 @@ namespace Operum.Service.Services.Trackers
 {
     public interface ITrackersService
     {
-        public Task<ServiceResponse<TrackerDto>> CreateTracker(CreateTrackerDto tracker);
-        public Task<ServiceResponse<TrackerDto>> GetTracker(string id);
-        public Task<ServiceResponse<List<TrackerDto>>> GetTrackerList(string filter);
-        public Task<ServiceResponse<List<TrackerDto>>> GetAllTemplateTrackerList();
-        public Task<ServiceResponse<List<TrackerDto>>> GetPublicTemplateTrackerList();
-        public Task<ServiceResponse<TrackerDto>> UpdateTracker(string id, UpdateTrackerDto tracker);
-        public Task<ServiceResponse> UpdateDefaultView(string id, string? defaultViewId);
-        public Task<ServiceResponse> DeleteTracker(string id);
-        public Task<ServiceResponse<List<FieldAnalyticsDto>>> GetTrackerAnalytics(string trackerId, string? viewId);
-        public Task<ServiceResponse<List<PublicApplicationUserDto>>> GetApplicationUserTrackerList(string trackerId);
-        public Task<ServiceResponse> AddUserToTracker(string trackerId, ModifyUserTrackerDto addUserToTracker);
-        public Task<ServiceResponse> RemoveUserFromTracker(string trackerId, ModifyUserTrackerDto addUserToTracker);
-        public Task<ServiceResponse> AddAnalytic(string trackerId, AddTrackerAnalyticDto addTrackerAnalytic);
+        public Task<Result<TrackerDto>> CreateTracker(CreateTrackerDto tracker);
+        public Task<Result<TrackerDto>> GetTracker(string id);
+        public Task<Result<List<TrackerDto>>> GetTrackerList(string filter);
+        public Task<Result<List<TrackerDto>>> GetAllTemplateTrackerList();
+        public Task<Result<List<TrackerDto>>> GetPublicTemplateTrackerList();
+        public Task<Result<TrackerDto>> UpdateTracker(string id, UpdateTrackerDto tracker);
+        public Task<Result> UpdateDefaultView(string id, string? defaultViewId);
+        public Task<Result> DeleteTracker(string id);
+        public Task<Result<List<FieldAnalyticsDto>>> GetTrackerAnalytics(string trackerId, string? viewId);
+        public Task<Result<List<PublicApplicationUserDto>>> GetApplicationUserTrackerList(string trackerId);
+        public Task<Result> AddUserToTracker(string trackerId, ModifyUserTrackerDto addUserToTracker);
+        public Task<Result> RemoveUserFromTracker(string trackerId, ModifyUserTrackerDto addUserToTracker);
+        public Task<Result> AddAnalytic(string trackerId, AddTrackerAnalyticDto addTrackerAnalytic);
+        public Task<Result> RemoveAnalytic(string trackerId, string trackerAnalyticId);
+        public Task<Result<List<TrackerAnalyticDto>>> GetTrackerAnalyticConfigurations(string trackerId);
     }
 }

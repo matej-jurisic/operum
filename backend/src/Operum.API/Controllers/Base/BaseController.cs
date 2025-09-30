@@ -7,7 +7,7 @@ namespace Operum.API.Controllers.Base
     public class BaseController : ControllerBase
     {
         [NonAction]
-        protected IActionResult GetApiResponse<T>(ServiceResponse<T> serviceResponse)
+        protected IActionResult GetApiResponse<T>(Result<T> serviceResponse)
         {
             var apiResponse = new ApiResponse
             {
@@ -19,7 +19,7 @@ namespace Operum.API.Controllers.Base
         }
 
         [NonAction]
-        protected IActionResult GetApiResponse(ServiceResponse serviceResponse)
+        protected IActionResult GetApiResponse(Result serviceResponse)
         {
             var apiResponse = new ApiResponse
             {

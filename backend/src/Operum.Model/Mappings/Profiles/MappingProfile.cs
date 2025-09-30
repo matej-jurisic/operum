@@ -61,7 +61,7 @@ namespace Operum.Service.Mappings.Profiles
             });
             mapper.Register<Analytic, AnalyticDto>((s, d) =>
             {
-                d.AnalyticRequiredDataTypes = mapper.Map<List<AnalyticRequiredDataType>, List<AnalyticRequiredDataTypeDto>>(s.AnalyticRequiredDataTypes);
+                d.AnalyticRequiredDataTypes = mapper.Map<List<AnalyticRequiredDataType>, List<AnalyticRequiredDataTypeDto>>(s.AnalyticRequiredDataTypes).OrderBy(x => x.Purpose).ToList();
                 d.AnalyticTypeName = s.AnalyticType.Name;
             });
             mapper.Register<View, ViewDto>((s, d) =>
@@ -91,6 +91,21 @@ namespace Operum.Service.Mappings.Profiles
                         return sort;
                     })];
                 d.Filters = mapper.Map<List<CreateViewFilterDto>, List<ViewFilter>>(s.Filters);
+            });
+
+            mapper.Register<TrackerAnalyticField, TrackerAnalyticFieldDto>((s, d) =>
+            {
+                d.Purpose = s.AnalyticRequiredDataType.Purpose;
+                d.FieldName = s.Field.Name;
+                d.Type = s.AnalyticRequiredDataType.Type;
+            });
+
+            mapper.Register<TrackerAnalytic, TrackerAnalyticDto>((s, d) =>
+            {
+                d.Code = s.Analytic.Code;
+                d.TrackerAnalyticFields = mapper.Map<List<TrackerAnalyticField>, List<TrackerAnalyticFieldDto>>(s.TrackerAnalyticFields);
+                d.Description = s.Analytic.Description;
+                d.Name = s.Analytic.Name;
             });
         }
     }

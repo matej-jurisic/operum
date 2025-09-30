@@ -5,8 +5,8 @@ namespace Operum.Service.Services.Token
 {
     public interface ITokenService
     {
-        Task<ServiceResponse<DateTime>> SetAuthTokenCookie(ApplicationUser user);
-        Task<ServiceResponse> SetRefreshTokenCookie(ApplicationUser user);
+        Task<Result<DateTime>> SetAuthTokenCookie(ApplicationUser user);
+        Task<Result> SetRefreshTokenCookie(ApplicationUser user);
         string? GetRefreshToken();
         void ClearAuthCookies();
     }

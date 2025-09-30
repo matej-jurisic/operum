@@ -6,9 +6,9 @@ namespace Operum.Service.Services.Users
 {
     public interface IUsersService
     {
-        Task<ServiceResponse<List<ApplicationUserDto>>> GetAllUsers();
-        Task<ServiceResponse<List<PublicApplicationUserDto>>> SearchUsers(string search);
-        Task<ServiceResponse> UpdateApplicationUser(UpdateApplicationUserRequestDto request);
-        Task<ServiceResponse> ConfirmUserEmail(string userId);
+        Task<Result<List<ApplicationUserDto>>> GetAllUsers();
+        Task<Result<List<PublicApplicationUserDto>>> SearchUsers(string search);
+        Task<Result> UpdateApplicationUser(UpdateApplicationUserRequestDto request);
+        Task<Result> ConfirmUserEmail(string userId);
     }
 }

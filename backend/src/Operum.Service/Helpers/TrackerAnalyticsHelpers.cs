@@ -1,10 +1,38 @@
-﻿using Operum.Model.DTOs.Analytics;
+﻿using Operum.Model.Common;
+using Operum.Model.Constants;
+using Operum.Model.DTOs.Analytics;
+using Operum.Model.Enums;
 using Operum.Model.Models;
 
 namespace Operum.Service.Helpers
 {
     public static class TrackerAnalyticsHelpers
     {
+        public static Result<SingleValueAnalyticResult> GetSingleValueAnalyticResult(string code, IEnumerable<FieldValue> values)
+        {
+            switch (code)
+            {
+                case AnalyticCodes.BoolCount:
+                    var boolValues = values.Where(v => v.BooleanValue.HasValue).ToList();
+                    return Result.Success(new(boolValues.Count.ToString()));
+                case AnalyticCodes.StringCount:
+                    var stringValues = values.Where(v => v.StringValue != null).ToList();
+                    return Result.Success(new(stringValues.Count.ToString()));
+                case AnalyticCodes.NumberCount:
+                    var numberValues = values.Where(v => v.NumberValue.HasValue).ToList();
+                    return Result.Success(new(numberValues.Count.ToString()));
+                case AnalyticCodes.TimespanCount:
+                    var timespanValues = values.Where(v => v.TimeSpanValue.HasValue).ToList();
+                    return Result.Success(new(timespanValues.Count.ToString()));
+                case AnalyticCodes.DatetimeCount:
+                case AnalyticCodes.DateCount:
+                    var datetimeValues = values.Where(v => v.DateTimeValue.HasValue).ToList();
+                    return Result.Success(new(datetimeValues.Count.ToString()));
+                default:
+                    return Result.Failure(StatusCodeEnum.BadRequest);
+            }
+        }
+
         public static FieldAnalyticsDto GetNumericAnalytics(IEnumerable<FieldValue> values)
         {
             var numericValues = values

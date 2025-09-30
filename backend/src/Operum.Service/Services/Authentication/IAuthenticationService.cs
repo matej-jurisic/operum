@@ -7,13 +7,13 @@ namespace Operum.Service.Services.Authentication
 {
     public interface IAuthenticationService
     {
-        Task<ServiceResponse<AuthResponseDto>> Login(LoginRequestDto loginRequest);
-        Task<ServiceResponse> Logout();
-        Task<ServiceResponse> Register(RegisterRequestDto registerRequest);
-        Task<ServiceResponse<ApplicationUserDto>> GetCurrentApplicationUser();
-        Task<ServiceResponse<AuthResponseDto>> RefreshToken();
-        Task<ServiceResponse> ConfirmEmail(string userId, string token);
+        Task<Result<AuthResponseDto>> Login(LoginRequestDto loginRequest);
+        Task<Result> Logout();
+        Task<Result> Register(RegisterRequestDto registerRequest);
+        Task<Result<ApplicationUserDto>> GetCurrentApplicationUser();
+        Task<Result<AuthResponseDto>> RefreshToken();
+        Task<Result> ConfirmEmail(string userId, string token);
 
-        Task<ServiceResponse<AuthResponseDto>> GoogleLogin(GoogleLoginRequestDto request);
+        Task<Result<AuthResponseDto>> GoogleLogin(GoogleLoginRequestDto request);
     }
 }
