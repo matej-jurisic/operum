@@ -116,7 +116,7 @@ const createTooltipContent = (
                 <Text size="sm" c="dimmed" mb="xs">
                     {label}
                 </Text>
-                <Group gap="xs">
+                <Group gap="xs" wrap="nowrap" maw={300}>
                     <Box
                         w={10}
                         h={10}

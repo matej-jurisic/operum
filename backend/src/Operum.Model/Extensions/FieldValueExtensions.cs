@@ -87,8 +87,8 @@ namespace Operum.Model.Extensions
             {
                 DataTypes.String => fieldValue.StringValue,
                 DataTypes.Number => fieldValue.NumberValue?.ToString(CultureInfo.InvariantCulture),
-                DataTypes.Date => fieldValue.DateTimeValue?.ToString("yyyy-MM-dd"),
-                DataTypes.DateTime => fieldValue.DateTimeValue?.ToString("yyyy-MM-dd HH:mm:ss"),
+                DataTypes.Date => fieldValue.DateTimeValue?.ToString("dd/MM/yyyy"),
+                DataTypes.DateTime => fieldValue.DateTimeValue?.ToString("dd/MM/yyyy HH:mm:ss"),
                 DataTypes.TimeSpan => fieldValue.TimeSpanValue?.ToString(),
                 DataTypes.Bool => fieldValue.BooleanValue?.ToString(),
                 _ => null

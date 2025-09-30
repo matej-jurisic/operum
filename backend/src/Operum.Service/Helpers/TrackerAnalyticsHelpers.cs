@@ -197,7 +197,9 @@ namespace Operum.Service.Helpers
             };
 
             if (!AnalyticCodes.IsValid(analytic.Code))
-                return Result.Failure(StatusCodeEnum.BadRequest, $"Unsupported analytic code: {analytic.Code}");
+            {
+                return Result.Success(result);
+            }
 
             var dataPoints = entries
                 .Select(x => new ChartPointDto
