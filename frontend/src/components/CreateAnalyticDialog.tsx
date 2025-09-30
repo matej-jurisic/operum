@@ -27,6 +27,47 @@ const analyticResultTypeOptions = [
     { value: "NumericChart", label: "Numeric Chart" },
 ];
 
+// Analytic code options from C# AnalyticCodes
+const analyticCodeOptions = [
+    { value: "NumberCount", label: "NumberCount" },
+    { value: "NumberMin", label: "NumberMin" },
+    { value: "NumberMax", label: "NumberMax" },
+    { value: "NumberAverage", label: "NumberAverage" },
+    { value: "NumberSum", label: "NumberSum" },
+    { value: "NumberStdDev", label: "NumberStdDev" },
+    { value: "TimespanCount", label: "TimespanCount" },
+    { value: "TimespanMin", label: "TimespanMin" },
+    { value: "TimespanMax", label: "TimespanMax" },
+    { value: "TimespanAverage", label: "TimespanAverage" },
+    { value: "TimespanSum", label: "TimespanSum" },
+    { value: "DateCount", label: "DateCount" },
+    { value: "DateMin", label: "DateMin" },
+    { value: "DateMax", label: "DateMax" },
+    { value: "DatetimeCount", label: "DatetimeCount" },
+    { value: "DatetimeMin", label: "DatetimeMin" },
+    { value: "DatetimeMax", label: "DatetimeMax" },
+    { value: "StringCount", label: "StringCount" },
+    { value: "BoolCount", label: "BoolCount" },
+    { value: "BoolTrueCount", label: "BoolTrueCount" },
+    { value: "BoolFalseCount", label: "BoolFalseCount" },
+    { value: "BoolTruePercentage", label: "BoolTruePercentage" },
+    { value: "DateNumberLineChart", label: "DateNumberLineChart" },
+    { value: "DatetimeNumberLineChart", label: "DatetimeNumberLineChart" },
+    { value: "DateTimespanLineChart", label: "DateTimespanLineChart" },
+    { value: "DatetimeTimespanLineChart", label: "DatetimeTimespanLineChart" },
+    { value: "DateBoolTimeChart", label: "DateBoolTimeChart" },
+    { value: "DatetimeBoolLineChart", label: "DatetimeBoolLineChart" },
+    { value: "StringNumberLineChart", label: "StringNumberLineChart" },
+    { value: "StringBoolLineChart", label: "StringBoolLineChart" },
+];
+
+// Analytic purpose options from C# AnalyticDataTypePurposes
+const analyticPurposeOptions = [
+    { value: "X-axis", label: "X-axis" },
+    { value: "Y-axis", label: "Y-axis" },
+    { value: "Value", label: "Value" },
+];
+
 interface CreateAnalyticDialogProps {
     onClose: () => void;
     onFieldAdded?: () => void;
@@ -122,11 +163,13 @@ export function CreateAnalyticDialog(props: CreateAnalyticDialogProps) {
                             maxLength={500}
                             {...form.getInputProps("description")}
                         />
-                        <TextInput
+                        <Select
+                            allowDeselect={false}
                             label="Code"
-                            placeholder="Enter analytic code"
+                            placeholder="Select code"
+                            data={analyticCodeOptions}
+                            flex={1}
                             required
-                            maxLength={100}
                             {...form.getInputProps("code")}
                         />
                         <Select
@@ -200,16 +243,19 @@ export function CreateAnalyticDialog(props: CreateAnalyticDialogProps) {
                                                         `analyticRequiredDataTypes.${index}.type`
                                                     )}
                                                 />
-                                                <TextInput
+                                                <Select
+                                                    allowDeselect={false}
                                                     label="Purpose"
-                                                    placeholder="Enter purpose"
+                                                    placeholder="Select purpose"
+                                                    data={
+                                                        analyticPurposeOptions
+                                                    }
                                                     flex={1}
                                                     required
                                                     {...form.getInputProps(
                                                         `analyticRequiredDataTypes.${index}.purpose`
                                                     )}
                                                 />
-
                                                 <ActionIcon
                                                     color="red"
                                                     variant="outline"
