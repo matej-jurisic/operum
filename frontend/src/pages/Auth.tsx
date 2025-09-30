@@ -5,7 +5,6 @@ import {
     PasswordInput,
     Stack,
     TextInput,
-    useMantineTheme,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
@@ -18,7 +17,6 @@ import { RegisterRequestDto } from "../model/requests/RegisterRequestDto";
 
 export default function Auth() {
     const auth = useAuth();
-    const theme = useMantineTheme();
 
     const loginForm = useForm<LoginRequestDto>({
         initialValues: {
