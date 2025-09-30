@@ -7,7 +7,7 @@ namespace Operum.Service.Services.Analytics
     public interface IAnalyticsService
     {
         Task<Result<AnalyticDto>> GetAnalytic(string analyticId);
-        Task<Result<AnalyticDto>> CreateAnalytic(CreateAnalyticRequestDto createAnalytic);
+        Task<Result> CreateAnalytic(CreateAnalyticRequestDto createAnalytic);
         Task<Result> DeleteAnalytic(string analyticId);
         Task<Result<List<AnalyticDto>>> GetAnalyticList();
         Task<Result<List<AnalyticDto>>> GetPublicAnalyticList();

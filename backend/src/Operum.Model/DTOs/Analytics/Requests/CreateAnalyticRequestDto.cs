@@ -11,7 +11,7 @@ namespace Operum.Model.DTOs.Analytics.Requests
         public string ResultType { get; set; } = string.Empty;
         public string Code { get; set; } = string.Empty;
         public int AnalyticTypeId { get; set; }
-        public List<CreateAnalyticRequiredDataTypeDto> AnalyticRequiredDataTypes { get; set; } = [];
+        public List<List<CreateAnalyticRequiredDataTypeDto>> AnalyticRequiredDataTypesList { get; set; } = [];
     }
 
     public class CreateAnalyticRequestDtoValidator : AbstractValidator<CreateAnalyticRequestDto>
@@ -40,8 +40,12 @@ namespace Operum.Model.DTOs.Analytics.Requests
                 .MaximumLength(500).WithMessage("Description cannot exceed 500 characters.")
                 .When(x => !string.IsNullOrEmpty(x.Description));
 
-            RuleForEach(x => x.AnalyticRequiredDataTypes)
-                .SetValidator(new CreateAnalyticRequiredDataTypeDtoValidator());
+            RuleForEach(x => x.AnalyticRequiredDataTypesList)
+                .ChildRules(inner =>
+                {
+                    inner.RuleForEach(y => y)
+                        .SetValidator(new CreateAnalyticRequiredDataTypeDtoValidator());
+                });
         }
     }
 }

@@ -4,7 +4,7 @@ export interface CreateAnalyticDto {
     code: string;
     resultType: string;
     analyticTypeId: string;
-    analyticRequiredDataTypes: CreateAnalyticRequiredDataTypeDto[];
+    analyticRequiredDataTypesList: CreateAnalyticRequiredDataTypeDto[][];
 }
 
 export interface CreateAnalyticRequiredDataTypeDto {

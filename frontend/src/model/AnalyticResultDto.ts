@@ -1,5 +1,6 @@
 export interface AnalyticResultDto {
     analyticId: string;
+    trackerAnalyticId: string;
     name: string;
     description?: string;
     code: string;

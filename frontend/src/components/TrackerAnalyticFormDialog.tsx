@@ -68,12 +68,19 @@ export default function TrackerAnalyticFormDialog({
     };
 
     return (
-        <Modal opened onClose={onClose} title="Map Analytic Fields" centered>
+        <Modal
+            opened
+            onClose={onClose}
+            title="Map Analytic Fields"
+            centered
+            size={"lg"}
+        >
             <form onSubmit={form.onSubmit(handleSubmit)}>
                 <Stack justify="stretch">
-                    <Group justify="space-between" align="center">
-                        <Text size="sm" c="dimmed">
-                            Selected: <strong>{selectedAnalytic.name}</strong>
+                    <Group justify="flex-start" align="center">
+                        <Text c="dimmed">Selected:</Text>
+                        <Text>
+                            <strong>{selectedAnalytic.name}</strong>
                         </Text>
                     </Group>
 

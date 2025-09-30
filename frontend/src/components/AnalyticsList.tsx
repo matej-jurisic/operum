@@ -2,7 +2,7 @@ import { LineChart } from "@mantine/charts";
 import {
     ActionIcon,
     Box,
-    Button,
+    em,
     Group,
     Paper,
     ScrollArea,
@@ -11,45 +11,68 @@ import {
     Stack,
     Text,
 } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { useEffect, useState } from "react";
 import { FiSettings } from "react-icons/fi";
-import { MdLink } from "react-icons/md";
+import { MdAdd, MdDelete, MdLink } from "react-icons/md";
 import { useTracker } from "../context/TrackerContext";
 import {
     NumericChartAnalyticResultDto,
     SingleValueAnalyticResultDto,
 } from "../model/AnalyticResultDto";
 import { FieldTypes } from "../model/constants/DataTypes";
-import { TrackerDto } from "../model/TrackerDto";
 import globalStore from "../stores/GlobalStore";
 import { formatBoolean, formatMinutesToTime } from "../util/TypeFormatter";
+import AnalyticSelectionDialog from "./AnalyticSelectionDialog";
 import EntryDetailsDialog from "./EntryDetailsDialog";
-import TrackerAnalyticsDialog from "./TrackerAnalyticsDialog";
 
 const StatCard = ({
     analytic,
-    tracker,
     onEntryClick,
+    isConfiguring,
 }: {
     analytic: SingleValueAnalyticResultDto;
-    tracker: TrackerDto;
     onEntryClick: (entryId: string) => void;
+    isConfiguring: boolean;
 }) => {
+    const { tracker, RemoveAnalyticFromTracker } = useTracker();
+
     return (
         <Paper withBorder p="md" radius="md">
             <Stack gap="xs">
-                <Group justify="space-between" align="center">
+                <Group
+                    justify="space-between"
+                    align="center"
+                    mih={28}
+                    wrap="nowrap"
+                >
                     <Text size="sm" c="dimmed" fw={500}>
                         {`${analytic.name}: ${analytic.fieldName}`}
                     </Text>
-                    {analytic.entryId && (
-                        <ActionIcon
-                            color={tracker.color}
-                            onClick={() => onEntryClick(analytic.entryId!)}
-                        >
-                            <MdLink size={18} />
-                        </ActionIcon>
-                    )}
+                    <Group>
+                        {analytic.entryId && (
+                            <ActionIcon
+                                color={tracker.color}
+                                onClick={() => onEntryClick(analytic.entryId!)}
+                            >
+                                <MdLink size={18} />
+                            </ActionIcon>
+                        )}
+                        {isConfiguring && (
+                            <ActionIcon
+                                size={"md"}
+                                color={tracker.color}
+                                variant="outline"
+                                onClick={() =>
+                                    RemoveAnalyticFromTracker(
+                                        analytic.trackerAnalyticId
+                                    )
+                                }
+                            >
+                                <MdDelete size={18} />
+                            </ActionIcon>
+                        )}
+                    </Group>
                 </Group>
                 <Text
                     size="xl"
@@ -78,17 +101,15 @@ const createTooltipContent = (
     fieldName: string,
     color: string
 ) => {
-    if (fieldType !== FieldTypes.TimeSpan && fieldType !== FieldTypes.Bool) {
-        return undefined;
-    }
-
     return ({ payload, label }: any) => {
         if (!payload?.[0]) return null;
         const value = payload[0].value as number;
-        const formatted =
-            fieldType === FieldTypes.TimeSpan
-                ? formatMinutesToTime(value)
-                : formatBoolean(value);
+        let formatted;
+        if (fieldType === FieldTypes.TimeSpan)
+            formatted = formatMinutesToTime(value);
+        else if (fieldType === FieldTypes.Bool)
+            formatted = formatBoolean(value);
+        else formatted = value;
 
         return (
             <Paper p="sm" shadow="sm" withBorder>
@@ -116,24 +137,43 @@ const createTooltipContent = (
 
 const ChartCard = ({
     analytic,
+    isConfiguring,
 }: {
     analytic: NumericChartAnalyticResultDto;
+    isConfiguring: boolean;
 }) => {
-    const { tracker } = useTracker();
+    const { tracker, RemoveAnalyticFromTracker } = useTracker();
+    const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
 
     return (
         <Paper withBorder p="md" radius="md">
             <Stack gap="xs">
-                <Text size="sm" c="dimmed" mb="sm">
-                    {`${analytic.name}: ${analytic.xFieldName} - ${analytic.yFieldName}`}
-                </Text>
+                <Group justify="space-between" wrap="nowrap" align="flex-start">
+                    <Text size="sm" c="dimmed" mb="sm">
+                        {`${analytic.name}: ${analytic.xFieldName} - ${analytic.yFieldName}`}
+                    </Text>
+                    {isConfiguring && (
+                        <ActionIcon
+                            size={"md"}
+                            color={tracker.color}
+                            variant="outline"
+                            onClick={() =>
+                                RemoveAnalyticFromTracker(
+                                    analytic.trackerAnalyticId
+                                )
+                            }
+                        >
+                            <MdDelete size={18} />
+                        </ActionIcon>
+                    )}
+                </Group>
                 <LineChart
                     tooltipAnimationDuration={200}
                     gridAxis="x"
                     gridProps={{ xAxisId: "bottom", yAxisId: "left" }}
                     data={analytic.points}
                     dataKey="x"
-                    h={"300"}
+                    h={isMobile ? "210" : "260"}
                     series={[
                         {
                             name: "y",
@@ -161,9 +201,11 @@ export default function AnalyticsList() {
     const { analytics, refreshAnalyticsIfDirty, selectedViewId, tracker } =
         useTracker();
     const [isLoadingData, setIsLoadingData] = useState(false);
+
     const [openDialogType, setOpenDialogType] = useState<
         "configureAnalytics" | undefined
     >(undefined);
+    const [isConfiguring, setIsConfiguring] = useState(false);
     const [selectedEntryId, setSelectedEntryId] = useState<string>();
 
     useEffect(() => {
@@ -179,8 +221,8 @@ export default function AnalyticsList() {
         <>
             <Stack gap="md" h="100%">
                 {globalStore.currentUser?.id === tracker.ownerId && (
-                    <Group justify="flex-start" w="100%">
-                        <Button
+                    <Group justify="flex-end" w="100%">
+                        {/* <Button
                             color={tracker.color}
                             onClick={() =>
                                 setOpenDialogType("configureAnalytics")
@@ -189,14 +231,23 @@ export default function AnalyticsList() {
                             leftSection={<FiSettings size={16} />}
                         >
                             Configure
-                        </Button>
+                        </Button> */}
+                        <ActionIcon
+                            size={"lg"}
+                            variant={isConfiguring ? "filled" : "outline"}
+                            color={tracker.color}
+                            onClick={() => setIsConfiguring((prev) => !prev)}
+                        >
+                            <FiSettings size={18} />
+                        </ActionIcon>
                     </Group>
                 )}
 
                 {!analytics ||
-                analytics.numericChartAnalytics.length +
-                    analytics.singleValueAnalytics.length ===
-                    0 ? (
+                (!isConfiguring &&
+                    analytics.numericChartAnalytics.length +
+                        analytics.singleValueAnalytics.length ===
+                        0) ? (
                     <Paper withBorder p="xl" radius="md">
                         <Stack gap="md" align="center">
                             <Text size="lg" fw={500} c="dimmed">
@@ -212,7 +263,7 @@ export default function AnalyticsList() {
                     <Skeleton visible={isLoadingData} h="100%" w="100%">
                         <ScrollArea flex={1} mih={0}>
                             {/* Masonry Grid Container */}
-                            <Stack gap="md">
+                            <Stack gap="md" pb={"md"}>
                                 {/* Single value analytics grid */}
                                 {analytics.singleValueAnalytics.length > 0 && (
                                     <SimpleGrid
@@ -220,11 +271,36 @@ export default function AnalyticsList() {
                                             base: 1,
                                             xs: 2,
                                             sm: 3,
-                                            md: 4,
-                                            lg: 5,
+                                            md: 3,
+                                            lg: 4,
                                         }}
                                         spacing="md"
                                     >
+                                        {isConfiguring && (
+                                            <Paper
+                                                withBorder
+                                                p="md"
+                                                radius="md"
+                                            >
+                                                <Stack
+                                                    justify="center"
+                                                    align="center"
+                                                >
+                                                    <ActionIcon
+                                                        variant="outline"
+                                                        onClick={() =>
+                                                            setOpenDialogType(
+                                                                "configureAnalytics"
+                                                            )
+                                                        }
+                                                        size={"xl"}
+                                                        color={tracker.color}
+                                                    >
+                                                        <MdAdd size={20} />
+                                                    </ActionIcon>
+                                                </Stack>
+                                            </Paper>
+                                        )}
                                         {analytics.singleValueAnalytics.map(
                                             (analytic) => (
                                                 <StatCard
@@ -232,9 +308,11 @@ export default function AnalyticsList() {
                                                     analytic={
                                                         analytic as SingleValueAnalyticResultDto
                                                     }
-                                                    tracker={tracker}
                                                     onEntryClick={
                                                         setSelectedEntryId
+                                                    }
+                                                    isConfiguring={
+                                                        isConfiguring
                                                     }
                                                 />
                                             )
@@ -246,7 +324,7 @@ export default function AnalyticsList() {
                                 {analytics?.numericChartAnalytics.length >
                                     0 && (
                                     <SimpleGrid
-                                        cols={{ base: 1, md: 2 }}
+                                        cols={{ base: 1, md: 2, xl: 3 }}
                                         spacing="md"
                                     >
                                         {analytics.numericChartAnalytics.map(
@@ -254,6 +332,9 @@ export default function AnalyticsList() {
                                                 <ChartCard
                                                     key={analytic.analyticId}
                                                     analytic={analytic}
+                                                    isConfiguring={
+                                                        isConfiguring
+                                                    }
                                                 />
                                             )
                                         )}
@@ -274,7 +355,7 @@ export default function AnalyticsList() {
             )}
 
             {openDialogType === "configureAnalytics" && (
-                <TrackerAnalyticsDialog
+                <AnalyticSelectionDialog
                     onClose={() => setOpenDialogType(undefined)}
                 />
             )}

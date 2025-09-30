@@ -333,42 +333,6 @@ namespace Operum.Service.Services.Trackers
                 .Where(x => x.TrackerId == trackerId)
                 .ToListAsync();
 
-            // Process analytics in parallel with proper null handling
-            //var analyticsResult = entries
-            //    .SelectMany(e => e.FieldValues)
-            //    .GroupBy(fv => fv.Field.Id)
-            //    .AsParallel()
-            //    .Select(group =>
-            //    {
-            //        var field = group.First().Field;
-            //        var fieldValues = group.ToList();
-
-            //        var analytics = field.Type switch
-            //        {
-            //            DataTypes.Number => TrackerAnalyticsHelpers.GetNumericAnalytics(fieldValues),
-            //            DataTypes.DateTime => TrackerAnalyticsHelpers.GetDateTimeAnalytics(fieldValues),
-            //            DataTypes.Date => TrackerAnalyticsHelpers.GetDateAnalytics(fieldValues),
-            //            DataTypes.TimeSpan => TrackerAnalyticsHelpers.GetTimeSpanAnalytics(fieldValues),
-            //            DataTypes.Bool => TrackerAnalyticsHelpers.GetBooleanAnalytics(fieldValues),
-            //            _ => null
-            //        };
-
-            //        if (analytics != null)
-            //        {
-            //            analytics.FieldName = field.Name;
-            //            analytics.FieldType = field.Type;
-            //            analytics.FieldOrder = field.Order;
-            //        }
-
-            //        return analytics;
-            //    })
-            //    .Where(analytics => analytics != null)
-            //    .Cast<FieldAnalyticsDto>()
-            //    .OrderBy(a => a.FieldOrder)
-            //    .ToList();
-
-            //return Result.Success(analyticsResult);
-
             TrackerAnalyticsResponseDto calculatedAnalytics = new();
 
             foreach (var trackerAnalytic in trackerAnalytics)
@@ -384,6 +348,7 @@ namespace Operum.Service.Services.Trackers
                             var calculationResult = TrackerAnalyticsHelpers.GetSingleValueAnalyticResult(trackerAnalytic.Analytic, fieldValues, field);
                             if (calculationResult.IsSuccess)
                             {
+                                calculationResult.Data.TrackerAnalyticId = trackerAnalytic.Id;
                                 calculatedAnalytics.SingleValueAnalytics.Add(calculationResult.Data);
                             }
                         }
@@ -397,6 +362,7 @@ namespace Operum.Service.Services.Trackers
                             var calculationResult = TrackerAnalyticsHelpers.GetNumericChartAnalyticResult(trackerAnalytic.Analytic, entries, xAxisField, yAxisField);
                             if (calculationResult.IsSuccess)
                             {
+                                calculationResult.Data.TrackerAnalyticId = trackerAnalytic.Id;
                                 calculatedAnalytics.NumericChartAnalytics.Add(calculationResult.Data);
                             }
                         }

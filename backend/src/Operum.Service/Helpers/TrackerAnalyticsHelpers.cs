@@ -22,273 +22,162 @@ namespace Operum.Service.Helpers
                 AnalyticId = analytic.Id
             };
 
-            switch (analytic.Code)
+            var v = values.Select(x => x.GetFieldValue()).ToList();
+
+            var opResult = analytic.Code switch
             {
-                // -------------------
-                // BOOLEAN
-                // -------------------
-                case AnalyticCodes.BoolCount:
-                    {
-                        var count = values.Count(v => v.BooleanValue.HasValue);
-                        result.Value = count.ToString();
-                        return Result.Success(result);
-                    }
+                AnalyticCodes.Count => Count(v),
+                AnalyticCodes.TrueCount => CountWhere(v, x => x is bool b && b),
+                AnalyticCodes.FalseCount => CountWhere(v, x => x is bool b && !b),
+                AnalyticCodes.TruePercentage => Percentage(v, x => x is bool, x => x is bool b && b),
+                AnalyticCodes.Min => MinWithEntry(values),
+                AnalyticCodes.Max => MaxWithEntry(values),
+                AnalyticCodes.Average => Average(v),
+                AnalyticCodes.Sum => Sum(v),
+                AnalyticCodes.StdDev => StdDev(v),
+                _ => Result.Failure(
+                    StatusCodeEnum.BadRequest,
+                    $"Unsupported analytic code: {analytic.Code}")
+            };
 
-                case AnalyticCodes.BoolTrueCount:
-                    {
-                        var count = values.Count(v => v.BooleanValue == true);
-                        result.Value = count.ToString();
-                        return Result.Success(result);
-                    }
+            if (!opResult.IsSuccess)
+                return Result.Failure(opResult.StatusCode, opResult.Messages);
 
-                case AnalyticCodes.BoolFalseCount:
-                    {
-                        var count = values.Count(v => v.BooleanValue == false);
-                        result.Value = count.ToString();
-                        return Result.Success(result);
-                    }
+            result.Value = opResult.Data.Value;
+            result.EntryId = opResult.Data.EntryId;
+            return Result.Success(result);
+        }
 
-                case AnalyticCodes.BoolTruePercentage:
-                    {
-                        var all = values.Where(v => v.BooleanValue.HasValue).ToList();
-                        if (all.Count == 0)
-                            return Result.Failure(StatusCodeEnum.NotFound, "No boolean values found.");
+        // Generic operations that work on IEnumerable<object?>
+        private static Result<(string Value, string? EntryId)> Count(IEnumerable<object?> items)
+        {
+            var count = items.Count(x => x != null);
+            return Result.Success((count.ToString(), (string?)null));
+        }
 
-                        var percentage = (double)all.Count(v => v.BooleanValue == true) / all.Count * 100;
-                        result.Value = Math.Round(percentage, 2) + "%";
-                        return Result.Success(result);
-                    }
+        private static Result<(string Value, string? EntryId)> CountWhere(
+            IEnumerable<object?> items,
+            Func<object?, bool> predicate)
+        {
+            var count = items.Count(predicate);
+            return Result.Success((count.ToString(), (string?)null));
+        }
 
-                // -------------------
-                // STRING
-                // -------------------
-                case AnalyticCodes.StringCount:
-                    {
-                        var count = values.Count(v => v.StringValue != null);
-                        result.Value = count.ToString();
-                        return Result.Success(result);
-                    }
+        private static Result<(string Value, string? EntryId)> Percentage(
+            IEnumerable<object?> items,
+            Func<object?, bool> hasValuePredicate,
+            Func<object?, bool> matchPredicate)
+        {
+            var all = items.Where(hasValuePredicate).ToList();
+            if (all.Count == 0)
+                return Result.Failure(StatusCodeEnum.NotFound, "No values found.");
 
-                // -------------------
-                // NUMBER
-                // -------------------
-                case AnalyticCodes.NumberCount:
-                    {
-                        var count = values.Count(v => v.NumberValue.HasValue);
-                        result.Value = count.ToString();
-                        return Result.Success(result);
-                    }
+            var percentage = (double)all.Count(matchPredicate) / all.Count * 100;
+            return Result.Success((Math.Round(percentage, 2) + "%", (string?)null));
+        }
 
-                case AnalyticCodes.NumberMin:
-                    {
-                        var minField = values
-                            .Where(v => v.NumberValue.HasValue)
-                            .OrderBy(v => v.NumberValue!.Value)
-                            .FirstOrDefault();
+        private static Result<(string Value, string? EntryId)> MinWithEntry(IEnumerable<FieldValue> values)
+        {
+            FieldValue? minField = null;
+            IComparable? minValue = null;
 
-                        if (minField == null)
-                            return Result.Failure(StatusCodeEnum.NotFound, "No numeric values found.");
+            foreach (var fv in values)
+            {
+                if (fv.GetFieldValue() is not IComparable comparable) continue;
 
-                        result.Value = minField.NumberValue!.Value.ToString();
-                        result.EntryId = minField.EntryId;
-                        return Result.Success(result);
-                    }
-
-                case AnalyticCodes.NumberMax:
-                    {
-                        var maxField = values
-                            .Where(v => v.NumberValue.HasValue)
-                            .OrderByDescending(v => v.NumberValue!.Value)
-                            .FirstOrDefault();
-
-                        if (maxField == null)
-                            return Result.Failure(StatusCodeEnum.NotFound, "No numeric values found.");
-
-                        result.Value = maxField.NumberValue!.Value.ToString();
-                        result.EntryId = maxField.EntryId;
-                        return Result.Success(result);
-                    }
-
-                case AnalyticCodes.NumberAverage:
-                    {
-                        var nums = values.Where(v => v.NumberValue.HasValue).Select(v => v.NumberValue!.Value).ToList();
-                        if (nums.Count == 0)
-                            return Result.Failure(StatusCodeEnum.NotFound, "No numeric values found.");
-
-                        result.Value = Math.Round(nums.Average(), 2).ToString();
-                        return Result.Success(result);
-                    }
-
-                case AnalyticCodes.NumberSum:
-                    {
-                        var nums = values.Where(v => v.NumberValue.HasValue).Select(v => v.NumberValue!.Value).ToList();
-                        if (nums.Count == 0)
-                            return Result.Failure(StatusCodeEnum.NotFound, "No numeric values found.");
-
-                        result.Value = nums.Sum().ToString();
-                        return Result.Success(result);
-                    }
-
-                case AnalyticCodes.NumberStdDev:
-                    {
-                        var nums = values.Where(v => v.NumberValue.HasValue).Select(v => v.NumberValue!.Value).ToList();
-                        if (nums.Count == 0)
-                            return Result.Failure(StatusCodeEnum.NotFound, "No numeric values found.");
-
-                        var count = nums.Count;
-                        var avg = nums.Average();
-                        var variance = nums.Sum(x => Math.Pow(x - avg, 2)) / count;
-                        var stdDev = Math.Sqrt(variance);
-
-                        result.Value = Math.Round(stdDev, 2).ToString();
-                        return Result.Success(result);
-                    }
-
-                // -------------------
-                // TIMESPAN
-                // -------------------
-                case AnalyticCodes.TimespanCount:
-                    {
-                        var count = values.Count(v => v.TimeSpanValue.HasValue);
-                        result.Value = count.ToString();
-                        return Result.Success(result);
-                    }
-
-                case AnalyticCodes.TimespanMin:
-                    {
-                        var minField = values
-                            .Where(v => v.TimeSpanValue.HasValue)
-                            .OrderBy(v => v.TimeSpanValue!.Value)
-                            .FirstOrDefault();
-
-                        if (minField == null)
-                            return Result.Failure(StatusCodeEnum.NotFound, "No timespan values found.");
-
-                        result.Value = minField.TimeSpanValue!.Value.ToString();
-                        result.EntryId = minField.EntryId;
-                        return Result.Success(result);
-                    }
-
-                case AnalyticCodes.TimespanMax:
-                    {
-                        var maxField = values
-                            .Where(v => v.TimeSpanValue.HasValue)
-                            .OrderByDescending(v => v.TimeSpanValue!.Value)
-                            .FirstOrDefault();
-
-                        if (maxField == null)
-                            return Result.Failure(StatusCodeEnum.NotFound, "No timespan values found.");
-
-                        result.Value = maxField.TimeSpanValue!.Value.ToString();
-                        result.EntryId = maxField.EntryId;
-                        return Result.Success(result);
-                    }
-
-                case AnalyticCodes.TimespanAverage:
-                    {
-                        var spans = values.Where(v => v.TimeSpanValue.HasValue).Select(v => v.TimeSpanValue!.Value).ToList();
-                        if (spans.Count == 0)
-                            return Result.Failure(StatusCodeEnum.NotFound, "No timespan values found.");
-
-                        var avgTicks = spans.Average(s => s.Ticks);
-                        result.Value = TimeSpan.FromTicks((long)avgTicks).ToString();
-                        return Result.Success(result);
-                    }
-
-                case AnalyticCodes.TimespanSum:
-                    {
-                        var spans = values.Where(v => v.TimeSpanValue.HasValue).Select(v => v.TimeSpanValue!.Value).ToList();
-                        if (spans.Count == 0)
-                            return Result.Failure(StatusCodeEnum.NotFound, "No timespan values found.");
-
-                        var sumTicks = spans.Sum(s => s.Ticks);
-                        result.Value = TimeSpan.FromTicks(sumTicks).ToString();
-                        return Result.Success(result);
-                    }
-
-                // -------------------
-                // DATETIME
-                // -------------------
-                case AnalyticCodes.DatetimeCount:
-                    {
-                        var count = values.Count(v => v.DateTimeValue.HasValue);
-                        result.Value = count.ToString();
-                        return Result.Success(result);
-                    }
-
-                case AnalyticCodes.DatetimeMin:
-                    {
-                        var minField = values
-                            .Where(v => v.DateTimeValue.HasValue)
-                            .OrderBy(v => v.DateTimeValue!.Value)
-                            .FirstOrDefault();
-
-                        if (minField == null)
-                            return Result.Failure(StatusCodeEnum.NotFound, "No datetime values found.");
-
-                        result.Value = minField.DateTimeValue!.Value.ToString("u");
-                        result.EntryId = minField.EntryId;
-                        return Result.Success(result);
-                    }
-
-                case AnalyticCodes.DatetimeMax:
-                    {
-                        var maxField = values
-                            .Where(v => v.DateTimeValue.HasValue)
-                            .OrderByDescending(v => v.DateTimeValue!.Value)
-                            .FirstOrDefault();
-
-                        if (maxField == null)
-                            return Result.Failure(StatusCodeEnum.NotFound, "No datetime values found.");
-
-                        result.Value = maxField.DateTimeValue!.Value.ToString("u");
-                        result.EntryId = maxField.EntryId;
-                        return Result.Success(result);
-                    }
-
-                // -------------------
-                // DATE
-                // -------------------
-                case AnalyticCodes.DateCount:
-                    {
-                        var count = values.Count(v => v.DateTimeValue.HasValue);
-                        result.Value = count.ToString();
-                        return Result.Success(result);
-                    }
-
-                case AnalyticCodes.DateMin:
-                    {
-                        var minField = values
-                            .Where(v => v.DateTimeValue.HasValue)
-                            .OrderBy(v => v.DateTimeValue!.Value.Date)
-                            .FirstOrDefault();
-
-                        if (minField == null)
-                            return Result.Failure(StatusCodeEnum.NotFound, "No date values found.");
-
-                        result.Value = minField.DateTimeValue!.Value.Date.ToShortDateString();
-                        result.EntryId = minField.EntryId;
-                        return Result.Success(result);
-                    }
-
-                case AnalyticCodes.DateMax:
-                    {
-                        var maxField = values
-                            .Where(v => v.DateTimeValue.HasValue)
-                            .OrderByDescending(v => v.DateTimeValue!.Value.Date)
-                            .FirstOrDefault();
-
-                        if (maxField == null)
-                            return Result.Failure(StatusCodeEnum.NotFound, "No date values found.");
-
-                        result.Value = maxField.DateTimeValue!.Value.Date.ToShortDateString();
-                        result.EntryId = maxField.EntryId;
-                        return Result.Success(result);
-                    }
-
-                default:
-                    return Result.Failure(StatusCodeEnum.BadRequest, $"Unsupported analytic code: {analytic.Code}");
+                if (minValue == null || comparable.CompareTo(minValue) < 0)
+                {
+                    minValue = comparable;
+                    minField = fv;
+                }
             }
+
+            if (minField == null)
+                return Result.Failure(StatusCodeEnum.NotFound, "No values found.");
+
+            return Result.Success((FormatValue(minField), (string?)minField.EntryId));
+        }
+
+        private static Result<(string Value, string? EntryId)> MaxWithEntry(IEnumerable<FieldValue> values)
+        {
+            FieldValue? maxField = null;
+            IComparable? maxValue = null;
+
+            foreach (var fv in values)
+            {
+                if (fv.GetFieldValue() is not IComparable comparable) continue;
+
+                if (maxValue == null || comparable.CompareTo(maxValue) > 0)
+                {
+                    maxValue = comparable;
+                    maxField = fv;
+                }
+            }
+
+            if (maxField == null)
+                return Result.Failure(StatusCodeEnum.NotFound, "No values found.");
+
+            return Result.Success((FormatValue(maxField), (string?)maxField.EntryId));
+        }
+
+        private static Result<(string Value, string? EntryId)> Average(IEnumerable<object?> items)
+        {
+            var timeSpans = items.OfType<TimeSpan>().ToList();
+            if (timeSpans.Count != 0)
+            {
+                var avgTicks = timeSpans.Average(ts => ts.Ticks);
+                return Result.Success((TimeSpan.FromTicks((long)avgTicks).ToString(), (string?)null));
+            }
+
+            var numbers = items.Where(x => x is double or int or long or decimal or float)
+                .Select(Convert.ToDouble)
+                .ToList();
+
+            if (numbers.Count == 0)
+                return Result.Failure(StatusCodeEnum.NotFound, "No numeric values found.");
+
+            return Result.Success((Math.Round(numbers.Average(), 2).ToString(), (string?)null));
+        }
+
+        private static Result<(string Value, string? EntryId)> Sum(IEnumerable<object?> items)
+        {
+            var timeSpans = items.OfType<TimeSpan>().ToList();
+            if (timeSpans.Count != 0)
+            {
+                var sumTicks = timeSpans.Sum(ts => ts.Ticks);
+                return Result.Success((TimeSpan.FromTicks(sumTicks).ToString(), (string?)null));
+            }
+
+            var numbers = items.Where(x => x is double or int or long or decimal or float)
+                .Select(Convert.ToDouble)
+                .ToList();
+
+            if (numbers.Count == 0)
+                return Result.Failure(StatusCodeEnum.NotFound, "No numeric values found.");
+
+            return Result.Success((numbers.Sum().ToString(), (string?)null));
+        }
+
+        private static Result<(string Value, string? EntryId)> StdDev(IEnumerable<object?> items)
+        {
+            var numbers = items.Where(x => x is double or int or long or decimal or float)
+                .Select(Convert.ToDouble)
+                .ToList();
+
+            if (numbers.Count == 0)
+                return Result.Failure(StatusCodeEnum.NotFound, "No numeric values found.");
+
+            var avg = numbers.Average();
+            var variance = numbers.Sum(x => Math.Pow(x - avg, 2)) / numbers.Count;
+            var stdDev = Math.Sqrt(variance);
+
+            return Result.Success((Math.Round(stdDev, 2).ToString(), (string?)null));
+        }
+
+        // Helper to format value based on its type
+        private static string FormatValue(FieldValue fv)
+        {
+            return fv.GetValueAsString() ?? string.Empty;
         }
 
         public static Result<NumericChartAnalyticResult> GetNumericChartAnalyticResult(
@@ -307,163 +196,75 @@ namespace Operum.Service.Helpers
                 YFieldType = yAxisField.Type
             };
 
-            switch (analytic.Code)
+            if (!AnalyticCodes.IsValid(analytic.Code))
+                return Result.Failure(StatusCodeEnum.BadRequest, $"Unsupported analytic code: {analytic.Code}");
+
+            var dataPoints = entries
+                .Select(x => new ChartPointDto
+                {
+                    X = x.FieldValues.FirstOrDefault(f => f.FieldId == xAxisField.Id)?.GetValueAsString(),
+                    Y = ConvertToNumeric(x.FieldValues.FirstOrDefault(f => f.FieldId == yAxisField.Id))
+                })
+                .Where(p => p.X != null)
+                .ToList();
+
+            var points = analytic.Code switch
             {
-                case AnalyticCodes.DateNumberLineChart:
+                AnalyticCodes.AggregatedLineChart => dataPoints
+                    .GroupBy(e => e.X)
+                    .Select(g => new ChartPointDto
                     {
-                        var points = entries
-                            .Select(x => new
-                            {
-                                X = x.FieldValues.FirstOrDefault(f => f.FieldId == xAxisField.Id)?.GetValueAsString(),
-                                Y = x.FieldValues.FirstOrDefault(f => f.FieldId == yAxisField.Id)?.NumberValue ?? 0
-                            })
-                            .GroupBy(e => e.X)
-                            .Select(g => new ChartPointDto
-                            {
-                                X = g.Key,
-                                Y = Math.Round(g.Sum(e => e.Y), 2)
-                            })
-                            .ToList();
+                        X = g.Key,
+                        Y = Math.Round(g.Sum(e => e.Y ?? 0), 2)
+                    })
+                    .ToList(),
 
-                        result.Points = points;
-                        return Result.Success(result);
-                    }
+                AnalyticCodes.CumulativeLineChart => CalculateCumulativePoints(dataPoints),
 
-                case AnalyticCodes.DatetimeNumberLineChart:
-                    {
-                        var points = entries
-                            .Select(x => new
-                            {
-                                X = x.FieldValues.FirstOrDefault(f => f.FieldId == xAxisField.Id)?.GetValueAsString(),
-                                Y = x.FieldValues.FirstOrDefault(f => f.FieldId == yAxisField.Id)?.NumberValue ?? 0
-                            })
-                            .GroupBy(e => e.X)
-                            .Select(g => new ChartPointDto
-                            {
-                                X = g.Key,
-                                Y = Math.Round(g.Sum(e => e.Y), 2)
-                            })
-                            .ToList();
-                        result.Points = points;
-                        return Result.Success(result);
-                    }
+                _ => new List<ChartPointDto>()
+            };
 
-                case AnalyticCodes.DateTimespanLineChart:
-                    {
-                        var points = entries
-                            .Select(x => new
-                            {
-                                X = x.FieldValues.FirstOrDefault(f => f.FieldId == xAxisField.Id)?.GetValueAsString(),
-                                Y = x.FieldValues.FirstOrDefault(f => f.FieldId == yAxisField.Id)?.TimeSpanValue?.TotalMinutes ?? 0
-                            })
-                            .GroupBy(e => e.X)
-                            .Select(g => new ChartPointDto
-                            {
-                                X = g.Key,
-                                Y = Math.Round(g.Sum(e => e.Y), 2)
-                            })
-                            .ToList();
-                        result.Points = points;
-                        return Result.Success(result);
-                    }
+            result.Points = points;
+            return Result.Success(result);
+        }
 
-                case AnalyticCodes.DatetimeTimespanLineChart:
-                    {
-                        var points = entries
-                            .Select(x => new
-                            {
-                                X = x.FieldValues.FirstOrDefault(f => f.FieldId == xAxisField.Id)?.GetValueAsString(),
-                                Y = x.FieldValues.FirstOrDefault(f => f.FieldId == yAxisField.Id)?.TimeSpanValue?.TotalMinutes ?? 0
-                            })
-                            .GroupBy(e => e.X)
-                            .Select(g => new ChartPointDto
-                            {
-                                X = g.Key,
-                                Y = Math.Round(g.Sum(e => e.Y), 2)
-                            })
-                            .ToList();
-                        result.Points = points;
-                        return Result.Success(result);
-                    }
+        private static List<ChartPointDto> CalculateCumulativePoints(List<ChartPointDto> dataPoints)
+        {
+            var grouped = dataPoints
+                .GroupBy(e => e.X)
+                .OrderBy(g => g.Key)
+                .ToList();
 
-                case AnalyticCodes.DateBoolTimeChart:
-                    {
-                        var points = entries
-                            .Select(x => new
-                            {
-                                X = x.FieldValues.FirstOrDefault(f => f.FieldId == xAxisField.Id)?.GetValueAsString(),
-                                Y = x.FieldValues.FirstOrDefault(f => f.FieldId == yAxisField.Id)?.BooleanValue == true ? 1.0 : 0.0
-                            })
-                            .GroupBy(e => e.X)
-                            .Select(g => new ChartPointDto
-                            {
-                                X = g.Key,
-                                Y = Math.Round(g.Sum(e => e.Y), 2)
-                            })
-                            .ToList();
-                        result.Points = points;
-                        return Result.Success(result);
-                    }
+            var points = new List<ChartPointDto>();
+            var runningTotal = 0.0;
 
-                case AnalyticCodes.DatetimeBoolLineChart:
-                    {
-                        var points = entries
-                            .Select(x => new
-                            {
-                                X = x.FieldValues.FirstOrDefault(f => f.FieldId == xAxisField.Id)?.GetValueAsString(),
-                                Y = x.FieldValues.FirstOrDefault(f => f.FieldId == yAxisField.Id)?.BooleanValue == true ? 1.0 : 0.0
-                            })
-                            .GroupBy(e => e.X)
-                            .Select(g => new ChartPointDto
-                            {
-                                X = g.Key,
-                                Y = Math.Round(g.Sum(e => e.Y), 2)
-                            })
-                            .ToList();
-                        result.Points = points;
-                        return Result.Success(result);
-                    }
-
-                case AnalyticCodes.StringNumberLineChart:
-                    {
-                        var points = entries
-                            .Select(x => new
-                            {
-                                X = x.FieldValues.FirstOrDefault(f => f.FieldId == xAxisField.Id)?.GetValueAsString(),
-                                Y = x.FieldValues.FirstOrDefault(f => f.FieldId == yAxisField.Id)?.NumberValue ?? 0
-                            })
-                            .GroupBy(e => e.X)
-                            .Select(g => new ChartPointDto
-                            {
-                                X = g.Key,
-                                Y = Math.Round(g.Sum(e => e.Y), 2)
-                            })
-                            .ToList();
-                        result.Points = points;
-                        return Result.Success(result);
-                    }
-
-                case AnalyticCodes.StringBoolLineChart:
-                    {
-                        var points = entries
-                            .Select(x => new
-                            {
-                                X = x.FieldValues.FirstOrDefault(f => f.FieldId == xAxisField.Id)?.GetValueAsString(),
-                                Y = x.FieldValues.FirstOrDefault(f => f.FieldId == yAxisField.Id)?.BooleanValue == true ? 1.0 : 0.0
-                            })
-                            .GroupBy(e => e.X)
-                            .Select(g => new ChartPointDto
-                            {
-                                X = g.Key,
-                                Y = Math.Round(g.Sum(e => e.Y), 2)
-                            })
-                            .ToList();
-                        result.Points = points;
-                        return Result.Success(result);
-                    }
-                default:
-                    return Result.Failure(StatusCodeEnum.BadRequest, $"Unsupported analytic code: {analytic.Code}");
+            foreach (var group in grouped)
+            {
+                runningTotal += group.Sum(e => e.Y ?? 0);
+                points.Add(new ChartPointDto
+                {
+                    X = group.Key,
+                    Y = Math.Round(runningTotal, 2)
+                });
             }
+
+            return points;
+        }
+
+        // Convert any field value to a numeric representation for charting
+        private static double ConvertToNumeric(FieldValue? fieldValue)
+        {
+            if (fieldValue == null) return 0;
+
+            var value = fieldValue.GetFieldValue();
+
+            return value switch
+            {
+                double d => d,
+                TimeSpan ts => ts.TotalMinutes,
+                bool b => b ? 1.0 : 0.0,
+                _ => 0
+            };
         }
     }
 }

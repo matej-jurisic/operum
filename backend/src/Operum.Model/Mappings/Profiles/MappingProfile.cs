@@ -55,10 +55,7 @@ namespace Operum.Service.Mappings.Profiles
             });
             mapper.Register<AnalyticRequiredDataType, AnalyticRequiredDataTypeDto>();
             mapper.Register<CreateAnalyticRequiredDataTypeDto, AnalyticRequiredDataType>();
-            mapper.Register<CreateAnalyticRequestDto, Analytic>((s, d) =>
-            {
-                d.AnalyticRequiredDataTypes = mapper.Map<List<CreateAnalyticRequiredDataTypeDto>, List<AnalyticRequiredDataType>>(s.AnalyticRequiredDataTypes);
-            });
+            mapper.Register<CreateAnalyticRequestDto, Analytic>();
             mapper.Register<Analytic, AnalyticDto>((s, d) =>
             {
                 d.AnalyticRequiredDataTypes = mapper.Map<List<AnalyticRequiredDataType>, List<AnalyticRequiredDataTypeDto>>(s.AnalyticRequiredDataTypes).OrderBy(x => x.Purpose).ToList();

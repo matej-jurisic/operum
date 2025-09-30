@@ -11,6 +11,7 @@ namespace Operum.Model.DTOs.Analytics
     public abstract class AnalyticResultDto
     {
         public string AnalyticId { get; set; } = string.Empty;
+        public string TrackerAnalyticId { get; set; } = string.Empty;
         public string Name { get; set; } = null!;
         public string? Description { get; set; }
         public string ResultType { get; set; } = string.Empty;

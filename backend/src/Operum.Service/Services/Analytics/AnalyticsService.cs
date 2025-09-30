@@ -11,12 +11,16 @@ namespace Operum.Service.Services.Analytics
 {
     public class AnalyticsService(OperumContext db, IMapper mapper) : IAnalyticsService
     {
-        public async Task<Result<AnalyticDto>> CreateAnalytic(CreateAnalyticRequestDto createAnalytic)
+        public async Task<Result> CreateAnalytic(CreateAnalyticRequestDto createAnalytic)
         {
-            var newAnalytic = mapper.Map<CreateAnalyticRequestDto, Analytic>(createAnalytic);
-            await db.Analytics.AddAsync(newAnalytic);
-            await db.SaveChangesAsync();
-            return await GetAnalytic(newAnalytic.Id);
+            foreach (var requiredFields in createAnalytic.AnalyticRequiredDataTypesList)
+            {
+                var newAnalytic = mapper.Map<CreateAnalyticRequestDto, Analytic>(createAnalytic);
+                newAnalytic.AnalyticRequiredDataTypes = mapper.Map<List<CreateAnalyticRequiredDataTypeDto>, List<AnalyticRequiredDataType>>(requiredFields);
+                await db.Analytics.AddAsync(newAnalytic);
+                await db.SaveChangesAsync();
+            }
+            return Result.Success();
         }
 
         public async Task<Result> DeleteAnalytic(string analyticId)

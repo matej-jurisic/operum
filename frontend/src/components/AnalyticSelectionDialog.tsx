@@ -5,6 +5,7 @@ import {
     Divider,
     Group,
     Modal,
+    Skeleton,
     Stack,
     Text,
     Title,
@@ -14,9 +15,9 @@ import api from "../api/api";
 import { useTracker } from "../context/TrackerContext";
 import { AnalyticDto } from "../model/AnalyticDto";
 import { DataTypeColor, FieldType } from "../model/constants/DataTypes";
+import TrackerAnalyticFormDialog from "./TrackerAnalyticFormDialog";
 
 interface Props {
-    onSelect: (analytic: AnalyticDto) => void;
     onClose: () => void;
 }
 
@@ -24,13 +25,20 @@ function isFieldType(value: string): value is FieldType {
     return value in DataTypeColor;
 }
 
-export default function AnalyticSelectionDialog({ onSelect, onClose }: Props) {
+export default function AnalyticSelectionDialog({ onClose }: Props) {
     const [analytics, setAnalytics] = useState<AnalyticDto[]>([]);
+    const [selectedAnalytic, setSelectedAnalytic] = useState<AnalyticDto>();
+    const [loading, setLoading] = useState(true);
     const { tracker } = useTracker();
 
     const fetchAnalytics = async () => {
-        const response = await api.get("/analytics");
-        setAnalytics(response.data.data);
+        try {
+            setLoading(true);
+            const response = await api.get("/analytics");
+            setAnalytics(response.data.data);
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
@@ -57,17 +65,19 @@ export default function AnalyticSelectionDialog({ onSelect, onClose }: Props) {
             size="lg"
         >
             <Stack>
-                {Object.keys(groupedAnalytics).length === 0 ? (
-                    <Text c="dimmed" ta="center" py="xl">
-                        No analytics found
-                    </Text>
+                {loading ? (
+                    <Skeleton height={50} radius="sm" />
                 ) : (
-                    <Accordion variant="contained" chevronPosition="left">
+                    <Accordion
+                        variant="contained"
+                        chevronPosition="left"
+                        transitionDuration={0}
+                    >
                         {Object.entries(groupedAnalytics).map(
                             ([name, analyticGroup]) => (
                                 <Accordion.Item key={name} value={name}>
                                     <Accordion.Control>
-                                        <Group justify="space-between">
+                                        <Group gap="md">
                                             <Text fw={500}>{name}</Text>
                                             <Badge
                                                 size="sm"
@@ -160,7 +170,7 @@ export default function AnalyticSelectionDialog({ onSelect, onClose }: Props) {
                                                                 tracker.color
                                                             }
                                                             onClick={() =>
-                                                                onSelect(
+                                                                setSelectedAnalytic(
                                                                     analytic
                                                                 )
                                                             }
@@ -178,6 +188,13 @@ export default function AnalyticSelectionDialog({ onSelect, onClose }: Props) {
                     </Accordion>
                 )}
             </Stack>
+
+            {selectedAnalytic && (
+                <TrackerAnalyticFormDialog
+                    onClose={() => setSelectedAnalytic(undefined)}
+                    selectedAnalytic={selectedAnalytic}
+                />
+            )}
         </Modal>
     );
 }
