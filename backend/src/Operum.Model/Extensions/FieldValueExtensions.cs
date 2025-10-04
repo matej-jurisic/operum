@@ -89,12 +89,13 @@ namespace Operum.Model.Extensions
                 DataTypes.Number => fieldValue.NumberValue?.ToString(CultureInfo.InvariantCulture),
                 DataTypes.Date => fieldValue.DateTimeValue?.ToString("dd/MM/yyyy"),
                 DataTypes.DateTime => fieldValue.DateTimeValue?.ToString("dd/MM/yyyy HH:mm:ss"),
-                DataTypes.TimeSpan => fieldValue.TimeSpanValue?.ToString(),
+                DataTypes.TimeSpan => fieldValue.TimeSpanValue is TimeSpan ts
+                                        ? $"{(int)ts.TotalHours:D2}:{ts.Minutes:D2}:{ts.Seconds:D2}"
+                                        : null,
                 DataTypes.Bool => fieldValue.BooleanValue?.ToString(),
                 _ => null
             };
         }
-
 
         private static void ClearOtherFieldValues(FieldValue fieldValue, string currentType)
         {
