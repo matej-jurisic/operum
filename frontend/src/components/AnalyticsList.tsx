@@ -123,10 +123,10 @@ const createTooltipContent = (
                         style={{ borderRadius: "50%" }}
                         bg={color}
                     />
-                    <Text size="sm" c="white">
+                    <Text size="sm">
                         {fieldName}
                     </Text>
-                    <Text size="sm" c="white" ml="auto">
+                    <Text size="sm" ml="auto">
                         {formatted}
                     </Text>
                 </Group>
