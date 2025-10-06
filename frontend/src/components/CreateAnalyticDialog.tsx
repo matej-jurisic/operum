@@ -25,6 +25,7 @@ const analyticTypeOptions = [
 const analyticResultTypeOptions = [
     { value: "SingleValue", label: "Single Value" },
     { value: "NumericChart", label: "Numeric Chart" },
+    { value: "ScatterChart", label: "Scatter Chart" },
 ];
 
 const analyticCodeOptions = [
@@ -39,6 +40,7 @@ const analyticCodeOptions = [
     { value: "TruePercentage", label: "TruePercentage" },
     { value: "AggregatedLineChart", label: "AggregatedLineChart" },
     { value: "CumulativeLineChart", label: "CumulativeLineChart" },
+    { value: "ScatterChart", label: "ScatterChart" },
     { value: "LineChart", label: "LineChart" },
 ];
 
@@ -108,9 +110,19 @@ export function CreateAnalyticDialog(props: CreateAnalyticDialogProps) {
                                 i + 1
                             }: All fields must have a type`;
                         }
+                    } else if (values.resultType === "ScatterChart") {
+                        if (config.length !== 2) {
+                            return `Configuration ${
+                                i + 1
+                            }: Scatter Chart requires exactly 2 fields`;
+                        }
+                        if (!config[0].type || !config[1].type) {
+                            return `Configuration ${
+                                i + 1
+                            }: All fields must have a type`;
+                        }
                     }
                 }
-
                 return null;
             },
         },

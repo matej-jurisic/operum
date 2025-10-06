@@ -64,6 +64,9 @@ export default function FieldValueInput<T extends Record<string, any> = any>({
                     placeholder="Pick date"
                     {...baseProps}
                     value={baseProps.value || null}
+                    modalProps={{
+                        centered: true,
+                    }}
                 />
             );
 
@@ -94,7 +97,6 @@ export default function FieldValueInput<T extends Record<string, any> = any>({
                     }}
                     modalProps={{
                         centered: true,
-                        size: "sm",
                     }}
                 />
             );

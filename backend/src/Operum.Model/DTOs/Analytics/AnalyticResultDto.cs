@@ -42,9 +42,30 @@ namespace Operum.Model.DTOs.Analytics
         }
     }
 
+    public class ScatterChartAnalyticResult : AnalyticResultDto
+    {
+        public List<ScatterPointDto> Points { get; set; } = [];
+        public string XFieldName { get; set; } = string.Empty;
+        public string YFieldName { get; set; } = string.Empty;
+
+        public string XFieldType { get; set; } = string.Empty;
+        public string YFieldType { get; set; } = string.Empty;
+
+        public ScatterChartAnalyticResult()
+        {
+            ResultType = AnalyticResultTypes.ScatterChart;
+        }
+    }
+
     public class ChartPointDto
     {
         public string? X { get; set; }
+        public double? Y { get; set; }
+    }
+
+    public class ScatterPointDto
+    {
+        public double? X { get; set; }
         public double? Y { get; set; }
     }
 }

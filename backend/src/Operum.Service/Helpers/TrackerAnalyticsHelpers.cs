@@ -267,5 +267,35 @@ namespace Operum.Service.Helpers
                 _ => 0
             };
         }
+
+        public static Result<ScatterChartAnalyticResult> GetScatterChartResult(
+            Analytic analytic,
+            List<Entry> entries,
+            Field xAxisField,
+            Field yAxisField)
+        {
+            var result = new ScatterChartAnalyticResult
+            {
+                XFieldName = xAxisField.Name,
+                YFieldName = yAxisField.Name,
+                XFieldType = xAxisField.Type,
+                YFieldType = yAxisField.Type,
+                Name = analytic.Name,
+                Description = analytic.Description,
+                AnalyticId = analytic.Id,
+            };
+
+            var dataPoints = entries
+                .Select(x => new ScatterPointDto
+                {
+                    X = ConvertToNumeric(x.FieldValues.FirstOrDefault(f => f.FieldId == xAxisField.Id)),
+                    Y = ConvertToNumeric(x.FieldValues.FirstOrDefault(f => f.FieldId == yAxisField.Id)),
+                })
+                .Where(p => p.X.HasValue && p.Y.HasValue)
+                .ToList();
+
+            result.Points = dataPoints;
+            return Result.Success(result);
+        }
     }
 }

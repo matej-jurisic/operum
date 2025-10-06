@@ -6,5 +6,6 @@ namespace Operum.Model.DTOs.Trackers
     {
         public List<SingleValueAnalyticResult> SingleValueAnalytics { get; set; } = [];
         public List<NumericChartAnalyticResult> NumericChartAnalytics { get; set; } = [];
+        public List<ScatterChartAnalyticResult> ScatterChartAnalytics { get; set; } = [];
     }
 }

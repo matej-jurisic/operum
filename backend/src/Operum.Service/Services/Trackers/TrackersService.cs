@@ -367,6 +367,20 @@ namespace Operum.Service.Services.Trackers
                             }
                         }
                         break;
+                    case AnalyticResultTypes.ScatterChart:
+                        var xAxisScatterField = trackerAnalytic.TrackerAnalyticFields.FirstOrDefault(x => x.AnalyticRequiredDataType.Purpose == AnalyticDataTypePurposes.Xaxis)?.Field;
+                        var yAxisScatterField = trackerAnalytic.TrackerAnalyticFields.FirstOrDefault(x => x.AnalyticRequiredDataType.Purpose == AnalyticDataTypePurposes.Yaxis)?.Field;
+
+                        if (xAxisScatterField != null && yAxisScatterField != null)
+                        {
+                            var calculationResult = TrackerAnalyticsHelpers.GetScatterChartResult(trackerAnalytic.Analytic, entries, xAxisScatterField, yAxisScatterField);
+                            if (calculationResult.IsSuccess)
+                            {
+                                calculationResult.Data.TrackerAnalyticId = trackerAnalytic.Id;
+                                calculatedAnalytics.ScatterChartAnalytics.Add(calculationResult.Data);
+                            }
+                        }
+                        break;
                 }
             }
 
