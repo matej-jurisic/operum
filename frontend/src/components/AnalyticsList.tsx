@@ -37,11 +37,7 @@ export default function AnalyticsList() {
         loadData();
     }, [selectedViewId]);
 
-    const hasAnalytics =
-        analytics &&
-        (analytics.singleValueAnalytics.length > 0 ||
-            analytics.numericChartAnalytics.length > 0 ||
-            analytics.scatterChartAnalytics.length > 0);
+    const hasAnalytics = analytics && analytics.analytics.length > 0;
 
     const showEmptyState = !isLoadingData && !hasAnalytics && !isConfiguring;
 

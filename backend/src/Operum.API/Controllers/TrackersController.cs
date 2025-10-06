@@ -66,6 +66,8 @@ namespace Operum.API.Controllers
             return GetApiResponse(await trackerService.GetTrackerAnalytics(trackerId, viewId));
         }
 
+
+
         [HttpGet("{trackerId}/analytic-configrations")]
         public async Task<IActionResult> GetTrackerAnaylticConfigurations([FromRoute] string trackerId)
         {
@@ -100,6 +102,12 @@ namespace Operum.API.Controllers
         public async Task<IActionResult> RemoveTrackerAnalytic([FromRoute] string trackerId, [FromRoute] string trackerAnalyticId)
         {
             return GetApiResponse(await trackerService.RemoveAnalytic(trackerId, trackerAnalyticId));
+        }
+
+        [HttpPut("{trackerId}/analytics/reorder")]
+        public async Task<IActionResult> ReorderTrackerAnalytics([FromRoute] string trackerId, [FromBody] ReorderAnalyticsDto reorderAnalyticsDto)
+        {
+            return GetApiResponse(await trackerService.ReorderTrackerAnalytics(trackerId, reorderAnalyticsDto));
         }
     }
 }

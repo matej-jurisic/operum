@@ -1,4 +1,5 @@
 ﻿using Operum.Model.Constants;
+using System.Text.Json.Serialization;
 
 namespace Operum.Model.DTOs.Analytics
 {
@@ -8,6 +9,10 @@ namespace Operum.Model.DTOs.Analytics
         public List<AnalyticResultDto> Analytics { get; set; } = [];
     }
 
+    [JsonPolymorphic(TypeDiscriminatorPropertyName = "ResultType")]
+    [JsonDerivedType(typeof(SingleValueAnalyticResult), AnalyticResultTypes.SingleValue)]
+    [JsonDerivedType(typeof(NumericChartAnalyticResult), AnalyticResultTypes.NumericChart)]
+    [JsonDerivedType(typeof(ScatterChartAnalyticResult), AnalyticResultTypes.ScatterChart)]
     public abstract class AnalyticResultDto
     {
         public string AnalyticId { get; set; } = string.Empty;

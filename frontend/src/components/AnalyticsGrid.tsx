@@ -1,5 +1,27 @@
-import { SimpleGrid, Stack } from "@mantine/core";
 import {
+    closestCorners,
+    DndContext,
+    DragEndEvent,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from "@dnd-kit/core";
+import {
+    arrayMove,
+    rectSortingStrategy,
+    SortableContext,
+    useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { SimpleGrid, Stack } from "@mantine/core";
+import { CSSProperties, useEffect, useState } from "react";
+
+import { restrictToParentElement } from "@dnd-kit/modifiers";
+import React from "react";
+import api from "../api/api";
+import { useTracker } from "../context/TrackerContext";
+import {
+    AnalyticResultDto,
     NumericChartAnalyticResultDto,
     ScatterChartAnalyticResultDto,
     SingleValueAnalyticResultDto,
@@ -9,10 +31,62 @@ import { ChartCard } from "./ChartCard";
 import { ScatterChartCard } from "./ScatterChartCard";
 import { StatCard } from "./StatCard";
 
+export const StatCardMemo = React.memo(StatCard);
+export const ChartCardMemo = React.memo(ChartCard);
+export const ScatterChartCardMemo = React.memo(ScatterChartCard);
+
 interface AnalyticsGridProps {
     analytics: TrackerAnalyticsResponseDto;
     isConfiguring: boolean;
     onEntryClick: (entryId: string) => void;
+}
+
+const UpdateAnalyticsOrder = async (
+    trackerId: string,
+    trackerAnalyticIds: string[]
+) => {
+    await api.put(`/trackers/${trackerId}/analytics/reorder`, {
+        trackerAnalyticIds,
+    });
+};
+
+interface SortableCardWrapperProps {
+    id: string;
+    children: React.ReactNode;
+    isReordering: boolean;
+}
+
+function SortableCardWrapper({
+    id,
+    children,
+    isReordering,
+}: SortableCardWrapperProps) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id });
+
+    const style: CSSProperties = {
+        transform: CSS.Translate.toString(transform),
+        transition: isDragging ? transition : "none",
+        opacity: isDragging ? 0.7 : 1,
+        touchAction: "none",
+        cursor: isReordering ? "grab" : "default",
+    };
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            {...(isReordering ? { ...attributes, ...listeners } : {})}
+        >
+            {children}
+        </div>
+    );
 }
 
 export function AnalyticsGrid({
@@ -20,56 +94,123 @@ export function AnalyticsGrid({
     isConfiguring,
     onEntryClick,
 }: AnalyticsGridProps) {
+    const { tracker } = useTracker();
+
+    // Local state to reflect current order
+    const [orderedAnalytics, setOrderedAnalytics] = useState(
+        analytics.analytics
+    );
+
+    // Sync local state when prop changes
+    useEffect(() => {
+        setOrderedAnalytics(analytics.analytics);
+    }, [analytics.analytics]);
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    );
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (!isConfiguring || !over || active.id === over.id) return;
+
+        const oldIndex = orderedAnalytics.findIndex(
+            (a) => a.trackerAnalyticId === active.id
+        );
+        const newIndex = orderedAnalytics.findIndex(
+            (a) => a.trackerAnalyticId === over.id
+        );
+
+        const newOrder = arrayMove(orderedAnalytics, oldIndex, newIndex);
+        setOrderedAnalytics(newOrder); // update UI immediately
+
+        // Fire-and-forget backend update
+        UpdateAnalyticsOrder(
+            tracker.id,
+            newOrder.map((a) => a.trackerAnalyticId)
+        ).catch((err) => {
+            console.error("Failed to update analytics order:", err);
+        });
+    };
+
+    const renderCard = (analytic: AnalyticResultDto) => {
+        switch (analytic.resultType) {
+            case "SingleValue":
+                return (
+                    <StatCardMemo
+                        analytic={analytic as SingleValueAnalyticResultDto}
+                        onEntryClick={onEntryClick}
+                        isConfiguring={isConfiguring}
+                    />
+                );
+            case "NumericChart":
+                return (
+                    <ChartCardMemo
+                        analytic={analytic as NumericChartAnalyticResultDto}
+                        isConfiguring={isConfiguring}
+                    />
+                );
+            case "ScatterChart":
+                return (
+                    <ScatterChartCardMemo
+                        analytic={analytic as ScatterChartAnalyticResultDto}
+                        isConfiguring={isConfiguring}
+                    />
+                );
+            default:
+                return null;
+        }
+    };
+
     return (
-        <Stack gap="md">
-            {/* Single value analytics */}
-            {analytics.singleValueAnalytics.length > 0 && (
-                <SimpleGrid
-                    cols={{ base: 1, xs: 2, sm: 3, md: 3, lg: 4 }}
-                    spacing="md"
+        <Stack>
+            <DndContext
+                sensors={sensors}
+                onDragEnd={handleDragEnd}
+                modifiers={[restrictToParentElement]}
+                collisionDetection={closestCorners}
+            >
+                <SortableContext
+                    items={orderedAnalytics.map((a) => a.trackerAnalyticId)}
+                    strategy={rectSortingStrategy}
                 >
-                    {analytics.singleValueAnalytics.map(
-                        (analytic: SingleValueAnalyticResultDto) => (
-                            <StatCard
+                    <SimpleGrid
+                        cols={{ base: 1, sm: 2, md: 3, lg: 3, xl: 4 }}
+                        spacing="md"
+                    >
+                        {orderedAnalytics.map((analytic) => (
+                            <SortableCardWrapper
                                 key={analytic.trackerAnalyticId}
-                                analytic={analytic}
-                                onEntryClick={onEntryClick}
-                                isConfiguring={isConfiguring}
-                            />
-                        )
-                    )}
-                </SimpleGrid>
-            )}
-
-            {/* Line/Bar charts */}
-            {analytics.numericChartAnalytics.length > 0 && (
-                <SimpleGrid cols={{ base: 1, md: 2, xl: 3 }} spacing="md">
-                    {analytics.numericChartAnalytics.map(
-                        (analytic: NumericChartAnalyticResultDto) => (
-                            <ChartCard
-                                key={analytic.trackerAnalyticId}
-                                analytic={analytic}
-                                isConfiguring={isConfiguring}
-                            />
-                        )
-                    )}
-                </SimpleGrid>
-            )}
-
-            {/* Scatter charts */}
-            {analytics.scatterChartAnalytics.length > 0 && (
-                <SimpleGrid cols={{ base: 1, md: 2, xl: 3 }} spacing="md">
-                    {analytics.scatterChartAnalytics.map(
-                        (analytic: ScatterChartAnalyticResultDto) => (
-                            <ScatterChartCard
-                                key={analytic.trackerAnalyticId}
-                                analytic={analytic}
-                                isConfiguring={isConfiguring}
-                            />
-                        )
-                    )}
-                </SimpleGrid>
-            )}
+                                id={analytic.trackerAnalyticId}
+                                isReordering={isConfiguring}
+                            >
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        gap: "0.5rem",
+                                    }}
+                                >
+                                    {analytic.resultType === "SingleValue" ? (
+                                        <>
+                                            <StatCard
+                                                analytic={
+                                                    analytic as SingleValueAnalyticResultDto
+                                                }
+                                                onEntryClick={onEntryClick}
+                                                isConfiguring={isConfiguring}
+                                            />
+                                            {/* Optionally duplicate or render extra info */}
+                                        </>
+                                    ) : (
+                                        renderCard(analytic)
+                                    )}
+                                </div>
+                            </SortableCardWrapper>
+                        ))}
+                    </SimpleGrid>
+                </SortableContext>
+            </DndContext>
         </Stack>
     );
 }

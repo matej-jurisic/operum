@@ -331,6 +331,7 @@ namespace Operum.Service.Services.Trackers
                 .Include(x => x.Analytic)
                 .AsSplitQuery()
                 .Where(x => x.TrackerId == trackerId)
+                .OrderBy(x => x.Order)
                 .ToListAsync();
 
             TrackerAnalyticsResponseDto calculatedAnalytics = new();
@@ -349,7 +350,7 @@ namespace Operum.Service.Services.Trackers
                             if (calculationResult.IsSuccess)
                             {
                                 calculationResult.Data.TrackerAnalyticId = trackerAnalytic.Id;
-                                calculatedAnalytics.SingleValueAnalytics.Add(calculationResult.Data);
+                                calculatedAnalytics.Analytics.Add(calculationResult.Data);
                             }
                         }
                         break;
@@ -363,7 +364,7 @@ namespace Operum.Service.Services.Trackers
                             if (calculationResult.IsSuccess)
                             {
                                 calculationResult.Data.TrackerAnalyticId = trackerAnalytic.Id;
-                                calculatedAnalytics.NumericChartAnalytics.Add(calculationResult.Data);
+                                calculatedAnalytics.Analytics.Add(calculationResult.Data);
                             }
                         }
                         break;
@@ -377,7 +378,7 @@ namespace Operum.Service.Services.Trackers
                             if (calculationResult.IsSuccess)
                             {
                                 calculationResult.Data.TrackerAnalyticId = trackerAnalytic.Id;
-                                calculatedAnalytics.ScatterChartAnalytics.Add(calculationResult.Data);
+                                calculatedAnalytics.Analytics.Add(calculationResult.Data);
                             }
                         }
                         break;
@@ -565,6 +566,11 @@ namespace Operum.Service.Services.Trackers
                 TrackerId = tracker.Id,
             };
 
+            var maxOrder = await db.TrackerAnalytics
+                .Where(x => x.TrackerId == trackerId)
+                .MaxAsync(x => x.Order) ?? 0;
+            trackerAnalytic.Order = maxOrder + 1;
+
             foreach (var trackerField in addTrackerAnalytic.TrackerAnalyticFields)
             {
                 trackerAnalytic.TrackerAnalyticFields.Add(new TrackerAnalyticField()
@@ -621,6 +627,58 @@ namespace Operum.Service.Services.Trackers
                 .ToListAsync();
 
             return Result.Success(mapper.Map<List<TrackerAnalytic>, List<TrackerAnalyticDto>>(analyitcConfigurations));
+        }
+
+        public async Task<Result> ReorderTrackerAnalytics(string trackerId, ReorderAnalyticsDto reorderAnalyticsDto)
+        {
+            var user = authorizationService.GetCurrentUserDto();
+            var tracker = await db.Trackers.FindAsync(trackerId);
+
+            if (tracker == null || !user.Owns(tracker))
+            {
+                return Result.Failure(StatusCodeEnum.NotFound);
+            }
+
+            var existingTrackerAnalytics = await db.TrackerAnalytics
+                .Where(x => x.TrackerId == trackerId)
+                .Select(x => x.Id)
+                .ToListAsync();
+
+            var requestedTrackerAnalyticIds = reorderAnalyticsDto.TrackerAnalyticIds.ToHashSet();
+            var existingTrackerAnalyticIds = existingTrackerAnalytics.ToHashSet();
+
+            if (!requestedTrackerAnalyticIds.SetEquals(existingTrackerAnalyticIds))
+            {
+                return Result.Failure(StatusCodeEnum.BadRequest,
+                    "Invalid tracker analytic IDs provided or missing IDs in reorder request.");
+            }
+
+            using var transaction = await db.Database.BeginTransactionAsync();
+            try
+            {
+                for (int i = 0; i < reorderAnalyticsDto.TrackerAnalyticIds.Count; i++)
+                {
+                    var trackerAnalyticId = reorderAnalyticsDto.TrackerAnalyticIds[i];
+                    var trackerAnalytic = await db.TrackerAnalytics.FindAsync(trackerAnalyticId);
+
+                    if (trackerAnalytic != null && trackerAnalytic.TrackerId == trackerId)
+                    {
+                        trackerAnalytic.Order = i + 1;
+                        db.TrackerAnalytics.Update(trackerAnalytic);
+                    }
+                }
+
+                await db.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return Result.Success();
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                return Result.Failure(StatusCodeEnum.InternalServerError,
+                    "Failed to reorder fields. Please try again.");
+            }
         }
     }
 }

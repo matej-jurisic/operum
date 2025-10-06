@@ -15,7 +15,6 @@ export function StatCard({
     isConfiguring,
 }: StatCardProps) {
     const { tracker, RemoveAnalyticFromTracker } = useTracker();
-
     return (
         <Paper withBorder p="md" radius="md">
             <Stack gap="xs">

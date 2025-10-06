@@ -22,5 +22,6 @@ namespace Operum.Service.Services.Trackers
         public Task<Result> AddAnalytic(string trackerId, AddTrackerAnalyticDto addTrackerAnalytic);
         public Task<Result> RemoveAnalytic(string trackerId, string trackerAnalyticId);
         public Task<Result<List<TrackerAnalyticDto>>> GetTrackerAnalyticConfigurations(string trackerId);
+        public Task<Result> ReorderTrackerAnalytics(string trackerId, ReorderAnalyticsDto reorderAnalyticsDto);
     }
 }

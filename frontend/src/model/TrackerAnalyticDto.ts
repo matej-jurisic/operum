@@ -1,6 +1,7 @@
 export interface TrackerAnalyticDto {
     id: string;
     name: string;
+    order?: number;
     code: string;
     description?: string;
     trackerAnalyticFields: TrackerAnalyticFieldDto[];

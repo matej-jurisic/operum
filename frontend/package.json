@@ -24,11 +24,13 @@
     "@tanstack/react-table": "^8.21.3",
     "axios": "^1.7.9",
     "frontend": "file:",
+    "masonic": "^4.1.0",
     "mobx": "^6.13.7",
     "mobx-react": "^9.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.5.0",
+    "react-masonry-css": "^1.0.16",
     "react-router-dom": "^7.7.1"
   },
   "overrides": {
