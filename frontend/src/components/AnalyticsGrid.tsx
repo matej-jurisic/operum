@@ -61,28 +61,22 @@ function SortableCardWrapper({
     children,
     isReordering,
 }: SortableCardWrapperProps) {
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging,
-    } = useSortable({ id });
+    const sortable = useSortable({ id, disabled: !isReordering });
 
     const style: CSSProperties = {
-        transform: CSS.Translate.toString(transform),
-        transition: isDragging ? transition : "none",
-        opacity: isDragging ? 0.7 : 1,
-        touchAction: "none",
+        transform: CSS.Translate.toString(sortable.transform),
+        transition: sortable.isDragging ? sortable.transition : "none",
+        opacity: sortable.isDragging ? 0.7 : 1,
+        touchAction: isReordering ? "none" : "pan-y",
         cursor: isReordering ? "grab" : "default",
     };
 
     return (
         <div
-            ref={setNodeRef}
+            ref={sortable.setNodeRef}
             style={style}
-            {...(isReordering ? { ...attributes, ...listeners } : {})}
+            {...sortable.attributes}
+            {...sortable.listeners}
         >
             {children}
         </div>
@@ -184,28 +178,7 @@ export function AnalyticsGrid({
                                 id={analytic.trackerAnalyticId}
                                 isReordering={isConfiguring}
                             >
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        flexDirection: "column",
-                                        gap: "0.5rem",
-                                    }}
-                                >
-                                    {analytic.resultType === "SingleValue" ? (
-                                        <>
-                                            <StatCard
-                                                analytic={
-                                                    analytic as SingleValueAnalyticResultDto
-                                                }
-                                                onEntryClick={onEntryClick}
-                                                isConfiguring={isConfiguring}
-                                            />
-                                            {/* Optionally duplicate or render extra info */}
-                                        </>
-                                    ) : (
-                                        renderCard(analytic)
-                                    )}
-                                </div>
+                                {renderCard(analytic)}
                             </SortableCardWrapper>
                         ))}
                     </SimpleGrid>

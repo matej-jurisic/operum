@@ -9,6 +9,8 @@ namespace Operum.Service.Helpers
 {
     public static class TrackerAnalyticsHelpers
     {
+        private static string FormatNumber(double value) => value.ToString("F2");
+
         public static Result<SingleValueAnalyticResult> GetSingleValueAnalyticResult(
             Analytic analytic,
             IEnumerable<FieldValue> values,
@@ -73,7 +75,7 @@ namespace Operum.Service.Helpers
                 return Result.Failure(StatusCodeEnum.NotFound, "No values found.");
 
             var percentage = (double)all.Count(matchPredicate) / all.Count * 100;
-            return Result.Success((Math.Round(percentage, 2) + "%", (string?)null));
+            return Result.Success((FormatNumber(percentage) + "%", (string?)null));
         }
 
         private static Result<(string Value, string? EntryId)> MinWithEntry(IEnumerable<FieldValue> values)
@@ -126,7 +128,8 @@ namespace Operum.Service.Helpers
             if (timeSpans.Count != 0)
             {
                 var avgTicks = timeSpans.Average(ts => ts.Ticks);
-                return Result.Success((TimeSpan.FromTicks((long)avgTicks).ToString(), (string?)null));
+                TimeSpan ts = TimeSpan.FromTicks((long)avgTicks);
+                return Result.Success((ts.TotalSeconds.ToString("F2") + "s", (string?)null));
             }
 
             var numbers = items.Where(x => x is double or int or long or decimal or float)
@@ -136,7 +139,7 @@ namespace Operum.Service.Helpers
             if (numbers.Count == 0)
                 return Result.Failure(StatusCodeEnum.NotFound, "No numeric values found.");
 
-            return Result.Success((Math.Round(numbers.Average(), 2).ToString(), (string?)null));
+            return Result.Success((FormatNumber(numbers.Average()), (string?)null));
         }
 
         private static Result<(string Value, string? EntryId)> Sum(IEnumerable<object?> items)
@@ -145,7 +148,8 @@ namespace Operum.Service.Helpers
             if (timeSpans.Count != 0)
             {
                 var sumTicks = timeSpans.Sum(ts => ts.Ticks);
-                return Result.Success((TimeSpan.FromTicks(sumTicks).ToString(), (string?)null));
+                TimeSpan ts = TimeSpan.FromTicks((long)sumTicks);
+                return Result.Success((ts.TotalSeconds.ToString("F2") + "s", (string?)null));
             }
 
             var numbers = items.Where(x => x is double or int or long or decimal or float)
@@ -155,7 +159,7 @@ namespace Operum.Service.Helpers
             if (numbers.Count == 0)
                 return Result.Failure(StatusCodeEnum.NotFound, "No numeric values found.");
 
-            return Result.Success((numbers.Sum().ToString(), (string?)null));
+            return Result.Success((FormatNumber(numbers.Sum()), (string?)null));
         }
 
         private static Result<(string Value, string? EntryId)> StdDev(IEnumerable<object?> items)

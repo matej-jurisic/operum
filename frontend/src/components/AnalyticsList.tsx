@@ -1,6 +1,7 @@
 import {
     ActionIcon,
     Button,
+    em,
     Group,
     Paper,
     ScrollArea,
@@ -13,6 +14,7 @@ import { FiSettings } from "react-icons/fi";
 import { useTracker } from "../context/TrackerContext";
 import globalStore from "../stores/GlobalStore";
 
+import { useMediaQuery } from "@mantine/hooks";
 import { MdAdd } from "react-icons/md";
 import AnalyticSelectionDialog from "./AnalyticSelectionDialog";
 import { AnalyticsGrid } from "./AnalyticsGrid";
@@ -21,6 +23,7 @@ import EntryDetailsDialog from "./EntryDetailsDialog";
 export default function AnalyticsList() {
     const { analytics, refreshAnalyticsIfDirty, selectedViewId, tracker } =
         useTracker();
+    const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
     const [isLoadingData, setIsLoadingData] = useState(true);
     const [openDialogType, setOpenDialogType] = useState<
         "configureAnalytics" | undefined
@@ -82,7 +85,12 @@ export default function AnalyticsList() {
                         </Stack>
                     </Paper>
                 ) : (
-                    <ScrollArea flex={1} mih={0} offsetScrollbars>
+                    <ScrollArea
+                        flex={1}
+                        mih={0}
+                        offsetScrollbars
+                        type={isMobile && isConfiguring ? "always" : "scroll"}
+                    >
                         <Skeleton visible={isLoadingData} h={500}>
                             {analytics && (
                                 <AnalyticsGrid
