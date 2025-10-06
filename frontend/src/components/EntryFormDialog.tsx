@@ -17,23 +17,30 @@ export function GetStringValue(type: string | unknown, value: unknown) {
     }
     switch (type) {
         case "date":
-            if (value instanceof Date) {
-                const utcMidnight = new Date(
-                    Date.UTC(
-                        value.getFullYear(),
-                        value.getMonth(),
-                        value.getDate()
-                    )
-                );
-                return utcMidnight.toISOString();
+            if (value) {
+                const d =
+                    value instanceof Date ? value : new Date(value as string);
+                if (!isNaN(d.getTime())) {
+                    const utcMidnight = new Date(
+                        Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())
+                    );
+                    return utcMidnight.toISOString();
+                }
             }
-            return String(value);
+            return "";
 
         case "timespan":
+            return String(value);
+
         case "datetime":
-            if (value instanceof Date) {
-                return value.toISOString();
-            } else return String(value);
+            if (value) {
+                const d =
+                    value instanceof Date ? value : new Date(value as string);
+                if (!isNaN(d.getTime())) {
+                    return d.toISOString();
+                }
+            }
+            return "";
 
         default:
             return String(value);

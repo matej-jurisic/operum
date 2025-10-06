@@ -5,6 +5,7 @@ import {
     Code,
     FileInput,
     Group,
+    List,
     Modal,
     Stack,
     Text,
@@ -40,7 +41,13 @@ export default function ImportEntriesDialog(props: ImportEntriesDialogProps) {
     };
 
     return (
-        <Modal centered opened onClose={props.onClose} title="Import Entries">
+        <Modal
+            centered
+            opened
+            onClose={props.onClose}
+            title="Import Entries"
+            size="lg"
+        >
             <form
                 onSubmit={form.onSubmit(async (values) => {
                     await ImportEntries(props.tracker.id, values.file);
@@ -52,10 +59,12 @@ export default function ImportEntriesDialog(props: ImportEntriesDialogProps) {
                         Upload a CSV file to import entries. Make sure header
                         names match the field names in the tracker.
                     </Text>
+
                     <Box>
                         <Group justify="space-between" align="center" mb={4}>
                             <Text size="sm" fw={500}>
-                                Expected CSV header format:
+                                Expected CSV header format (Order does not
+                                matter):
                             </Text>
                             <Tooltip
                                 label={
@@ -79,6 +88,49 @@ export default function ImportEntriesDialog(props: ImportEntriesDialogProps) {
                             {generateCsvHeader()}
                         </Code>
                     </Box>
+
+                    <Box>
+                        <Text size="sm" fw={500} mb={8}>
+                            Date & Time Format Requirements:
+                        </Text>
+                        <List size="sm" spacing={4}>
+                            <List.Item>
+                                <Text size="sm">
+                                    <Text span fw={500}>
+                                        Date:
+                                    </Text>{" "}
+                                    Use DD/MM/YYYY format (e.g., 10/01/2004)
+                                </Text>
+                            </List.Item>
+                            <List.Item>
+                                <Text size="sm">
+                                    <Text span fw={500}>
+                                        Time:
+                                    </Text>{" "}
+                                    Use HH:MM:SS format (e.g., 10:32:22)
+                                </Text>
+                            </List.Item>
+                            <List.Item>
+                                <Text size="sm">
+                                    <Text span fw={500}>
+                                        DateTime:
+                                    </Text>{" "}
+                                    Assumes UTC by default (e.g., 10/01/2004
+                                    10:32:22)
+                                </Text>
+                            </List.Item>
+                            <List.Item>
+                                <Text size="sm">
+                                    <Text span fw={500}>
+                                        DateTime with timezone:
+                                    </Text>{" "}
+                                    Add offset like +02:00 or +02 (e.g.,
+                                    10/01/2004 10:32:22 +02:00)
+                                </Text>
+                            </List.Item>
+                        </List>
+                    </Box>
+
                     <FileInput
                         variant="default"
                         accept=".csv"
