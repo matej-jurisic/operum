@@ -1,6 +1,5 @@
-import { ActionIcon, em, Group, Paper, Stack, Text, Indicator, ScrollArea } from "@mantine/core";
+import { ActionIcon, Group, Paper, Stack, Text, Indicator, ScrollArea } from "@mantine/core";
 import { Calendar } from "@mantine/dates";
-import { useMediaQuery } from "@mantine/hooks";
 import { useState } from "react";
 import { MdDelete, MdArrowBack } from "react-icons/md";
 import { useTracker } from "../context/TrackerContext";
@@ -14,7 +13,6 @@ interface CalendarEventCardProps {
 
 export function CalendarEventCard({ analytic, isConfiguring }: CalendarEventCardProps) {
   const { tracker, RemoveAnalyticFromTracker } = useTracker();
-  const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [viewDate, setViewDate] = useState<Date>(new Date());
 
