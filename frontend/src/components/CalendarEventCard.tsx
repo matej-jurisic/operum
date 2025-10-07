@@ -5,7 +5,7 @@ import { useState } from "react";
 import { MdDelete, MdArrowBack } from "react-icons/md";
 import { useTracker } from "../context/TrackerContext";
 import { CalendarAnalyticResultDto } from "../model/AnalyticResultDto";
-import { formatDateTime } from "../util/TypeFormatter";
+import { formatDateTime, formatFullDate } from "../util/TypeFormatter";
 
 interface CalendarEventCardProps {
   analytic: CalendarAnalyticResultDto;
@@ -32,21 +32,11 @@ export function CalendarEventCard({ analytic, isConfiguring }: CalendarEventCard
   const selectedDateKey = selectedDate?.toDateString() || "";
   const eventsForSelectedDate = eventsByDate.get(selectedDateKey) || [];
 
-  // Format date for display
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString(undefined, {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
-
   return (
     <Paper withBorder p="md" radius="md">
-      <Stack gap="xs" >
+      <Stack gap="xs"  >
         <Group justify="space-between" wrap="nowrap" align="flex-start">
-          <Text size="sm">
+          <Text size="sm" mb={"sm"}>
             {`${analytic.name}: ${analytic.dateFieldName} - ${analytic.eventFieldName}`}
           </Text>
           {isConfiguring && (
@@ -64,7 +54,7 @@ export function CalendarEventCard({ analytic, isConfiguring }: CalendarEventCard
         </Group>
 
         {!selectedDate ? (
-          <Group w={"100%"} justify="center">
+          <Group w={"100%"} justify="center" h={250}>
             <Calendar
               date={viewDate}
               onDateChange={(date) => setViewDate(new Date(date))}
@@ -95,7 +85,7 @@ export function CalendarEventCard({ analytic, isConfiguring }: CalendarEventCard
             />
           </Group>
         ) : (
-          <Stack gap="xs">
+          <Stack gap="xs" h={250}>
             <Group gap="xs">
               <ActionIcon
                 size="sm"
@@ -106,10 +96,10 @@ export function CalendarEventCard({ analytic, isConfiguring }: CalendarEventCard
                 <MdArrowBack size={16} />
               </ActionIcon>
               <Text size="sm" fw={500}>
-                {formatDate(selectedDate)}
+                {formatFullDate(selectedDate)}
               </Text>
             </Group>
-            <ScrollArea h={isMobile ? 210 : 250}>
+            <ScrollArea h="100%">
               {eventsForSelectedDate.length === 0 ? (
                 <Text size="sm" c="dimmed" ta="center" py="xl">
                   No events on this date
@@ -117,21 +107,19 @@ export function CalendarEventCard({ analytic, isConfiguring }: CalendarEventCard
               ) : (
                 <Stack gap="xs" pr="xs">
                   {eventsForSelectedDate.map((event, index) => (
-                    <Group
+                    <Paper
                       key={index}
-                      gap="sm"
-                      wrap="nowrap"
+                      withBorder
                       p="xs"
                       style={{
                         borderRadius: "6px",
-                        backgroundColor: `var(--mantine-color-${tracker.color || "blue"}-0)`,
                         borderLeft: `3px solid var(--mantine-color-${tracker.color || "blue"}-6)`,
                       }}
                     >
                       <Text size="sm" style={{ flex: 1 }}>
                         {event.name} - {formatDateTime(event.date.toString())}
                       </Text>
-                    </Group>
+                    </Paper>
                   ))}
                 </Stack>
               )}

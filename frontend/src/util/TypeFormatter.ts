@@ -11,6 +11,16 @@ export const formatDateTime = (value?: string) =>
           })
         : "";
 
+// Format date for display
+export const formatFullDate = (date: Date) => {
+    return new Date(date).toLocaleDateString(undefined, {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+    });
+};
+
 export const formatDateTimeFromDate = (date?: Date) =>
     date
         ? date.toLocaleString("en-GB", {
