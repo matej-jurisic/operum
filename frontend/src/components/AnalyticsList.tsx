@@ -90,6 +90,7 @@ export default function AnalyticsList() {
                         mih={0}
                         offsetScrollbars
                         type={isMobile && isConfiguring ? "always" : "scroll"}
+                        scrollbarSize={25}
                     >
                         <Skeleton visible={isLoadingData} h={500}>
                             {analytics && (
