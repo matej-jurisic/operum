@@ -1,6 +1,5 @@
 export interface AnalyticResultDto {
     analyticId: string;
-    trackerAnalyticId: string;
     name: string;
     description?: string;
     code: string;
@@ -31,5 +30,5 @@ export interface ScatterPlotAnalyticResultDto extends AnalyticResultDto {
 export interface CalendarAnalyticResultDto extends AnalyticResultDto {
     dateFieldName: string;
     eventFieldName: string;
-    points: {date: Date; name: string}[];
+    points: { date: string; name: string }[];
 }

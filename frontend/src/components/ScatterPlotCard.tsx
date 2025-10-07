@@ -34,9 +34,7 @@ export function ScatterPlotCard({
                             color={tracker.color}
                             variant="outline"
                             onClick={() =>
-                                RemoveAnalyticFromTracker(
-                                    analytic.trackerAnalyticId
-                                )
+                                RemoveAnalyticFromTracker(analytic.analyticId)
                             }
                         >
                             <MdDelete size={18} />
@@ -53,7 +51,7 @@ export function ScatterPlotCard({
                             data: analytic.points,
                         },
                     ]}
-                    h={isMobile ? 210 : 250}
+                    h={isMobile ? 210 : 280}
                     xAxisProps={{
                         tickFormatter: getAxisFormatter(analytic.xFieldType),
                     }}

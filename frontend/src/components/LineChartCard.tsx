@@ -28,9 +28,7 @@ export function LineChartCard({ analytic, isConfiguring }: LineChartCardProps) {
                             color={tracker.color}
                             variant="outline"
                             onClick={() =>
-                                RemoveAnalyticFromTracker(
-                                    analytic.trackerAnalyticId
-                                )
+                                RemoveAnalyticFromTracker(analytic.analyticId)
                             }
                         >
                             <MdDelete size={18} />
@@ -42,7 +40,7 @@ export function LineChartCard({ analytic, isConfiguring }: LineChartCardProps) {
                     gridAxis="x"
                     data={analytic.points}
                     dataKey="x"
-                    h={isMobile ? 210 : 250}
+                    h={isMobile ? 210 : 280}
                     series={[
                         {
                             name: "y",

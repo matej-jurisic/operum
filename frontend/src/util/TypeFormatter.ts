@@ -1,3 +1,21 @@
+export const parseDate = (dateStr: string): Date => {
+    const parts = dateStr.split(" ");
+    const datePart = parts[0];
+    const timePart = parts[1] || "00:00:00";
+
+    const [day, month, year] = datePart.split("/").map(Number);
+    const [hours, minutes, seconds] = timePart.split(":").map(Number);
+
+    return new Date(
+        year,
+        month - 1,
+        day,
+        hours || 0,
+        minutes || 0,
+        seconds || 0
+    );
+};
+
 export const formatDateTime = (value?: string) =>
     value
         ? new Date(value).toLocaleString("en-GB", {

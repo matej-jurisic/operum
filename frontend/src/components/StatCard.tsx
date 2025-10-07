@@ -43,7 +43,7 @@ export function StatCard({
                                 variant="outline"
                                 onClick={() =>
                                     RemoveAnalyticFromTracker(
-                                        analytic.trackerAnalyticId
+                                        analytic.analyticId
                                     )
                                 }
                             >

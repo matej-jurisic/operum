@@ -27,13 +27,13 @@ import {
     ScatterPlotAnalyticResultDto,
     SingleValueAnalyticResultDto,
 } from "../model/AnalyticResultDto";
-import { CalendarEventCard } from "./CalendarEventCard";
-import { ChartCard } from "./ChartCard";
+import { CalendarCard } from "./CalendarCard";
+import { LineChartCard } from "./LineChartCard";
 import { ScatterPlotCard } from "./ScatterPlotCard";
 import { StatCard } from "./StatCard";
 
 export const StatCardMemo = React.memo(StatCard);
-export const ChartCardMemo = React.memo(ChartCard);
+export const LineChartCardMemo = React.memo(LineChartCard);
 export const ScatterPlotCardMemo = React.memo(ScatterPlotCard);
 
 interface AnalyticsGridProps {
@@ -138,7 +138,7 @@ export function AnalyticsGrid({
                 );
             case "NumericChart":
                 return (
-                    <ChartCardMemo
+                    <LineChartCardMemo
                         analytic={analytic as NumericChartAnalyticResultDto}
                         isConfiguring={isConfiguring}
                     />
@@ -150,9 +150,9 @@ export function AnalyticsGrid({
                         isConfiguring={isConfiguring}
                     />
                 );
-            case "CalendarEvents":
+            case "Calendar":
                 return (
-                    <CalendarEventCard
+                    <CalendarCard
                         analytic={analytic as CalendarAnalyticResultDto}
                         isConfiguring={isConfiguring}
                     />

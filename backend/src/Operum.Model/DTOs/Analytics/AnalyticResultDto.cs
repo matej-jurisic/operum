@@ -6,8 +6,8 @@ namespace Operum.Model.DTOs.Analytics
     [JsonPolymorphic(TypeDiscriminatorPropertyName = "ResultType")]
     [JsonDerivedType(typeof(SingleValueAnalyticResult), AnalyticResultTypes.SingleValue)]
     [JsonDerivedType(typeof(NumericChartAnalyticResult), AnalyticResultTypes.NumericChart)]
-    [JsonDerivedType(typeof(ScatterChartAnalyticResult), AnalyticResultTypes.ScatterChart)]
-    [JsonDerivedType(typeof(CalendarEventsAnalyticResult), AnalyticResultTypes.CalendarEvents)]
+    [JsonDerivedType(typeof(ScatterPlotAnalyticResult), AnalyticResultTypes.ScatterPlot)]
+    [JsonDerivedType(typeof(CalendarAnalyticResult), AnalyticResultTypes.Calendar)]
     public abstract class AnalyticResultDto
     {
         public string AnalyticId { get; set; } = string.Empty;
@@ -56,18 +56,18 @@ namespace Operum.Model.DTOs.Analytics
         }
     }
 
-    public class CalendarEventsAnalyticResult : AnalyticResultDto
+    public class CalendarAnalyticResult : AnalyticResultDto
     {
         public string DateFieldName { get; set; } = string.Empty;
-        public string EventFieldName { get; set; }  = string.Empty;
+        public string EventFieldName { get; set; } = string.Empty;
         public List<CalendarPointDto> Points { get; set; } = [];
 
-        public CalendarEventsAnalyticResult()
+        public CalendarAnalyticResult()
         {
-            ResultType = AnalyticResultTypes.CalendarEvents;
+            ResultType = AnalyticResultTypes.Calendar;
         }
     }
-    
+
     public class ChartPointDto
     {
         public string? X { get; set; }
@@ -82,7 +82,7 @@ namespace Operum.Model.DTOs.Analytics
 
     public class CalendarPointDto
     {
-        public DateTime? Date { get; set; }
+        public string? Date { get; set; }
         public string? Name { get; set; }
     }
 }

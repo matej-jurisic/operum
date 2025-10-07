@@ -105,7 +105,7 @@ namespace Operum.Service.Helpers.Analytics
             return result;
         }
 
-        public static ScatterPlotAnalyticResult GetScatterChartResult(
+        public static ScatterPlotAnalyticResult GetScatterPlotAnalyticResult(
             Analytic analytic,
             IEnumerable<Entry> entries,
             Dictionary<string, Field> fields)
@@ -138,6 +138,39 @@ namespace Operum.Service.Helpers.Analytics
             result.YFieldName = yField.Name;
             result.XFieldName = xField.Name;
             result.XFieldType = xField.Type;
+            return result;
+        }
+
+        public static CalendarAnalyticResult GetCalendarAnalyticResult(
+            Analytic analytic,
+            IEnumerable<Entry> entries,
+            Dictionary<string, Field> fields)
+        {
+            var result = new CalendarAnalyticResult
+            {
+                Name = analytic.Code,
+                Description = analytic.Description,
+                AnalyticId = analytic.Id
+            };
+
+            var whenField = fields.GetValueOrDefault(AnalyticDataTypePurposes.When);
+            var whatField = fields.GetValueOrDefault(AnalyticDataTypePurposes.What);
+
+            if (whenField == null || whatField == null)
+                return result;
+
+            var calendarPoints = entries
+                .Select(e => new CalendarPointDto()
+                {
+                    Date = e.FieldValues.FirstOrDefault(f => f.FieldId == whenField.Id)?.GetValueAsString(),
+                    Name = e.FieldValues.FirstOrDefault(f => f.FieldId == whatField.Id)?.GetValueAsString(),
+                })
+                .Where(p => p.Date != null && p.Name != null)
+                .ToList();
+
+            result.Points = calendarPoints;
+            result.DateFieldName = whenField.Name;
+            result.EventFieldName = whatField.Name;
             return result;
         }
     }

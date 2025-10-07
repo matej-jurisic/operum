@@ -45,7 +45,10 @@ namespace Operum.Service.Helpers.Analytics
                     AnalyticResultGetters.GetNumericChartAnalyticResult(analytic, entries, fieldMap),
 
                 AnalyticResultTypes.ScatterPlot =>
-                    AnalyticResultGetters.GetScatterChartResult(analytic, entries, fieldMap),
+                    AnalyticResultGetters.GetScatterPlotAnalyticResult(analytic, entries, fieldMap),
+
+                AnalyticResultTypes.Calendar =>
+                    AnalyticResultGetters.GetCalendarAnalyticResult(analytic, entries, fieldMap),
 
                 _ => null
             };
