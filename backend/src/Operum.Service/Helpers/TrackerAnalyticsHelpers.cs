@@ -10,6 +10,17 @@ namespace Operum.Service.Helpers
     public static class TrackerAnalyticsHelpers
     {
         private static string FormatNumber(double value) => value.ToString("F2");
+        private static string FormatTimeSpan(TimeSpan ts)
+        {
+            double totalSeconds = Math.Round(ts.TotalSeconds, 2);
+
+            int hours = (int)(totalSeconds / 3600);
+            int minutes = (int)((totalSeconds % 3600) / 60);
+            double seconds = totalSeconds % 60;
+
+            return $"{hours:D2}:{minutes:D2}:{seconds:00.##}";
+        }
+
 
         public static Result<SingleValueAnalyticResult> GetSingleValueAnalyticResult(
             Analytic analytic,
@@ -128,8 +139,8 @@ namespace Operum.Service.Helpers
             if (timeSpans.Count != 0)
             {
                 var avgTicks = timeSpans.Average(ts => ts.Ticks);
-                TimeSpan ts = TimeSpan.FromTicks((long)avgTicks);
-                return Result.Success((ts.TotalSeconds.ToString("F2") + "s", (string?)null));
+                var avgTimeSpan = TimeSpan.FromTicks((long)avgTicks);
+                return Result.Success((FormatTimeSpan(avgTimeSpan), (string?)null));
             }
 
             var numbers = items.Where(x => x is double or int or long or decimal or float)
@@ -148,8 +159,8 @@ namespace Operum.Service.Helpers
             if (timeSpans.Count != 0)
             {
                 var sumTicks = timeSpans.Sum(ts => ts.Ticks);
-                TimeSpan ts = TimeSpan.FromTicks((long)sumTicks);
-                return Result.Success((ts.TotalSeconds.ToString("F2") + "s", (string?)null));
+                var avgTimeSpan = TimeSpan.FromTicks(sumTicks);
+                return Result.Success((FormatTimeSpan(avgTimeSpan), (string?)null));
             }
 
             var numbers = items.Where(x => x is double or int or long or decimal or float)

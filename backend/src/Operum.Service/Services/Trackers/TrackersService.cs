@@ -22,7 +22,7 @@ namespace Operum.Service.Services.Trackers
             var trackerCount = await db.Trackers.Where(x => x.OwnerId == user.Id).CountAsync();
             if (trackerCount >= DataLimits.MaxTrackerCount)
             {
-                return Result.Failure(StatusCodeEnum.BadRequest, $"Maximum number of trackers {DataLimits.MaxTrackerCount} reached.");
+                return Result.Failure(StatusCodeEnum.BadRequest, $"Maximum number of {DataLimits.MaxTrackerCount} trackers reached.");
             }
 
             if (tracker.TrackerTypeId != null && !await authorizationService.HasRole("Admin"))
@@ -558,6 +558,13 @@ namespace Operum.Service.Services.Trackers
                     return Result.Failure(StatusCodeEnum.NotFound,
                         $"Field {trackerField.FieldId} not found.");
                 }
+            }
+
+            var count = await db.TrackerAnalytics.Where(x => x.TrackerId == trackerId).CountAsync();
+
+            if (count >= DataLimits.MaxAnalyticCount)
+            {
+                return Result.Failure(StatusCodeEnum.BadRequest, $"Maximum number of {DataLimits.MaxAnalyticCount} analytics reached.");
             }
 
             TrackerAnalytic trackerAnalytic = new()
