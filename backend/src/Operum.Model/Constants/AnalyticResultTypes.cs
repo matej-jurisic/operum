@@ -5,10 +5,11 @@
         public const string SingleValue = "SingleValue";
         public const string NumericChart = "NumericChart";
         public const string ScatterChart = "ScatterChart";
+        public const string CalendarEvents = "CalendarEvents";
 
-        public static readonly HashSet<string> All =
+        private static readonly HashSet<string> All =
         [
-            SingleValue, NumericChart, ScatterChart
+            SingleValue, NumericChart, ScatterChart, CalendarEvents
         ];
 
         public static bool IsValid(string op) => All.Contains(op);

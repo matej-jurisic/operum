@@ -244,6 +244,45 @@ namespace Operum.Service.Helpers
             return Result.Success(result);
         }
 
+        public static Result<CalendarEventsAnalyticResult> GetCalendarEventsAnalyticResult(
+            Analytic analytic,
+            List<Entry> entries,
+            Field dateField,
+            Field nameField )
+        {
+            var result = new CalendarEventsAnalyticResult()
+            {
+                Name = analytic.Name,
+                Description = analytic.Description,
+                AnalyticId = analytic.Id,
+                DateFieldName = dateField.Name,
+                EventFieldName = nameField.Name,
+            };
+
+            if (!AnalyticCodes.IsValid(analytic.Code))
+            {
+                return Result.Success(result);
+            }
+
+            var calendarPoints = entries
+                .Select(x => new CalendarPointDto
+                {
+                    Date = x.FieldValues.FirstOrDefault(f => f.FieldId == dateField.Id)?.DateTimeValue,
+                    Name = x.FieldValues.FirstOrDefault(f => f.FieldId == nameField.Id)?.StringValue,
+                })
+                .Where(p => p is { Date: not null, Name: not null } )
+                .ToList();
+
+            var points = analytic.Code switch
+            {
+                AnalyticCodes.CalendarEvents => calendarPoints,
+                _ => []
+            };
+
+            result.Points = points;
+            return Result.Success(result);
+        }
+
         private static List<ChartPointDto> CalculateCumulativePoints(List<ChartPointDto> dataPoints)
         {
             var grouped = dataPoints

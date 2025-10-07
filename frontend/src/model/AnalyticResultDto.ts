@@ -27,3 +27,9 @@ export interface ScatterChartAnalyticResultDto extends AnalyticResultDto {
     yFieldType: string;
     points: { x: number; y: number }[];
 }
+
+export interface CalendarAnalyticResultDto extends AnalyticResultDto {
+    dateFieldName: string;
+    eventFieldName: string;
+    points: {date: Date; name: string}[];
+}

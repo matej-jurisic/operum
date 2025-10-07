@@ -382,6 +382,20 @@ namespace Operum.Service.Services.Trackers
                             }
                         }
                         break;
+                    case AnalyticResultTypes.CalendarEvents:
+                        var dateField = trackerAnalytic.TrackerAnalyticFields.FirstOrDefault(x => x.AnalyticRequiredDataType.Purpose == AnalyticDataTypePurposes.Datetime)?.Field;
+                        var nameField = trackerAnalytic.TrackerAnalyticFields.FirstOrDefault(x => x.AnalyticRequiredDataType.Purpose == AnalyticDataTypePurposes.Name)?.Field;
+
+                        if (dateField != null && nameField != null)
+                        {
+                            var calculationResult = TrackerAnalyticsHelpers.GetCalendarEventsAnalyticResult(trackerAnalytic.Analytic,  entries, dateField, nameField);
+                            if (calculationResult.IsSuccess)
+                            {
+                                calculationResult.Data.TrackerAnalyticId = trackerAnalytic.Id;
+                                calculatedAnalytics.Analytics.Add(calculationResult.Data);
+                            }
+                        }
+                        break;
                 }
             }
 

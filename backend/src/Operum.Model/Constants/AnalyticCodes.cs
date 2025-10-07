@@ -16,11 +16,12 @@
         public const string AggregatedLineChart = "AggregatedLineChart";
         public const string CumulativeLineChart = "CumulativeLineChart";
         public const string LineChart = "LineChart";
+        public const string CalendarEvents = "CalendarEvents";
 
 
-        public static readonly HashSet<string> All =
+        private static readonly HashSet<string> All =
         [
-            Count, Min, Max, Average, Sum, StdDev, TrueCount, FalseCount, TruePercentage, AggregatedLineChart, CumulativeLineChart, LineChart
+            Count, Min, Max, Average, Sum, StdDev, TrueCount, FalseCount, TruePercentage, AggregatedLineChart, CumulativeLineChart, LineChart, CalendarEvents
         ];
 
         public static bool IsValid(string op) => All.Contains(op);

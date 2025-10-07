@@ -6,12 +6,12 @@ import { useTracker } from "../context/TrackerContext";
 import { NumericChartAnalyticResultDto } from "../model/AnalyticResultDto";
 import { createTooltipContent, getAxisFormatter } from "./ChartFormatters";
 
-interface ChartCardProps {
+interface LineChartCardProps {
     analytic: NumericChartAnalyticResultDto;
     isConfiguring: boolean;
 }
 
-export function ChartCard({ analytic, isConfiguring }: ChartCardProps) {
+export function LineChartCard({ analytic, isConfiguring }: LineChartCardProps) {
     const { tracker, RemoveAnalyticFromTracker } = useTracker();
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
 
@@ -42,7 +42,7 @@ export function ChartCard({ analytic, isConfiguring }: ChartCardProps) {
                     gridAxis="x"
                     data={analytic.points}
                     dataKey="x"
-                    h={isMobile ? 210 : 260}
+                    h={isMobile ? 210 : 250}
                     series={[
                         {
                             name: "y",

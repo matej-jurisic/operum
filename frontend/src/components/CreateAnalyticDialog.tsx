@@ -26,6 +26,7 @@ const analyticResultTypeOptions = [
     { value: "SingleValue", label: "Single Value" },
     { value: "NumericChart", label: "Numeric Chart" },
     { value: "ScatterChart", label: "Scatter Chart" },
+    { value: "CalendarEvents", label: "Calendar Events" },
 ];
 
 const analyticCodeOptions = [
@@ -42,6 +43,7 @@ const analyticCodeOptions = [
     { value: "CumulativeLineChart", label: "CumulativeLineChart" },
     { value: "ScatterChart", label: "ScatterChart" },
     { value: "LineChart", label: "LineChart" },
+    { value: "CalendarEvents", label: "Calendar" },
 ];
 
 interface CreateAnalyticDialogProps {
@@ -122,6 +124,18 @@ export function CreateAnalyticDialog(props: CreateAnalyticDialogProps) {
                             }: All fields must have a type`;
                         }
                     }
+                    else if (values.resultType === "CalendarEvents") {
+                        if (config.length !== 2) {
+                            return `Configuration ${
+                                i + 1
+                            }: Calendar requires exactly 2 fields`;
+                        }
+                        if (!config[0].type || !config[1].type) {
+                            return `Configuration ${
+                                i + 1
+                            }: All fields must have a type`;
+                        }
+                    }
                 }
                 return null;
             },
@@ -142,13 +156,34 @@ export function CreateAnalyticDialog(props: CreateAnalyticDialogProps) {
     const addAnalytic = () => {
         if (!canAddAnalytic) return;
 
-        const initialConfig =
-            form.values.resultType === "SingleValue"
-                ? [{ type: "", purpose: "Value" }]
-                : [
-                      { type: "", purpose: "X-axis" },
-                      { type: "", purpose: "Y-axis" },
-                  ];
+    let initialConfig: {type: string, purpose: string}[] = [];
+
+    switch (form.values.resultType) {
+        case "SingleValue":
+            initialConfig = [
+                { type: "", purpose: "Value" }
+            ];
+            break;
+
+        case "NumericChart":
+        case "ScatterChart":
+            initialConfig = [
+                { type: "", purpose: "X-axis" },
+                { type: "", purpose: "Y-axis" }
+            ];
+            break;
+
+        case "CalendarEvents":
+            initialConfig = [
+                { type: "", purpose: "Datetime" },
+                { type: "", purpose: "Name" },
+            ];
+            break;
+
+        default:
+            initialConfig = [];
+            break;
+        }
 
         form.insertListItem("analyticRequiredDataTypesList", initialConfig);
     };
@@ -271,66 +306,23 @@ export function CreateAnalyticDialog(props: CreateAnalyticDialogProps) {
                                                     justify="space-between"
                                                     align="flex-start"
                                                 >
-                                                    {form.values.resultType ===
-                                                    "SingleValue" ? (
-                                                        <Select
-                                                            allowDeselect={
-                                                                false
-                                                            }
-                                                            label="Value Type"
-                                                            placeholder="Select type"
+                                                     <Group style={{ flex: 1 }} gap="md">
+                                                        {form.values.analyticRequiredDataTypesList[analyticIndex].map((field, fieldIndex) => (
+                                                            <Select
+                                                            key={fieldIndex}
+                                                            allowDeselect={false}
+                                                            label={`${field.purpose} Type`}
+                                                            placeholder={`Select ${field.purpose.toLowerCase()} type`}
                                                             data={fieldTypes}
-                                                            style={{
-                                                                flex: 1,
-                                                            }}
+                                                            style={{ flex: 1 }}
                                                             required
                                                             {...form.getInputProps(
-                                                                `analyticRequiredDataTypesList.${analyticIndex}.0.type`
+                                                                `analyticRequiredDataTypesList.${analyticIndex}.${fieldIndex}.type`
                                                             )}
-                                                        />
-                                                    ) : (
-                                                        <Group
-                                                            style={{
-                                                                flex: 1,
-                                                            }}
-                                                            gap="md"
-                                                        >
-                                                            <Select
-                                                                allowDeselect={
-                                                                    false
-                                                                }
-                                                                label="X-axis Type"
-                                                                placeholder="Select type"
-                                                                data={
-                                                                    fieldTypes
-                                                                }
-                                                                style={{
-                                                                    flex: 1,
-                                                                }}
-                                                                required
-                                                                {...form.getInputProps(
-                                                                    `analyticRequiredDataTypesList.${analyticIndex}.0.type`
-                                                                )}
                                                             />
-                                                            <Select
-                                                                allowDeselect={
-                                                                    false
-                                                                }
-                                                                label="Y-axis Type"
-                                                                placeholder="Select type"
-                                                                data={
-                                                                    fieldTypes
-                                                                }
-                                                                style={{
-                                                                    flex: 1,
-                                                                }}
-                                                                required
-                                                                {...form.getInputProps(
-                                                                    `analyticRequiredDataTypesList.${analyticIndex}.1.type`
-                                                                )}
-                                                            />
-                                                        </Group>
-                                                    )}
+                                                        ))}
+                                                    </Group>
+
                                                     <ActionIcon
                                                         color="red"
                                                         variant="outline"

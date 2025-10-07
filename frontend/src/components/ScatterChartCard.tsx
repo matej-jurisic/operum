@@ -53,7 +53,7 @@ export function ScatterChartCard({
                             data: analytic.points,
                         },
                     ]}
-                    h={isMobile ? 210 : 260}
+                    h={isMobile ? 210 : 250}
                     xAxisProps={{
                         tickFormatter: getAxisFormatter(analytic.xFieldType),
                     }}

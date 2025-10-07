@@ -22,17 +22,19 @@ import api from "../api/api";
 import { useTracker } from "../context/TrackerContext";
 import {
     AnalyticResultDto,
+    CalendarAnalyticResultDto,
     NumericChartAnalyticResultDto,
     ScatterChartAnalyticResultDto,
     SingleValueAnalyticResultDto,
 } from "../model/AnalyticResultDto";
 import { TrackerAnalyticsResponseDto } from "../model/TrackerAnalyticsResponseDto";
-import { ChartCard } from "./ChartCard";
+import { LineChartCard } from "./LineChartCard";
 import { ScatterChartCard } from "./ScatterChartCard";
 import { StatCard } from "./StatCard";
+import { CalendarEventCard } from "./CalendarEventCard";
 
 export const StatCardMemo = React.memo(StatCard);
-export const ChartCardMemo = React.memo(ChartCard);
+export const ChartCardMemo = React.memo(LineChartCard);
 export const ScatterChartCardMemo = React.memo(ScatterChartCard);
 
 interface AnalyticsGridProps {
@@ -151,6 +153,10 @@ export function AnalyticsGrid({
                         isConfiguring={isConfiguring}
                     />
                 );
+            case "CalendarEvents":
+                return (
+                    <CalendarEventCard analytic={analytic as CalendarAnalyticResultDto} isConfiguring={isConfiguring}/>
+                )
             default:
                 return null;
         }
