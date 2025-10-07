@@ -135,7 +135,9 @@ namespace Operum.Service.Helpers.Analytics
         {
             var grouped = dataPoints
                 .GroupBy(e => e.X)
-                .OrderBy(g => g.Key)
+                .Select((g, index) => new { Group = g, OriginalIndex = dataPoints.FindIndex(p => p.X == g.Key) })
+                .OrderBy(x => x.OriginalIndex)
+                .Select(x => x.Group)
                 .ToList();
 
             var points = new List<ChartPointDto>();
