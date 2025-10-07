@@ -7,7 +7,6 @@ import {
     useMantineTheme,
 } from "@mantine/core";
 import { useLocation, useNavigate } from "react-router-dom";
-import AnalyticsConfiguration from "../components/AnalyticsConfiguration";
 import Header from "../components/Header";
 import TrackerList from "../components/TrackerList";
 import UsersPanel from "../components/UsersPanel";
@@ -42,7 +41,6 @@ export default function AdminPanel() {
                         <Tabs.List>
                             <Tabs.Tab value="users">Users</Tabs.Tab>
                             <Tabs.Tab value="templates">Templates</Tabs.Tab>
-                            <Tabs.Tab value="analytics">Analytics</Tabs.Tab>
                         </Tabs.List>
 
                         <Container
@@ -58,9 +56,6 @@ export default function AdminPanel() {
                             </Tabs.Panel>
                             <Tabs.Panel value="templates" h="100%">
                                 <TrackerList isTemplates />
-                            </Tabs.Panel>
-                            <Tabs.Panel value="analytics" h="100%">
-                                <AnalyticsConfiguration />
                             </Tabs.Panel>
                         </Container>
                     </Tabs>

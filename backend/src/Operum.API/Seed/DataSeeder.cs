@@ -35,32 +35,6 @@ namespace Operum.API.Seed
             await db.SaveChangesAsync();
         }
 
-        public async static Task SeedAnalyticTypesAsync(OperumContext db)
-        {
-            AnalyticType draftAnalytic = new()
-            {
-                Id = (int)AnalyticTypeEnum.DraftAnalytic,
-                Name = "Draft"
-            };
-            AnalyticType publicAnalytic = new()
-            {
-                Id = (int)AnalyticTypeEnum.PublicAnalytic,
-                Name = "Public"
-            };
-
-            List<AnalyticType> analyticTypes = [draftAnalytic, publicAnalytic];
-
-            foreach (AnalyticType type in analyticTypes)
-            {
-                if (!await db.AnalyticTypes.AnyAsync(x => x.Id == type.Id))
-                {
-                    db.AnalyticTypes.Add(type);
-                }
-            }
-
-            await db.SaveChangesAsync();
-        }
-
         public async static Task SeedUsersAsync(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IConfiguration? configuration = null)
         {
             // First, ensure roles exist

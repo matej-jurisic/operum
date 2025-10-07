@@ -1,4 +1,4 @@
-﻿namespace Operum.Model.DTOs.Trackers.Requests
+﻿namespace Operum.Model.DTOs.Fields.Requests
 {
     public class ReorderFieldsDto
     {

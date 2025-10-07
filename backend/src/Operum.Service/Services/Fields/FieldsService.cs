@@ -5,7 +5,6 @@ using Operum.Model.Common;
 using Operum.Model.Constants;
 using Operum.Model.DTOs.Fields;
 using Operum.Model.DTOs.Fields.Requests;
-using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Model.Enums;
 using Operum.Model.Extensions;
 using Operum.Model.Models;

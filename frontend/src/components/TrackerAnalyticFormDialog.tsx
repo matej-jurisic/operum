@@ -1,13 +1,20 @@
-import { Button, Group, Modal, Select, Stack, Text } from "@mantine/core";
+import { Button, Modal, Select, Stack, Text } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useMemo } from "react";
 import { useTracker } from "../context/TrackerContext";
-import { AnalyticDto } from "../model/AnalyticDto";
-import { AddTrackerAnalyticDto } from "../model/requests/AddTrackerAnalyticDto";
+import { CodeDto, ResultTypeDto } from "../model/AnalyticDto";
+import { AddAnalyticDto } from "../model/requests/AddAnalyticDto";
 
 interface Props {
     onClose: () => void;
-    selectedAnalytic: AnalyticDto;
+    selectedAnalytic: {
+        code: CodeDto;
+        resultType: ResultTypeDto;
+    };
+}
+
+interface FormValues {
+    fieldMappings: Record<string, string>;
 }
 
 export default function TrackerAnalyticFormDialog({
@@ -15,55 +22,55 @@ export default function TrackerAnalyticFormDialog({
     selectedAnalytic,
 }: Props) {
     const { tracker, fields, AddAnalyticToTracker } = useTracker();
+    const { code, resultType } = selectedAnalytic;
 
-    const form = useForm<AddTrackerAnalyticDto>({
+    const form = useForm<FormValues>({
         initialValues: {
-            analyticId: selectedAnalytic.id,
-            trackerAnalyticFields: [],
+            fieldMappings: {},
         },
         validate: {
-            trackerAnalyticFields: (value) =>
-                value.length !==
-                selectedAnalytic.analyticRequiredDataTypes.length
+            fieldMappings: (value) => {
+                const mappedCount = Object.keys(value).filter(
+                    (k) => value[k]
+                ).length;
+                return mappedCount !== code.purposes.length
                     ? "Please map all required fields"
-                    : null,
+                    : null;
+            },
         },
     });
 
-    const fieldsForSelect = useMemo(
-        () => fields.map((f) => ({ value: f.id, label: f.name, type: f.type })),
-        [fields]
-    );
+    const fieldsByType = useMemo(() => {
+        const grouped: Record<
+            string,
+            Array<{ value: string; label: string }>
+        > = {};
+        fields.forEach((f) => {
+            if (f.type) {
+                if (!grouped[f.type]) {
+                    grouped[f.type] = [];
+                }
+                grouped[f.type].push({ value: f.id, label: f.name });
+            }
+        });
+        return grouped;
+    }, [fields]);
 
-    const handleFieldChange = (
-        analyticRequiredDataTypeId: string,
-        fieldId: string | null
-    ) => {
-        const currentFields = form.values.trackerAnalyticFields.filter(
-            (f) => f.analyticRequiredDataTypeId !== analyticRequiredDataTypeId
-        );
-        if (fieldId) {
-            form.setFieldValue("trackerAnalyticFields", [
-                ...currentFields,
-                { fieldId, analyticRequiredDataTypeId },
-            ]);
-        } else {
-            form.setFieldValue("trackerAnalyticFields", currentFields);
-        }
-    };
+    const handleSubmit = async (values: FormValues) => {
+        const analyticFields = Object.entries(values.fieldMappings)
+            .filter(([_, fieldId]) => fieldId)
+            .map(([purpose, fieldId]) => ({
+                fieldId,
+                purpose,
+            }));
 
-    const handleSubmit = async (values: AddTrackerAnalyticDto) => {
-        if (
-            values.trackerAnalyticFields.length !==
-            selectedAnalytic.analyticRequiredDataTypes.length
-        ) {
-            form.setFieldError(
-                "trackerAnalyticFields",
-                "Please map all required fields"
-            );
-            return;
-        }
-        await AddAnalyticToTracker(values);
+        const dto: AddAnalyticDto = {
+            code: code.name,
+            resultType: resultType.name,
+            analyticFields,
+        };
+
+        await AddAnalyticToTracker(dto);
         onClose();
     };
 
@@ -73,41 +80,44 @@ export default function TrackerAnalyticFormDialog({
             onClose={onClose}
             title="Map Analytic Fields"
             centered
-            size={"lg"}
+            size="lg"
         >
             <form onSubmit={form.onSubmit(handleSubmit)}>
-                <Stack justify="stretch">
-                    <Group justify="flex-start" align="center">
-                        <Text c="dimmed">Selected:</Text>
-                        <Text>
-                            <strong>{selectedAnalytic.name}</strong>
+                <Stack gap="md">
+                    <Text size="sm">
+                        <Text span c="dimmed">
+                            Analytic:{" "}
                         </Text>
-                    </Group>
+                        <Text span fw={500}>
+                            {code.name}
+                        </Text>
+                    </Text>
 
-                    {selectedAnalytic.analyticRequiredDataTypes.map((type) => {
-                        const currentValue =
-                            form.values.trackerAnalyticFields.find(
-                                (f) => f.analyticRequiredDataTypeId === type.id
-                            )?.fieldId;
+                    {code.purposes.map((purpose) => (
+                        <Select
+                            key={purpose.name}
+                            label={purpose.name}
+                            placeholder={`Select field (${purpose.allowedDataTypes.join(
+                                ", "
+                            )})`}
+                            data={purpose.allowedDataTypes.flatMap(
+                                (type) => fieldsByType[type] || []
+                            )}
+                            value={
+                                form.values.fieldMappings[purpose.name] || null
+                            }
+                            onChange={(value) =>
+                                form.setFieldValue(
+                                    `fieldMappings.${purpose.name}`,
+                                    value || ""
+                                )
+                            }
+                            required
+                            clearable
+                        />
+                    ))}
 
-                        return (
-                            <Select
-                                label={type.purpose}
-                                key={type.id}
-                                data={fieldsForSelect.filter(
-                                    (x) => x.type === type.type
-                                )}
-                                placeholder={`Select ${type.type}`}
-                                value={currentValue}
-                                onChange={(value) =>
-                                    handleFieldChange(type.id, value)
-                                }
-                                required
-                            />
-                        );
-                    })}
-
-                    <Button color={tracker.color} type="submit">
+                    <Button color={tracker.color} type="submit" mt="xs">
                         Add Analytic
                     </Button>
                 </Stack>

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Operum.API.Controllers.Base;
 using Operum.Model.Constants;
+using Operum.Model.DTOs.Analytics.Requests;
 using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Service.Services.Trackers;
 
@@ -66,14 +67,6 @@ namespace Operum.API.Controllers
             return GetApiResponse(await trackerService.GetTrackerAnalytics(trackerId, viewId));
         }
 
-
-
-        [HttpGet("{trackerId}/analytic-configrations")]
-        public async Task<IActionResult> GetTrackerAnaylticConfigurations([FromRoute] string trackerId)
-        {
-            return GetApiResponse(await trackerService.GetTrackerAnalyticConfigurations(trackerId));
-        }
-
         [HttpPost("{trackerId}/users")]
         public async Task<IActionResult> AddUserToTracker([FromRoute] string trackerId, [FromBody] ModifyUserTrackerDto request)
         {
@@ -93,7 +86,7 @@ namespace Operum.API.Controllers
         }
 
         [HttpPost("{trackerId}/analytics")]
-        public async Task<IActionResult> AddTrackerAnalytic([FromRoute] string trackerId, [FromBody] AddTrackerAnalyticDto request)
+        public async Task<IActionResult> AddTrackerAnalytic([FromRoute] string trackerId, [FromBody] AddAnalyticDto request)
         {
             return GetApiResponse(await trackerService.AddAnalytic(trackerId, request));
         }
@@ -107,7 +100,7 @@ namespace Operum.API.Controllers
         [HttpPut("{trackerId}/analytics/reorder")]
         public async Task<IActionResult> ReorderTrackerAnalytics([FromRoute] string trackerId, [FromBody] ReorderAnalyticsDto reorderAnalyticsDto)
         {
-            return GetApiResponse(await trackerService.ReorderTrackerAnalytics(trackerId, reorderAnalyticsDto));
+            return GetApiResponse(await trackerService.ReorderAnalytics(trackerId, reorderAnalyticsDto));
         }
     }
 }

@@ -1,16 +1,18 @@
-export interface AnalyticDto {
-    id: string;
+export interface PurposeDto {
     name: string;
-    code: string;
-    resultType: string;
-    description?: string;
-    analyticTypeId: number;
-    analyticTypeName: string;
-    analyticRequiredDataTypes: AnalyticRequiredDataTypeDto[];
+    allowedDataTypes: string[];
 }
 
-export interface AnalyticRequiredDataTypeDto {
-    id: string;
-    type: string;
-    purpose: string;
+export interface CodeDto {
+    name: string;
+    purposes: PurposeDto[];
+}
+
+export interface ResultTypeDto {
+    name: string;
+    codes: CodeDto[];
+}
+
+export interface AnalyticConfigDto {
+    resultTypes: ResultTypeDto[];
 }

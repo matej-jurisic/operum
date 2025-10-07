@@ -24,31 +24,30 @@ import {
     AnalyticResultDto,
     CalendarAnalyticResultDto,
     NumericChartAnalyticResultDto,
-    ScatterChartAnalyticResultDto,
+    ScatterPlotAnalyticResultDto,
     SingleValueAnalyticResultDto,
 } from "../model/AnalyticResultDto";
-import { TrackerAnalyticsResponseDto } from "../model/TrackerAnalyticsResponseDto";
-import { LineChartCard } from "./LineChartCard";
-import { ScatterChartCard } from "./ScatterChartCard";
-import { StatCard } from "./StatCard";
 import { CalendarEventCard } from "./CalendarEventCard";
+import { ChartCard } from "./ChartCard";
+import { ScatterPlotCard } from "./ScatterPlotCard";
+import { StatCard } from "./StatCard";
 
 export const StatCardMemo = React.memo(StatCard);
-export const ChartCardMemo = React.memo(LineChartCard);
-export const ScatterChartCardMemo = React.memo(ScatterChartCard);
+export const ChartCardMemo = React.memo(ChartCard);
+export const ScatterPlotCardMemo = React.memo(ScatterPlotCard);
 
 interface AnalyticsGridProps {
-    analytics: TrackerAnalyticsResponseDto;
+    analytics: AnalyticResultDto[];
     isConfiguring: boolean;
     onEntryClick: (entryId: string) => void;
 }
 
 const UpdateAnalyticsOrder = async (
     trackerId: string,
-    trackerAnalyticIds: string[]
+    analyticIds: string[]
 ) => {
     await api.put(`/trackers/${trackerId}/analytics/reorder`, {
-        trackerAnalyticIds,
+        analyticIds,
     });
 };
 
@@ -93,14 +92,12 @@ export function AnalyticsGrid({
     const { tracker } = useTracker();
 
     // Local state to reflect current order
-    const [orderedAnalytics, setOrderedAnalytics] = useState(
-        analytics.analytics
-    );
+    const [orderedAnalytics, setOrderedAnalytics] = useState(analytics);
 
     // Sync local state when prop changes
     useEffect(() => {
-        setOrderedAnalytics(analytics.analytics);
-    }, [analytics.analytics]);
+        setOrderedAnalytics(analytics);
+    }, [analytics]);
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -111,10 +108,10 @@ export function AnalyticsGrid({
         if (!isConfiguring || !over || active.id === over.id) return;
 
         const oldIndex = orderedAnalytics.findIndex(
-            (a) => a.trackerAnalyticId === active.id
+            (a) => a.analyticId === active.id
         );
         const newIndex = orderedAnalytics.findIndex(
-            (a) => a.trackerAnalyticId === over.id
+            (a) => a.analyticId === over.id
         );
 
         const newOrder = arrayMove(orderedAnalytics, oldIndex, newIndex);
@@ -123,7 +120,7 @@ export function AnalyticsGrid({
         // Fire-and-forget backend update
         UpdateAnalyticsOrder(
             tracker.id,
-            newOrder.map((a) => a.trackerAnalyticId)
+            newOrder.map((a) => a.analyticId)
         ).catch((err) => {
             console.error("Failed to update analytics order:", err);
         });
@@ -146,17 +143,20 @@ export function AnalyticsGrid({
                         isConfiguring={isConfiguring}
                     />
                 );
-            case "ScatterChart":
+            case "ScatterPlot":
                 return (
-                    <ScatterChartCardMemo
-                        analytic={analytic as ScatterChartAnalyticResultDto}
+                    <ScatterPlotCardMemo
+                        analytic={analytic as ScatterPlotAnalyticResultDto}
                         isConfiguring={isConfiguring}
                     />
                 );
             case "CalendarEvents":
                 return (
-                    <CalendarEventCard analytic={analytic as CalendarAnalyticResultDto} isConfiguring={isConfiguring}/>
-                )
+                    <CalendarEventCard
+                        analytic={analytic as CalendarAnalyticResultDto}
+                        isConfiguring={isConfiguring}
+                    />
+                );
             default:
                 return null;
         }
@@ -171,7 +171,7 @@ export function AnalyticsGrid({
                 collisionDetection={closestCorners}
             >
                 <SortableContext
-                    items={orderedAnalytics.map((a) => a.trackerAnalyticId)}
+                    items={orderedAnalytics.map((a) => a.analyticId)}
                     strategy={rectSortingStrategy}
                 >
                     <SimpleGrid
@@ -180,8 +180,8 @@ export function AnalyticsGrid({
                     >
                         {orderedAnalytics.map((analytic) => (
                             <SortableCardWrapper
-                                key={analytic.trackerAnalyticId}
-                                id={analytic.trackerAnalyticId}
+                                key={analytic.analyticId}
+                                id={analytic.analyticId}
                                 isReordering={isConfiguring}
                             >
                                 {renderCard(analytic)}

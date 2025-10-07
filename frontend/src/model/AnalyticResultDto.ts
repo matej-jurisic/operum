@@ -20,7 +20,7 @@ export interface NumericChartAnalyticResultDto extends AnalyticResultDto {
     points: { x: string; y: number }[];
 }
 
-export interface ScatterChartAnalyticResultDto extends AnalyticResultDto {
+export interface ScatterPlotAnalyticResultDto extends AnalyticResultDto {
     xFieldName: string;
     yFieldName: string;
     xFieldType: string;

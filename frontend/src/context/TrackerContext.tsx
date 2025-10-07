@@ -9,19 +9,19 @@ import React, {
     useState,
 } from "react";
 import api from "../api/api";
+import { AnalyticResultDto } from "../model/AnalyticResultDto";
 import { EntryDto } from "../model/EntryDto";
 import { FieldDto } from "../model/FieldDto";
-import { AddTrackerAnalyticDto } from "../model/requests/AddTrackerAnalyticDto";
+import { AddAnalyticDto } from "../model/requests/AddAnalyticDto";
 import { CreateViewDto } from "../model/requests/CreateViewDto";
 import { FieldUpsertDto } from "../model/requests/FieldUpsertDto";
-import { TrackerAnalyticsResponseDto } from "../model/TrackerAnalyticsResponseDto";
 import { TrackerDto } from "../model/TrackerDto";
 import { ViewDto } from "../model/ViewDto";
 
 type TrackerContextType = {
     entries: EntryDto[];
     fields: FieldDto[];
-    analytics: TrackerAnalyticsResponseDto | undefined;
+    analytics: AnalyticResultDto[];
     views: ViewDto[];
     tracker: TrackerDto;
     selectedViewId: string | undefined;
@@ -52,9 +52,7 @@ type TrackerContextType = {
     ) => Promise<void>;
     DeleteView: (trackerId: string, viewId: string) => Promise<void>;
     CreateView: (trackerId: string, view: CreateViewDto) => Promise<void>;
-    AddAnalyticToTracker: (
-        trackerAnalytic: AddTrackerAnalyticDto
-    ) => Promise<void>;
+    AddAnalyticToTracker: (trackerAnalytic: AddAnalyticDto) => Promise<void>;
     RemoveAnalyticFromTracker: (trackerAnalyticId: string) => Promise<void>;
     ImportEntries: (trackerId: string, file: File | null) => Promise<void>;
     analyticsDirty: boolean;
@@ -107,7 +105,7 @@ export const TrackerProvider: React.FC<{
 }> = ({ initialTracker, children }) => {
     const [entries, setEntries] = useState<EntryDto[]>([]);
     const [fields, setFields] = useState<FieldDto[]>([]);
-    const [analytics, setAnalytics] = useState<TrackerAnalyticsResponseDto>();
+    const [analytics, setAnalytics] = useState<AnalyticResultDto[]>([]);
     const [views, setViews] = useState<ViewDto[]>([]);
     const [tracker, setTracker] = useState<TrackerDto>(initialTracker);
     const [internalSelectedViewId, setInternalSelectedViewId] = useState<
@@ -373,9 +371,7 @@ export const TrackerProvider: React.FC<{
         refreshViews();
     };
 
-    const AddAnalyticToTracker = async (
-        trackerAnalytic: AddTrackerAnalyticDto
-    ) => {
+    const AddAnalyticToTracker = async (trackerAnalytic: AddAnalyticDto) => {
         await api.post(`/trackers/${tracker.id}/analytics`, trackerAnalytic);
         refreshAnalytics();
     };

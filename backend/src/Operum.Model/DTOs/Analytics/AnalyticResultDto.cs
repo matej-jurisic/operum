@@ -3,12 +3,6 @@ using System.Text.Json.Serialization;
 
 namespace Operum.Model.DTOs.Analytics
 {
-    public class TrackerAnalyticsResultDto
-    {
-        public string TrackerId { get; set; } = string.Empty;
-        public List<AnalyticResultDto> Analytics { get; set; } = [];
-    }
-
     [JsonPolymorphic(TypeDiscriminatorPropertyName = "ResultType")]
     [JsonDerivedType(typeof(SingleValueAnalyticResult), AnalyticResultTypes.SingleValue)]
     [JsonDerivedType(typeof(NumericChartAnalyticResult), AnalyticResultTypes.NumericChart)]
@@ -17,7 +11,6 @@ namespace Operum.Model.DTOs.Analytics
     public abstract class AnalyticResultDto
     {
         public string AnalyticId { get; set; } = string.Empty;
-        public string TrackerAnalyticId { get; set; } = string.Empty;
         public string Name { get; set; } = null!;
         public string? Description { get; set; }
         public string ResultType { get; set; } = string.Empty;
@@ -48,7 +41,7 @@ namespace Operum.Model.DTOs.Analytics
         }
     }
 
-    public class ScatterChartAnalyticResult : AnalyticResultDto
+    public class ScatterPlotAnalyticResult : AnalyticResultDto
     {
         public List<ScatterPointDto> Points { get; set; } = [];
         public string XFieldName { get; set; } = string.Empty;
@@ -57,9 +50,9 @@ namespace Operum.Model.DTOs.Analytics
         public string XFieldType { get; set; } = string.Empty;
         public string YFieldType { get; set; } = string.Empty;
 
-        public ScatterChartAnalyticResult()
+        public ScatterPlotAnalyticResult()
         {
-            ResultType = AnalyticResultTypes.ScatterChart;
+            ResultType = AnalyticResultTypes.ScatterPlot;
         }
     }
 

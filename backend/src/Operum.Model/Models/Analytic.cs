@@ -8,15 +8,15 @@ namespace Operum.Model.Models
         [Key]
         public string Id { get; set; } = Guid.NewGuid().ToString();
         public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public int? Order { get; set; }
         public string Code { get; set; } = string.Empty;
-        public string? Description { get; set; }
-
-        public int AnalyticTypeId { get; set; }
-        [ForeignKey(nameof(AnalyticTypeId))]
-        public virtual AnalyticType AnalyticType { get; set; } = null!;
-
         public string ResultType { get; set; } = string.Empty;
 
-        public virtual List<AnalyticRequiredDataType> AnalyticRequiredDataTypes { get; set; } = [];
+        public string TrackerId { get; set; } = string.Empty;
+        [ForeignKey(nameof(TrackerId))]
+        public virtual Tracker Tracker { get; set; } = null!;
+
+        public virtual List<AnalyticField> AnalyticFields { get; set; } = [];
     }
 }

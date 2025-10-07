@@ -40,7 +40,7 @@ export default function AnalyticsList() {
         loadData();
     }, [selectedViewId]);
 
-    const hasAnalytics = analytics && analytics.analytics.length > 0;
+    const hasAnalytics = analytics.length > 0;
 
     const showEmptyState = !isLoadingData && !hasAnalytics && !isConfiguring;
 
@@ -88,7 +88,7 @@ export default function AnalyticsList() {
                     <ScrollArea
                         flex={1}
                         mih={0}
-                        offsetScrollbars
+                        offsetScrollbars={isMobile && isConfiguring}
                         type={isMobile && isConfiguring ? "always" : "scroll"}
                         scrollbarSize={25}
                     >

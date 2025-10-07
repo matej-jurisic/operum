@@ -3,21 +3,21 @@ import { ActionIcon, em, Group, Paper, Stack, Text } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { MdDelete } from "react-icons/md";
 import { useTracker } from "../context/TrackerContext";
-import { ScatterChartAnalyticResultDto } from "../model/AnalyticResultDto";
+import { ScatterPlotAnalyticResultDto } from "../model/AnalyticResultDto";
 import {
     createScatterTooltipContent,
     getAxisFormatter,
 } from "./ChartFormatters";
 
-interface ScatterChartCardProps {
-    analytic: ScatterChartAnalyticResultDto;
+interface ScatterPlotCardProps {
+    analytic: ScatterPlotAnalyticResultDto;
     isConfiguring: boolean;
 }
 
-export function ScatterChartCard({
+export function ScatterPlotCard({
     analytic,
     isConfiguring,
-}: ScatterChartCardProps) {
+}: ScatterPlotCardProps) {
     const { tracker, RemoveAnalyticFromTracker } = useTracker();
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
 

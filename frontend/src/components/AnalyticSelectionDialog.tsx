@@ -1,19 +1,22 @@
 import {
     Accordion,
     Badge,
+    Box,
     Button,
     Divider,
     Group,
     Modal,
-    Skeleton,
     Stack,
     Text,
-    Title,
 } from "@mantine/core";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import api from "../api/api";
 import { useTracker } from "../context/TrackerContext";
-import { AnalyticDto } from "../model/AnalyticDto";
+import {
+    AnalyticConfigDto,
+    CodeDto,
+    ResultTypeDto,
+} from "../model/AnalyticDto";
 import { DataTypeColor, FieldType } from "../model/constants/DataTypes";
 import TrackerAnalyticFormDialog from "./TrackerAnalyticFormDialog";
 
@@ -26,168 +29,150 @@ function isFieldType(value: string): value is FieldType {
 }
 
 export default function AnalyticSelectionDialog({ onClose }: Props) {
-    const [analytics, setAnalytics] = useState<AnalyticDto[]>([]);
-    const [selectedAnalytic, setSelectedAnalytic] = useState<AnalyticDto>();
+    const [config, setConfig] = useState<AnalyticConfigDto>();
+    const [selectedAnalytic, setSelectedAnalytic] = useState<{
+        code: CodeDto;
+        resultType: ResultTypeDto;
+    }>();
     const [loading, setLoading] = useState(true);
     const { tracker } = useTracker();
 
-    const fetchAnalytics = async () => {
+    const fetchConfig = async () => {
         try {
             setLoading(true);
             const response = await api.get("/analytics");
-            setAnalytics(response.data.data);
+            setConfig(response.data.data as AnalyticConfigDto);
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchAnalytics();
+        fetchConfig();
     }, []);
 
-    // Group analytics by name
-    const groupedAnalytics = useMemo(() => {
-        return analytics.reduce((acc, analytic) => {
-            if (!acc[analytic.name]) {
-                acc[analytic.name] = [];
-            }
-            acc[analytic.name].push(analytic);
-            return acc;
-        }, {} as Record<string, AnalyticDto[]>);
-    }, [analytics]);
-
     return (
-        <Modal
-            opened
-            onClose={onClose}
-            title="Select an Analytic"
-            centered
-            size="lg"
-        >
-            <Stack>
-                {loading ? (
-                    <Skeleton height={50} radius="sm" />
-                ) : (
-                    <Accordion
-                        variant="contained"
-                        chevronPosition="left"
-                        transitionDuration={0}
-                    >
-                        {Object.entries(groupedAnalytics).map(
-                            ([name, analyticGroup]) => (
-                                <Accordion.Item key={name} value={name}>
-                                    <Accordion.Control>
-                                        <Group gap="md">
-                                            <Text fw={500}>{name}</Text>
-                                            <Badge
-                                                size="sm"
-                                                variant="light"
-                                                color={tracker.color}
+        <>
+            <Modal
+                opened={!loading}
+                onClose={onClose}
+                title="Select an Analytic"
+                centered
+            >
+                <Accordion variant="contained">
+                    {config?.resultTypes.map((resultType) => (
+                        <Accordion.Item
+                            key={resultType.name}
+                            value={resultType.name}
+                        >
+                            <Accordion.Control>
+                                <Group
+                                    justify="space-between"
+                                    pr="sm"
+                                    wrap="nowrap"
+                                >
+                                    <Text fw={500}>{resultType.name}</Text>
+                                    <Badge
+                                        color={tracker.color}
+                                        variant="outline"
+                                    >
+                                        {resultType.codes.length}
+                                    </Badge>
+                                </Group>
+                            </Accordion.Control>
+                            <Accordion.Panel>
+                                <Stack gap="xs">
+                                    {resultType.codes.map((code) => (
+                                        <Box key={code.name}>
+                                            <Divider />
+                                            <Group
+                                                justify="space-between"
+                                                wrap="nowrap"
+                                                py="xs"
                                             >
-                                                {analyticGroup.length}{" "}
-                                                {analyticGroup.length === 1
-                                                    ? "variant"
-                                                    : "variants"}
-                                            </Badge>
-                                        </Group>
-                                    </Accordion.Control>
-                                    <Accordion.Panel>
-                                        <Stack gap="md">
-                                            {analyticGroup.map((analytic) => (
-                                                <>
-                                                    <Divider />
-                                                    <Group
-                                                        w={"100%"}
-                                                        justify="space-between"
-                                                        wrap="nowrap"
-                                                    >
-                                                        <Stack gap="sm">
-                                                            <Title order={4}>
-                                                                {`${analytic.name}`}
-                                                            </Title>
-                                                            {analytic.description && (
+                                                <Stack
+                                                    gap="xs"
+                                                    style={{
+                                                        flex: 1,
+                                                        minWidth: 0,
+                                                    }}
+                                                >
+                                                    <Text size="sm" fw={500}>
+                                                        {code.name}
+                                                    </Text>
+                                                    {code.purposes.map(
+                                                        (purpose) => (
+                                                            <Box
+                                                                key={
+                                                                    purpose.name
+                                                                }
+                                                            >
                                                                 <Text
+                                                                    size="xs"
                                                                     c="dimmed"
-                                                                    size="sm"
-                                                                    lineClamp={
-                                                                        2
-                                                                    }
+                                                                    mb={4}
                                                                 >
                                                                     {
-                                                                        analytic.description
+                                                                        purpose.name
                                                                     }
                                                                 </Text>
-                                                            )}
-                                                            <Group
-                                                                justify="flex-start"
-                                                                w="100%"
-                                                                align="flex-end"
-                                                            >
-                                                                {analytic.analyticRequiredDataTypes.map(
-                                                                    (r) => (
-                                                                        <Group
-                                                                            gap={
-                                                                                5
-                                                                            }
-                                                                            wrap="nowrap"
-                                                                        >
-                                                                            <Text>
-                                                                                {
-                                                                                    r.purpose
-                                                                                }{" "}
-                                                                                -
-                                                                            </Text>
+                                                                <Group
+                                                                    gap={4}
+                                                                    wrap="wrap"
+                                                                >
+                                                                    {purpose.allowedDataTypes.map(
+                                                                        (
+                                                                            type
+                                                                        ) => (
                                                                             <Badge
+                                                                                key={
+                                                                                    type
+                                                                                }
+                                                                                variant="outline"
+                                                                                size="xs"
                                                                                 color={
                                                                                     isFieldType(
-                                                                                        r.type
+                                                                                        type
                                                                                     )
                                                                                         ? DataTypeColor[
-                                                                                              r
-                                                                                                  .type
+                                                                                              type
                                                                                           ]
                                                                                         : "gray"
                                                                                 }
-                                                                                key={
-                                                                                    r.id
-                                                                                }
-                                                                                variant="outline"
                                                                             >
                                                                                 {
-                                                                                    r.type
+                                                                                    type
                                                                                 }
                                                                             </Badge>
-                                                                        </Group>
-                                                                    )
-                                                                )}
-                                                            </Group>
-                                                        </Stack>
-                                                        <Button
-                                                            miw={"max-content"}
-                                                            size="xs"
-                                                            variant="outline"
-                                                            color={
-                                                                tracker.color
-                                                            }
-                                                            onClick={() =>
-                                                                setSelectedAnalytic(
-                                                                    analytic
-                                                                )
-                                                            }
-                                                        >
-                                                            Select
-                                                        </Button>
-                                                    </Group>
-                                                </>
-                                            ))}
-                                        </Stack>
-                                    </Accordion.Panel>
-                                </Accordion.Item>
-                            )
-                        )}
-                    </Accordion>
-                )}
-            </Stack>
+                                                                        )
+                                                                    )}
+                                                                </Group>
+                                                            </Box>
+                                                        )
+                                                    )}
+                                                </Stack>
+                                                <Button
+                                                    size="xs"
+                                                    color={tracker.color}
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                        setSelectedAnalytic({
+                                                            code,
+                                                            resultType,
+                                                        })
+                                                    }
+                                                >
+                                                    Select
+                                                </Button>
+                                            </Group>
+                                        </Box>
+                                    ))}
+                                </Stack>
+                            </Accordion.Panel>
+                        </Accordion.Item>
+                    ))}
+                </Accordion>
+            </Modal>
 
             {selectedAnalytic && (
                 <TrackerAnalyticFormDialog
@@ -195,6 +180,6 @@ export default function AnalyticSelectionDialog({ onClose }: Props) {
                     selectedAnalytic={selectedAnalytic}
                 />
             )}
-        </Modal>
+        </>
     );
 }

@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Operum.API.Controllers.Base;
 using Operum.Model.DTOs.Fields.Requests;
-using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Service.Services.Fields;
 
 namespace Operum.API.Controllers

@@ -2,6 +2,8 @@
 using Operum.Model;
 using Operum.Model.Common;
 using Operum.Model.Constants;
+using Operum.Model.DTOs.Analytics;
+using Operum.Model.DTOs.Analytics.Requests;
 using Operum.Model.DTOs.Trackers;
 using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Model.DTOs.Users;
@@ -9,6 +11,7 @@ using Operum.Model.Enums;
 using Operum.Model.Extensions;
 using Operum.Model.Models;
 using Operum.Service.Helpers;
+using Operum.Service.Helpers.Analytics;
 using Operum.Service.Mappings.Mapper;
 using Operum.Service.Services.Authorization;
 
@@ -280,7 +283,7 @@ namespace Operum.Service.Services.Trackers
             return Result.Success(updatedTracker.Data);
         }
 
-        public async Task<Result<TrackerAnalyticsResponseDto>> GetTrackerAnalytics(string trackerId, string? viewId)
+        public async Task<Result<List<AnalyticResultDto>>> GetTrackerAnalytics(string trackerId, string? viewId)
         {
             var user = authorizationService.GetCurrentUserDto();
             var tracker = await db.Trackers
@@ -323,83 +326,26 @@ namespace Operum.Service.Services.Trackers
 
             var entries = await entriesQuery.ToListAsync();
 
-            var trackerAnalytics = await db.TrackerAnalytics
-                .Include(x => x.TrackerAnalyticFields)
-                    .ThenInclude(x => x.AnalyticRequiredDataType)
-                .Include(x => x.TrackerAnalyticFields)
+            var analytics = await db.Analytics
+                .Include(x => x.AnalyticFields)
                     .ThenInclude(x => x.Field)
-                .Include(x => x.Analytic)
-                .AsSplitQuery()
                 .Where(x => x.TrackerId == trackerId)
                 .OrderBy(x => x.Order)
                 .ToListAsync();
 
-            TrackerAnalyticsResponseDto calculatedAnalytics = new();
+            List<AnalyticResultDto> analyticResults = [];
 
-            foreach (var trackerAnalytic in trackerAnalytics)
+            foreach (var analytic in analytics)
             {
-                switch (trackerAnalytic.Analytic.ResultType)
+                var calculationResult = AnalyticsHelpers.GetAnalyticResult(analytic, entries);
+                if (calculationResult.IsSuccess)
                 {
-                    case AnalyticResultTypes.SingleValue:
-                        var field = trackerAnalytic.TrackerAnalyticFields.FirstOrDefault(x => x.AnalyticRequiredDataType.Purpose == AnalyticDataTypePurposes.Value)?.Field;
-
-                        if (field != null)
-                        {
-                            var fieldValues = entries.SelectMany(x => x.FieldValues.Where(x => x.FieldId == field.Id));
-                            var calculationResult = TrackerAnalyticsHelpers.GetSingleValueAnalyticResult(trackerAnalytic.Analytic, fieldValues, field);
-                            if (calculationResult.IsSuccess)
-                            {
-                                calculationResult.Data.TrackerAnalyticId = trackerAnalytic.Id;
-                                calculatedAnalytics.Analytics.Add(calculationResult.Data);
-                            }
-                        }
-                        break;
-                    case AnalyticResultTypes.NumericChart:
-                        var xAxisField = trackerAnalytic.TrackerAnalyticFields.FirstOrDefault(x => x.AnalyticRequiredDataType.Purpose == AnalyticDataTypePurposes.Xaxis)?.Field;
-                        var yAxisField = trackerAnalytic.TrackerAnalyticFields.FirstOrDefault(x => x.AnalyticRequiredDataType.Purpose == AnalyticDataTypePurposes.Yaxis)?.Field;
-
-                        if (xAxisField != null && yAxisField != null)
-                        {
-                            var calculationResult = TrackerAnalyticsHelpers.GetNumericChartAnalyticResult(trackerAnalytic.Analytic, entries, xAxisField, yAxisField);
-                            if (calculationResult.IsSuccess)
-                            {
-                                calculationResult.Data.TrackerAnalyticId = trackerAnalytic.Id;
-                                calculatedAnalytics.Analytics.Add(calculationResult.Data);
-                            }
-                        }
-                        break;
-                    case AnalyticResultTypes.ScatterChart:
-                        var xAxisScatterField = trackerAnalytic.TrackerAnalyticFields.FirstOrDefault(x => x.AnalyticRequiredDataType.Purpose == AnalyticDataTypePurposes.Xaxis)?.Field;
-                        var yAxisScatterField = trackerAnalytic.TrackerAnalyticFields.FirstOrDefault(x => x.AnalyticRequiredDataType.Purpose == AnalyticDataTypePurposes.Yaxis)?.Field;
-
-                        if (xAxisScatterField != null && yAxisScatterField != null)
-                        {
-                            var calculationResult = TrackerAnalyticsHelpers.GetScatterChartResult(trackerAnalytic.Analytic, entries, xAxisScatterField, yAxisScatterField);
-                            if (calculationResult.IsSuccess)
-                            {
-                                calculationResult.Data.TrackerAnalyticId = trackerAnalytic.Id;
-                                calculatedAnalytics.Analytics.Add(calculationResult.Data);
-                            }
-                        }
-                        break;
-                    case AnalyticResultTypes.CalendarEvents:
-                        var dateField = trackerAnalytic.TrackerAnalyticFields.FirstOrDefault(x => x.AnalyticRequiredDataType.Purpose == AnalyticDataTypePurposes.Datetime)?.Field;
-                        var nameField = trackerAnalytic.TrackerAnalyticFields.FirstOrDefault(x => x.AnalyticRequiredDataType.Purpose == AnalyticDataTypePurposes.Name)?.Field;
-
-                        if (dateField != null && nameField != null)
-                        {
-                            var calculationResult = TrackerAnalyticsHelpers.GetCalendarEventsAnalyticResult(trackerAnalytic.Analytic,  entries, dateField, nameField);
-                            if (calculationResult.IsSuccess)
-                            {
-                                calculationResult.Data.TrackerAnalyticId = trackerAnalytic.Id;
-                                calculatedAnalytics.Analytics.Add(calculationResult.Data);
-                            }
-                        }
-                        break;
+                    calculationResult.Data.AnalyticId = analytic.Id;
+                    analyticResults.Add(calculationResult.Data);
                 }
             }
 
-            return Result.Success(calculatedAnalytics);
+            return Result.Success(analyticResults);
         }
 
         public async Task<Result> UpdateDefaultView(string trackerId, string? defaultViewId)
@@ -526,7 +472,7 @@ namespace Operum.Service.Services.Trackers
             return Result.Success();
         }
 
-        public async Task<Result> AddAnalytic(string trackerId, AddTrackerAnalyticDto addTrackerAnalytic)
+        public async Task<Result> AddAnalytic(string trackerId, AddAnalyticDto addAnalytic)
         {
             var user = authorizationService.GetCurrentUserDto();
             var tracker = await db.Trackers.FindAsync(trackerId);
@@ -535,73 +481,59 @@ namespace Operum.Service.Services.Trackers
                 return Result.Failure(StatusCodeEnum.NotFound, "Tracker not found.");
             }
 
-            var analytic = await db.Analytics.FindAsync(addTrackerAnalytic.AnalyticId);
-            if (analytic == null || analytic.AnalyticTypeId != (int)AnalyticTypeEnum.PublicAnalytic)
-            {
-                return Result.Failure(StatusCodeEnum.NotFound, "Analytic not found.");
-            }
-
-            var requiredDataTypeIds = addTrackerAnalytic.TrackerAnalyticFields
-                .Select(x => x.AnalyticRequiredDataTypeId)
-                .Distinct()
-                .ToList();
-
-            var fieldIds = addTrackerAnalytic.TrackerAnalyticFields
+            var addFieldIds = addAnalytic.AnalyticFields
                 .Select(x => x.FieldId)
                 .Distinct()
                 .ToList();
 
-            var requiredDataTypes = await db.AnalyticRequiredDataTypes
-                .Where(x => requiredDataTypeIds.Contains(x.Id))
-                .ToDictionaryAsync(x => x.Id);
-
             var fields = await db.Fields
-                .Where(x => fieldIds.Contains(x.Id))
+                .Where(x => addFieldIds.Contains(x.Id))
                 .ToDictionaryAsync(x => x.Id);
 
-            foreach (var trackerField in addTrackerAnalytic.TrackerAnalyticFields)
+            foreach (var field in addAnalytic.AnalyticFields)
             {
-                if (!requiredDataTypes.ContainsKey(trackerField.AnalyticRequiredDataTypeId))
+                var existingField = await db.Fields.FirstOrDefaultAsync(x => x.Id == field.FieldId);
+                if (existingField == null || !fields.ContainsKey(field.FieldId))
                 {
                     return Result.Failure(StatusCodeEnum.NotFound,
-                        $"Required data type {trackerField.AnalyticRequiredDataTypeId} not found.");
+                        $"Field {field.FieldId} not found.");
                 }
-
-                if (!fields.ContainsKey(trackerField.FieldId))
+                if (!AnalyticDefinitions.IsValidDataType(addAnalytic.ResultType, addAnalytic.Code, field.Purpose, existingField.Type))
                 {
                     return Result.Failure(StatusCodeEnum.NotFound,
-                        $"Field {trackerField.FieldId} not found.");
+                        $"Invalid analytic configuration.");
                 }
             }
 
-            var count = await db.TrackerAnalytics.Where(x => x.TrackerId == trackerId).CountAsync();
+            var count = await db.Analytics.Where(x => x.TrackerId == trackerId).CountAsync();
 
             if (count >= DataLimits.MaxAnalyticCount)
             {
                 return Result.Failure(StatusCodeEnum.BadRequest, $"Maximum number of {DataLimits.MaxAnalyticCount} analytics reached.");
             }
 
-            TrackerAnalytic trackerAnalytic = new()
+            Analytic analytic = new()
             {
-                AnalyticId = analytic.Id,
                 TrackerId = tracker.Id,
+                Code = addAnalytic.Code,
+                ResultType = addAnalytic.ResultType,
             };
 
-            var maxOrder = await db.TrackerAnalytics
+            var maxOrder = await db.Analytics
                 .Where(x => x.TrackerId == trackerId)
                 .MaxAsync(x => x.Order) ?? 0;
-            trackerAnalytic.Order = maxOrder + 1;
+            analytic.Order = maxOrder + 1;
 
-            foreach (var trackerField in addTrackerAnalytic.TrackerAnalyticFields)
+            foreach (var analyticField in addAnalytic.AnalyticFields)
             {
-                trackerAnalytic.TrackerAnalyticFields.Add(new TrackerAnalyticField()
+                analytic.AnalyticFields.Add(new AnalyticField()
                 {
-                    AnalyticRequiredDataTypeId = trackerField.AnalyticRequiredDataTypeId,
-                    FieldId = trackerField.FieldId
+                    FieldId = analyticField.FieldId,
+                    Purpose = analyticField.Purpose,
                 });
             }
 
-            db.TrackerAnalytics.Add(trackerAnalytic);
+            db.Analytics.Add(analytic);
             await db.SaveChangesAsync();
 
             return Result.Success();
@@ -616,41 +548,19 @@ namespace Operum.Service.Services.Trackers
                 return Result.Failure(StatusCodeEnum.NotFound, "Tracker not found.");
             }
 
-            var analytic = await db.TrackerAnalytics.FindAsync(trackerAnalyticId);
+            var analytic = await db.Analytics.FindAsync(trackerAnalyticId);
             if (analytic == null || analytic.TrackerId != trackerId)
             {
                 return Result.Failure(StatusCodeEnum.NotFound, "Analytic not found.");
             }
 
-            db.TrackerAnalytics.Remove(analytic);
+            db.Analytics.Remove(analytic);
             await db.SaveChangesAsync();
 
             return Result.Success();
         }
 
-        public async Task<Result<List<TrackerAnalyticDto>>> GetTrackerAnalyticConfigurations(string trackerId)
-        {
-            var user = authorizationService.GetCurrentUserDto();
-            var tracker = await db.Trackers.FindAsync(trackerId);
-            if (tracker == null || !user.Owns(tracker))
-            {
-                return Result.Failure(StatusCodeEnum.NotFound, "Tracker not found.");
-            }
-
-            var analyitcConfigurations = await db.TrackerAnalytics
-                .Include(x => x.Analytic)
-                .Include(x => x.TrackerAnalyticFields)
-                    .ThenInclude(x => x.AnalyticRequiredDataType)
-                .Include(x => x.TrackerAnalyticFields)
-                    .ThenInclude(x => x.Field)
-                .Where(x => x.TrackerId == trackerId)
-                .AsSplitQuery()
-                .ToListAsync();
-
-            return Result.Success(mapper.Map<List<TrackerAnalytic>, List<TrackerAnalyticDto>>(analyitcConfigurations));
-        }
-
-        public async Task<Result> ReorderTrackerAnalytics(string trackerId, ReorderAnalyticsDto reorderAnalyticsDto)
+        public async Task<Result> ReorderAnalytics(string trackerId, ReorderAnalyticsDto reorderAnalyticsDto)
         {
             var user = authorizationService.GetCurrentUserDto();
             var tracker = await db.Trackers.FindAsync(trackerId);
@@ -660,12 +570,12 @@ namespace Operum.Service.Services.Trackers
                 return Result.Failure(StatusCodeEnum.NotFound);
             }
 
-            var existingTrackerAnalytics = await db.TrackerAnalytics
+            var existingTrackerAnalytics = await db.Analytics
                 .Where(x => x.TrackerId == trackerId)
                 .Select(x => x.Id)
                 .ToListAsync();
 
-            var requestedTrackerAnalyticIds = reorderAnalyticsDto.TrackerAnalyticIds.ToHashSet();
+            var requestedTrackerAnalyticIds = reorderAnalyticsDto.AnalyticIds.ToHashSet();
             var existingTrackerAnalyticIds = existingTrackerAnalytics.ToHashSet();
 
             if (!requestedTrackerAnalyticIds.SetEquals(existingTrackerAnalyticIds))
@@ -677,15 +587,15 @@ namespace Operum.Service.Services.Trackers
             using var transaction = await db.Database.BeginTransactionAsync();
             try
             {
-                for (int i = 0; i < reorderAnalyticsDto.TrackerAnalyticIds.Count; i++)
+                for (int i = 0; i < reorderAnalyticsDto.AnalyticIds.Count; i++)
                 {
-                    var trackerAnalyticId = reorderAnalyticsDto.TrackerAnalyticIds[i];
-                    var trackerAnalytic = await db.TrackerAnalytics.FindAsync(trackerAnalyticId);
+                    var analyticId = reorderAnalyticsDto.AnalyticIds[i];
+                    var analytics = await db.Analytics.FindAsync(analyticId);
 
-                    if (trackerAnalytic != null && trackerAnalytic.TrackerId == trackerId)
+                    if (analytics != null && analytics.TrackerId == trackerId)
                     {
-                        trackerAnalytic.Order = i + 1;
-                        db.TrackerAnalytics.Update(trackerAnalytic);
+                        analytics.Order = i + 1;
+                        db.Analytics.Update(analytics);
                     }
                 }
 
