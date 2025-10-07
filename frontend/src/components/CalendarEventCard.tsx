@@ -5,7 +5,6 @@ import { useState } from "react";
 import { MdDelete, MdArrowBack } from "react-icons/md";
 import { useTracker } from "../context/TrackerContext";
 import { CalendarAnalyticResultDto } from "../model/AnalyticResultDto";
-import { formatDateOnlyFromDate, formatDateTime, formatDateTimeFromDate } from "../util/TypeFormatter";
 
 interface CalendarEventCardProps {
   analytic: CalendarAnalyticResultDto;
