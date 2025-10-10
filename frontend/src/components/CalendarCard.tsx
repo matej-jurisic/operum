@@ -12,7 +12,7 @@ import { useMemo, useState } from "react";
 import { MdArrowBack, MdDelete, MdLink } from "react-icons/md";
 import { useTracker } from "../context/TrackerContext";
 import { CalendarAnalyticResultDto } from "../model/AnalyticResultDto";
-import { formatDateOnlyFromDate, formatDateTime, formatDateTimeFromDate, formatFullDate } from "../util/TypeFormatter";
+import { formatDateTime, formatFullDate } from "../util/TypeFormatter";
 
 interface CalendarCardProps {
     analytic: CalendarAnalyticResultDto;
