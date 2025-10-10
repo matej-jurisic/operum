@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Operum.Model;
 using Operum.Model.Common;
+using Operum.Model.Constants;
 using Operum.Model.Models;
 using Operum.Service.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
@@ -16,12 +17,10 @@ namespace Operum.Service.Services.Token
     public class TokenService(IConfiguration configuration, UserManager<User> userManager, IHttpContextAccessor httpContextAccessor, OperumContext dbContext) : ITokenService
     {
         private static readonly JwtSecurityTokenHandler tokenHandler = new();
-        private const string AuthTokenKey = "AuthToken";
-        private const string RefreshTokenKey = "RefreshToken";
 
         private async Task<string> CreateToken(User user, DateTime expires)
         {
-            if (user.UserName == null || user.Email == null) throw new Exception("User info is missing!");
+            if (user.UserName == null || user.Email == null) throw new Exception("User info is missing while creating token!");
             var claims = new List<Claim>
             {
                 new(ClaimTypes.Name, user.UserName),
@@ -87,7 +86,7 @@ namespace Operum.Service.Services.Token
         {
             var expires = GetAuthTokenExpiry();
             var createdToken = await CreateToken(user, expires);
-            SetCookie(AuthTokenKey, createdToken, expires);
+            SetCookie(CookieNames.AuthToken, createdToken, expires);
             return Result.Success(expires);
         }
         public async Task<Result> SetRefreshTokenCookie(User user)
@@ -102,19 +101,19 @@ namespace Operum.Service.Services.Token
             await dbContext.RefreshTokens.AddAsync(refreshToken);
             await dbContext.SaveChangesAsync();
 
-            SetCookie(RefreshTokenKey, refreshToken.Token, refreshToken.ExpiresAt);
+            SetCookie(CookieNames.RefreshToken, refreshToken.Token, refreshToken.ExpiresAt);
             return Result.Success();
         }
 
         public string? GetRefreshToken()
         {
-            return GetCookie(RefreshTokenKey);
+            return GetCookie(CookieNames.RefreshToken);
         }
 
         public void ClearAuthCookies()
         {
-            ClearCookie(RefreshTokenKey);
-            ClearCookie(AuthTokenKey);
+            ClearCookie(CookieNames.RefreshToken);
+            ClearCookie(CookieNames.AuthToken);
         }
 
         private DateTime GetAuthTokenExpiry()

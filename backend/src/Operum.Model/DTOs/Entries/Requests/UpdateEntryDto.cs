@@ -1,6 +1,7 @@
 ﻿using FluentValidation;
+using Operum.Model.Constants;
 
-namespace Operum.Model.DTOs.Entry.Requests
+namespace Operum.Model.DTOs.Entries.Requests
 {
     public class UpdateEntryDto
     {
@@ -12,7 +13,7 @@ namespace Operum.Model.DTOs.Entry.Requests
         public UpdateEntryDtoValidator()
         {
             RuleFor(x => x.FieldValues)
-                .NotNull().WithMessage("FieldValues is required.")
+                .NotNull().WithMessage(Messages.Required("fieldValues"))
                 .Must(d => d.Count != 0).WithMessage("At least one field value is required.")
                 .Must(d => d.Count <= 20).WithMessage("Too many fields provided (max 20).");
 

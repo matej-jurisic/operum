@@ -24,7 +24,7 @@ namespace Operum.Service.Domain.Analytics
             var code = request.Analytic.Code;
 
             if (!AnalyticDefinitionList.IsValidForType(resultType, code))
-                return Result.Failure(ResultStatus.BadRequest,
+                return Result.Failure(ResultStatusCodes.BadRequest,
                     $"Code '{code}' not allowed for {resultType}");
 
             var def = AnalyticDefinitionList.ByResultType[resultType];
@@ -33,12 +33,12 @@ namespace Operum.Service.Domain.Analytics
             foreach (var (purpose, field) in fieldMap)
             {
                 if (!def.Purposes.Contains(purpose))
-                    return Result.Failure(ResultStatus.BadRequest,
+                    return Result.Failure(ResultStatusCodes.BadRequest,
                         $"Purpose '{purpose}' not supported for {resultType}");
 
                 var allowedTypes = def.Codes[code].AllowedDataTypes.GetValueOrDefault(purpose);
                 if (allowedTypes != null && !allowedTypes.Contains(field.Type))
-                    return Result.Failure(ResultStatus.BadRequest,
+                    return Result.Failure(ResultStatusCodes.BadRequest,
                         $"Field '{field.Name}' of type '{field.Type}' is not allowed for purpose '{purpose}' in code '{code}'");
             }
 

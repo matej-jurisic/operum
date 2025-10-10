@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using Operum.Model.Constants;
 using Operum.Model.Constants.Fields;
 
 namespace Operum.Model.DTOs.Fields.Requests
@@ -16,7 +17,7 @@ namespace Operum.Model.DTOs.Fields.Requests
         public CreateFieldDtoValidator()
         {
             RuleFor(x => x.Name)
-                .NotEmpty().WithMessage("Field name is required.")
+                .NotEmpty().WithMessage(Messages.Required("field name"))
                 .MaximumLength(30).WithMessage("Field name cannot exceed 30 characters.");
 
             RuleFor(x => x.Description)
@@ -24,9 +25,8 @@ namespace Operum.Model.DTOs.Fields.Requests
                 .When(x => !string.IsNullOrEmpty(x.Description));
 
             RuleFor(x => x.Type)
-                .NotEmpty().WithMessage("Field type is required.")
-                .Must(DataTypes.IsValid)
-                .WithMessage($"Field type must be one of: {string.Join(", ", DataTypes.All)}");
+                .NotEmpty().WithMessage(Messages.Required("field type"))
+                .Must(DataTypes.IsValid).WithMessage(Messages.Invalid("field tye"));
         }
     }
 }

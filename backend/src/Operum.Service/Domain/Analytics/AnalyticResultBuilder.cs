@@ -26,7 +26,7 @@ namespace Operum.Service.Domain.Analytics
             AnalyticResultBuilderRequest request)
         {
             if (!_builders.TryGetValue(request.Analytic.ResultType, out var builder))
-                return Result.Failure(ResultStatus.BadRequest,
+                return Result.Failure(ResultStatusCodes.BadRequest,
                     $"Unsupported result type: {request.Analytic.ResultType}");
 
             return builder.Build(request);

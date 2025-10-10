@@ -38,9 +38,9 @@ namespace Operum.API.Seed
         public async static Task SeedUsersAsync(UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration? configuration = null)
         {
             // First, ensure roles exist
-            await EnsureRoleExistsAsync(roleManager, "Admin");
-            await EnsureRoleExistsAsync(roleManager, "User");
-            await EnsureRoleExistsAsync(roleManager, "Moderator");
+            await EnsureRoleExistsAsync(roleManager, RoleNames.User);
+            await EnsureRoleExistsAsync(roleManager, RoleNames.Admin);
+            await EnsureRoleExistsAsync(roleManager, RoleNames.Moderator);
 
             // Seed Admin User
             User adminUser = new(DefaultUsers.AdminUserData.Email, DefaultUsers.AdminUserData.UserName);
@@ -52,7 +52,7 @@ namespace Operum.API.Seed
                 var result = await userManager.CreateAsync(adminUser, adminPassword ?? DefaultUsers.AdminUserData.Password);
                 if (result.Succeeded)
                 {
-                    await userManager.AddToRoleAsync(adminUser, "Admin");
+                    await userManager.AddToRoleAsync(adminUser, RoleNames.Admin);
                 }
                 else
                 {
@@ -71,7 +71,7 @@ namespace Operum.API.Seed
 
                 if (result.Succeeded)
                 {
-                    await userManager.AddToRoleAsync(testUser, "User");
+                    await userManager.AddToRoleAsync(testUser, RoleNames.User);
                 }
                 else
                 {

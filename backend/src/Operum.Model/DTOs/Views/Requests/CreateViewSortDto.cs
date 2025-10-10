@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using Operum.Model.Constants;
 
 namespace Operum.Model.DTOs.Views.Requests
 {
@@ -13,7 +14,7 @@ namespace Operum.Model.DTOs.Views.Requests
         public CreateViewSortDtoValidator()
         {
             RuleFor(x => x.FieldId)
-                .NotEmpty().WithMessage("FieldId is required.");
+                .NotEmpty().WithMessage(Messages.Required("field id"));
         }
     }
 }

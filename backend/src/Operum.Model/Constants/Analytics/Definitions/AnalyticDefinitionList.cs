@@ -83,7 +83,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                     Purposes = [AnalyticPurposes.Xaxis, AnalyticPurposes.Yaxis],
                     Codes = new()
                     {
-                        [AnalyticCodes.AggregatedLineChart] = new AnalyticPurposeDataTypes
+                        [AnalyticCodes.AggregatedSumLineChart] = new AnalyticPurposeDataTypes
                         {
                             AllowedDataTypes = new()
                             {
@@ -115,7 +115,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                     Purposes = [AnalyticPurposes.Xaxis, AnalyticPurposes.Yaxis],
                     Codes = new()
                     {
-                        [AnalyticCodes.ScatterPlot] = new AnalyticPurposeDataTypes
+                        [AnalyticCodes.ScatterChart] = new AnalyticPurposeDataTypes
                         {
                             AllowedDataTypes = new()
                             {

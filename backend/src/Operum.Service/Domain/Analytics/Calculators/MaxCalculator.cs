@@ -23,12 +23,12 @@ namespace Operum.Service.Domain.Analytics.Calculators
             }
 
             if (maxField == null)
-                return Result.Failure(ResultStatus.NotFound, "No values found.");
+                return Result.Failure(ResultStatusCodes.NotFound, "No values found.");
 
             var stringValue = maxField.GetValueAsString();
 
             if (stringValue == null)
-                return Result.Failure(ResultStatus.BadRequest, "Error getting value.");
+                return Result.Failure(ResultStatusCodes.BadRequest, "Error getting value.");
 
             return Result.Success((stringValue, (string?)maxField.EntryId));
         }

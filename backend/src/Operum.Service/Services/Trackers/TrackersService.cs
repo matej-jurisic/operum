@@ -25,12 +25,12 @@ namespace Operum.Service.Services.Trackers
             var trackerCount = await db.Trackers.Where(x => x.OwnerId == user.Id).CountAsync();
             if (trackerCount >= DataLimits.MaxTrackerCount)
             {
-                return Result.Failure(ResultStatus.BadRequest, $"Maximum number of {DataLimits.MaxTrackerCount} trackers reached.");
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("trackers", DataLimits.MaxTrackerCount));
             }
 
-            if (tracker.TrackerTypeId != null && !await authorizationService.HasRole("Admin"))
+            if (tracker.TrackerTypeId != null && !await authorizationService.HasRole(RoleNames.Admin))
             {
-                return Result.Failure(ResultStatus.Forbidden, "You don't have permissions to create template trackers.");
+                return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
             Tracker? templateTracker = null;
@@ -42,11 +42,13 @@ namespace Operum.Service.Services.Trackers
                         .ThenInclude(v => v.Sorts)
                     .Include(t => t.Views)
                         .ThenInclude(v => v.Filters)
+                    .Include(t => t.Analytics)
+                        .ThenInclude(a => a.AnalyticFields)
                     .FirstOrDefaultAsync(t => t.Id == tracker.TemplateTrackerId);
 
                 if (templateTracker == null || templateTracker.TrackerTypeId != (int)PublicityEnum.Public)
                 {
-                    return Result.Failure(ResultStatus.NotFound, "Template tracker not found.");
+                    return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("template tracker"));
                 }
             }
 
@@ -72,7 +74,6 @@ namespace Operum.Service.Services.Trackers
         {
             // Dictionary to map old field IDs to new field IDs
             var fieldIdMapping = new Dictionary<string, string>();
-
             // Copy fields
             foreach (var templateField in templateTracker.Fields)
             {
@@ -87,17 +88,13 @@ namespace Operum.Service.Services.Trackers
                     Order = templateField.Order,
                     TrackerId = newTracker.Id,
                 };
-
                 fieldIdMapping[templateField.Id] = newField.Id;
                 await db.Fields.AddAsync(newField);
             }
-
             // Save fields first so they exist for view references
             await db.SaveChangesAsync();
-
             // Dictionary to map old view IDs to new view IDs
             var viewIdMapping = new Dictionary<string, string>();
-
             // Copy views
             foreach (var templateView in templateTracker.Views)
             {
@@ -108,14 +105,11 @@ namespace Operum.Service.Services.Trackers
                     Description = templateView.Description,
                     TrackerId = newTracker.Id
                 };
-
                 viewIdMapping[templateView.Id] = newView.Id;
                 await db.Views.AddAsync(newView);
             }
-
             // Save views first so they exist for sort/filter references
             await db.SaveChangesAsync();
-
             // Copy view sorts
             foreach (var templateView in templateTracker.Views)
             {
@@ -133,15 +127,9 @@ namespace Operum.Service.Services.Trackers
                             Order = templateSort.Order,
                             Descending = templateSort.Descending
                         };
-
                         await db.ViewSorts.AddAsync(newSort);
                     }
                 }
-            }
-
-            // Copy view filters
-            foreach (var templateView in templateTracker.Views)
-            {
                 foreach (var templateFilter in templateView.Filters)
                 {
                     // Only create filter if the field was copied
@@ -156,13 +144,54 @@ namespace Operum.Service.Services.Trackers
                             Operator = templateFilter.Operator,
                             Value = templateFilter.Value
                         };
-
                         await db.ViewFilters.AddAsync(newFilter);
                     }
                 }
             }
 
-            // Save all the sorts and filters
+            // Dictionary to map old analytic IDs to new analytic IDs
+            var analyticIdMapping = new Dictionary<string, string>();
+            // Copy analytics
+            foreach (var templateAnalytic in templateTracker.Analytics)
+            {
+                var newAnalytic = new Analytic
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Name = templateAnalytic.Name,
+                    Description = templateAnalytic.Description,
+                    Order = templateAnalytic.Order,
+                    Code = templateAnalytic.Code,
+                    ResultType = templateAnalytic.ResultType,
+                    TrackerId = newTracker.Id
+                };
+                analyticIdMapping[templateAnalytic.Id] = newAnalytic.Id;
+                await db.Analytics.AddAsync(newAnalytic);
+            }
+            // Save analytics first so they exist for analytic field references
+            await db.SaveChangesAsync();
+
+            // Copy analytic fields
+            foreach (var templateAnalytic in templateTracker.Analytics)
+            {
+                foreach (var templateAnalyticField in templateAnalytic.AnalyticFields)
+                {
+                    // Only create analytic field if both the analytic and field were copied
+                    if (analyticIdMapping.TryGetValue(templateAnalytic.Id, out var newAnalyticId) &&
+                        fieldIdMapping.TryGetValue(templateAnalyticField.FieldId, out var newFieldId))
+                    {
+                        var newAnalyticField = new AnalyticField
+                        {
+                            Id = Guid.NewGuid().ToString(),
+                            Purpose = templateAnalyticField.Purpose,
+                            AnalyticId = newAnalyticId,
+                            FieldId = newFieldId
+                        };
+                        await db.AnalyticFields.AddAsync(newAnalyticField);
+                    }
+                }
+            }
+
+            // Save all
             await db.SaveChangesAsync();
         }
 
@@ -173,7 +202,7 @@ namespace Operum.Service.Services.Trackers
 
             if (tracker == null || tracker.OwnerId != user.Id)
             {
-                return Result.Failure(ResultStatus.NotFound);
+                return Result.Failure(ResultStatusCodes.NotFound);
             }
 
             db.Trackers.Remove(tracker);
@@ -185,7 +214,7 @@ namespace Operum.Service.Services.Trackers
         {
             var user = currentUserService.GetCurrentUser();
 
-            var isAdmin = await authorizationService.HasRole("Admin");
+            var isAdmin = await authorizationService.HasRole(RoleNames.Admin);
 
             var tracker = await db.Trackers
                 .Include(x => x.Fields)
@@ -196,7 +225,7 @@ namespace Operum.Service.Services.Trackers
 
             if (tracker == null)
             {
-                return Result.Failure(ResultStatus.NotFound);
+                return Result.Failure(ResultStatusCodes.NotFound);
             }
 
             bool hasAccess = tracker.OwnerId == user.Id || tracker.ApplicationUserTrackers.Any(x => x.ApplicationUserId == user.Id);
@@ -208,7 +237,7 @@ namespace Operum.Service.Services.Trackers
 
             if (!hasAccess)
             {
-                return Result.Failure(ResultStatus.Forbidden);
+                return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
             return Result.Success(mapper.Map<Tracker, TrackerDto>(tracker));
@@ -237,7 +266,7 @@ namespace Operum.Service.Services.Trackers
                 return Result.Success(mapper.Map<List<Tracker>, List<TrackerDto>>(trackers));
             }
 
-            return Result.Failure(ResultStatus.BadRequest, "Invalid filter.");
+            return Result.Failure(ResultStatusCodes.BadRequest, Messages.ItemNotFound("filter"));
         }
 
         public async Task<Result<List<TrackerDto>>> GetAllTemplateTrackerList()
@@ -267,12 +296,12 @@ namespace Operum.Service.Services.Trackers
 
             if (originalTracker?.OwnerId != user.Id)
             {
-                return Result.Failure(ResultStatus.NotFound);
+                return Result.Failure(ResultStatusCodes.NotFound);
             }
 
-            if (tracker.TrackerTypeId != null && !await authorizationService.HasRole("Admin"))
+            if (tracker.TrackerTypeId != null && !await authorizationService.HasRole(RoleNames.Admin))
             {
-                return Result.Failure(ResultStatus.Forbidden, "You don't have permissions to create template trackers.");
+                return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
             mapper.Map(tracker, originalTracker);
@@ -294,7 +323,7 @@ namespace Operum.Service.Services.Trackers
 
             if (tracker == null || !hasAccess)
             {
-                return Result.Failure(ResultStatus.Forbidden);
+                return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
             View? view = null;
@@ -309,7 +338,7 @@ namespace Operum.Service.Services.Trackers
 
                 if (view == null)
                 {
-                    return Result.Failure(ResultStatus.NotFound, "View not found or doesn't belong to this tracker");
+                    return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("view"));
                 }
             }
 
@@ -373,7 +402,7 @@ namespace Operum.Service.Services.Trackers
 
             if (tracker == null || user.Id != tracker.OwnerId)
             {
-                return Result.Failure(ResultStatus.NotFound);
+                return Result.Failure(ResultStatusCodes.NotFound);
             }
 
             tracker.DefaultViewId = defaultViewId;
@@ -390,26 +419,26 @@ namespace Operum.Service.Services.Trackers
 
             if (tracker == null || user.Id != tracker.OwnerId)
             {
-                return Result.Failure(ResultStatus.NotFound, "Tracker not found.");
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("tracker"));
             }
 
             var userToAdd = await db.Users.FirstOrDefaultAsync(x => x.UserName == addUserToTracker.Username);
 
             if (userToAdd == null)
             {
-                return Result.Failure(ResultStatus.NotFound, "User not found");
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("user"));
             }
 
             if (userToAdd.Id == user.Id)
             {
-                return Result.Failure(ResultStatus.BadRequest, "Cannot add yourself to your own tracker.");
+                return Result.Failure(ResultStatusCodes.BadRequest);
             }
 
             var userTrackerRelation = await db.UserTrackers.FirstOrDefaultAsync(x => x.TrackerId == trackerId && x.ApplicationUserId == userToAdd.Id);
 
             if (userTrackerRelation != null)
             {
-                return Result.Failure(ResultStatus.BadRequest, "User is already in tracker.");
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.AlreadyInTracker);
             }
 
             UserTracker newRelation = new()
@@ -435,7 +464,7 @@ namespace Operum.Service.Services.Trackers
 
             if (tracker == null || !hasAccess)
             {
-                return Result.Failure(ResultStatus.Forbidden);
+                return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
             var appUserTrackerList = await db.UserTrackers
@@ -455,21 +484,21 @@ namespace Operum.Service.Services.Trackers
 
             if (tracker == null || user.Id != tracker.OwnerId)
             {
-                return Result.Failure(ResultStatus.NotFound, "Tracker not found.");
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("tracker"));
             }
 
             var userToRemove = await db.Users.FirstOrDefaultAsync(x => x.UserName == addUserToTracker.Username);
 
             if (userToRemove == null)
             {
-                return Result.Failure(ResultStatus.NotFound, "User not found");
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("user"));
             }
 
             var userTrackerRelation = await db.UserTrackers.FirstOrDefaultAsync(x => x.TrackerId == trackerId && x.ApplicationUserId == userToRemove.Id);
 
             if (userTrackerRelation == null)
             {
-                return Result.Failure(ResultStatus.BadRequest, "User is not in tracker.");
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.NotInTracker);
             }
 
             db.UserTrackers.Remove(userTrackerRelation);
@@ -484,7 +513,7 @@ namespace Operum.Service.Services.Trackers
             var tracker = await db.Trackers.FindAsync(trackerId);
             if (tracker == null || user.Id != tracker.OwnerId)
             {
-                return Result.Failure(ResultStatus.NotFound, "Tracker not found.");
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("tracker"));
             }
 
             var addFieldIds = addAnalytic.AnalyticFields
@@ -501,13 +530,12 @@ namespace Operum.Service.Services.Trackers
                 var existingField = await db.Fields.FirstOrDefaultAsync(x => x.Id == field.FieldId);
                 if (existingField == null || !fields.ContainsKey(field.FieldId))
                 {
-                    return Result.Failure(ResultStatus.NotFound,
-                        $"Field {field.FieldId} not found.");
+                    return Result.Failure(ResultStatusCodes.NotFound,
+                        Messages.Required($"field for purpose {field.Purpose}"));
                 }
-                if (!AnalyticDefinitionList.IsValidDataType(addAnalytic.ResultType, addAnalytic.Code, field.Purpose, existingField.Type))
+                if (!AnalyticDefinitionList.IsValidDataType(addAnalytic.Type, addAnalytic.Code, field.Purpose, existingField.Type))
                 {
-                    return Result.Failure(ResultStatus.NotFound,
-                        $"Invalid analytic configuration.");
+                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("data type for purpose"));
                 }
             }
 
@@ -515,14 +543,14 @@ namespace Operum.Service.Services.Trackers
 
             if (count >= DataLimits.MaxAnalyticCount)
             {
-                return Result.Failure(ResultStatus.BadRequest, $"Maximum number of {DataLimits.MaxAnalyticCount} analytics reached.");
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("analytics", DataLimits.MaxAnalyticCount));
             }
 
             Analytic analytic = new()
             {
                 TrackerId = tracker.Id,
                 Code = addAnalytic.Code,
-                ResultType = addAnalytic.ResultType,
+                ResultType = addAnalytic.Type,
             };
 
             var maxOrder = await db.Analytics
@@ -551,13 +579,13 @@ namespace Operum.Service.Services.Trackers
             var tracker = await db.Trackers.FindAsync(trackerId);
             if (tracker == null || user.Id != tracker.OwnerId)
             {
-                return Result.Failure(ResultStatus.NotFound, "Tracker not found.");
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("tracker"));
             }
 
             var analytic = await db.Analytics.FindAsync(trackerAnalyticId);
             if (analytic == null || analytic.TrackerId != trackerId)
             {
-                return Result.Failure(ResultStatus.NotFound, "Analytic not found.");
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("analytic"));
             }
 
             db.Analytics.Remove(analytic);
@@ -573,7 +601,7 @@ namespace Operum.Service.Services.Trackers
 
             if (tracker == null || user.Id != tracker.OwnerId)
             {
-                return Result.Failure(ResultStatus.NotFound);
+                return Result.Failure(ResultStatusCodes.NotFound);
             }
 
             var existingTrackerAnalytics = await db.Analytics
@@ -586,8 +614,7 @@ namespace Operum.Service.Services.Trackers
 
             if (!requestedTrackerAnalyticIds.SetEquals(existingTrackerAnalyticIds))
             {
-                return Result.Failure(ResultStatus.BadRequest,
-                    "Invalid tracker analytic IDs provided or missing IDs in reorder request.");
+                return Result.Failure(ResultStatusCodes.BadRequest);
             }
 
             using var transaction = await db.Database.BeginTransactionAsync();
@@ -613,8 +640,7 @@ namespace Operum.Service.Services.Trackers
             catch (Exception)
             {
                 await transaction.RollbackAsync();
-                return Result.Failure(ResultStatus.Error,
-                    "Failed to reorder fields. Please try again.");
+                return Result.Failure(ResultStatusCodes.Error);
             }
         }
     }

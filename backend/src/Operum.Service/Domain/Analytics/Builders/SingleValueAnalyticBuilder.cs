@@ -46,7 +46,7 @@ namespace Operum.Service.Domain.Analytics.Builders
                 .ToList();
 
             if (!_calculators.TryGetValue(request.Analytic.Code, out var calculator))
-                return Result.Failure(ResultStatus.BadRequest,
+                return Result.Failure(ResultStatusCodes.BadRequest,
                     $"Unsupported analytic code: {request.Analytic.Code}");
 
             var opResult = calculator.Calculate(allValues);

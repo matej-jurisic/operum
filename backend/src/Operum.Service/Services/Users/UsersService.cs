@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Operum.Model.Common;
+using Operum.Model.Constants;
 using Operum.Model.DTOs.Users;
 using Operum.Model.Enums;
 using Operum.Model.Models;
@@ -16,19 +17,19 @@ namespace Operum.Service.Services.Users
             var user = currentUserService.GetCurrentUser();
             if (user.Id == userId)
             {
-                return Result.Failure(ResultStatus.BadRequest, "Can't confirm your own email.");
+                return Result.Failure(ResultStatusCodes.BadRequest);
             }
 
             var appUser = await userManager.FindByIdAsync(userId);
 
             if (appUser == null)
             {
-                return Result.Failure(ResultStatus.NotFound, "User not found.");
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("user"));
             }
 
             if (appUser.EmailConfirmed)
             {
-                return Result.Failure(ResultStatus.BadRequest, "Email already confirmed.");
+                return Result.Success(Messages.EmailAlreadyConfirmed);
             }
 
             appUser.EmailConfirmed = true;
@@ -36,10 +37,10 @@ namespace Operum.Service.Services.Users
 
             if (!result.Succeeded)
             {
-                return Result.Failure(ResultStatus.Error, "Failed to confirm email.");
+                return Result.Failure(ResultStatusCodes.Error);
             }
 
-            return Result.Success("Email confirmed successfully.");
+            return Result.Success(Messages.Success);
         }
 
         public async Task<Result<List<UserDto>>> GetAllUsers()
@@ -51,7 +52,6 @@ namespace Operum.Service.Services.Users
             {
                 var userDto = mapper.Map<User, UserDto>(user);
 
-                // Get roles for this user
                 var roles = await userManager.GetRolesAsync(user);
                 userDto.Roles = [.. roles];
 

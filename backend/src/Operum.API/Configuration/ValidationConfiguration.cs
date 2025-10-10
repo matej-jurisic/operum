@@ -26,7 +26,7 @@ namespace Operum.API.Configuration
 
                     var result = new ApiResponse
                     {
-                        StatusCode = Model.Enums.ResultStatus.BadRequest,
+                        StatusCode = Model.Enums.ResultStatusCodes.BadRequest,
                         Messages = errors
                     };
 

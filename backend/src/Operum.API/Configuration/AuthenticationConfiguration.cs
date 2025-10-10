@@ -15,7 +15,7 @@ namespace Operum.API.Configuration
         public static void Configure(this IServiceCollection services, IConfiguration configuration)
         {
             services.RegisterJwtAuthentication(configuration);
-            services.RegisterIdentity();
+            services.RegisterIdentity(configuration);
         }
 
         private static void RegisterJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
@@ -64,7 +64,7 @@ namespace Operum.API.Configuration
                         await context.Response.WriteAsJsonAsync(new ApiResponse
                         {
                             Messages = ["Authentication required"],
-                            StatusCode = ResultStatus.Unauthorized
+                            StatusCode = ResultStatusCodes.Unauthorized
                         });
                     }
                 };
@@ -72,7 +72,7 @@ namespace Operum.API.Configuration
         }
 
 
-        private static void RegisterIdentity(this IServiceCollection services)
+        private static void RegisterIdentity(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddAuthorizationBuilder()
                 .SetFallbackPolicy(new AuthorizationPolicyBuilder()
@@ -96,14 +96,17 @@ namespace Operum.API.Configuration
 
                 // Password requirements
                 options.Password.RequireDigit = true;
-                options.Password.RequiredLength = 8;
+                options.Password.RequiredLength = 6;
                 options.Password.RequireNonAlphanumeric = false;
-                options.Password.RequireUppercase = true;
-                options.Password.RequireLowercase = true;
+                options.Password.RequireUppercase = false;
+                options.Password.RequireLowercase = false;
 
                 // Account lockout
-                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
-                options.Lockout.MaxFailedAccessAttempts = 5;
+
+                var durationMinutes = configuration.GetValue<int?>("Lockout:DurationMinutes");
+                var maxFailedAttempts = configuration.GetValue<int?>("Lockout:MaxFailedAttempts");
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(durationMinutes ?? 15);
+                options.Lockout.MaxFailedAccessAttempts = maxFailedAttempts ?? 5;
                 options.Lockout.AllowedForNewUsers = true;
             });
         }

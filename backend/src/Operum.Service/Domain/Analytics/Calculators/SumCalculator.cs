@@ -22,7 +22,7 @@ namespace Operum.Service.Domain.Analytics.Calculators
             var numbers = items.OfType<double>().ToList();
 
             if (numbers.Count == 0)
-                return Result.Failure(ResultStatus.NotFound, "No numeric values found.");
+                return Result.Failure(ResultStatusCodes.NotFound, "No numeric values found.");
 
             return Result.Success((DataFormatters.NumberToString(numbers.Sum()), (string?)null));
         }

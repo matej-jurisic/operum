@@ -1,4 +1,4 @@
-﻿using Operum.Model.DTOs.Entry;
+﻿using Operum.Model.DTOs.Entries;
 using Operum.Model.DTOs.Fields;
 using Operum.Model.DTOs.Fields.Requests;
 using Operum.Model.DTOs.Trackers;

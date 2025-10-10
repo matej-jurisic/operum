@@ -1,9 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Operum.Model.Common;
+using Operum.Model.DTOs.Entries;
 using Operum.Model.DTOs.Entries.Requests;
-using Operum.Model.DTOs.Entry;
-using Operum.Model.DTOs.Entry.Requests;
 
 namespace Operum.Service.Interfaces
 {

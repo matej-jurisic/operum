@@ -13,7 +13,7 @@ namespace Operum.API.Configuration
             services.AddRouting(options => options.LowercaseUrls = true);
             services.AddHttpContextAccessor();
             services.RegisterCors(configuration);
-            services.RegisterRateLimiting();
+            services.RegisterRateLimiting(configuration);
 
             DatabaseConfiguration.Configure(services, configuration);
             AuthenticationConfiguration.Configure(services, configuration);
@@ -21,15 +21,12 @@ namespace Operum.API.Configuration
             ServiceConfiguration.Configure(services, configuration);
         }
 
-
-
         private static void RegisterCors(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddCors(opt =>
             {
                 var allowedHosts = configuration.GetValue<string?>("AllowedHosts");
-                var origins = allowedHosts?.Split(';', StringSplitOptions.RemoveEmptyEntries)
-                    ?? ["http://localhost:3000", "https://localhost:3000"];
+                var origins = allowedHosts?.Split(';', StringSplitOptions.RemoveEmptyEntries) ?? [];
 
                 opt.AddPolicy("CorsPolicy", policy =>
                 {
@@ -43,15 +40,19 @@ namespace Operum.API.Configuration
             });
         }
 
-        private static void RegisterRateLimiting(this IServiceCollection services)
+        private static void RegisterRateLimiting(this IServiceCollection services, IConfiguration configuration)
         {
+            var windowMinutes = configuration.GetValue<int?>("RateLimiting:WindowMinutes");
+            var permitLimit = configuration.GetValue<int?>("RateLimiting:PermitLimit");
+            var queueLimit = configuration.GetValue<int?>("RateLimiting:QueueLimit");
+
             services.AddRateLimiter(options =>
             {
                 options.AddFixedWindowLimiter("fixed", config =>
                 {
-                    config.Window = TimeSpan.FromMinutes(1);
-                    config.PermitLimit = 120;
-                    config.QueueLimit = 10;
+                    config.Window = TimeSpan.FromMinutes(windowMinutes ?? 1);
+                    config.PermitLimit = permitLimit ?? 120;
+                    config.QueueLimit = queueLimit ?? 10;
                     config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
                 });
             });

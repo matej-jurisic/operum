@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using Operum.Model.Constants;
 
 namespace Operum.Model.DTOs.Trackers.Requests
 {
@@ -12,9 +13,7 @@ namespace Operum.Model.DTOs.Trackers.Requests
         public AddUserToTrackerDtoValidator()
         {
             RuleFor(x => x.Username)
-                .NotEmpty().WithMessage("Username is required.")
-                .MinimumLength(3).WithMessage("Username must be at least 3 characters long.")
-                .MaximumLength(20).WithMessage("Username cannot exceed 20 characters.");
+                .NotEmpty().WithMessage(Messages.Required("username"));
         }
     }
 }

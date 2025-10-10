@@ -7,9 +7,9 @@ using System.Text.Json;
 
 namespace Operum.Service.Integrations.MailSender
 {
-    public class MailSender(IOptions<MailGunConfiguration> settings) : IMailSender
+    public class MailSender(IOptions<MailGunConfigurationModel> settings) : IMailSender
     {
-        private readonly MailGunConfiguration _settings = settings.Value;
+        private readonly MailGunConfigurationModel _settings = settings.Value;
 
         public async Task<RestResponse> SendMailConfirmationMail(string userName, string email, string callbackUrl)
         {

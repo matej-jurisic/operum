@@ -11,7 +11,7 @@ namespace Operum.API.Controllers.Base
         [AllowAnonymous]
         public IActionResult Get()
         {
-            return Ok("Welcome to the API! This is the root endpoint.");
+            return Ok("Welcome to the Operum API! This is the root endpoint.");
         }
     }
 }

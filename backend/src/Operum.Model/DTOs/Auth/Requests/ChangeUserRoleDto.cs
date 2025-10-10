@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using Operum.Model.Constants;
 
 namespace Operum.Model.DTOs.Auth.Requests
 {
@@ -12,7 +13,7 @@ namespace Operum.Model.DTOs.Auth.Requests
         public ModifyUserRoleRequestDtoValidator()
         {
             RuleFor(x => x.RoleName)
-                .NotEmpty().WithMessage("RoleName is required.");
+                .NotEmpty().WithMessage(Messages.Required("role name"));
         }
     }
 }

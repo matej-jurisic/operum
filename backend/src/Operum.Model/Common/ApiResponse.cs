@@ -7,7 +7,7 @@ namespace Operum.Model.Common
     {
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public object? Data { get; set; }
-        public ResultStatus StatusCode { get; set; }
+        public ResultStatusCodes StatusCode { get; set; }
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public IEnumerable<string>? Messages { get; set; }
     }

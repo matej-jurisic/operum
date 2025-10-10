@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Operum.Model.Common;
+using Operum.Model.Constants;
 using Operum.Model.DTOs.Auth.Requests;
 using Operum.Model.Enums;
 using Operum.Model.Models;
@@ -15,24 +16,24 @@ namespace Operum.Service.Services.Roles
             var user = await userManager.FindByIdAsync(userId);
             if (user == null)
             {
-                return Result.Failure(ResultStatus.NotFound, $"User with ID: '{userId}' does not exist.");
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("user"));
             }
 
             if (userId == currentUserService.GetCurrentUser().Id)
             {
-                return Result.Failure(ResultStatus.BadRequest, $"You can't change your own roles.");
+                return Result.Failure(ResultStatusCodes.BadRequest);
             }
 
             var roleExists = await roleManager.RoleExistsAsync(request.RoleName);
             if (!roleExists)
             {
-                return Result.Failure(ResultStatus.NotFound, $"Role '{request.RoleName}' does not exist.");
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("role"));
             }
 
             var userInRole = await userManager.IsInRoleAsync(user, request.RoleName);
             if (userInRole)
             {
-                return Result.Failure(ResultStatus.BadRequest, $"User is already in role '{request.RoleName}'");
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.AlreadyInRole);
             }
 
             return await HandleRoleChange(user, request.RoleName);
@@ -46,7 +47,7 @@ namespace Operum.Service.Services.Roles
 
             if (!result.Succeeded)
             {
-                return Result.Failure(ResultStatus.BadRequest, result.Errors.Select(e => e.Description));
+                return Result.Failure(ResultStatusCodes.BadRequest, result.Errors.Select(e => e.Description));
             }
             return Result.Success();
         }

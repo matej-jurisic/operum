@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Operum.Model;
 using Operum.Model.Common;
+using Operum.Model.Constants;
 using Operum.Model.DTOs.Views;
 using Operum.Model.DTOs.Views.Requests;
 using Operum.Model.Enums;
@@ -19,29 +20,29 @@ namespace Operum.Service.Services.Views
             var tracker = await db.Trackers.FindAsync(trackerId);
             if (tracker == null || tracker.OwnerId != user.Id)
             {
-                return Result.Failure(ResultStatus.NotFound);
+                return Result.Failure(ResultStatusCodes.NotFound);
             }
 
             foreach (var sort in view.Sorts)
             {
                 var field = await db.Fields.FindAsync(sort.FieldId);
                 if (field == null || field.TrackerId != trackerId)
-                    return Result.Failure(ResultStatus.BadRequest, "Sort field not found or doesn't belong to tracker");
+                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.ItemNotFound("sort field"));
             }
 
             foreach (var filter in view.Filters)
             {
                 var field = await db.Fields.FindAsync(filter.FieldId);
                 if (field == null || field.TrackerId != trackerId)
-                    return Result.Failure(ResultStatus.BadRequest, "Filter field not found or doesn't belong to tracker");
+                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.ItemNotFound("filter field"));
 
                 // Validate operator is valid for the field type
                 if (!ViewFilterValidator.IsValidOperatorForFieldType(filter.Operator, field.Type))
-                    return Result.Failure(ResultStatus.BadRequest, $"Operator '{filter.Operator}' is not valid for field type '{field.Type}'");
+                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid($"operator '{filter.Operator}' for field type '{field.Type}'"));
 
                 // Validate field value
                 if (filter.Value != null && !ViewFilterValidator.IsValidFieldValue(filter.Value, field.Type))
-                    return Result.Failure(ResultStatus.BadRequest, $"Value '{filter.Value}' is invalid for field type '{field.Type}'");
+                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid($"value '{filter.Value}' for field type '{field.Type}'"));
             }
 
             var userView = mapper.Map<CreateViewDto, View>(view);
@@ -59,7 +60,7 @@ namespace Operum.Service.Services.Views
             var tracker = await db.Trackers.FindAsync(trackerId);
             if (tracker == null || tracker.OwnerId != user.Id)
             {
-                return Result.Failure(ResultStatus.NotFound);
+                return Result.Failure(ResultStatusCodes.NotFound);
             }
 
             await db.Views.Where(x => x.Id == viewId && x.TrackerId == trackerId).ExecuteDeleteAsync();
@@ -84,7 +85,7 @@ namespace Operum.Service.Services.Views
 
             if (userView == null || !hasAccess)
             {
-                return Result.Failure(ResultStatus.Forbidden);
+                return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
             return Result.Success(mapper.Map<View, ViewDto>(userView));
@@ -102,7 +103,7 @@ namespace Operum.Service.Services.Views
 
             if (tracker == null || !hasAccess)
             {
-                return Result.Failure(ResultStatus.Forbidden);
+                return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
             var userViews = await db.Views

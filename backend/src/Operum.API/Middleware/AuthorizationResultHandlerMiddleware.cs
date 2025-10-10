@@ -4,7 +4,7 @@ using Operum.Model.Common;
 using Operum.Model.Enums;
 using System.Net;
 
-namespace Operum.API.Middleware.Security
+namespace Operum.API.Middleware
 {
     public class AuthorizationResultHandlerMiddleware : IAuthorizationMiddlewareResultHandler
     {
@@ -26,8 +26,8 @@ namespace Operum.API.Middleware.Security
 
                 var apiResponse = new ApiResponse
                 {
-                    Messages = [ResultStatus.Forbidden.ToString()],
-                    StatusCode = ResultStatus.Forbidden
+                    Messages = [ResultStatusCodes.Forbidden.ToString()],
+                    StatusCode = ResultStatusCodes.Forbidden
                 };
 
                 await context.Response.WriteAsJsonAsync(apiResponse);
@@ -41,8 +41,8 @@ namespace Operum.API.Middleware.Security
 
                 var apiResponse = new ApiResponse
                 {
-                    Messages = [ResultStatus.Unauthorized.ToString()],
-                    StatusCode = ResultStatus.Unauthorized
+                    Messages = [ResultStatusCodes.Unauthorized.ToString()],
+                    StatusCode = ResultStatusCodes.Unauthorized
                 };
 
                 await context.Response.WriteAsJsonAsync(apiResponse);

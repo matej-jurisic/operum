@@ -46,14 +46,14 @@ namespace Operum.API.Controllers
 
         [AllowAnonymous]
         [HttpGet("confirm-email")]
-        public async Task<IActionResult> ConfirmEmail(string userId, string token)
+        public async Task<IActionResult> ConfirmEmail([FromBody] ConfirmEmailDto request)
         {
-            return GetApiResponse(await authenticationService.ConfirmEmail(userId, token));
+            return GetApiResponse(await authenticationService.ConfirmEmail(request));
         }
 
         [AllowAnonymous]
         [HttpPost("google")]
-        public async Task<IActionResult> GoogleLogin(GoogleLoginDto request)
+        public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginDto request)
         {
             return GetApiResponse(await authenticationService.GoogleLogin(request));
         }

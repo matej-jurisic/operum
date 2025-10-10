@@ -19,7 +19,7 @@ namespace Operum.Service.Domain.Analytics.Builders
             _processors = new Dictionary<string, ILineChartProcessor>
             {
                 [AnalyticCodes.LineChart] = new LineChartProcessor(),
-                [AnalyticCodes.AggregatedLineChart] = new AggregatedSumLineChartProcessor(),
+                [AnalyticCodes.AggregatedSumLineChart] = new AggregatedSumLineChartProcessor(),
                 [AnalyticCodes.CumulativeLineChart] = new CumulativeLineChartProcessor()
             };
         }
@@ -49,7 +49,7 @@ namespace Operum.Service.Domain.Analytics.Builders
                 .ToList();
 
             if (!_processors.TryGetValue(request.Analytic.Code, out var processor))
-                return Result.Failure(ResultStatus.BadRequest,
+                return Result.Failure(ResultStatusCodes.BadRequest,
                     $"Unsupported analytic code: {request.Analytic.Code}");
 
             result.Points = processor.Process(dataPoints);

@@ -1,6 +1,6 @@
 ﻿namespace Operum.Model.Configuration
 {
-    public class MailGunConfiguration
+    public class MailGunConfigurationModel
     {
         public string ApiKey { get; set; } = string.Empty;
         public string ApiBase { get; set; } = string.Empty;

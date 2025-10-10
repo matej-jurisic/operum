@@ -1,6 +1,6 @@
 ﻿namespace Operum.Model.Enums
 {
-    public enum ResultStatus
+    public enum ResultStatusCodes
     {
         Ok,
         BadRequest,

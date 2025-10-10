@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Operum.API.Middleware.Security;
+using Operum.API.Middleware;
 using Operum.Model.Configuration;
 using Operum.Service.Integrations.MailSender;
 using Operum.Service.Interfaces;
@@ -52,11 +52,11 @@ namespace Operum.API.Configuration
 
         private static IServiceCollection RegisterInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
         {
-            // Authorization Middleware
+            // Authorization result middleware
             services.AddSingleton<IAuthorizationMiddlewareResultHandler, AuthorizationResultHandlerMiddleware>();
 
             // Mail Service with MailGun Configuration
-            services.Configure<MailGunConfiguration>(configuration.GetSection("MailGun"));
+            services.Configure<MailGunConfigurationModel>(configuration.GetSection("MailGun"));
             services.AddSingleton<IMailSender, MailSender>();
 
             return services;

@@ -13,19 +13,19 @@
         public const string FalseCount = "False Count";
         public const string TruePercentage = "True Percentage";
 
-        public const string AggregatedLineChart = "Aggregated LineChart";
+        public const string AggregatedSumLineChart = "Aggregated Sum LineChart";
         public const string CumulativeLineChart = "Cumulative LineChart";
         public const string LineChart = "LineChart";
 
-        public const string ScatterPlot = "ScatterPlot";
+        public const string ScatterChart = "ScatterChart";
         public const string Calendar = "Calendar";
 
         public static readonly HashSet<string> All =
         [
             Count, Min, Max, Average, Sum, StdDev,
             TrueCount, FalseCount, TruePercentage,
-            AggregatedLineChart, CumulativeLineChart, LineChart,
-            Calendar, ScatterPlot
+            AggregatedSumLineChart, CumulativeLineChart, LineChart,
+            Calendar, ScatterChart
         ];
 
         public static bool IsValid(string op) => All.Contains(op);

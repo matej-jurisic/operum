@@ -2,12 +2,12 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Operum.Model;
 using Operum.Model.Common;
 using Operum.Model.Constants;
+using Operum.Model.DTOs.Entries;
 using Operum.Model.DTOs.Entries.Requests;
-using Operum.Model.DTOs.Entry;
-using Operum.Model.DTOs.Entry.Requests;
 using Operum.Model.Enums;
 using Operum.Model.Extensions;
 using Operum.Model.Models;
@@ -18,7 +18,7 @@ using System.Globalization;
 
 namespace Operum.Service.Services.Entries
 {
-    public class EntriesService(ICurrentUserService currentUserService, OperumContext db, IMapper mapper) : IEntriesService
+    public class EntriesService(ICurrentUserService currentUserService, OperumContext db, IMapper mapper, ILogger<EntriesService> logger) : IEntriesService
     {
         public async Task<Result<EntryDto>> CreateEntry(string trackerId, CreateEntryDto entry)
         {
@@ -31,13 +31,13 @@ namespace Operum.Service.Services.Entries
 
             if (tracker == null || !hasAccess)
             {
-                return Result.Failure(ResultStatus.Forbidden);
+                return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
             var entryCount = await db.Entries.Where(x => x.TrackerId == trackerId).CountAsync();
             if (entryCount >= DataLimits.MaxEntryCount)
             {
-                return Result.Failure(ResultStatus.BadRequest, $"Maximum number of {DataLimits.MaxEntryCount} entries reached.");
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("trackers", DataLimits.MaxTrackerCount));
             }
 
             var fields = await db.Fields.Where(x => x.TrackerId == trackerId).ToListAsync();
@@ -66,7 +66,7 @@ namespace Operum.Service.Services.Entries
                 }
                 else if (field.Required)
                 {
-                    return Result.Failure(ResultStatus.BadRequest, $"Field {field.Name} is required!");
+                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.IsRequired(field.Name));
                 }
             }
 
@@ -75,7 +75,7 @@ namespace Operum.Service.Services.Entries
 
             var created = await GetEntry(trackerId, newEntry.Id);
 
-            return Result.Success(created.Data, "Entry created successfully!");
+            return Result.Success(created.Data, Messages.Success);
         }
 
         public async Task<Result<List<EntryDto>>> GetEntries(string trackerId, string? viewId)
@@ -89,7 +89,7 @@ namespace Operum.Service.Services.Entries
 
             if (tracker == null || !hasAccess)
             {
-                return Result.Failure(ResultStatus.Forbidden);
+                return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
             View? view = null;
@@ -104,7 +104,7 @@ namespace Operum.Service.Services.Entries
 
                 if (view == null)
                 {
-                    return Result.Failure(ResultStatus.NotFound, "View not found or doesn't belong to this tracker");
+                    return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("view"));
                 }
             }
 
@@ -134,7 +134,7 @@ namespace Operum.Service.Services.Entries
 
             if (tracker == null || !hasAccess)
             {
-                return Result.Failure(ResultStatus.Forbidden);
+                return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
             var entry = await db.Entries
@@ -144,7 +144,7 @@ namespace Operum.Service.Services.Entries
 
             if (entry == null)
             {
-                return Result.Failure(ResultStatus.NotFound);
+                return Result.Failure(ResultStatusCodes.NotFound);
             }
 
             return Result.Success(mapper.Map<Entry, EntryDto>(entry));
@@ -162,7 +162,7 @@ namespace Operum.Service.Services.Entries
 
             if (entry == null || !hasAccess)
             {
-                return Result.Failure(ResultStatus.Forbidden);
+                return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
             var fieldValues = await db.FieldValues
@@ -226,7 +226,7 @@ namespace Operum.Service.Services.Entries
 
             if (entry == null || !hasAccess)
             {
-                return Result.Failure(ResultStatus.Forbidden);
+                return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
             db.Entries.Remove(entry);
@@ -251,7 +251,7 @@ namespace Operum.Service.Services.Entries
         {
             if (file == null || file.Length == 0)
             {
-                return Result.Failure(ResultStatus.BadRequest, "File is empty.");
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.FielIsEmpty);
             }
 
             var user = currentUserService.GetCurrentUser();
@@ -263,7 +263,7 @@ namespace Operum.Service.Services.Entries
 
             if (tracker == null || !hasAccess)
             {
-                return Result.Failure(ResultStatus.Forbidden);
+                return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
             // Check entry count limit upfront
@@ -282,7 +282,7 @@ namespace Operum.Service.Services.Entries
             using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
             {
                 var records = csv.GetRecords<dynamic>();
-                int rowIndex = 1; // Start from 1 for user-friendly error messages
+                int rowIndex = 1;
 
                 foreach (var record in records)
                 {
@@ -297,7 +297,7 @@ namespace Operum.Service.Services.Entries
 
                     if (missingRequiredFields.Count > 0)
                     {
-                        validationErrors.Add($"Row {rowIndex}: Missing required fields: {string.Join(", ", missingRequiredFields)}");
+                        validationErrors.Add(Messages.CsvMissingFields(rowIndex, missingRequiredFields));
                         rowIndex++;
                         continue;
                     }
@@ -323,16 +323,14 @@ namespace Operum.Service.Services.Entries
             // Return validation errors if any
             if (validationErrors.Count > 0)
             {
-                return Result.Failure(ResultStatus.BadRequest,
+                return Result.Failure(ResultStatusCodes.BadRequest,
                     validationErrors.Take(5));
             }
 
             // Check if importing would exceed the limit
             if (currentEntryCount + parsedRecords.Count > DataLimits.MaxEntryCount)
             {
-                return Result.Failure(ResultStatus.BadRequest,
-                    $"Import would exceed maximum entry limit. Current: {currentEntryCount}, " +
-                    $"Import: {parsedRecords.Count}, Max: {DataLimits.MaxEntryCount}");
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.CsvMaxNumberReached(currentEntryCount, parsedRecords.Count, DataLimits.MaxEntryCount));
             }
 
             // Batch create entries and field values
@@ -385,7 +383,7 @@ namespace Operum.Service.Services.Entries
                 throw;
             }
 
-            return Result.Success($"Entries imported successfully!");
+            return Result.Success(Messages.Success);
         }
 
         public async Task<Result<FileContentResult>> ExportEntriesToCsv(string trackerId, string? viewId = null)
@@ -399,7 +397,7 @@ namespace Operum.Service.Services.Entries
 
             if (tracker == null || !hasAccess)
             {
-                return Result.Failure(ResultStatus.Forbidden);
+                return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
             // Fetch view if provided
@@ -415,7 +413,7 @@ namespace Operum.Service.Services.Entries
 
                 if (view == null)
                 {
-                    return Result.Failure(ResultStatus.NotFound, "View not found or doesn't belong to this tracker");
+                    return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("view"));
                 }
             }
 
@@ -439,7 +437,7 @@ namespace Operum.Service.Services.Entries
 
             if (entries.Count == 0)
             {
-                return Result.Failure(ResultStatus.BadRequest, "No entries found to export.");
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.NoEntriesFound);
             }
 
             try
@@ -482,7 +480,8 @@ namespace Operum.Service.Services.Entries
             }
             catch (Exception ex)
             {
-                return Result.Failure(ResultStatus.Error, $"Error exporting CSV: {ex.Message}");
+                logger.LogError(ex, "Exception while exporting entries to csv with trackerId={trackerId} and viewId={viewId}.", trackerId, viewId);
+                return Result.Failure(ResultStatusCodes.Error, Messages.SomethingWentWrong);
             }
         }
     }

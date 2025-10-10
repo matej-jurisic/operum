@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using Operum.Model.Constants;
 
 namespace Operum.Model.DTOs.Trackers.Requests
 {
@@ -12,7 +13,7 @@ namespace Operum.Model.DTOs.Trackers.Requests
         public RemoveUserFromTrackerDtoValidator()
         {
             RuleFor(x => x.Username)
-                .NotEmpty().WithMessage("Username is required.");
+                .NotEmpty().WithMessage(Messages.Required("username"));
         }
     }
 }

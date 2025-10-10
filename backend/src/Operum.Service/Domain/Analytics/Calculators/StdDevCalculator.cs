@@ -14,7 +14,7 @@ namespace Operum.Service.Domain.Analytics.Calculators
             var numbers = items.OfType<double>().ToList();
 
             if (numbers.Count == 0)
-                return Result.Failure(ResultStatus.NotFound, "No numeric values found.");
+                return Result.Failure(ResultStatusCodes.NotFound, "No numeric values found.");
 
             var avg = numbers.Average();
             var variance = numbers.Sum(x => Math.Pow(x - avg, 2)) / numbers.Count;

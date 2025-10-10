@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Operum.API.Controllers.Base;
 using Operum.Model.DTOs.Entries.Requests;
-using Operum.Model.DTOs.Entry.Requests;
 using Operum.Service.Interfaces;
 
 namespace Operum.API.Controllers
@@ -55,14 +54,7 @@ namespace Operum.API.Controllers
         [HttpGet("export-csv")]
         public async Task<IActionResult> ExportCsv([FromRoute] string trackerId, [FromQuery] string? viewId)
         {
-            var result = await entriesService.ExportEntriesToCsv(trackerId, viewId);
-
-            if (!result.IsSuccess)
-            {
-                return GetApiResponse(result);
-            }
-            var fileResult = result.Data!;
-            return File(fileResult.FileContents, fileResult.ContentType, fileResult.FileDownloadName);
+            return GetApiFileResponse(await entriesService.ExportEntriesToCsv(trackerId, viewId));
         }
     }
 }

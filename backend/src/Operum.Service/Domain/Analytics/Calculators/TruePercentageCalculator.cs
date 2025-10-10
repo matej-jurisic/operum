@@ -12,7 +12,7 @@ namespace Operum.Service.Domain.Analytics.Calculators
         {
             var all = fieldValues.Select(x => x.GetFieldValue()).Where(x => x is bool).ToList();
             if (all.Count == 0)
-                return Result.Failure(ResultStatus.NotFound, "No values found.");
+                return Result.Failure(ResultStatusCodes.NotFound, "No values found.");
 
             var percentage = (double)all.Count(x => x is bool b && b) / all.Count * 100;
             return Result.Success((DataFormatters.NumberToString(percentage) + "%", (string?)null));

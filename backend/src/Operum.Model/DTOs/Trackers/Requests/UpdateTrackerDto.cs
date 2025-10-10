@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using Operum.Model.Constants;
 using Operum.Model.Enums;
 
 namespace Operum.Model.DTOs.Trackers.Requests
@@ -25,7 +26,7 @@ namespace Operum.Model.DTOs.Trackers.Requests
 
             RuleFor(x => x.TrackerTypeId)
                 .Must(x => !x.HasValue || Enum.IsDefined(typeof(PublicityEnum), x.Value))
-                .WithMessage("Tracker type is invalid.");
+                .WithMessage(Messages.Invalid("tracker type"));
 
             RuleFor(x => x.Color)
                 .MaximumLength(50)

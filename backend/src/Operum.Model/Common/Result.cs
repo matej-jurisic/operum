@@ -6,24 +6,24 @@ namespace Operum.Model.Common
     {
         public static Result Success(string? message = null) => new()
         {
-            StatusCode = ResultStatus.Ok,
+            StatusCode = ResultStatusCodes.Ok,
             Messages = message != null ? [message] : []
         };
 
         public static Result<T> Success<T>(T data, string? message = null) => new()
         {
             Data = data,
-            StatusCode = ResultStatus.Ok,
+            StatusCode = ResultStatusCodes.Ok,
             Messages = message != null ? [message] : []
         };
 
-        public static Result Failure(ResultStatus statusCode, IEnumerable<string>? messages = null) => new()
+        public static Result Failure(ResultStatusCodes statusCode, IEnumerable<string>? messages = null) => new()
         {
             StatusCode = statusCode,
             Messages = [.. (messages ?? [statusCode.ToString()])]
         };
 
-        public static Result Failure(ResultStatus statusCode, string message) => new()
+        public static Result Failure(ResultStatusCodes statusCode, string message) => new()
         {
             StatusCode = statusCode,
             Messages = [message]

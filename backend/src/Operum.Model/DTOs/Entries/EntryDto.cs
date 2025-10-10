@@ -1,6 +1,6 @@
 ﻿using Operum.Model.DTOs.Fields;
 
-namespace Operum.Model.DTOs.Entry
+namespace Operum.Model.DTOs.Entries
 {
     public class EntryDto
     {

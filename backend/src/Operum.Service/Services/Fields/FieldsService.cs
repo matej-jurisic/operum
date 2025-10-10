@@ -21,22 +21,21 @@ namespace Operum.Service.Services.Fields
             var tracker = await db.Trackers.FindAsync(trackerId);
             if (tracker == null || user.Id != tracker.OwnerId)
             {
-                return Result.Failure(ResultStatus.NotFound);
+                return Result.Failure(ResultStatusCodes.NotFound);
             }
 
             var fieldCount = await db.Fields.Where(x => x.TrackerId == trackerId).CountAsync();
             if (fieldCount >= DataLimits.MaxFieldCount)
             {
-                return Result.Failure(ResultStatus.BadRequest, $"Maximum number of {DataLimits.MaxFieldCount} fields reached.");
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("views", DataLimits.MaxFieldCount));
             }
 
-            if (!DataTypes.IsValid(field.Type)) return Result.Failure(ResultStatus.BadRequest, $"Field type {field.Type} is not allowed.");
+            if (!DataTypes.IsValid(field.Type)) return Result.Failure(ResultStatusCodes.BadRequest, Messages.NotAllowed("field type"));
 
             var newField = mapper.Map<CreateFieldDto, Field>(field);
 
             newField.TrackerId = trackerId;
 
-            // Set the order to be last
             var maxOrder = await db.Fields
                 .Where(x => x.TrackerId == trackerId)
                 .MaxAsync(x => (int?)x.Order) ?? 0;
@@ -58,13 +57,12 @@ namespace Operum.Service.Services.Fields
 
             if (field == null || user.Id != field.Tracker.OwnerId)
             {
-                return Result.Failure(ResultStatus.NotFound);
+                return Result.Failure(ResultStatusCodes.NotFound);
             }
 
             db.Fields.Remove(field);
             await db.SaveChangesAsync();
 
-            // Reorder remaining fields to fill the gap
             await ReorderFieldsAfterDeletion(trackerId, field.Order);
 
             return Result.Success();
@@ -82,7 +80,7 @@ namespace Operum.Service.Services.Fields
 
             if (field == null || !hasAccess)
             {
-                return Result.Failure(ResultStatus.Forbidden);
+                return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
             return Result.Success(mapper.Map<Field, FieldDto>(field));
@@ -99,7 +97,7 @@ namespace Operum.Service.Services.Fields
 
             if (tracker == null || !hasAccess)
             {
-                return Result.Failure(ResultStatus.Forbidden);
+                return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
             var fields = await db.Fields
@@ -117,10 +115,9 @@ namespace Operum.Service.Services.Fields
 
             if (tracker == null || user.Id != tracker.OwnerId)
             {
-                return Result.Failure(ResultStatus.NotFound);
+                return Result.Failure(ResultStatusCodes.NotFound);
             }
 
-            // Validate that all field IDs belong to this tracker
             var existingFields = await db.Fields
                 .Where(x => x.TrackerId == trackerId)
                 .Select(x => x.Id)
@@ -129,11 +126,10 @@ namespace Operum.Service.Services.Fields
             var requestedFieldIds = reorderFields.FieldIds.ToHashSet();
             var existingFieldIds = existingFields.ToHashSet();
 
-            // Check if all requested field IDs exist and belong to this tracker
+            // Check if all requested field IDs exist and belong to tracker
             if (!requestedFieldIds.SetEquals(existingFieldIds))
             {
-                return Result.Failure(ResultStatus.BadRequest,
-                    "Invalid field IDs provided or missing fields in reorder request.");
+                return Result.Failure(ResultStatusCodes.BadRequest);
             }
 
             using var transaction = await db.Database.BeginTransactionAsync();
@@ -160,8 +156,7 @@ namespace Operum.Service.Services.Fields
             {
                 await transaction.RollbackAsync();
                 logger.LogError(ex, "Exception occurred while reordering fields.");
-                return Result.Failure(ResultStatus.Error,
-                    "Failed to reorder fields. Please try again.");
+                return Result.Failure(ResultStatusCodes.Error);
             }
         }
 
@@ -174,10 +169,10 @@ namespace Operum.Service.Services.Fields
 
             if (originalField == null || user.Id != originalField.Tracker.OwnerId)
             {
-                return Result.Failure(ResultStatus.NotFound);
+                return Result.Failure(ResultStatusCodes.NotFound);
             }
 
-            if (!DataTypes.IsValid(field.Type)) return Result.Failure(ResultStatus.BadRequest, $"Field type {field.Type} is not allowed.");
+            if (!DataTypes.IsValid(field.Type)) return Result.Failure(ResultStatusCodes.BadRequest, Messages.NotAllowed("field type"));
 
             mapper.Map(field, originalField);
             db.Fields.Update(originalField);
