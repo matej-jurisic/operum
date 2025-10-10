@@ -30,5 +30,5 @@ export interface ScatterPlotAnalyticResultDto extends AnalyticResultDto {
 export interface CalendarAnalyticResultDto extends AnalyticResultDto {
     dateFieldName: string;
     eventFieldName: string;
-    points: { date: string; name: string }[];
+    points: { date: string; name: string, entryId: string }[];
 }

@@ -61,7 +61,7 @@ export const formatDateOnly = (value?: string) =>
           })
         : "";
 
-export const formatDateOnlyFromDate = (date?: Date) =>
+export const formatDateOnlyFromDate = (date: Date) =>
     date
         ? date.toLocaleDateString("en-GB", {
               day: "2-digit",

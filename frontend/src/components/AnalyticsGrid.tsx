@@ -132,8 +132,8 @@ export function AnalyticsGrid({
                 return (
                     <StatCardMemo
                         analytic={analytic as SingleValueAnalyticResultDto}
-                        onEntryClick={onEntryClick}
                         isConfiguring={isConfiguring}
+                        onEntryClick={onEntryClick}
                     />
                 );
             case "NumericChart":
@@ -155,6 +155,7 @@ export function AnalyticsGrid({
                     <CalendarCard
                         analytic={analytic as CalendarAnalyticResultDto}
                         isConfiguring={isConfiguring}
+                        onEntryClick={onEntryClick}
                     />
                 );
             default:

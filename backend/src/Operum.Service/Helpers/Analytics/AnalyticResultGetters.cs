@@ -162,7 +162,8 @@ namespace Operum.Service.Helpers.Analytics
             var calendarPoints = entries
                 .Select(e => new CalendarPointDto()
                 {
-                    Date = e.FieldValues.FirstOrDefault(f => f.FieldId == whenField.Id)?.GetValueAsString(),
+                    EntryId = e.Id,
+                    Date = e.FieldValues.FirstOrDefault(f => f.FieldId == whenField.Id)?.DateTimeValue,
                     Name = e.FieldValues.FirstOrDefault(f => f.FieldId == whatField.Id)?.GetValueAsString(),
                 })
                 .Where(p => p.Date != null && p.Name != null)

@@ -8,36 +8,54 @@ import {
     Text,
 } from "@mantine/core";
 import { Calendar } from "@mantine/dates";
-import { useState } from "react";
-import { MdArrowBack, MdDelete } from "react-icons/md";
+import { useMemo, useState } from "react";
+import { MdArrowBack, MdDelete, MdLink } from "react-icons/md";
 import { useTracker } from "../context/TrackerContext";
 import { CalendarAnalyticResultDto } from "../model/AnalyticResultDto";
-import { formatFullDate, parseDate } from "../util/TypeFormatter";
+import { formatDateOnlyFromDate, formatDateTime, formatDateTimeFromDate, formatFullDate } from "../util/TypeFormatter";
 
 interface CalendarCardProps {
     analytic: CalendarAnalyticResultDto;
     isConfiguring: boolean;
+    onEntryClick: (entryId: string) => void;
 }
 
-export function CalendarCard({ analytic, isConfiguring }: CalendarCardProps) {
+const getDateKey = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+export function CalendarCard({ analytic, isConfiguring, onEntryClick }: CalendarCardProps) {
     const { tracker, RemoveAnalyticFromTracker } = useTracker();
     const [selectedDate, setSelectedDate] = useState<Date | undefined>();
     const [viewDate, setViewDate] = useState<Date>(new Date());
 
     // Create a map of dates to events for quick lookup
-    const eventsByDate = new Map<string, typeof analytic.points>();
-    analytic.points.forEach((event) => {
-        const parsedDate = parseDate(event.date); // Use the helper function
-        const dateKey = parsedDate.toDateString();
-        if (!eventsByDate.has(dateKey)) {
-            eventsByDate.set(dateKey, []);
-        }
-        eventsByDate.get(dateKey)!.push(event);
-    });
+    const events = useMemo(() => {
+        const eventsByDate = new Map<string, typeof analytic.points>();
+        analytic.points.forEach((event) => {
+            if (!event.date) return;
+            
+            const dateObj = new Date(event.date);
+            const dateKey = getDateKey(dateObj);
+            
+            console.log('Event:', event.name, 'Date:', event.date, 'Key:', dateKey);
+            
+            if (!eventsByDate.has(dateKey)) {
+                eventsByDate.set(dateKey, []);
+            }
+            eventsByDate.get(dateKey)!.push(event);
+        });
+        
+        console.log('All event keys:', Array.from(eventsByDate.keys()));
+        return eventsByDate;
+    }, [analytic.points]);
 
     // Get events for selected date
-    const selectedDateKey = selectedDate?.toDateString() || "";
-    const eventsForSelectedDate = eventsByDate.get(selectedDateKey) || [];
+    const selectedDateKey = selectedDate ? getDateKey(selectedDate) : "";
+    const eventsForSelectedDate = events.get(selectedDateKey) || [];
 
     return (
         <Paper withBorder p="md" radius="md">
@@ -74,10 +92,10 @@ export function CalendarCard({ analytic, isConfiguring }: CalendarCardProps) {
                             }}
                             renderDay={(date) => {
                                 const dateObj = new Date(date);
-                                const dateKey = dateObj.toDateString();
-                                const hasEvents = eventsByDate.has(dateKey);
+                                const dateKey = getDateKey(dateObj);
+                                const hasEvents = events.has(dateKey);
                                 const day = dateObj.getDate();
-
+                                
                                 return (
                                     <Indicator
                                         size={6}
@@ -126,15 +144,25 @@ export function CalendarCard({ analytic, isConfiguring }: CalendarCardProps) {
                                                     }-6)`,
                                                 }}
                                             >
-                                                <Text
-                                                    size="sm"
-                                                    style={{ flex: 1 }}
-                                                >
-                                                    {event.name}
-                                                </Text>
-                                                <Text c={"dimmed"} size="xs">
-                                                    {event.date}
-                                                </Text>
+                                                <Group align="flex-start" justify="space-between">
+                                                    <Stack>
+                                                        <Text
+                                                            size="sm"
+                                                            style={{ flex: 1 }}
+                                                            >
+                                                            {event.name}
+                                                        </Text>
+                                                        <Text c={"dimmed"} size="xs">
+                                                            {formatDateTime(event.date)}
+                                                        </Text>
+                                                    </Stack>
+                                                    <ActionIcon
+                                                        color={tracker.color}
+                                                        onClick={() => onEntryClick(event.entryId)}
+                                                    >
+                                                        <MdLink size={18} />
+                                                    </ActionIcon>
+                                                </Group>
                                             </Paper>
                                         )
                                     )}
