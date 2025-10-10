@@ -16,7 +16,7 @@ export const createTooltipContent = (
     return ({ payload, label }: any) => {
         if (!payload?.[0]) return null;
 
-        const value = payload[0].xValue as number;
+        const value = payload[0].yValue as number;
         let formatted: string | number = value;
 
         if (fieldType === FieldTypes.TimeSpan) {
