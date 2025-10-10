@@ -3,34 +3,34 @@ using Microsoft.Extensions.Logging;
 using Operum.Model;
 using Operum.Model.Common;
 using Operum.Model.Constants;
+using Operum.Model.Constants.Fields;
 using Operum.Model.DTOs.Fields;
 using Operum.Model.DTOs.Fields.Requests;
 using Operum.Model.Enums;
-using Operum.Model.Extensions;
 using Operum.Model.Models;
+using Operum.Service.Interfaces;
 using Operum.Service.Mappings.Mapper;
-using Operum.Service.Services.Authorization;
 
 namespace Operum.Service.Services.Fields
 {
-    public class FieldsService(IAuthorizationService authorizationService, IMapper mapper, OperumContext db, ILogger<FieldsService> logger) : IFieldsService
+    public class FieldsService(ICurrentUserService currentUserService, IMapper mapper, OperumContext db, ILogger<FieldsService> logger) : IFieldsService
     {
         public async Task<Result<FieldDto>> CreateField(string trackerId, CreateFieldDto field)
         {
-            var user = authorizationService.GetCurrentUserDto();
+            var user = currentUserService.GetCurrentUser();
             var tracker = await db.Trackers.FindAsync(trackerId);
-            if (tracker == null || !user.Owns(tracker))
+            if (tracker == null || user.Id != tracker.OwnerId)
             {
-                return Result.Failure(StatusCodeEnum.NotFound);
+                return Result.Failure(ResultStatus.NotFound);
             }
 
             var fieldCount = await db.Fields.Where(x => x.TrackerId == trackerId).CountAsync();
             if (fieldCount >= DataLimits.MaxFieldCount)
             {
-                return Result.Failure(StatusCodeEnum.BadRequest, $"Maximum number of {DataLimits.MaxFieldCount} fields reached.");
+                return Result.Failure(ResultStatus.BadRequest, $"Maximum number of {DataLimits.MaxFieldCount} fields reached.");
             }
 
-            if (!DataTypes.IsValid(field.Type)) return Result.Failure(StatusCodeEnum.BadRequest, $"Field type {field.Type} is not allowed.");
+            if (!DataTypes.IsValid(field.Type)) return Result.Failure(ResultStatus.BadRequest, $"Field type {field.Type} is not allowed.");
 
             var newField = mapper.Map<CreateFieldDto, Field>(field);
 
@@ -51,14 +51,14 @@ namespace Operum.Service.Services.Fields
 
         public async Task<Result> DeleteField(string trackerId, string fieldId)
         {
-            var user = authorizationService.GetCurrentUserDto();
+            var user = currentUserService.GetCurrentUser();
             var field = await db.Fields
                 .Include(x => x.Tracker)
                 .FirstOrDefaultAsync(x => x.Id == fieldId && x.TrackerId == trackerId);
 
-            if (field == null || !user.Owns(field))
+            if (field == null || user.Id != field.Tracker.OwnerId)
             {
-                return Result.Failure(StatusCodeEnum.NotFound);
+                return Result.Failure(ResultStatus.NotFound);
             }
 
             db.Fields.Remove(field);
@@ -72,7 +72,7 @@ namespace Operum.Service.Services.Fields
 
         public async Task<Result<FieldDto>> GetField(string trackerId, string fieldId)
         {
-            var user = authorizationService.GetCurrentUserDto();
+            var user = currentUserService.GetCurrentUser();
             var field = await db.Fields
                  .Include(x => x.Tracker)
                     .ThenInclude(x => x.ApplicationUserTrackers)
@@ -82,7 +82,7 @@ namespace Operum.Service.Services.Fields
 
             if (field == null || !hasAccess)
             {
-                return Result.Failure(StatusCodeEnum.Forbidden);
+                return Result.Failure(ResultStatus.Forbidden);
             }
 
             return Result.Success(mapper.Map<Field, FieldDto>(field));
@@ -90,7 +90,7 @@ namespace Operum.Service.Services.Fields
 
         public async Task<Result<List<FieldDto>>> GetFieldList(string trackerId)
         {
-            var user = authorizationService.GetCurrentUserDto();
+            var user = currentUserService.GetCurrentUser();
             var tracker = await db.Trackers
                  .Include(x => x.ApplicationUserTrackers)
                  .FirstOrDefaultAsync(x => x.Id == trackerId);
@@ -99,7 +99,7 @@ namespace Operum.Service.Services.Fields
 
             if (tracker == null || !hasAccess)
             {
-                return Result.Failure(StatusCodeEnum.Forbidden);
+                return Result.Failure(ResultStatus.Forbidden);
             }
 
             var fields = await db.Fields
@@ -112,12 +112,12 @@ namespace Operum.Service.Services.Fields
 
         public async Task<Result> ReorderFields(string trackerId, ReorderFieldsDto reorderFields)
         {
-            var user = authorizationService.GetCurrentUserDto();
+            var user = currentUserService.GetCurrentUser();
             var tracker = await db.Trackers.FindAsync(trackerId);
 
-            if (tracker == null || !user.Owns(tracker))
+            if (tracker == null || user.Id != tracker.OwnerId)
             {
-                return Result.Failure(StatusCodeEnum.NotFound);
+                return Result.Failure(ResultStatus.NotFound);
             }
 
             // Validate that all field IDs belong to this tracker
@@ -132,7 +132,7 @@ namespace Operum.Service.Services.Fields
             // Check if all requested field IDs exist and belong to this tracker
             if (!requestedFieldIds.SetEquals(existingFieldIds))
             {
-                return Result.Failure(StatusCodeEnum.BadRequest,
+                return Result.Failure(ResultStatus.BadRequest,
                     "Invalid field IDs provided or missing fields in reorder request.");
             }
 
@@ -160,24 +160,24 @@ namespace Operum.Service.Services.Fields
             {
                 await transaction.RollbackAsync();
                 logger.LogError(ex, "Exception occurred while reordering fields.");
-                return Result.Failure(StatusCodeEnum.InternalServerError,
+                return Result.Failure(ResultStatus.Error,
                     "Failed to reorder fields. Please try again.");
             }
         }
 
         public async Task<Result<FieldDto>> UpdateField(string trackerId, string fieldId, UpdateFieldDto field)
         {
-            var user = authorizationService.GetCurrentUserDto();
+            var user = currentUserService.GetCurrentUser();
             var originalField = await db.Fields
                 .Include(x => x.Tracker)
                 .FirstOrDefaultAsync(x => x.Id == fieldId && x.TrackerId == trackerId);
 
-            if (originalField == null || !user.Owns(originalField))
+            if (originalField == null || user.Id != originalField.Tracker.OwnerId)
             {
-                return Result.Failure(StatusCodeEnum.NotFound);
+                return Result.Failure(ResultStatus.NotFound);
             }
 
-            if (!DataTypes.IsValid(field.Type)) return Result.Failure(StatusCodeEnum.BadRequest, $"Field type {field.Type} is not allowed.");
+            if (!DataTypes.IsValid(field.Type)) return Result.Failure(ResultStatus.BadRequest, $"Field type {field.Type} is not allowed.");
 
             mapper.Map(field, originalField);
             db.Fields.Update(originalField);

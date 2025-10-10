@@ -6,7 +6,7 @@ using Operum.Model.Models;
 
 namespace Operum.Model
 {
-    public class OperumContext(DbContextOptions<OperumContext> options) : IdentityDbContext<ApplicationUser, IdentityRole, string>(options)
+    public class OperumContext(DbContextOptions<OperumContext> options) : IdentityDbContext<User, IdentityRole, string>(options)
     {
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -27,14 +27,12 @@ namespace Operum.Model
             }
             base.OnModelCreating(builder);
 
-            // Tracker ↔ Views (one-to-many)
             builder.Entity<View>()
                 .HasOne(v => v.Tracker)
                 .WithMany(t => t.Views)
                 .HasForeignKey(v => v.TrackerId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Tracker ↔ DefaultView (one-to-one / optional)
             builder.Entity<Tracker>()
                 .HasOne(t => t.DefaultView)
                 .WithMany()
@@ -42,7 +40,7 @@ namespace Operum.Model
                 .OnDelete(DeleteBehavior.SetNull);
         }
 
-        public DbSet<ApplicationUser> ApplicationUsers { get; set; }
+        public override DbSet<User> Users { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<Tracker> Trackers { get; set; }
         public DbSet<Field> Fields { get; set; }
@@ -54,7 +52,7 @@ namespace Operum.Model
         public DbSet<ViewGroup> ViewGroups { get; set; }
         public DbSet<ViewColumn> ViewColumns { get; set; }
         public DbSet<TrackerType> TrackerTypes { get; set; }
-        public DbSet<ApplicationUserTracker> ApplicationUserTrackers { get; set; }
+        public DbSet<UserTracker> UserTrackers { get; set; }
         public DbSet<Analytic> Analytics { get; set; }
         public DbSet<AnalyticField> AnalyticFields { get; set; }
     }

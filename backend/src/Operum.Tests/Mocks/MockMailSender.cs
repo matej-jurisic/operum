@@ -1,4 +1,4 @@
-﻿using Operum.Service.Integrations.MailSender;
+﻿using Operum.Service.Interfaces;
 using RestSharp;
 
 namespace Operum.Tests.Mocks

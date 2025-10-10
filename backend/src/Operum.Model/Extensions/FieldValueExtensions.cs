@@ -1,6 +1,6 @@
-﻿using Operum.Model.Constants;
+﻿using Operum.Model.Constants.Fields;
+using Operum.Model.Converters;
 using Operum.Model.Models;
-using System.Globalization;
 
 namespace Operum.Model.Extensions
 {
@@ -40,7 +40,7 @@ namespace Operum.Model.Extensions
                     case DataTypes.DateTime:
                         if (!string.IsNullOrWhiteSpace(value))
                         {
-                            fieldValue.DateTimeValue = DataHelpers.GetDateTimeFromString(value);
+                            fieldValue.DateTimeValue = DataFormatters.StringToDateTime(value);
                         }
                         else
                         {
@@ -86,12 +86,10 @@ namespace Operum.Model.Extensions
             return fieldValue.Field.Type.ToLowerInvariant() switch
             {
                 DataTypes.String => fieldValue.StringValue,
-                DataTypes.Number => fieldValue.NumberValue?.ToString(CultureInfo.InvariantCulture),
-                DataTypes.Date => fieldValue.DateTimeValue?.ToString("dd/MM/yyyy"),
-                DataTypes.DateTime => fieldValue.DateTimeValue?.ToString("dd/MM/yyyy HH:mm:ss"),
-                DataTypes.TimeSpan => fieldValue.TimeSpanValue is TimeSpan ts
-                                        ? $"{(int)ts.TotalHours:D2}:{ts.Minutes:D2}:{ts.Seconds:D2}"
-                                        : null,
+                DataTypes.Number => fieldValue.NumberValue.HasValue ? DataFormatters.NumberToString(fieldValue.NumberValue.Value) : null,
+                DataTypes.Date => fieldValue.DateTimeValue.HasValue ? DataFormatters.DateTimeToDateString(fieldValue.DateTimeValue.Value) : null,
+                DataTypes.DateTime => fieldValue.DateTimeValue.HasValue ? DataFormatters.DateTimeToDateTimeString(fieldValue.DateTimeValue.Value) : null,
+                DataTypes.TimeSpan => fieldValue.TimeSpanValue.HasValue ? DataFormatters.TimeSpanToString(fieldValue.TimeSpanValue.Value) : null,
                 DataTypes.Bool => fieldValue.BooleanValue?.ToString(),
                 _ => null
             };

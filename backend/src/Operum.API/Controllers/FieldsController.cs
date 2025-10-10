@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Operum.API.Controllers.Base;
 using Operum.Model.DTOs.Fields.Requests;
-using Operum.Service.Services.Fields;
+using Operum.Service.Interfaces;
 
 namespace Operum.API.Controllers
 {

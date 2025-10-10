@@ -4,7 +4,7 @@ using Operum.API.Controllers.Base;
 using Operum.Model.Constants;
 using Operum.Model.DTOs.Analytics.Requests;
 using Operum.Model.DTOs.Trackers.Requests;
-using Operum.Service.Services.Trackers;
+using Operum.Service.Interfaces;
 
 namespace Operum.API.Controllers
 {
@@ -68,7 +68,7 @@ namespace Operum.API.Controllers
         }
 
         [HttpPost("{trackerId}/users")]
-        public async Task<IActionResult> AddUserToTracker([FromRoute] string trackerId, [FromBody] ModifyUserTrackerDto request)
+        public async Task<IActionResult> AddUserToTracker([FromRoute] string trackerId, [FromBody] AddUserToTrackerDto request)
         {
             return GetApiResponse(await trackerService.AddUserToTracker(trackerId, request));
         }
@@ -80,13 +80,13 @@ namespace Operum.API.Controllers
         }
 
         [HttpDelete("{trackerId}/users")]
-        public async Task<IActionResult> RemoveUserFromTracker([FromRoute] string trackerId, [FromBody] ModifyUserTrackerDto request)
+        public async Task<IActionResult> RemoveUserFromTracker([FromRoute] string trackerId, [FromBody] RemoveUserFromTrackerDto request)
         {
             return GetApiResponse(await trackerService.RemoveUserFromTracker(trackerId, request));
         }
 
         [HttpPost("{trackerId}/analytics")]
-        public async Task<IActionResult> AddTrackerAnalytic([FromRoute] string trackerId, [FromBody] AddAnalyticDto request)
+        public async Task<IActionResult> AddTrackerAnalytic([FromRoute] string trackerId, [FromBody] CreateAnalyticDto request)
         {
             return GetApiResponse(await trackerService.AddAnalytic(trackerId, request));
         }

@@ -32,9 +32,9 @@ namespace Operum.Tests.Extensions
             client.DefaultRequestHeaders.Add("Cookie", refreshTokenHeader);
         }
 
-        public static async Task Authenticate(this HttpClient client, RegisterRequestDto userData)
+        public static async Task Authenticate(this HttpClient client, RegisterDto userData)
         {
-            var loginPayload = new LoginRequestDto()
+            var loginPayload = new LoginDto()
             {
                 Credentials = userData.UserName,
                 Password = userData.Password,

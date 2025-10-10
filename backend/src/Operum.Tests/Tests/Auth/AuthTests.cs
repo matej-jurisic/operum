@@ -22,7 +22,7 @@ public class AuthTests(CustomWebApplicationFactory factory, ITestOutputHelper ou
         var client = _factory.CreateClient();
         await _factory.SeedDatabaseAsync();
 
-        var loginPayload = new LoginRequestDto()
+        var loginPayload = new LoginDto()
         {
             Credentials = DefaultUsers.AdminUserData.UserName,
             Password = DefaultUsers.AdminUserData.Password,
@@ -54,7 +54,7 @@ public class AuthTests(CustomWebApplicationFactory factory, ITestOutputHelper ou
         var client = _factory.CreateClient();
         await _factory.SeedDatabaseAsync();
 
-        var wrongCredentialsPayload = new LoginRequestDto()
+        var wrongCredentialsPayload = new LoginDto()
         {
             Credentials = "not-test@example.com",
             Password = DefaultUsers.AdminUserData.Password,
@@ -62,7 +62,7 @@ public class AuthTests(CustomWebApplicationFactory factory, ITestOutputHelper ou
         var loginResponse = await client.PostAsJsonAsync("auth/login", wrongCredentialsPayload);
         Assert.Equal(HttpStatusCode.BadRequest, loginResponse.StatusCode);
 
-        var wrongPasswordPayload = new LoginRequestDto()
+        var wrongPasswordPayload = new LoginDto()
         {
             Credentials = DefaultUsers.AdminUserData.Email,
             Password = "NotPassword123!"

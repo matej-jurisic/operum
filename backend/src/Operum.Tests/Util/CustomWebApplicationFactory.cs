@@ -10,7 +10,7 @@ using Operum.API;
 using Operum.API.Seed;
 using Operum.Model;
 using Operum.Model.Models;
-using Operum.Service.Integrations.MailSender;
+using Operum.Service.Interfaces;
 using Operum.Tests.Mocks;
 using System.Net;
 
@@ -66,7 +66,7 @@ namespace Operum.Tests.Util
             var scopedServices = scope.ServiceProvider;
             var db = scopedServices.GetRequiredService<OperumContext>();
             var roleManager = scopedServices.GetRequiredService<RoleManager<IdentityRole>>();
-            var userManager = scopedServices.GetRequiredService<UserManager<ApplicationUser>>();
+            var userManager = scopedServices.GetRequiredService<UserManager<User>>();
 
             await db.Database.EnsureCreatedAsync();
             await DataSeeder.SeedUsersAsync(userManager, roleManager);

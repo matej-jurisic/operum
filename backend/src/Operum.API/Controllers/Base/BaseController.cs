@@ -30,7 +30,7 @@ namespace Operum.API.Controllers.Base
         }
 
         [NonAction]
-        protected IActionResult GetApiResponse(IEnumerable<string> messages, StatusCodeEnum statusCode)
+        protected IActionResult GetApiResponse(IEnumerable<string> messages, ResultStatus statusCode)
         {
             var apiResponse = new ApiResponse
             {
@@ -41,23 +41,20 @@ namespace Operum.API.Controllers.Base
         }
 
         [NonAction]
-        private IActionResult SetStatusCode(ApiResponse apiResponse)
+        private ObjectResult SetStatusCode(ApiResponse apiResponse) => apiResponse.StatusCode switch
         {
-            return apiResponse.StatusCode switch
+            ResultStatus.Ok => Ok(apiResponse),
+            ResultStatus.BadRequest => BadRequest(apiResponse),
+            ResultStatus.Unauthorized => Unauthorized(apiResponse),
+            ResultStatus.Forbidden => StatusCode(StatusCodes.Status403Forbidden, apiResponse),
+            ResultStatus.NotFound => NotFound(apiResponse),
+            ResultStatus.Conflict => Conflict(apiResponse),
+            ResultStatus.Error => StatusCode(500, apiResponse),
+            _ => StatusCode(500, new ApiResponse
             {
-                StatusCodeEnum.Ok => Ok(apiResponse),
-                StatusCodeEnum.BadRequest => BadRequest(apiResponse),
-                StatusCodeEnum.Unauthorized => Unauthorized(apiResponse),
-                StatusCodeEnum.Forbidden => StatusCode(StatusCodes.Status403Forbidden, apiResponse),
-                StatusCodeEnum.NotFound => NotFound(apiResponse),
-                StatusCodeEnum.Conflict => Conflict(apiResponse),
-                StatusCodeEnum.InternalServerError => StatusCode(500, apiResponse),
-                _ => StatusCode(500, new ApiResponse
-                {
-                    Messages = ["An unexpected error occurred"],
-                    StatusCode = StatusCodeEnum.InternalServerError
-                })
-            };
-        }
+                Messages = ["An unexpected error occurred"],
+                StatusCode = ResultStatus.Error
+            })
+        };
     }
 }

@@ -1,7 +1,6 @@
 ﻿using Operum.Model.DTOs.Entry;
 using Operum.Model.DTOs.Fields;
 using Operum.Model.DTOs.Fields.Requests;
-using Operum.Model.DTOs.FieldValue;
 using Operum.Model.DTOs.Trackers;
 using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Model.DTOs.Users;
@@ -17,12 +16,12 @@ namespace Operum.Service.Mappings.Profiles
     {
         public void RegisterMappings(IMapper mapper)
         {
-            mapper.Register<ApplicationUser, ApplicationUserDto>((s, d) =>
+            mapper.Register<User, UserDto>((s, d) =>
             {
                 d.MailConfirmed = s.EmailConfirmed;
             });
 
-            mapper.Register<ApplicationUser, PublicApplicationUserDto>();
+            mapper.Register<User, PublicUserDto>();
 
             mapper.Register<Tracker, TrackerDto>((s, d) =>
             {

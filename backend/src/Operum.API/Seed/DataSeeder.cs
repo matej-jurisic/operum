@@ -13,12 +13,12 @@ namespace Operum.API.Seed
         {
             TrackerType templateDraft = new()
             {
-                Id = (int)TrackerTypeEnum.TemplateDraft,
+                Id = (int)PublicityEnum.Draft,
                 Name = "Template Draft"
             };
             TrackerType publicTemplate = new()
             {
-                Id = (int)TrackerTypeEnum.PublicTemplate,
+                Id = (int)PublicityEnum.Public,
                 Name = "Public Template"
             };
 
@@ -35,7 +35,7 @@ namespace Operum.API.Seed
             await db.SaveChangesAsync();
         }
 
-        public async static Task SeedUsersAsync(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IConfiguration? configuration = null)
+        public async static Task SeedUsersAsync(UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration? configuration = null)
         {
             // First, ensure roles exist
             await EnsureRoleExistsAsync(roleManager, "Admin");
@@ -43,7 +43,7 @@ namespace Operum.API.Seed
             await EnsureRoleExistsAsync(roleManager, "Moderator");
 
             // Seed Admin User
-            ApplicationUser adminUser = new(DefaultUsers.AdminUserData.Email, DefaultUsers.AdminUserData.UserName);
+            User adminUser = new(DefaultUsers.AdminUserData.Email, DefaultUsers.AdminUserData.UserName);
             if (!userManager.Users.Any(x => x.NormalizedUserName == adminUser.NormalizedUserName || x.NormalizedEmail == adminUser.NormalizedEmail))
             {
                 var adminPassword = configuration?.GetValue<string>("AdminUserPassword");
@@ -63,7 +63,7 @@ namespace Operum.API.Seed
                 }
             }
 
-            ApplicationUser testUser = new(DefaultUsers.TestUserData.Email, DefaultUsers.TestUserData.UserName);
+            User testUser = new(DefaultUsers.TestUserData.Email, DefaultUsers.TestUserData.UserName);
             if (!userManager.Users.Any(x => x.NormalizedUserName == testUser.NormalizedUserName || x.NormalizedEmail == testUser.NormalizedEmail))
             {
                 testUser.EmailConfirmed = true;

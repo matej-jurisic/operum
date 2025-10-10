@@ -7,12 +7,13 @@ using Operum.Model.DTOs.Auth;
 using Operum.Model.Enums;
 using Operum.Model.Models;
 using Operum.Service.Helpers;
+using Operum.Service.Interfaces;
 using RestSharp;
 using System.Text.Json;
 
 namespace Operum.Service.Services.Authentication
 {
-    public class GoogleAuthService(UserManager<ApplicationUser> userManager, OperumContext db, IConfiguration configuration, ILogger<GoogleAuthService> logger) : IGoogleAuthService
+    public class GoogleAuthService(UserManager<User> userManager, OperumContext db, IConfiguration configuration, ILogger<GoogleAuthService> logger) : IGoogleAuthService
     {
         private readonly string googleClientId = configuration["Google:ClientId"] ?? throw new ArgumentNullException("Google:ClientId configuration missing");
 
@@ -34,27 +35,27 @@ namespace Operum.Service.Services.Authentication
                 {
                     logger.LogError("Failed to validate Google token. Status: {StatusCode}, Content: {Content}",
                                      response.StatusCode, response.Content);
-                    return Result.Failure(StatusCodeEnum.BadRequest);
+                    return Result.Failure(ResultStatus.BadRequest);
                 }
 
                 var payload = JsonSerializer.Deserialize<GoogleTokenPayloadDto>(response.Content, jsonOptions);
                 if (payload == null)
                 {
                     logger.LogError("Failed to deserialize Google token payload");
-                    return Result.Failure(StatusCodeEnum.BadRequest);
+                    return Result.Failure(ResultStatus.BadRequest);
                 }
 
                 if (payload.Audience != googleClientId)
                 {
                     logger.LogError("Google token audience mismatch. Expected: {Expected}, Actual: {Actual}", googleClientId, payload.Audience);
-                    return Result.Failure(StatusCodeEnum.BadRequest);
+                    return Result.Failure(ResultStatus.BadRequest);
                 }
 
                 var currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                 if (payload.ExpirationTime < currentTime)
                 {
                     logger.LogError("Google token has expired");
-                    return Result.Failure(StatusCodeEnum.BadRequest);
+                    return Result.Failure(ResultStatus.BadRequest);
                 }
 
                 return Result.Success(payload);
@@ -62,11 +63,11 @@ namespace Operum.Service.Services.Authentication
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error validating Google token");
-                return Result.Failure(StatusCodeEnum.BadRequest);
+                return Result.Failure(ResultStatus.BadRequest);
             }
         }
 
-        public async Task<Result<ApplicationUser>> FindOrCreateUserAsync(GoogleTokenPayloadDto payload)
+        public async Task<Result<User>> FindOrCreateUserAsync(GoogleTokenPayloadDto payload)
         {
             await using var transaction = await db.Database.BeginTransactionAsync();
             try
@@ -85,7 +86,7 @@ namespace Operum.Service.Services.Authentication
                 }
 
                 var userName = await GenerateUniqueUsername(payload.GivenName ?? payload.Email.Split('@')[0]);
-                var newUser = new ApplicationUser(payload.Email, userName)
+                var newUser = new User(payload.Email, userName)
                 {
                     EmailConfirmed = payload.EmailVerified,
                 };
@@ -95,7 +96,7 @@ namespace Operum.Service.Services.Authentication
                 {
                     logger.LogError("Failed to create Google user: {Errors}", string.Join(", ", result.Errors.Select(e => e.Description)));
                     await transaction.RollbackAsync();
-                    return Result.Failure(StatusCodeEnum.BadRequest);
+                    return Result.Failure(ResultStatus.BadRequest);
                 }
 
                 var roleResult = await userManager.AddToRoleAsync(newUser, "User");
@@ -103,7 +104,7 @@ namespace Operum.Service.Services.Authentication
                 {
                     logger.LogError("Failed to assign role to Google user: {Errors}", string.Join(", ", roleResult.Errors.Select(e => e.Description)));
                     await transaction.RollbackAsync();
-                    return Result.Failure(StatusCodeEnum.BadRequest);
+                    return Result.Failure(ResultStatus.BadRequest);
                 }
 
                 await transaction.CommitAsync();
@@ -113,7 +114,7 @@ namespace Operum.Service.Services.Authentication
             {
                 logger.LogError(ex, "Error creating Google user");
                 await transaction.RollbackAsync();
-                return Result.Failure(StatusCodeEnum.BadRequest);
+                return Result.Failure(ResultStatus.BadRequest);
             }
         }
 

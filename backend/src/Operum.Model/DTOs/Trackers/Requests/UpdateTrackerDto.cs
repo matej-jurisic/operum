@@ -24,7 +24,7 @@ namespace Operum.Model.DTOs.Trackers.Requests
                 .When(x => !string.IsNullOrEmpty(x.Description));
 
             RuleFor(x => x.TrackerTypeId)
-                .Must(x => !x.HasValue || Enum.IsDefined(typeof(TrackerTypeEnum), x.Value))
+                .Must(x => !x.HasValue || Enum.IsDefined(typeof(PublicityEnum), x.Value))
                 .WithMessage("Tracker type is invalid.");
 
             RuleFor(x => x.Color)

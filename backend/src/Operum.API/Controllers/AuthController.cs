@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Operum.API.Controllers.Base;
 using Operum.Model.DTOs.Auth.Requests;
-using Operum.Service.Services.Authentication;
+using Operum.Service.Interfaces;
 
 namespace Operum.API.Controllers
 {
@@ -12,14 +12,14 @@ namespace Operum.API.Controllers
     {
         [AllowAnonymous]
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginRequestDto loginRequest)
+        public async Task<IActionResult> Login([FromBody] LoginDto loginRequest)
         {
             return GetApiResponse(await authenticationService.Login(loginRequest));
         }
 
         [AllowAnonymous]
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterRequestDto registerRequest)
+        public async Task<IActionResult> Register([FromBody] RegisterDto registerRequest)
         {
             return GetApiResponse(await authenticationService.Register(registerRequest));
         }
@@ -53,7 +53,7 @@ namespace Operum.API.Controllers
 
         [AllowAnonymous]
         [HttpPost("google")]
-        public async Task<IActionResult> GoogleLogin(GoogleLoginRequestDto request)
+        public async Task<IActionResult> GoogleLogin(GoogleLoginDto request)
         {
             return GetApiResponse(await authenticationService.GoogleLogin(request));
         }

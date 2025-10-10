@@ -1,0 +1,25 @@
+﻿namespace Operum.Model.Constants.Analytics
+{
+    public class AnalyticConfig
+    {
+        public List<AnalyticConfigType> ResultTypes { get; set; } = [];
+    }
+
+    public class AnalyticConfigType
+    {
+        public string Name { get; set; } = default!;
+        public List<AnalyticConfigCode> Codes { get; set; } = [];
+    }
+
+    public class AnalyticConfigCode
+    {
+        public string Name { get; set; } = default!;
+        public List<AnalyticConfigPurpose> Purposes { get; set; } = [];
+    }
+
+    public class AnalyticConfigPurpose
+    {
+        public string Name { get; set; } = default!;
+        public List<string> AllowedDataTypes { get; set; } = [];
+    }
+}

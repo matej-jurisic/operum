@@ -4,8 +4,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Operum.Model;
 using Operum.Model.Common;
-using Operum.Model.Constants;
 using Operum.Model.Models;
+using Operum.Service.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -13,13 +13,13 @@ using System.Text;
 
 namespace Operum.Service.Services.Token
 {
-    public class TokenService(IConfiguration configuration, UserManager<ApplicationUser> userManager, IHttpContextAccessor httpContextAccessor, OperumContext dbContext) : ITokenService
+    public class TokenService(IConfiguration configuration, UserManager<User> userManager, IHttpContextAccessor httpContextAccessor, OperumContext dbContext) : ITokenService
     {
         private static readonly JwtSecurityTokenHandler tokenHandler = new();
         private const string AuthTokenKey = "AuthToken";
         private const string RefreshTokenKey = "RefreshToken";
 
-        private async Task<string> CreateToken(ApplicationUser user, DateTime expires)
+        private async Task<string> CreateToken(User user, DateTime expires)
         {
             if (user.UserName == null || user.Email == null) throw new Exception("User info is missing!");
             var claims = new List<Claim>
@@ -34,11 +34,6 @@ namespace Operum.Service.Services.Token
             foreach (var role in roles)
             {
                 claims.Add(new(ClaimTypes.Role, role));
-            }
-
-            if (user.SecurityStamp != null)
-            {
-                claims.Add(new(CustomClaimTypes.SecurityStamp, user.SecurityStamp));
             }
 
             var secretKey = configuration["JwtSettings:Key"] ?? throw new Exception("Missing jwt configuration!");
@@ -88,14 +83,14 @@ namespace Operum.Service.Services.Token
             SetCookie(key, "", DateTime.UtcNow.AddDays(-1));
         }
 
-        public async Task<Result<DateTime>> SetAuthTokenCookie(ApplicationUser user)
+        public async Task<Result<DateTime>> SetAuthTokenCookie(User user)
         {
             var expires = GetAuthTokenExpiry();
             var createdToken = await CreateToken(user, expires);
             SetCookie(AuthTokenKey, createdToken, expires);
             return Result.Success(expires);
         }
-        public async Task<Result> SetRefreshTokenCookie(ApplicationUser user)
+        public async Task<Result> SetRefreshTokenCookie(User user)
         {
             var refreshToken = new RefreshToken
             {

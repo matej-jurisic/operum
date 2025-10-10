@@ -17,9 +17,7 @@ public partial class Program
         var configuration = builder.Configuration;
         configuration.AddEnvironmentVariables();
 
-        WebServices.Configure(builder.Services, configuration);
-        BusinessServices.Configure(builder.Services, configuration);
-        Validations.Configure(builder.Services);
+        ApiConfiguration.Configure(builder.Services, configuration);
 
         builder.Host.UseSerilog((context, configuration) =>
             configuration.ReadFrom.Configuration(context.Configuration));
@@ -32,7 +30,7 @@ public partial class Program
         {
             using var scope = app.Services.CreateScope();
 
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
             var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
             var db = scope.ServiceProvider.GetRequiredService<OperumContext>();
             db.Database.Migrate();

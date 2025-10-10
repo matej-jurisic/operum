@@ -215,95 +215,6 @@ namespace Operum.Model.Migrations
                     b.ToTable("AnalyticFields");
                 });
 
-            modelBuilder.Entity("Operum.Model.Models.ApplicationUser", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
-
-                    b.Property<int>("AccessFailedCount")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Email")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<bool>("EmailConfirmed")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("LockoutEnabled")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTimeOffset?>("LockoutEnd")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("NormalizedEmail")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<string>("NormalizedUserName")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<string>("PasswordHash")
-                        .HasColumnType("text");
-
-                    b.Property<string>("PhoneNumber")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("PhoneNumberConfirmed")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("SecurityStamp")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("TwoFactorEnabled")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("UserName")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NormalizedEmail")
-                        .HasDatabaseName("EmailIndex");
-
-                    b.HasIndex("NormalizedUserName")
-                        .IsUnique()
-                        .HasDatabaseName("UserNameIndex");
-
-                    b.ToTable("AspNetUsers", (string)null);
-                });
-
-            modelBuilder.Entity("Operum.Model.Models.ApplicationUserTracker", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
-
-                    b.Property<string>("ApplicationUserId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("TrackerId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Type")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ApplicationUserId");
-
-                    b.HasIndex("TrackerId");
-
-                    b.ToTable("ApplicationUserTrackers");
-                });
-
             modelBuilder.Entity("Operum.Model.Models.Entry", b =>
                 {
                     b.Property<string>("Id")
@@ -479,6 +390,95 @@ namespace Operum.Model.Migrations
                     b.ToTable("TrackerTypes");
                 });
 
+            modelBuilder.Entity("Operum.Model.Models.User", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<int>("AccessFailedCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<bool>("EmailConfirmed")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("LockoutEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("LockoutEnd")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("NormalizedEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("NormalizedUserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("PasswordHash")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("PhoneNumberConfirmed")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("SecurityStamp")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("TwoFactorEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedEmail")
+                        .HasDatabaseName("EmailIndex");
+
+                    b.HasIndex("NormalizedUserName")
+                        .IsUnique()
+                        .HasDatabaseName("UserNameIndex");
+
+                    b.ToTable("AspNetUsers", (string)null);
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.UserTracker", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ApplicationUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TrackerId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Type")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationUserId");
+
+                    b.HasIndex("TrackerId");
+
+                    b.ToTable("UserTrackers");
+                });
+
             modelBuilder.Entity("Operum.Model.Models.View", b =>
                 {
                     b.Property<string>("Id")
@@ -613,7 +613,7 @@ namespace Operum.Model.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
-                    b.HasOne("Operum.Model.Models.ApplicationUser", null)
+                    b.HasOne("Operum.Model.Models.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -622,7 +622,7 @@ namespace Operum.Model.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
-                    b.HasOne("Operum.Model.Models.ApplicationUser", null)
+                    b.HasOne("Operum.Model.Models.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -637,7 +637,7 @@ namespace Operum.Model.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Operum.Model.Models.ApplicationUser", null)
+                    b.HasOne("Operum.Model.Models.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -646,7 +646,7 @@ namespace Operum.Model.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
                 {
-                    b.HasOne("Operum.Model.Models.ApplicationUser", null)
+                    b.HasOne("Operum.Model.Models.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -681,25 +681,6 @@ namespace Operum.Model.Migrations
                     b.Navigation("Analytic");
 
                     b.Navigation("Field");
-                });
-
-            modelBuilder.Entity("Operum.Model.Models.ApplicationUserTracker", b =>
-                {
-                    b.HasOne("Operum.Model.Models.ApplicationUser", "ApplicationUser")
-                        .WithMany()
-                        .HasForeignKey("ApplicationUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Operum.Model.Models.Tracker", "Tracker")
-                        .WithMany("ApplicationUserTrackers")
-                        .HasForeignKey("TrackerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ApplicationUser");
-
-                    b.Navigation("Tracker");
                 });
 
             modelBuilder.Entity("Operum.Model.Models.Entry", b =>
@@ -745,7 +726,7 @@ namespace Operum.Model.Migrations
 
             modelBuilder.Entity("Operum.Model.Models.RefreshToken", b =>
                 {
-                    b.HasOne("Operum.Model.Models.ApplicationUser", "User")
+                    b.HasOne("Operum.Model.Models.User", "User")
                         .WithMany("RefreshTokens")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -761,7 +742,7 @@ namespace Operum.Model.Migrations
                         .HasForeignKey("DefaultViewId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("Operum.Model.Models.ApplicationUser", "Owner")
+                    b.HasOne("Operum.Model.Models.User", "Owner")
                         .WithMany()
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -776,6 +757,25 @@ namespace Operum.Model.Migrations
                     b.Navigation("Owner");
 
                     b.Navigation("TrackerType");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.UserTracker", b =>
+                {
+                    b.HasOne("Operum.Model.Models.User", "ApplicationUser")
+                        .WithMany()
+                        .HasForeignKey("ApplicationUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Operum.Model.Models.Tracker", "Tracker")
+                        .WithMany("ApplicationUserTrackers")
+                        .HasForeignKey("TrackerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ApplicationUser");
+
+                    b.Navigation("Tracker");
                 });
 
             modelBuilder.Entity("Operum.Model.Models.View", b =>
@@ -854,11 +854,6 @@ namespace Operum.Model.Migrations
                     b.Navigation("AnalyticFields");
                 });
 
-            modelBuilder.Entity("Operum.Model.Models.ApplicationUser", b =>
-                {
-                    b.Navigation("RefreshTokens");
-                });
-
             modelBuilder.Entity("Operum.Model.Models.Entry", b =>
                 {
                     b.Navigation("FieldValues");
@@ -876,6 +871,11 @@ namespace Operum.Model.Migrations
                     b.Navigation("Fields");
 
                     b.Navigation("Views");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.User", b =>
+                {
+                    b.Navigation("RefreshTokens");
                 });
 
             modelBuilder.Entity("Operum.Model.Models.View", b =>

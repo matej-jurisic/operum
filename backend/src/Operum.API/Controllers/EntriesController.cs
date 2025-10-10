@@ -2,7 +2,7 @@
 using Operum.API.Controllers.Base;
 using Operum.Model.DTOs.Entries.Requests;
 using Operum.Model.DTOs.Entry.Requests;
-using Operum.Service.Services.Entries;
+using Operum.Service.Interfaces;
 
 namespace Operum.API.Controllers
 {

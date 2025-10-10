@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+﻿using Operum.Model.Converters.JSON;
 using System.Text.Json.Serialization;
 
 namespace Operum.Model.DTOs.Auth
@@ -21,7 +21,7 @@ namespace Operum.Model.DTOs.Auth
         public string Email { get; set; } = string.Empty;
 
         [JsonPropertyName("email_verified")]
-        [JsonConverter(typeof(StringBooleanConverter))]
+        [JsonConverter(typeof(StringBooleanFormatter))]
         public bool EmailVerified { get; set; }
 
         [JsonPropertyName("name")]
@@ -37,54 +37,11 @@ namespace Operum.Model.DTOs.Auth
         public string FamilyName { get; set; } = string.Empty;
 
         [JsonPropertyName("iat")]
-        [JsonConverter(typeof(StringLongConverter))]
+        [JsonConverter(typeof(StringLongFormatter))]
         public long IssuedAt { get; set; }
 
         [JsonPropertyName("exp")]
-        [JsonConverter(typeof(StringLongConverter))]
+        [JsonConverter(typeof(StringLongFormatter))]
         public long ExpirationTime { get; set; }
-    }
-
-    /// <summary>
-    /// Handles "true"/"false" strings and real JSON booleans.
-    /// </summary>
-    public class StringBooleanConverter : JsonConverter<bool>
-    {
-        public override bool Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-        {
-            return reader.TokenType switch
-            {
-                JsonTokenType.String => reader.GetString() == "true",
-                JsonTokenType.True => true,
-                JsonTokenType.False => false,
-                _ => throw new JsonException($"Unexpected token {reader.TokenType} when parsing boolean.")
-            };
-        }
-
-        public override void Write(Utf8JsonWriter writer, bool value, JsonSerializerOptions options)
-        {
-            writer.WriteBooleanValue(value);
-        }
-    }
-
-    /// <summary>
-    /// Handles numbers returned as strings.
-    /// </summary>
-    public class StringLongConverter : JsonConverter<long>
-    {
-        public override long Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-        {
-            return reader.TokenType switch
-            {
-                JsonTokenType.String => long.Parse(reader.GetString() ?? "0"),
-                JsonTokenType.Number => reader.GetInt64(),
-                _ => throw new JsonException($"Unexpected token {reader.TokenType} when parsing long.")
-            };
-        }
-
-        public override void Write(Utf8JsonWriter writer, long value, JsonSerializerOptions options)
-        {
-            writer.WriteNumberValue(value);
-        }
     }
 }

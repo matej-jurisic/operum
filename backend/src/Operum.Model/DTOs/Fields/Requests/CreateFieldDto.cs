@@ -1,5 +1,5 @@
 ﻿using FluentValidation;
-using Operum.Model.Constants;
+using Operum.Model.Constants.Fields;
 
 namespace Operum.Model.DTOs.Fields.Requests
 {

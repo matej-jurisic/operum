@@ -1,4 +1,4 @@
-﻿using Operum.Model.DTOs.FieldValue;
+﻿using Operum.Model.DTOs.Fields;
 
 namespace Operum.Model.DTOs.Entry
 {

@@ -2,9 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Operum.API.Controllers.Base;
 using Operum.Model.DTOs.Auth.Requests;
-using Operum.Service.Services.Authentication;
-using Operum.Service.Services.Roles;
-using Operum.Service.Services.Users;
+using Operum.Service.Interfaces;
 
 namespace Operum.API.Controllers
 {
@@ -37,12 +35,6 @@ namespace Operum.API.Controllers
             return GetApiResponse(await usersService.SearchUsers(search));
         }
 
-        [HttpPut("me")]
-        public async Task<IActionResult> UpdateUser([FromBody] UpdateApplicationUserRequestDto request)
-        {
-            return GetApiResponse(await usersService.UpdateApplicationUser(request));
-        }
-
         [Authorize(Roles = "Admin")]
         [HttpGet("roles")]
         public async Task<IActionResult> GetAllRoles()
@@ -52,7 +44,7 @@ namespace Operum.API.Controllers
 
         [Authorize(Roles = "Admin")]
         [HttpPost("{userId}/role")]
-        public async Task<IActionResult> ChangeUserRole([FromRoute] string userId, [FromBody] ModifyUserRoleRequestDto request)
+        public async Task<IActionResult> ChangeUserRole([FromRoute] string userId, [FromBody] ChangeUserRoleDto request)
         {
             return GetApiResponse(await rolesService.ChangeUserRole(userId, request));
         }

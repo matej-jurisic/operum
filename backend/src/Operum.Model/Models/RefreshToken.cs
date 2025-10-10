@@ -12,7 +12,7 @@ namespace Operum.Model.Models
         public string Token { get; set; } = default!;
         public string UserId { get; set; } = default!;
        
-        public virtual ApplicationUser User { get; set; } = default!;
+        public virtual User User { get; set; } = default!;
         public DateTime ExpiresAt { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public bool IsRevoked { get; set; } = false;

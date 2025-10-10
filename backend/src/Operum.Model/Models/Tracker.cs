@@ -17,7 +17,7 @@ namespace Operum.Model.Models
 
         public string OwnerId { get; set; } = string.Empty;
         [ForeignKey(nameof(OwnerId))]
-        public virtual ApplicationUser Owner { get; set; } = null!;
+        public virtual User Owner { get; set; } = null!;
 
         public string? DefaultViewId { get; set; }
         [ForeignKey(nameof(DefaultViewId))]
@@ -25,6 +25,6 @@ namespace Operum.Model.Models
 
         public virtual List<Field> Fields { get; set; } = [];
         public virtual List<View> Views { get; set; } = [];
-        public virtual List<ApplicationUserTracker> ApplicationUserTrackers { get; set; } = [];
+        public virtual List<UserTracker> ApplicationUserTrackers { get; set; } = [];
     }
 }

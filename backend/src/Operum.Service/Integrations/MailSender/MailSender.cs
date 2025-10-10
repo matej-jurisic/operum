@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using Operum.Model.Configuration;
+using Operum.Service.Interfaces;
 using RestSharp;
 using RestSharp.Authenticators;
 using System.Text.Json;

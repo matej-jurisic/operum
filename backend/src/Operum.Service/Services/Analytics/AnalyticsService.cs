@@ -1,23 +1,24 @@
 ﻿using Operum.Model.Common;
-using Operum.Model.Constants;
-using Operum.Model.DTOs.Analytics;
+using Operum.Model.Constants.Analytics;
+using Operum.Model.Constants.Analytics.Definitions;
+using Operum.Service.Interfaces;
 
 namespace Operum.Service.Services.Analytics
 {
     public class AnalyticsService : IAnalyticsService
     {
-        public Result<AnalyticConfigDto> GetAnalyticConfig()
+        public Result<AnalyticConfig> GetAnalyticConfig()
         {
-            var config = new AnalyticConfigDto
+            var config = new AnalyticConfig
             {
-                ResultTypes = [.. AnalyticDefinitions.ByResultType.Select(rt => new ResultTypeDto
+                ResultTypes = [.. AnalyticDefinitionList.ByResultType.Select(rt => new AnalyticConfigType
                 {
                     Name = rt.Key,
-                    Codes = [.. rt.Value.Codes.Select(code => new CodeDto
+                    Codes = [.. rt.Value.Codes.Select(code => new AnalyticConfigCode
                     {
                         Name = code.Key,
                         Purposes = [.. code.Value.AllowedDataTypes
-                            .Select(p => new PurposeDto
+                            .Select(p => new AnalyticConfigPurpose
                             {
                                 Name = p.Key,
                                 AllowedDataTypes = [.. p.Value]

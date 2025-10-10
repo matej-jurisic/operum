@@ -26,8 +26,8 @@ namespace Operum.API.Middleware.Security
 
                 var apiResponse = new ApiResponse
                 {
-                    Messages = [StatusCodeEnum.Forbidden.ToString()],
-                    StatusCode = StatusCodeEnum.Forbidden
+                    Messages = [ResultStatus.Forbidden.ToString()],
+                    StatusCode = ResultStatus.Forbidden
                 };
 
                 await context.Response.WriteAsJsonAsync(apiResponse);
@@ -41,8 +41,8 @@ namespace Operum.API.Middleware.Security
 
                 var apiResponse = new ApiResponse
                 {
-                    Messages = [StatusCodeEnum.Unauthorized.ToString()],
-                    StatusCode = StatusCodeEnum.Unauthorized
+                    Messages = [ResultStatus.Unauthorized.ToString()],
+                    StatusCode = ResultStatus.Unauthorized
                 };
 
                 await context.Response.WriteAsJsonAsync(apiResponse);

@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Operum.API.Controllers.Base;
-using Operum.Service.Services.Analytics;
+using Operum.Service.Interfaces;
 
 namespace Operum.API.Controllers
 {
