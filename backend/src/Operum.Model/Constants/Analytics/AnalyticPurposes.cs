@@ -7,10 +7,11 @@
         public const string Value = "Value";
         public const string What = "What";
         public const string When = "When";
+        public const string Name = "Name";
 
         public static readonly HashSet<string> All =
         [
-            Xaxis, Yaxis, Value, When, What
+            Xaxis, Yaxis, Value, When, What, Name
         ];
 
         public static bool IsValid(string op) => All.Contains(op);

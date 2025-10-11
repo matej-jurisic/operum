@@ -1,3 +1,5 @@
+import { FieldDto } from "../../fields/types/FieldDto";
+
 export interface AnalyticDto {
     id: string;
     name: string;
@@ -6,31 +8,32 @@ export interface AnalyticDto {
     resultType: string;
 }
 
-export interface SingleValueAnalyticResultDto extends AnalyticDto {
+export interface SingleValueAnalyticDto extends AnalyticDto {
     value: string;
-    fieldName: string;
+    valueField?: FieldDto;
     entryId?: string;
 }
 
-export interface NumericChartAnalyticResultDto extends AnalyticDto {
-    xFieldName: string;
-    xFieldType: string;
-    yFieldName: string;
-    yFieldType: string;
+export interface LineChartAnalyticDto extends AnalyticDto {
+    xField: FieldDto;
+    yField: FieldDto;
     points: { x: string; y: number }[];
 }
 
-export interface ScatterPlotAnalyticResultDto extends AnalyticDto {
-    xFieldName: string;
-    yFieldName: string;
-    xFieldType: string;
-    yFieldType: string;
+export interface DonutChartAnaylticDto extends AnalyticDto {
+    nameField: FieldDto;
+    valueField: FieldDto;
+    points: { name: string; value: number }[];
+}
+
+export interface ScatterChartAnalyticDto extends AnalyticDto {
+    xField: FieldDto;
+    yField: FieldDto;
     points: { x: number; y: number }[];
 }
 
-export interface CalendarAnalyticResultDto extends AnalyticDto {
-    dateFieldName: string;
-    dateFieldType: string;
-    eventFieldName: string;
+export interface CalendarAnalyticDto extends AnalyticDto {
+    whenField: FieldDto;
+    whatField: FieldDto;
     points: { date: string; name: string; entryId: string }[];
 }

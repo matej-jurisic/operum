@@ -20,21 +20,24 @@ import { restrictToParentElement } from "@dnd-kit/modifiers";
 import React from "react";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { analyticsController } from "../api/analyticsController";
+import { AnalyticResultTypeEnum } from "../enums/AnalyticResultTypeEnum";
 import {
     AnalyticDto,
-    CalendarAnalyticResultDto,
-    NumericChartAnalyticResultDto,
-    ScatterPlotAnalyticResultDto,
-    SingleValueAnalyticResultDto,
+    CalendarAnalyticDto,
+    DonutChartAnaylticDto,
+    LineChartAnalyticDto,
+    ScatterChartAnalyticDto,
+    SingleValueAnalyticDto,
 } from "../types/AnalyticDto";
 import { CalendarCard } from "./CalendarCard";
+import { DonutChartCard } from "./DonutChartCard";
 import { LineChartCard } from "./LineChartCard";
-import { ScatterPlotCard } from "./ScatterPlotCard";
-import { StatCard } from "./StatCard";
+import { ScatterChartCard } from "./ScatterChartCard";
+import { SingleValueCard } from "./SingleValueCard";
 
-export const StatCardMemo = React.memo(StatCard);
+export const StatCardMemo = React.memo(SingleValueCard);
 export const LineChartCardMemo = React.memo(LineChartCard);
-export const ScatterPlotCardMemo = React.memo(ScatterPlotCard);
+export const ScatterChartCardMemo = React.memo(ScatterChartCard);
 
 interface AnalyticsGridProps {
     analytics: AnalyticDto[];
@@ -113,34 +116,41 @@ export function AnalyticsGrid({
 
     const renderCard = (analytic: AnalyticDto) => {
         switch (analytic.resultType) {
-            case "SingleValue":
+            case AnalyticResultTypeEnum.SingleValue:
                 return (
                     <StatCardMemo
-                        analytic={analytic as SingleValueAnalyticResultDto}
+                        analytic={analytic as SingleValueAnalyticDto}
                         isConfiguring={isConfiguring}
                         onEntryClick={onEntryClick}
                     />
                 );
-            case "NumericChart":
+            case AnalyticResultTypeEnum.LineChart:
                 return (
                     <LineChartCardMemo
-                        analytic={analytic as NumericChartAnalyticResultDto}
+                        analytic={analytic as LineChartAnalyticDto}
                         isConfiguring={isConfiguring}
                     />
                 );
-            case "ScatterPlot":
+            case AnalyticResultTypeEnum.ScatterChart:
                 return (
-                    <ScatterPlotCardMemo
-                        analytic={analytic as ScatterPlotAnalyticResultDto}
+                    <ScatterChartCardMemo
+                        analytic={analytic as ScatterChartAnalyticDto}
                         isConfiguring={isConfiguring}
                     />
                 );
-            case "Calendar":
+            case AnalyticResultTypeEnum.Calendar:
                 return (
                     <CalendarCard
-                        analytic={analytic as CalendarAnalyticResultDto}
+                        analytic={analytic as CalendarAnalyticDto}
                         isConfiguring={isConfiguring}
                         onEntryClick={onEntryClick}
+                    />
+                );
+            case AnalyticResultTypeEnum.Donut:
+                return (
+                    <DonutChartCard
+                        analytic={analytic as DonutChartAnaylticDto}
+                        isConfiguring={isConfiguring}
                     />
                 );
             default:

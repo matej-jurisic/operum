@@ -12,7 +12,7 @@ namespace Operum.Service.Domain.Analytics.Builders
     {
         private readonly Dictionary<string, ILineChartProcessor> _processors;
 
-        public override string SupportedType => AnalyticTypes.NumericChart;
+        public override string SupportedType => AnalyticTypes.LineChart;
 
         public LineChartAnalyticBuilder()
         {
@@ -53,10 +53,22 @@ namespace Operum.Service.Domain.Analytics.Builders
                     $"Unsupported analytic code: {request.Analytic.Code}");
 
             result.Points = processor.Process(dataPoints);
-            result.XFieldName = xField.Name;
-            result.XFieldType = xField.Type;
-            result.YFieldName = yField.Name;
-            result.YFieldType = yField.Type;
+            result.YField = new()
+            {
+                Id = yField.Id,
+                Type = yField.Type,
+                Required = yField.Required,
+                Description = yField.Description,
+                Name = yField.Name,
+            };
+            result.XField = new()
+            {
+                Id = xField.Id,
+                Type = xField.Type,
+                Required = xField.Required,
+                Description = xField.Description,
+                Name = xField.Name,
+            };
 
             return Result.Success<AnalyticDto>(result);
         }

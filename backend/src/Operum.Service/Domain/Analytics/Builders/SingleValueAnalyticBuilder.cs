@@ -56,7 +56,14 @@ namespace Operum.Service.Domain.Analytics.Builders
 
             result.Value = opResult.Data.Value;
             result.EntryId = opResult.Data.EntryId;
-            result.FieldName = valueField.Name;
+            result.ValueField = new()
+            {
+                Description = valueField.Description,
+                Id = valueField.Id,
+                Name = valueField.Name,
+                Required = valueField.Required,
+                Type = valueField.Type,
+            };
 
             return Result.Success<AnalyticDto>(result);
         }

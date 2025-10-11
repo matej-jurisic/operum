@@ -2,19 +2,19 @@ import { ActionIcon, Group, Paper, Stack, Text } from "@mantine/core";
 import { MdDelete, MdLink } from "react-icons/md";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import { useTracker } from "../../trackers/context/TrackerContext";
-import { SingleValueAnalyticResultDto } from "../types/AnalyticDto";
+import { SingleValueAnalyticDto } from "../types/AnalyticDto";
 
-interface StatCardProps {
-    analytic: SingleValueAnalyticResultDto;
+interface Props {
+    analytic: SingleValueAnalyticDto;
     onEntryClick: (entryId: string) => void;
     isConfiguring: boolean;
 }
 
-export function StatCard({
+export function SingleValueCard({
     analytic,
     onEntryClick,
     isConfiguring,
-}: StatCardProps) {
+}: Props) {
     const { tracker } = useTracker();
     const { removeAnalytic } = useTrackerOperations();
     return (
@@ -27,7 +27,9 @@ export function StatCard({
                     wrap="nowrap"
                 >
                     <Text size="sm" c="dimmed" fw={500}>
-                        {`${analytic.name}: ${analytic.fieldName}`}
+                        {analytic.valueField
+                            ? `${analytic.name}: ${analytic.valueField.name}`
+                            : analytic.name}
                     </Text>
                     <Group>
                         {analytic.entryId && (

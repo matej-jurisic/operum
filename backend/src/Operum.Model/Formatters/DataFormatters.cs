@@ -76,12 +76,12 @@ namespace Operum.Model.Converters
 
         public static string DateTimeToDateString(DateTime dt)
         {
-            return dt.ToString("dd/MM/yyyy");
+            return dt.ToString("o");
         }
 
         public static string DateTimeToDateTimeString(DateTime dt)
         {
-            return dt.ToString("dd/MM/yyyy HH:mm:ss");
+            return dt.ToString("o");
         }
     }
 }

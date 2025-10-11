@@ -54,7 +54,7 @@ namespace Operum.Service.Services.Entries
 
             foreach (var field in fields)
             {
-                if (fieldDict.TryGetValue(field.Name, out string? value))
+                if (fieldDict.TryGetValue(field.Name, out string? value) && !(field.Required && string.IsNullOrEmpty(value)))
                 {
                     FieldValue fieldValue = new()
                     {
@@ -64,7 +64,7 @@ namespace Operum.Service.Services.Entries
                     fieldValue.SetFieldValue(field, value);
                     entryFieldValues.Add(fieldValue);
                 }
-                else if (field.Required)
+                else
                 {
                     return Result.Failure(ResultStatusCodes.BadRequest, Messages.Required(field.Name));
                 }

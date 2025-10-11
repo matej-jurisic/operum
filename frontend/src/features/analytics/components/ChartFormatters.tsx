@@ -6,44 +6,35 @@ import {
     formatDateTime,
     formatMinutesToTime,
 } from "../../../shared/utils/formatters/TypeFormatter";
+import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
+import {
+    DonutChartAnaylticDto,
+    LineChartAnalyticDto,
+    ScatterChartAnalyticDto,
+} from "../types/AnalyticDto";
 
 export const getAxisFormatter = (fieldType: string) => {
     if (fieldType === FieldTypes.TimeSpan) return formatMinutesToTime;
     if (fieldType === FieldTypes.Bool) return formatBoolean;
     if (fieldType === FieldTypes.DateTime) return formatDateTime;
     if (fieldType === FieldTypes.Date) return formatDateOnly;
-    return undefined;
-};
-
-export const getNumericFormatter = (fieldType: string) => {
-    if (fieldType === FieldTypes.TimeSpan) return formatMinutesToTime;
-    if (fieldType === FieldTypes.Bool) return formatBoolean;
-    return undefined;
+    return (value: any): string => value;
 };
 
 export const createTooltipContent = (
-    labelFieldType: string,
-    fieldType: string,
-    fieldName: string,
+    analytic: LineChartAnalyticDto,
     color: string
 ) => {
     return ({ payload, label }: any) => {
         if (!payload?.[0]) return null;
 
-        const value = payload[0].value as number;
-        let formatted: string | number = value;
-        let formattedLabel: string = label;
-
-        const f = getNumericFormatter(fieldType);
-        if (f) formatted = f(value);
-
-        const fLabel = getAxisFormatter(labelFieldType);
-        if (fLabel) formattedLabel = fLabel(label);
+        const value = payload[0].payload.y;
+        const f = getAxisFormatter(analytic.yField.type);
 
         return (
             <Paper p="sm" shadow="sm" withBorder>
                 <Text size="sm" c="dimmed" mb="xs">
-                    {formattedLabel}
+                    {renderValue(analytic.xField.type, label)}
                 </Text>
                 <Group gap="xs" wrap="nowrap" maw={300}>
                     <Box
@@ -52,9 +43,39 @@ export const createTooltipContent = (
                         style={{ borderRadius: "50%" }}
                         bg={color}
                     />
-                    <Text size="sm">{fieldName}</Text>
+                    <Text size="sm">{analytic.yField.name}</Text>
                     <Text size="sm" ml="auto">
-                        {formatted}
+                        {f ? f(value) : ""}
+                    </Text>
+                </Group>
+            </Paper>
+        );
+    };
+};
+
+export const createDonutTooltipContent = (analytic: DonutChartAnaylticDto) => {
+    return ({ payload }: any) => {
+        if (!payload?.[0]) return null;
+        const name = payload[0].name;
+        const value = payload[0].payload.value;
+        const color = payload[0].payload.color;
+        const f = getAxisFormatter(analytic.nameField.type);
+
+        return (
+            <Paper p="sm" shadow="sm" withBorder>
+                <Text size="sm" c="dimmed" mb="xs">
+                    {renderValue(analytic.nameField.type, name)}
+                </Text>
+                <Group gap="xs" wrap="nowrap" maw={300}>
+                    <Box
+                        w={10}
+                        h={10}
+                        style={{ borderRadius: "50%" }}
+                        bg={color}
+                    />
+                    <Text size="sm">{analytic.valueField.name}</Text>
+                    <Text size="sm" ml="auto">
+                        {f ? f(value) : ""}
                     </Text>
                 </Group>
             </Paper>
@@ -63,10 +84,7 @@ export const createTooltipContent = (
 };
 
 export const createScatterTooltipContent = (
-    xFieldType: string,
-    yFieldType: string,
-    xFieldName: string,
-    yFieldName: string,
+    analytic: ScatterChartAnalyticDto,
     color: string
 ) => {
     return ({ payload }: any) => {
@@ -75,13 +93,6 @@ export const createScatterTooltipContent = (
         const dataPoint = payload[0].payload;
         const xValue = dataPoint.x;
         const yValue = dataPoint.y;
-
-        const formatValue = (value: any, fieldType: string) => {
-            if (fieldType === FieldTypes.TimeSpan)
-                return formatMinutesToTime(value);
-            if (fieldType === FieldTypes.Bool) return formatBoolean(value);
-            return value;
-        };
 
         return (
             <Paper p="sm" shadow="sm" withBorder>
@@ -94,10 +105,10 @@ export const createScatterTooltipContent = (
                             bg={color}
                         />
                         <Text size="sm" fw={500}>
-                            {xFieldName}
+                            {analytic.xField.name}
                         </Text>
                         <Text size="sm" ml="auto">
-                            {formatValue(xValue, xFieldType)}
+                            {renderValue(analytic.xField.type, xValue)}
                         </Text>
                     </Group>
                     <Group gap="xs" wrap="nowrap" maw={300}>
@@ -108,10 +119,10 @@ export const createScatterTooltipContent = (
                             bg={color}
                         />
                         <Text size="sm" fw={500}>
-                            {yFieldName}
+                            {analytic.yField.name}
                         </Text>
                         <Text size="sm" ml="auto">
-                            {formatValue(yValue, yFieldType)}
+                            {renderValue(analytic.yField.type, yValue)}
                         </Text>
                     </Group>
                 </Stack>

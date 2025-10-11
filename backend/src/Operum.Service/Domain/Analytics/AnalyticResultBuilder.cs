@@ -1,6 +1,5 @@
 ﻿using Operum.Model.Common;
 using Operum.Model.DTOs.Analytics;
-using Operum.Model.Enums;
 using Operum.Service.Domain.Analytics.Builders;
 
 namespace Operum.Service.Domain.Analytics
@@ -16,7 +15,8 @@ namespace Operum.Service.Domain.Analytics
                 new SingleValueAnalyticBuilder(),
                 new LineChartAnalyticBuilder(),
                 new ScatterChartAnalyticBuilder(),
-                new CalendarAnalyticBuilder()
+                new CalendarAnalyticBuilder(),
+                new DonutChartAnalyticBuilder()
             };
 
             _builders = builders.ToDictionary(b => b.SupportedType);
@@ -26,8 +26,11 @@ namespace Operum.Service.Domain.Analytics
             AnalyticResultBuilderRequest request)
         {
             if (!_builders.TryGetValue(request.Analytic.ResultType, out var builder))
-                return Result.Failure(ResultStatusCodes.BadRequest,
-                    $"Unsupported result type: {request.Analytic.ResultType}");
+                return Result.Success((AnalyticDto)new SingleValueAnalyticDto()
+                {
+                    Value = "This analytic is not supported.",
+                    Name = request.Analytic.Code + " " + request.Analytic.ResultType,
+                });
 
             return builder.Build(request);
         }

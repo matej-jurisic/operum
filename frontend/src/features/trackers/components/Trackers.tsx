@@ -258,7 +258,7 @@ export default function Trackers({ isTemplates = false }: Props) {
                         onClose={() => {
                             setOpenDialogType(undefined);
                         }}
-                        // initialValues={selectedTracker}
+                        initialValues={selectedTracker}
                         trackerId={selectedTracker.id}
                     />
                 )}

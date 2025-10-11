@@ -4,11 +4,11 @@ import { useMediaQuery } from "@mantine/hooks";
 import { MdDelete } from "react-icons/md";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import { useTracker } from "../../trackers/context/TrackerContext";
-import { NumericChartAnalyticResultDto } from "../types/AnalyticDto";
+import { LineChartAnalyticDto } from "../types/AnalyticDto";
 import { createTooltipContent, getAxisFormatter } from "./ChartFormatters";
 
 interface LineChartCardProps {
-    analytic: NumericChartAnalyticResultDto;
+    analytic: LineChartAnalyticDto;
     isConfiguring: boolean;
 }
 
@@ -22,7 +22,7 @@ export function LineChartCard({ analytic, isConfiguring }: LineChartCardProps) {
             <Stack gap="xs">
                 <Group justify="space-between" wrap="nowrap" align="flex-start">
                     <Text size="sm" mb="sm">
-                        {`${analytic.name}: ${analytic.xFieldName} - ${analytic.yFieldName}`}
+                        {`${analytic.name}: ${analytic.xField.name} - ${analytic.yField.name}`}
                     </Text>
                     {isConfiguring && (
                         <ActionIcon
@@ -40,25 +40,23 @@ export function LineChartCard({ analytic, isConfiguring }: LineChartCardProps) {
                     gridAxis="x"
                     data={analytic.points}
                     dataKey="x"
-                    h={isMobile ? 210 : 280}
+                    h={isMobile ? 210 : 300}
                     series={[
                         {
                             name: "y",
                             color: tracker.color,
-                            label: analytic.yFieldName,
+                            label: analytic.yField.name,
                         },
                     ]}
                     xAxisProps={{
-                        tickFormatter: getAxisFormatter(analytic.xFieldType),
+                        tickFormatter: getAxisFormatter(analytic.xField.type),
                     }}
                     yAxisProps={{
-                        tickFormatter: getAxisFormatter(analytic.yFieldType),
+                        tickFormatter: getAxisFormatter(analytic.yField.type),
                     }}
                     tooltipProps={{
                         content: createTooltipContent(
-                            analytic.xFieldType,
-                            analytic.yFieldType,
-                            analytic.yFieldName,
+                            analytic,
                             tracker.color ?? "blue"
                         ),
                     }}

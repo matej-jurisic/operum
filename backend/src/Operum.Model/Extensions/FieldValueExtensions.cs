@@ -88,7 +88,7 @@ namespace Operum.Model.Extensions
                 DataTypes.String => fieldValue.StringValue,
                 DataTypes.Number => fieldValue.NumberValue.HasValue ? DataFormatters.NumberToString(fieldValue.NumberValue.Value) : null,
                 DataTypes.Date => fieldValue.DateTimeValue.HasValue ? DataFormatters.DateTimeToDateString(fieldValue.DateTimeValue.Value) : null,
-                DataTypes.DateTime => fieldValue.DateTimeValue.HasValue ? fieldValue.DateTimeValue.Value.ToString("o") : null,
+                DataTypes.DateTime => fieldValue.DateTimeValue.HasValue ? DataFormatters.DateTimeToDateTimeString(fieldValue.DateTimeValue.Value) : null,
                 DataTypes.TimeSpan => fieldValue.TimeSpanValue.HasValue ? DataFormatters.TimeSpanToString(fieldValue.TimeSpanValue.Value) : null,
                 DataTypes.Bool => fieldValue.BooleanValue?.ToString(),
                 _ => null

@@ -15,7 +15,7 @@ namespace Operum.Service.Domain.Analytics
             if (!validationResult.IsSuccess)
                 return Result.Success((AnalyticDto)new SingleValueAnalyticDto()
                 {
-                    Name = validationResult.Messages.FirstOrDefault() ?? "Error"
+                    Value = validationResult.Messages.FirstOrDefault() ?? "Error"
                 });
 
             return BuildResult(request);

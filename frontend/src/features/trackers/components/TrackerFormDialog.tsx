@@ -23,7 +23,7 @@ export interface TrackerFormDialogProps {
     onClose: () => void;
     onConfirm?: () => void;
     trackerId?: string;
-    initialValues?: UpdateTrackerDto | CreateTrackerDto;
+    initialValues?: TrackerDto;
     asTemplate?: boolean;
     withTemplate?: boolean;
 }
@@ -99,15 +99,23 @@ export default function TrackerFormDialog(props: TrackerFormDialogProps) {
     const entityName = props.asTemplate ? "Template" : "Tracker";
 
     const form = useForm<UpdateTrackerDto & CreateTrackerDto>({
-        initialValues: props.initialValues || {
-            name: "",
-            description: "",
-            color: "indigo",
-            trackerTypeId: props.asTemplate
-                ? PublicityEnum.Draft.toString()
-                : undefined,
-            templateTrackerId: undefined,
-        },
+        initialValues: props.initialValues
+            ? {
+                  name: props.initialValues.name,
+                  description: props.initialValues.description,
+                  color: props.initialValues.color,
+                  trackerTypeId: props.initialValues.trackerTypeId,
+                  templateTrackerId: undefined,
+              }
+            : {
+                  name: "",
+                  description: "",
+                  color: "indigo",
+                  trackerTypeId: props.asTemplate
+                      ? PublicityEnum.Draft
+                      : undefined,
+                  templateTrackerId: undefined,
+              },
         validate: {
             name: (value) =>
                 value.trim().length === 0

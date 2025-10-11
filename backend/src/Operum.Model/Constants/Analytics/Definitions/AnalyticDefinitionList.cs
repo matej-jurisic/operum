@@ -78,7 +78,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                     }
                 },
 
-                [AnalyticTypes.NumericChart] = new AnalyticDefinition
+                [AnalyticTypes.LineChart] = new AnalyticDefinition
                 {
                     Purposes = [AnalyticPurposes.Xaxis, AnalyticPurposes.Yaxis],
                     Codes = new()
@@ -110,7 +110,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                     }
                 },
 
-                [AnalyticTypes.ScatterPlot] = new AnalyticDefinition
+                [AnalyticTypes.ScatterChart] = new AnalyticDefinition
                 {
                     Purposes = [AnalyticPurposes.Xaxis, AnalyticPurposes.Yaxis],
                     Codes = new()
@@ -137,6 +137,22 @@ namespace Operum.Model.Constants.Analytics.Definitions
                             {
                                 [AnalyticPurposes.When] = [DataTypes.Date, DataTypes.DateTime],
                                 [AnalyticPurposes.What] = [.. DataTypes.All]
+                            }
+                        }
+                    }
+                },
+
+                [AnalyticTypes.Donut] = new AnalyticDefinition
+                {
+                    Purposes = [AnalyticPurposes.Name, AnalyticPurposes.Value],
+                    Codes = new()
+                    {
+                        [AnalyticCodes.DonutChart] = new AnalyticPurposeDataTypes
+                        {
+                            AllowedDataTypes = new()
+                            {
+                                [AnalyticPurposes.Name] = [DataTypes.String],
+                                [AnalyticPurposes.Value] = [DataTypes.Number, DataTypes.TimeSpan]
                             }
                         }
                     }

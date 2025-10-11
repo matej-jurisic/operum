@@ -35,9 +35,22 @@ namespace Operum.Service.Domain.Analytics.Builders
                 .ToList();
 
             result.Points = calendarPoints;
-            result.DateFieldName = whenField.Name;
-            result.DateFieldType = whenField.Type;
-            result.EventFieldName = whatField.Name;
+            result.WhenField = new()
+            {
+                Id = whenField.Id,
+                Name = whenField.Name,
+                Description = whenField.Description,
+                Required = whenField.Required,
+                Type = whenField.Type,
+            };
+            result.WhatField = new()
+            {
+                Id = whatField.Id,
+                Name = whatField.Name,
+                Description = whatField.Description,
+                Required = whatField.Required,
+                Type = whatField.Type,
+            };
 
             return Result.Success<AnalyticDto>(result);
         }

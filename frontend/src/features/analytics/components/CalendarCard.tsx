@@ -10,17 +10,13 @@ import {
 import { Calendar } from "@mantine/dates";
 import { useMemo, useState } from "react";
 import { MdArrowBack, MdDelete, MdLink } from "react-icons/md";
-import { FieldTypes } from "../../../shared/constants/DataTypes";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
-import {
-    formatDateOnly,
-    formatDateTime,
-} from "../../../shared/utils/formatters/TypeFormatter";
+import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 import { useTracker } from "../../trackers/context/TrackerContext";
-import { CalendarAnalyticResultDto } from "../types/AnalyticDto";
+import { CalendarAnalyticDto } from "../types/AnalyticDto";
 
 interface CalendarCardProps {
-    analytic: CalendarAnalyticResultDto;
+    analytic: CalendarAnalyticDto;
     isConfiguring: boolean;
     onEntryClick: (entryId: string) => void;
 }
@@ -30,12 +26,6 @@ const getDateKey = (date: Date): string => {
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
-};
-
-const formatWhen = (value: string, type: string) => {
-    if (type === FieldTypes.DateTime) return formatDateTime(value);
-    if (type === FieldTypes.Date) return formatDateOnly(value);
-    return "";
 };
 
 export function CalendarCard({
@@ -57,22 +47,12 @@ export function CalendarCard({
             const dateObj = new Date(event.date);
             const dateKey = getDateKey(dateObj);
 
-            console.log(
-                "Event:",
-                event.name,
-                "Date:",
-                event.date,
-                "Key:",
-                dateKey
-            );
-
             if (!eventsByDate.has(dateKey)) {
                 eventsByDate.set(dateKey, []);
             }
             eventsByDate.get(dateKey)!.push(event);
         });
 
-        console.log("All event keys:", Array.from(eventsByDate.keys()));
         return eventsByDate;
     }, [analytic.points]);
 
@@ -85,7 +65,7 @@ export function CalendarCard({
             <Stack gap="xs">
                 <Group justify="space-between" wrap="nowrap" align="flex-start">
                     <Text size="sm" mb={"sm"}>
-                        {`${analytic.name}: ${analytic.dateFieldName} - ${analytic.eventFieldName}`}
+                        {`${analytic.name}: ${analytic.whenField.name} - ${analytic.whatField.name}`}
                     </Text>
                     {isConfiguring && (
                         <ActionIcon
@@ -100,7 +80,7 @@ export function CalendarCard({
                 </Group>
 
                 {!selectedDate ? (
-                    <Group w={"100%"} justify="center" h={280}>
+                    <Group w={"100%"} justify="center" h={300}>
                         <Calendar
                             date={viewDate}
                             onDateChange={(date) => setViewDate(new Date(date))}
@@ -131,7 +111,7 @@ export function CalendarCard({
                         />
                     </Group>
                 ) : (
-                    <Stack gap="xs" h={280}>
+                    <Stack gap="xs" h={300}>
                         <Group gap="xs">
                             <ActionIcon
                                 size="sm"
@@ -178,9 +158,11 @@ export function CalendarCard({
                                                             c={"dimmed"}
                                                             size="xs"
                                                         >
-                                                            {formatWhen(
-                                                                event.date,
-                                                                analytic.dateFieldType
+                                                            {renderValue(
+                                                                analytic
+                                                                    .whenField
+                                                                    .type,
+                                                                event.date
                                                             )}
                                                         </Text>
                                                     </Stack>

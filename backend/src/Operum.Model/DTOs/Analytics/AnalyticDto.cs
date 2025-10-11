@@ -5,9 +5,10 @@ namespace Operum.Model.DTOs.Analytics
 {
     [JsonPolymorphic(TypeDiscriminatorPropertyName = nameof(ResultType))]
     [JsonDerivedType(typeof(SingleValueAnalyticDto), AnalyticTypes.SingleValue)]
-    [JsonDerivedType(typeof(LineChartAnalyticDto), AnalyticTypes.NumericChart)]
-    [JsonDerivedType(typeof(ScatterPlotAnalyticDto), AnalyticTypes.ScatterPlot)]
+    [JsonDerivedType(typeof(LineChartAnalyticDto), AnalyticTypes.LineChart)]
+    [JsonDerivedType(typeof(ScatterPlotAnalyticDto), AnalyticTypes.ScatterChart)]
     [JsonDerivedType(typeof(CalendarAnalyticDto), AnalyticTypes.Calendar)]
+    [JsonDerivedType(typeof(DonutChartAnalyticDto), AnalyticTypes.Donut)]
     public abstract class AnalyticDto
     {
         public string Id { get; set; } = string.Empty;

@@ -4,21 +4,21 @@ import { useMediaQuery } from "@mantine/hooks";
 import { MdDelete } from "react-icons/md";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import { useTracker } from "../../trackers/context/TrackerContext";
-import { ScatterPlotAnalyticResultDto } from "../types/AnalyticDto";
+import { ScatterChartAnalyticDto } from "../types/AnalyticDto";
 import {
     createScatterTooltipContent,
     getAxisFormatter,
 } from "./ChartFormatters";
 
-interface ScatterPlotCardProps {
-    analytic: ScatterPlotAnalyticResultDto;
+interface ScatterChartCardProps {
+    analytic: ScatterChartAnalyticDto;
     isConfiguring: boolean;
 }
 
-export function ScatterPlotCard({
+export function ScatterChartCard({
     analytic,
     isConfiguring,
-}: ScatterPlotCardProps) {
+}: ScatterChartCardProps) {
     const { tracker } = useTracker();
     const { removeAnalytic } = useTrackerOperations();
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
@@ -28,7 +28,7 @@ export function ScatterPlotCard({
             <Stack gap="xs">
                 <Group justify="space-between" wrap="nowrap" align="flex-start">
                     <Text size="sm" mb="sm">
-                        {`${analytic.name}: ${analytic.xFieldName} - ${analytic.yFieldName}`}
+                        {`${analytic.name}: ${analytic.xField.name} - ${analytic.yField.name}`}
                     </Text>
                     {isConfiguring && (
                         <ActionIcon
@@ -46,24 +46,21 @@ export function ScatterPlotCard({
                     gridAxis="x"
                     data={[
                         {
-                            name: analytic.yFieldName,
+                            name: analytic.yField.name,
                             color: tracker.color ?? "blue",
                             data: analytic.points,
                         },
                     ]}
-                    h={isMobile ? 210 : 280}
+                    h={isMobile ? 210 : 300}
                     xAxisProps={{
-                        tickFormatter: getAxisFormatter(analytic.xFieldType),
+                        tickFormatter: getAxisFormatter(analytic.xField.type),
                     }}
                     yAxisProps={{
-                        tickFormatter: getAxisFormatter(analytic.yFieldType),
+                        tickFormatter: getAxisFormatter(analytic.yField.type),
                     }}
                     tooltipProps={{
                         content: createScatterTooltipContent(
-                            analytic.xFieldType,
-                            analytic.yFieldType,
-                            analytic.xFieldName,
-                            analytic.yFieldName,
+                            analytic,
                             tracker.color ?? "blue"
                         ),
                     }}

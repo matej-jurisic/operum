@@ -7,7 +7,7 @@ namespace Operum.Service.Domain.Analytics.Builders
 {
     public class ScatterChartAnalyticBuilder : AnalyticResultBuilderBase
     {
-        public override string SupportedType => AnalyticTypes.ScatterPlot;
+        public override string SupportedType => AnalyticTypes.ScatterChart;
 
         protected override Result<AnalyticDto> BuildResult(AnalyticResultBuilderRequest request)
         {
@@ -34,10 +34,22 @@ namespace Operum.Service.Domain.Analytics.Builders
                 .ToList();
 
             result.Points = dataPoints;
-            result.YFieldType = yField.Type;
-            result.YFieldName = yField.Name;
-            result.XFieldName = xField.Name;
-            result.XFieldType = xField.Type;
+            result.YField = new()
+            {
+                Id = yField.Id,
+                Type = yField.Type,
+                Required = yField.Required,
+                Description = yField.Description,
+                Name = yField.Name,
+            };
+            result.XField = new()
+            {
+                Id = xField.Id,
+                Type = xField.Type,
+                Required = xField.Required,
+                Description = xField.Description,
+                Name = xField.Name,
+            };
 
             return Result.Success<AnalyticDto>(result);
         }

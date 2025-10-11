@@ -2,14 +2,15 @@
 {
     public static class AnalyticTypes
     {
-        public const string SingleValue = "SingleValue";
-        public const string NumericChart = "NumericChart";
-        public const string ScatterPlot = "ScatterPlot";
+        public const string SingleValue = "Single Value";
+        public const string LineChart = "Line Chart";
+        public const string ScatterChart = "Scatter Chart";
         public const string Calendar = "Calendar";
+        public const string Donut = "Donut Chart";
 
         public static readonly HashSet<string> All =
         [
-            SingleValue, NumericChart, ScatterPlot, Calendar
+            SingleValue, LineChart, ScatterChart, Calendar, Donut
         ];
 
         public static bool IsValid(string op) => All.Contains(op);
