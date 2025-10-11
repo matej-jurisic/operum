@@ -1,5 +1,4 @@
 import React, { createContext, useCallback, useContext, useState } from "react";
-import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { ViewDto } from "../../views/types/ViewDto";
 import { CreateViewDto } from "../../views/types/requests/CreateViewDto";
@@ -19,8 +18,7 @@ const ViewsContext = createContext<ViewsContextType | undefined>(undefined);
 export const ViewsProvider: React.FC<{ children: React.ReactNode }> = ({
     children,
 }) => {
-    const { tracker, selectedViewId } = useTracker();
-    const { setSelectedView } = useTrackerOperations();
+    const { tracker, selectedViewId, _setSelectedViewId } = useTracker();
     const [views, setViews] = useState<ViewDto[]>([]);
     const [viewsDirty, setViewsDirty] = useState(true);
 
@@ -42,7 +40,7 @@ export const ViewsProvider: React.FC<{ children: React.ReactNode }> = ({
     const _deleteView = async (viewId: string) => {
         await viewsController.deleteView(tracker.id, viewId);
         if (viewId === selectedViewId) {
-            setSelectedView(undefined);
+            _setSelectedViewId(undefined);
         }
         await refreshViews();
     };
