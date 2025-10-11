@@ -4,14 +4,13 @@ namespace Operum.Model.Constants
 {
     public static class Messages
     {
-        public static string ItemNotFound(string itemName) => $"{itemName.Capitalize} not found.";
+        public static string ItemNotFound(string itemName) => $"{itemName.Capitalize()} not found.";
         public static string MaxNumberReached(string itemName, int amount) => $"Maximum number of {amount} {itemName} reached.";
-        public static string IsRequired(string itemName) => $"{itemName} is required";
         public static string CsvMissingFields(int rowIndex, List<string> missing) => $"Row {rowIndex}: Missing required fields: {string.Join(", ", missing)}";
         public static string CsvMaxNumberReached(int current, int imported, int max) => $"Import would exceed maximum entry limit. Current: {current}, Import: {imported}, Max: {max}";
         public static string Invalid(string itemName) => $"Invalid {itemName}";
-        public static string NotAllowed(string itemName) => $"{itemName.Capitalize} is not allowed.";
-        public static string Required(string itemName) => $"{itemName.Capitalize} is required.";
+        public static string NotAllowed(string itemName) => $"{itemName.Capitalize()} is not allowed.";
+        public static string Required(string itemName) => $"{itemName.Capitalize()} is required.";
 
         public const string InvalidLoginAttempt = "Invalid login attempt.";
         public const string EmailAddressNotConfirmed = "Email address has not been confirmed.";

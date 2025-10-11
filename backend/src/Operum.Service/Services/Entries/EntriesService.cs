@@ -66,7 +66,7 @@ namespace Operum.Service.Services.Entries
                 }
                 else if (field.Required)
                 {
-                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.IsRequired(field.Name));
+                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.Required(field.Name));
                 }
             }
 

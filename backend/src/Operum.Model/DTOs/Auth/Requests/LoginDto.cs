@@ -15,7 +15,7 @@ namespace Operum.Model.DTOs.Auth.Requests
         {
             // Credentials rules
             RuleFor(x => x.Credentials)
-                .NotEmpty().WithMessage((x) => Messages.Required("credentials"))
+                .NotEmpty().WithMessage(Messages.Required("credentials"))
                 .MaximumLength(100).WithMessage("Credentials cannot exceed 100 characters.");
 
             // Password rules
