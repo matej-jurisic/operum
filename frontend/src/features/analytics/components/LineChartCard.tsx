@@ -48,11 +48,15 @@ export function LineChartCard({ analytic, isConfiguring }: LineChartCardProps) {
                             label: analytic.yFieldName,
                         },
                     ]}
+                    xAxisProps={{
+                        tickFormatter: getAxisFormatter(analytic.xFieldType),
+                    }}
                     yAxisProps={{
                         tickFormatter: getAxisFormatter(analytic.yFieldType),
                     }}
                     tooltipProps={{
                         content: createTooltipContent(
+                            analytic.xFieldType,
                             analytic.yFieldType,
                             analytic.yFieldName,
                             tracker.color ?? "blue"

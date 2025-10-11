@@ -2,16 +2,27 @@ import { Box, Group, Paper, Stack, Text } from "@mantine/core";
 import { FieldTypes } from "../../../shared/constants/DataTypes";
 import {
     formatBoolean,
+    formatDateOnly,
+    formatDateTime,
     formatMinutesToTime,
 } from "../../../shared/utils/formatters/TypeFormatter";
 
 export const getAxisFormatter = (fieldType: string) => {
     if (fieldType === FieldTypes.TimeSpan) return formatMinutesToTime;
     if (fieldType === FieldTypes.Bool) return formatBoolean;
+    if (fieldType === FieldTypes.DateTime) return formatDateTime;
+    if (fieldType === FieldTypes.Date) return formatDateOnly;
+    return undefined;
+};
+
+export const getNumericFormatter = (fieldType: string) => {
+    if (fieldType === FieldTypes.TimeSpan) return formatMinutesToTime;
+    if (fieldType === FieldTypes.Bool) return formatBoolean;
     return undefined;
 };
 
 export const createTooltipContent = (
+    labelFieldType: string,
     fieldType: string,
     fieldName: string,
     color: string
@@ -21,17 +32,18 @@ export const createTooltipContent = (
 
         const value = payload[0].value as number;
         let formatted: string | number = value;
+        let formattedLabel: string = label;
 
-        if (fieldType === FieldTypes.TimeSpan) {
-            formatted = formatMinutesToTime(value);
-        } else if (fieldType === FieldTypes.Bool) {
-            formatted = formatBoolean(value);
-        }
+        const f = getNumericFormatter(fieldType);
+        if (f) formatted = f(value);
+
+        const fLabel = getAxisFormatter(labelFieldType);
+        if (fLabel) formattedLabel = fLabel(label);
 
         return (
             <Paper p="sm" shadow="sm" withBorder>
                 <Text size="sm" c="dimmed" mb="xs">
-                    {label}
+                    {formattedLabel}
                 </Text>
                 <Group gap="xs" wrap="nowrap" maw={300}>
                     <Box

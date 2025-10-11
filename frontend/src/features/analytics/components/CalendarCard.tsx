@@ -10,10 +10,11 @@ import {
 import { Calendar } from "@mantine/dates";
 import { useMemo, useState } from "react";
 import { MdArrowBack, MdDelete, MdLink } from "react-icons/md";
+import { FieldTypes } from "../../../shared/constants/DataTypes";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import {
+    formatDateOnly,
     formatDateTime,
-    formatFullDate,
 } from "../../../shared/utils/formatters/TypeFormatter";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { CalendarAnalyticResultDto } from "../types/AnalyticDto";
@@ -29,6 +30,12 @@ const getDateKey = (date: Date): string => {
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
+};
+
+const formatWhen = (value: string, type: string) => {
+    if (type === FieldTypes.DateTime) return formatDateTime(value);
+    if (type === FieldTypes.Date) return formatDateOnly(value);
+    return "";
 };
 
 export function CalendarCard({
@@ -134,9 +141,7 @@ export function CalendarCard({
                             >
                                 <MdArrowBack size={16} />
                             </ActionIcon>
-                            <Text size="sm" fw={500}>
-                                {formatFullDate(selectedDate)}
-                            </Text>
+                            <Text size="sm" fw={500}></Text>
                         </Group>
                         <ScrollArea h="100%">
                             {eventsForSelectedDate.length === 0 ? (
@@ -173,8 +178,9 @@ export function CalendarCard({
                                                             c={"dimmed"}
                                                             size="xs"
                                                         >
-                                                            {formatDateTime(
-                                                                event.date
+                                                            {formatWhen(
+                                                                event.date,
+                                                                analytic.dateFieldType
                                                             )}
                                                         </Text>
                                                     </Stack>

@@ -29,13 +29,14 @@ namespace Operum.Service.Domain.Analytics.Builders
                 {
                     EntryId = e.Id,
                     Date = e.FieldValues.FirstOrDefault(f => f.FieldId == whenField.Id)?.DateTimeValue,
-                    Name = e.FieldValues.FirstOrDefault(f => f.FieldId == whatField.Id)?.GetValueAsString(),
+                    Name = e.FieldValues.FirstOrDefault(f => f.FieldId == whatField.Id)?.GetValueAsString()
                 })
                 .Where(p => p.Date != null && p.Name != null)
                 .ToList();
 
             result.Points = calendarPoints;
             result.DateFieldName = whenField.Name;
+            result.DateFieldType = whenField.Type;
             result.EventFieldName = whatField.Name;
 
             return Result.Success<AnalyticDto>(result);

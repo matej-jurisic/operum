@@ -54,6 +54,7 @@ namespace Operum.Service.Domain.Analytics.Builders
 
             result.Points = processor.Process(dataPoints);
             result.XFieldName = xField.Name;
+            result.XFieldType = xField.Type;
             result.YFieldName = yField.Name;
             result.YFieldType = yField.Type;
 

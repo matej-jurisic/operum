@@ -14,6 +14,7 @@ export interface SingleValueAnalyticResultDto extends AnalyticDto {
 
 export interface NumericChartAnalyticResultDto extends AnalyticDto {
     xFieldName: string;
+    xFieldType: string;
     yFieldName: string;
     yFieldType: string;
     points: { x: string; y: number }[];
@@ -29,6 +30,7 @@ export interface ScatterPlotAnalyticResultDto extends AnalyticDto {
 
 export interface CalendarAnalyticResultDto extends AnalyticDto {
     dateFieldName: string;
+    dateFieldType: string;
     eventFieldName: string;
     points: { date: string; name: string; entryId: string }[];
 }
