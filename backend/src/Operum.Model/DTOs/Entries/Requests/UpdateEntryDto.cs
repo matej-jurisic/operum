@@ -13,7 +13,7 @@ namespace Operum.Model.DTOs.Entries.Requests
         public UpdateEntryDtoValidator()
         {
             RuleFor(x => x.FieldValues)
-                .NotNull().WithMessage(Messages.Required("fieldValues"))
+                .NotNull().WithMessage((x) => Messages.Required("fieldValues"))
                 .Must(d => d.Count != 0).WithMessage("At least one field value is required.")
                 .Must(d => d.Count <= 20).WithMessage("Too many fields provided (max 20).");
 

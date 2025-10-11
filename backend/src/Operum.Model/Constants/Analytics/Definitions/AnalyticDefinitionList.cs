@@ -88,7 +88,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.Xaxis] = [.. DataTypes.All],
-                                [AnalyticPurposes.Yaxis] = [.. DataTypes.All]
+                                [AnalyticPurposes.Yaxis] = [DataTypes.Number, DataTypes.TimeSpan]
                             }
                         },
                         [AnalyticCodes.CumulativeLineChart] = new AnalyticPurposeDataTypes
@@ -104,7 +104,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.Xaxis] = [.. DataTypes.All],
-                                [AnalyticPurposes.Yaxis] = [.. DataTypes.All]
+                                [AnalyticPurposes.Yaxis] = [DataTypes.Number, DataTypes.TimeSpan]
                             }
                         }
                     }

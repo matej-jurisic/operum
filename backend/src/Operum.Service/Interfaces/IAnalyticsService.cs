@@ -1,10 +1,10 @@
 ﻿using Operum.Model.Common;
-using Operum.Model.Constants.Analytics;
+using Operum.Model.DTOs.Analytics;
 
 namespace Operum.Service.Interfaces
 {
     public interface IAnalyticsService
     {
-        public Result<AnalyticConfig> GetAnalyticConfig();
+        public Result<AnalyticConfigDto> GetAnalyticConfig();
     }
 }

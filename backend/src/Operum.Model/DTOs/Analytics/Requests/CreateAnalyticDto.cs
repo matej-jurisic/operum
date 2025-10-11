@@ -16,12 +16,15 @@ namespace Operum.Model.DTOs.Analytics.Requests
         public CreateAnalyticDtoValidator()
         {
             RuleFor(x => x.Code)
-                .NotEmpty().WithMessage(Messages.Required("code"))
-                .Must(AnalyticCodes.IsValid).WithMessage(Messages.Invalid("code"));
+                .NotEmpty().WithMessage((x) => Messages.Required("code"))
+                .Must(AnalyticCodes.IsValid).WithMessage((x) => Messages.Invalid("code"));
 
             RuleFor(x => x.Type)
-               .NotEmpty().WithMessage(Messages.Required("type"))
-               .Must(AnalyticTypes.IsValid).WithMessage(Messages.Invalid("type"));
+               .NotEmpty().WithMessage((x) => Messages.Required("type"))
+               .Must(AnalyticTypes.IsValid).WithMessage((x) => Messages.Invalid("type"));
+
+            RuleForEach(x => x.AnalyticFields)
+                .SetValidator(new CreateAnalyticFieldDtoValidator());
         }
     }
 }

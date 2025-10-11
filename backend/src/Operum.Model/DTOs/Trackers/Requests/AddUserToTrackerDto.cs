@@ -13,7 +13,7 @@ namespace Operum.Model.DTOs.Trackers.Requests
         public AddUserToTrackerDtoValidator()
         {
             RuleFor(x => x.Username)
-                .NotEmpty().WithMessage(Messages.Required("username"));
+                .NotEmpty().WithMessage((x) => Messages.Required("username"));
         }
     }
 }

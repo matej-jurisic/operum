@@ -14,7 +14,7 @@ namespace Operum.Model.DTOs.Views.Requests
         public CreateViewSortDtoValidator()
         {
             RuleFor(x => x.FieldId)
-                .NotEmpty().WithMessage(Messages.Required("field id"));
+                .NotEmpty().WithMessage((x) => Messages.Required("field id"));
         }
     }
 }

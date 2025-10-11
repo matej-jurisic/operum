@@ -13,7 +13,7 @@ namespace Operum.Model.DTOs.Auth.Requests
         public GoogleLoginDtoValidator()
         {
             RuleFor(x => x.Credential)
-                .NotEmpty().WithMessage(Messages.Required("credential"));
+                .NotEmpty().WithMessage((x) => Messages.Required("credential"));
         }
     }
 }

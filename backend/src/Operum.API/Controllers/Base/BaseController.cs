@@ -14,6 +14,7 @@ namespace Operum.API.Controllers.Base
                 Messages = serviceResponse.Messages,
                 Data = serviceResponse.Data,
                 StatusCode = serviceResponse.StatusCode,
+                IsSuccess = serviceResponse.IsSuccess,
             };
             return SetStatusCode(apiResponse);
         }
@@ -25,17 +26,7 @@ namespace Operum.API.Controllers.Base
             {
                 Messages = serviceResponse.Messages,
                 StatusCode = serviceResponse.StatusCode,
-            };
-            return SetStatusCode(apiResponse);
-        }
-
-        [NonAction]
-        protected IActionResult GetApiResponse(IEnumerable<string> messages, ResultStatusCodes statusCode)
-        {
-            var apiResponse = new ApiResponse
-            {
-                Messages = messages,
-                StatusCode = statusCode,
+                IsSuccess = serviceResponse.IsSuccess,
             };
             return SetStatusCode(apiResponse);
         }

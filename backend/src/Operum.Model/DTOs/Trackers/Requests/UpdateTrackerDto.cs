@@ -26,7 +26,7 @@ namespace Operum.Model.DTOs.Trackers.Requests
 
             RuleFor(x => x.TrackerTypeId)
                 .Must(x => !x.HasValue || Enum.IsDefined(typeof(PublicityEnum), x.Value))
-                .WithMessage(Messages.Invalid("tracker type"));
+                .WithMessage((x) => Messages.Invalid("tracker type"));
 
             RuleFor(x => x.Color)
                 .MaximumLength(50)

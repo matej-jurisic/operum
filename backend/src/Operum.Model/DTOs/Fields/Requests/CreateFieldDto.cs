@@ -17,7 +17,7 @@ namespace Operum.Model.DTOs.Fields.Requests
         public CreateFieldDtoValidator()
         {
             RuleFor(x => x.Name)
-                .NotEmpty().WithMessage(Messages.Required("field name"))
+                .NotEmpty().WithMessage((x) => Messages.Required("field name"))
                 .MaximumLength(30).WithMessage("Field name cannot exceed 30 characters.");
 
             RuleFor(x => x.Description)
@@ -25,8 +25,8 @@ namespace Operum.Model.DTOs.Fields.Requests
                 .When(x => !string.IsNullOrEmpty(x.Description));
 
             RuleFor(x => x.Type)
-                .NotEmpty().WithMessage(Messages.Required("field type"))
-                .Must(DataTypes.IsValid).WithMessage(Messages.Invalid("field tye"));
+                .NotEmpty().WithMessage((x) => Messages.Required("field type"))
+                .Must(DataTypes.IsValid).WithMessage((x) => Messages.Invalid("field tye"));
         }
     }
 }

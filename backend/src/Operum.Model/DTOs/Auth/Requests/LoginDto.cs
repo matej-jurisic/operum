@@ -15,12 +15,12 @@ namespace Operum.Model.DTOs.Auth.Requests
         {
             // Credentials rules
             RuleFor(x => x.Credentials)
-                .NotEmpty().WithMessage(Messages.Required("credentials"))
+                .NotEmpty().WithMessage((x) => Messages.Required("credentials"))
                 .MaximumLength(100).WithMessage("Credentials cannot exceed 100 characters.");
 
             // Password rules
             RuleFor(x => x.Password)
-            .NotEmpty().WithMessage(Messages.Required("password"));
+            .NotEmpty().WithMessage((x) => Messages.Required("password"));
             //.MinimumLength(6).WithMessage("Password must be at least 6 characters long.")
             //.MaximumLength(100).WithMessage("Password cannot exceed 100 characters.")
             //.Matches(@"\d").WithMessage("Password must contain at least one digit.");

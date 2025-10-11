@@ -1,15 +1,15 @@
 ﻿using Operum.Model.Common;
-using Operum.Model.Constants.Analytics;
 using Operum.Model.Constants.Analytics.Definitions;
+using Operum.Model.DTOs.Analytics;
 using Operum.Service.Interfaces;
 
 namespace Operum.Service.Services.Analytics
 {
     public class AnalyticsService : IAnalyticsService
     {
-        public Result<AnalyticConfig> GetAnalyticConfig()
+        public Result<AnalyticConfigDto> GetAnalyticConfig()
         {
-            var config = new AnalyticConfig
+            var config = new AnalyticConfigDto
             {
                 ResultTypes = [.. AnalyticDefinitionList.ByResultType.Select(rt => new AnalyticConfigType
                 {

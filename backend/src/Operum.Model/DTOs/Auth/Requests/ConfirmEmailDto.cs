@@ -14,10 +14,10 @@ namespace Operum.Model.DTOs.Auth.Requests
         public ConfirmEmailDtoValidator()
         {
             RuleFor(x => x.UserId)
-                .NotEmpty().WithMessage(Messages.Required("user id"));
+                .NotEmpty().WithMessage((x) => Messages.Required("user id"));
 
             RuleFor(x => x.Token)
-                .NotEmpty().WithMessage(Messages.Required("token"));
+                .NotEmpty().WithMessage((x) => Messages.Required("token"));
         }
     }
 }

@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Operum.Model.Common;
 using Operum.Model.Constants;
-using Operum.Model.DTOs.Auth.Requests;
+using Operum.Model.DTOs.Users.Requests;
 using Operum.Model.Enums;
 using Operum.Model.Models;
 using Operum.Service.Interfaces;

@@ -15,10 +15,10 @@ namespace Operum.Model.DTOs.Views.Requests
         public CreateViewFilterDtoValidator()
         {
             RuleFor(x => x.FieldId)
-                .NotEmpty().WithMessage(Messages.Required("field id"));
+                .NotEmpty().WithMessage((x) => Messages.Required("field id"));
             RuleFor(x => x.Operator)
-                .NotEmpty().WithMessage(Messages.Required("operator"))
-                .Must(OperatorTypes.IsValid).WithMessage(Messages.Invalid("operator"));
+                .NotEmpty().WithMessage((x) => Messages.Required("operator"))
+                .Must(OperatorTypes.IsValid).WithMessage((x) => Messages.Invalid("operator"));
         }
     }
 }
