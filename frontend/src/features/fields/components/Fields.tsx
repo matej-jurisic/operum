@@ -31,7 +31,6 @@ import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations
 import globalStore from "../../../shared/stores/GlobalStore";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { useFields } from "../context/FieldsContext";
-import { CreateFieldDto } from "../types/CreateFieldDto";
 import { FieldDto } from "../types/FieldDto";
 import { FieldFormDialog } from "./FieldFormDialog";
 import SortableFieldCard from "./SortableFieldCard";
@@ -202,7 +201,7 @@ export default function Fields(props: FieldsProps) {
                 <FieldFormDialog
                     tracker={props.tracker}
                     fieldId={selectedField.id}
-                    initialValues={{ ...selectedField } as CreateFieldDto}
+                    initialValues={{ ...selectedField }}
                     onClose={() => {
                         setOpenDialogType(undefined);
                         setSelectedField(undefined);
