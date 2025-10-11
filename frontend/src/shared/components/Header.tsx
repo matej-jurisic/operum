@@ -30,7 +30,7 @@ export default function Header(props: Props) {
     return (
         <Group align="center" justify="flex-end">
             <Group>
-                <BackButton color={props.color} />
+                {globalStore.currentUser && <BackButton color={props.color} />}
                 <Button
                     variant="outline"
                     color={props.color ?? theme.primaryColor}
@@ -57,9 +57,18 @@ export default function Header(props: Props) {
                     </Menu.Target>
 
                     <Menu.Dropdown>
-                        <Menu.Item leftSection={<CiUser size={16} />}>
-                            {globalStore.currentUser?.userName || "Guest"}
-                        </Menu.Item>
+                        {globalStore.currentUser ? (
+                            <Menu.Item leftSection={<CiUser size={16} />}>
+                                {globalStore.currentUser?.userName || "Guest"}
+                            </Menu.Item>
+                        ) : (
+                            <Menu.Item
+                                leftSection={<CiUser size={16} />}
+                                onClick={() => navigate("/auth")}
+                            >
+                                {"Login"}
+                            </Menu.Item>
+                        )}
                         {globalStore.userHasRole("admin") && (
                             <Menu.Item
                                 leftSection={<CiSettings size={16} />}
@@ -68,15 +77,16 @@ export default function Header(props: Props) {
                                 Admin panel
                             </Menu.Item>
                         )}
-                        <Menu.Item
-                            leftSection={<CiLogout size={16} />}
-                            onClick={async () => {
-                                await auth.logout();
-                                navigate("/auth");
-                            }}
-                        >
-                            Logout
-                        </Menu.Item>
+                        {globalStore.currentUser && (
+                            <Menu.Item
+                                leftSection={<CiLogout size={16} />}
+                                onClick={async () => {
+                                    await auth.logout();
+                                }}
+                            >
+                                Logout
+                            </Menu.Item>
+                        )}
                     </Menu.Dropdown>
                 </Menu>
             </Group>

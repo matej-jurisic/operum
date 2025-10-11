@@ -7,9 +7,11 @@ import AdminPanel from "./features/admin/pages/AdminPanel";
 import useAuth from "./features/auth/hooks/useAuth";
 import Auth from "./features/auth/pages/Auth";
 import Home from "./features/home/pages/Home";
+import Trackers from "./features/trackers/components/Trackers";
 import Tracker from "./features/trackers/pages/Tracker";
 import { ConfirmEmail } from "./features/users/pages/ConfirmEmail";
 import OperumLoader from "./shared/components/OperumLoader";
+import GenericRoute from "./shared/components/routing/GenericRoute";
 import PrivateRoute from "./shared/components/routing/PrivateRoute";
 import PublicRoute from "./shared/components/routing/PublicRoute";
 import { useLoading } from "./shared/context/LoadingContext";
@@ -53,7 +55,11 @@ const App = observer(() => {
                             />
                             <Route
                                 path="home"
-                                element={<PrivateRoute page={<Home />} />}
+                                element={<GenericRoute page={<Home />} />}
+                            />
+                            <Route
+                                path="trackers"
+                                element={<PrivateRoute page={<Trackers />} />}
                             />
                             <Route
                                 path="trackers/:trackerId"

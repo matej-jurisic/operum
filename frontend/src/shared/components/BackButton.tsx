@@ -1,21 +1,31 @@
 import { Button } from "@mantine/core";
+import { FiDatabase } from "react-icons/fi";
 import { IoHome } from "react-icons/io5";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 interface Props {
     color?: string;
-    homePath?: string;
 }
 
 export default function BackButton(props: Props) {
     const navigate = useNavigate();
+    const location = useLocation();
+
     return (
         <Button
             variant="outline"
             color={props.color}
-            onClick={() => navigate(props.homePath || "/home")}
+            onClick={() =>
+                location.pathname === "/trackers"
+                    ? navigate("/home")
+                    : navigate("/trackers")
+            }
         >
-            <IoHome size={16} />
+            {location.pathname === "/trackers" ? (
+                <IoHome size={16} />
+            ) : (
+                <FiDatabase size={16} />
+            )}
         </Button>
     );
 }
