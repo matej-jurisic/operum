@@ -59,7 +59,7 @@ export const createDonutTooltipContent = (analytic: DonutChartAnaylticDto) => {
         const name = payload[0].name;
         const value = payload[0].payload.value;
         const color = payload[0].payload.color;
-        const f = getAxisFormatter(analytic.nameField.type);
+        const f = getAxisFormatter(analytic.valueField.type);
 
         return (
             <Paper p="sm" shadow="sm" withBorder>

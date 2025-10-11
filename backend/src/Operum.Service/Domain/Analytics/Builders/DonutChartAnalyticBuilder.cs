@@ -43,7 +43,7 @@ namespace Operum.Service.Domain.Analytics.Builders
                     Name = e.FieldValues.FirstOrDefault(f => f.FieldId == nameField.Id)?.GetValueAsString(),
                     Value = DataFormatters.FieldValueToDouble(e.FieldValues.FirstOrDefault(f => f.FieldId == valueField.Id))
                 })
-                .Where(p => p.Name != null)
+                .Where(p => p.Name != null && p.Value != null)
                 .ToList();
 
             if (!_processors.TryGetValue(request.Analytic.Code, out var processor))

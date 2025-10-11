@@ -151,7 +151,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                         {
                             AllowedDataTypes = new()
                             {
-                                [AnalyticPurposes.Name] = [DataTypes.String],
+                                [AnalyticPurposes.Name] = [.. DataTypes.All],
                                 [AnalyticPurposes.Value] = [DataTypes.Number, DataTypes.TimeSpan]
                             }
                         }

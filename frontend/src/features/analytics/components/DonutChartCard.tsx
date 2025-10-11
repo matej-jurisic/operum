@@ -55,6 +55,7 @@ export function DonutChartCard({ analytic, isConfiguring }: Props) {
                 <Group justify="center">
                     <DonutChart
                         withLabelsLine
+                        w={"100%"}
                         withLabels
                         size={isMobile ? 150 : 200}
                         thickness={20}

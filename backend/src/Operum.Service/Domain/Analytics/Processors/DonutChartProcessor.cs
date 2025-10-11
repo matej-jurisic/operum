@@ -12,7 +12,8 @@ namespace Operum.Service.Domain.Analytics.Processors
                 {
                     Name = g.Key,
                     Value = Math.Round(g.Sum(e => e.Value ?? 0), 2)
-                })];
+                })
+                .Where(x => x.Value > 0)];
         }
     }
 }
