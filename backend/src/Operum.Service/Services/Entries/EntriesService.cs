@@ -466,6 +466,7 @@ namespace Operum.Service.Services.Entries
                         await csv.NextRecordAsync();
                     }
 
+                    await csv.FlushAsync();
                     await writer.FlushAsync();
                 }
 
