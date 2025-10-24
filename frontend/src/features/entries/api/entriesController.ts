@@ -7,7 +7,7 @@ export const entriesController = {
     exportCsv: async (
         trackerId: string,
         viewId?: string
-    ): Promise<AxiosResponse<ApiResponse<BlobPart>>> => {
+    ): Promise<AxiosResponse<BlobPart>> => {
         return await api.get(`/trackers/${trackerId}/entries/export-csv`, {
             params: viewId ? { viewId } : {},
             responseType: "blob",

@@ -48,7 +48,7 @@ const ExportCsv = async (trackerId: string, viewId?: string) => {
     const response = await entriesController.exportCsv(trackerId, viewId);
 
     downloadBlob(
-        new Blob([response.data.data]),
+        new Blob([response.data]),
         `tracker-export.csv`,
         response.headers["content-disposition"]
     );
