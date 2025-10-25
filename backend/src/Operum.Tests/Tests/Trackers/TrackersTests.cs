@@ -4,11 +4,10 @@ using Operum.Tests.Extensions;
 using Operum.Tests.Util;
 using System.Net;
 using System.Net.Http.Json;
-using Xunit.Abstractions;
 
 namespace Operum.Tests.Tests.Trackers
 {
-    public class TrackersTest(CustomWebApplicationFactory factory, ITestOutputHelper outputHelper) : IClassFixture<CustomWebApplicationFactory>
+    public class TrackersTest(CustomWebApplicationFactory factory) : IClassFixture<CustomWebApplicationFactory>
     {
         private readonly CustomWebApplicationFactory _factory = factory;
 

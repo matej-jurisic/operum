@@ -55,7 +55,7 @@ namespace Operum.API.Controllers
         [HttpPost("google")]
         public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginDto request)
         {
-            return GetApiResponse(await authenticationService.GoogleLogin(request));
+            return GetApiResponse(await authenticationService.LoginWithGoogle(request));
         }
     }
 }

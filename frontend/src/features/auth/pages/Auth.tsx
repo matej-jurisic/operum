@@ -8,9 +8,10 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
-import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
+import { CredentialResponse } from "@react-oauth/google";
 import { useState } from "react";
 import { AuthForm } from "../components/AuthForm";
+import { GoogleButton } from "../components/GoogleButton";
 import useAuth from "../hooks/useAuth";
 import { LoginRequestDto } from "../types/requests/LoginDto";
 import { RegisterDto } from "../types/requests/RegisterDto";
@@ -155,12 +156,7 @@ export default function Auth() {
                         )}
                         <Group justify="center">
                             <Box className="google-login-wrapper">
-                                <GoogleLogin
-                                    onSuccess={handleGoogleSuccess}
-                                    onError={handleGoogleError}
-                                    size="large"
-                                    width="280"
-                                />
+                                <GoogleButton />
                             </Box>
                         </Group>
                     </Stack>

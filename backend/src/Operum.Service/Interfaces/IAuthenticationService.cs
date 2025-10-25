@@ -13,7 +13,6 @@ namespace Operum.Service.Interfaces
         Task<Result<UserDto>> GetCurrentApplicationUser();
         Task<Result<AuthResponseDto>> RefreshToken();
         Task<Result> ConfirmEmail(ConfirmEmailDto request);
-
-        Task<Result<AuthResponseDto>> GoogleLogin(GoogleLoginDto request);
+        Task<Result<AuthResponseDto>> LoginWithGoogle(GoogleLoginDto request);
     }
 }

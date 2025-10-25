@@ -74,9 +74,9 @@ const useAuth = () => {
         await authController.register(registerRequest);
     };
 
-    const loginWithGoogle = async (credential: string) => {
+    const loginWithGoogle = async (idToken: string) => {
         const googleLoginRequest: GoogleLoginDto = {
-            credential: credential,
+            idToken: idToken,
         };
 
         const user = await authController.googleLogin(googleLoginRequest);
