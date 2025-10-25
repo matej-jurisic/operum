@@ -7,8 +7,6 @@ import {
     TextInput,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { notifications } from "@mantine/notifications";
-import { CredentialResponse } from "@react-oauth/google";
 import { useState } from "react";
 import { AuthForm } from "../components/AuthForm";
 import { GoogleButton } from "../components/GoogleButton";
@@ -82,20 +80,6 @@ export default function Auth() {
 
     const onRegister = (values: RegisterDto) => {
         auth.register(values);
-    };
-
-    const handleGoogleSuccess = (credentialResponse: CredentialResponse) => {
-        if (credentialResponse.credential) {
-            auth.loginWithGoogle(credentialResponse.credential);
-        }
-    };
-
-    const handleGoogleError = () => {
-        notifications.show({
-            message: "Google Login Failed",
-            color: "red",
-            withBorder: true,
-        });
     };
 
     const [selectedTab, setSelectedTab] = useState("login");
