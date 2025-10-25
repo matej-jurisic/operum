@@ -38,9 +38,11 @@ export function DonutChartCard({ analytic, isConfiguring }: Props) {
         <Paper withBorder p="md" radius="md">
             <Stack gap="xs">
                 <Group justify="space-between" wrap="nowrap" align="flex-start">
-                    <Text size="sm" mb="sm">
-                        {`${analytic.name}: ${analytic.nameField.name} - ${analytic.valueField.name}`}
-                    </Text>
+                    <Group align="flex-start">
+                        <Text size="sm" mb="sm">
+                            {`${analytic.name}: ${analytic.nameField.name} - ${analytic.valueField.name}`}
+                        </Text>
+                    </Group>
                     {isConfiguring && (
                         <ActionIcon
                             size="md"

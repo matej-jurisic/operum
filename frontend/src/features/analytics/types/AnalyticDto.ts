@@ -6,6 +6,7 @@ export interface AnalyticDto {
     description?: string;
     code: string;
     resultType: string;
+    order?: number;
 }
 
 export interface SingleValueAnalyticDto extends AnalyticDto {

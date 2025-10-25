@@ -15,7 +15,7 @@ namespace Operum.Service.Domain.Analytics.Builders
             {
                 Name = request.Analytic.Code,
                 Description = request.Analytic.Description,
-                Id = request.Analytic.Id
+                Id = request.Analytic.Id,
             };
 
             var whenField = request.FieldMap.GetValueOrDefault(AnalyticPurposes.When);

@@ -1,5 +1,4 @@
 import {
-    closestCorners,
     DndContext,
     DragEndEvent,
     PointerSensor,
@@ -13,11 +12,12 @@ import {
     useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { SimpleGrid, Stack } from "@mantine/core";
+import { Indicator, Stack } from "@mantine/core";
 import { CSSProperties, useEffect, useState } from "react";
 
-import { restrictToParentElement } from "@dnd-kit/modifiers";
+import { restrictToFirstScrollableAncestor } from "@dnd-kit/modifiers";
 import React from "react";
+import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { analyticsController } from "../api/analyticsController";
 import { AnalyticResultTypeEnum } from "../enums/AnalyticResultTypeEnum";
@@ -32,12 +32,15 @@ import {
 import { CalendarCard } from "./CalendarCard";
 import { DonutChartCard } from "./DonutChartCard";
 import { LineChartCard } from "./LineChartCard";
+import { closestToPointer } from "./MasonryCollision";
 import { ScatterChartCard } from "./ScatterChartCard";
 import { SingleValueCard } from "./SingleValueCard";
 
-export const StatCardMemo = React.memo(SingleValueCard);
+export const SingleValueCardMemo = React.memo(SingleValueCard);
 export const LineChartCardMemo = React.memo(LineChartCard);
 export const ScatterChartCardMemo = React.memo(ScatterChartCard);
+export const CalendarChartCardMemo = React.memo(CalendarCard);
+export const DonutChartCardMemo = React.memo(DonutChartCard);
 
 interface AnalyticsGridProps {
     analytics: AnalyticDto[];
@@ -49,12 +52,16 @@ interface SortableCardWrapperProps {
     id: string;
     children: React.ReactNode;
     isReordering: boolean;
+    index: number;
+    color: string | undefined;
 }
 
 function SortableCardWrapper({
     id,
     children,
     isReordering,
+    index,
+    color,
 }: SortableCardWrapperProps) {
     const sortable = useSortable({ id, disabled: !isReordering });
 
@@ -64,6 +71,7 @@ function SortableCardWrapper({
         opacity: sortable.isDragging ? 0.7 : 1,
         touchAction: isReordering ? "none" : "pan-y",
         cursor: isReordering ? "grab" : "default",
+        width: "100%",
     };
 
     return (
@@ -73,7 +81,16 @@ function SortableCardWrapper({
             {...sortable.attributes}
             {...sortable.listeners}
         >
-            {children}
+            <Indicator
+                color={color}
+                processing
+                label={index + 1}
+                position="bottom-center"
+                size={20}
+                disabled={!isReordering}
+            >
+                {children}
+            </Indicator>
         </div>
     );
 }
@@ -118,7 +135,7 @@ export function AnalyticsGrid({
         switch (analytic.resultType) {
             case AnalyticResultTypeEnum.SingleValue:
                 return (
-                    <StatCardMemo
+                    <SingleValueCardMemo
                         analytic={analytic as SingleValueAnalyticDto}
                         isConfiguring={isConfiguring}
                         onEntryClick={onEntryClick}
@@ -140,7 +157,7 @@ export function AnalyticsGrid({
                 );
             case AnalyticResultTypeEnum.Calendar:
                 return (
-                    <CalendarCard
+                    <CalendarChartCardMemo
                         analytic={analytic as CalendarAnalyticDto}
                         isConfiguring={isConfiguring}
                         onEntryClick={onEntryClick}
@@ -148,7 +165,7 @@ export function AnalyticsGrid({
                 );
             case AnalyticResultTypeEnum.Donut:
                 return (
-                    <DonutChartCard
+                    <DonutChartCardMemo
                         analytic={analytic as DonutChartAnaylticDto}
                         isConfiguring={isConfiguring}
                     />
@@ -163,27 +180,35 @@ export function AnalyticsGrid({
             <DndContext
                 sensors={sensors}
                 onDragEnd={handleDragEnd}
-                modifiers={[restrictToParentElement]}
-                collisionDetection={closestCorners}
+                modifiers={[restrictToFirstScrollableAncestor]}
+                collisionDetection={closestToPointer}
             >
                 <SortableContext
                     items={orderedAnalytics.map((a) => a.id)}
                     strategy={rectSortingStrategy}
                 >
-                    <SimpleGrid
-                        cols={{ base: 1, sm: 2, md: 3, lg: 3, xl: 4 }}
-                        spacing="md"
+                    <ResponsiveMasonry
+                        columnsCountBreakPoints={{
+                            350: 1,
+                            640: 2,
+                            1024: 3,
+                            1536: 4,
+                        }}
                     >
-                        {orderedAnalytics.map((analytic) => (
-                            <SortableCardWrapper
-                                key={analytic.id}
-                                id={analytic.id}
-                                isReordering={isConfiguring}
-                            >
-                                {renderCard(analytic)}
-                            </SortableCardWrapper>
-                        ))}
-                    </SimpleGrid>
+                        <Masonry gutter="16px">
+                            {orderedAnalytics.map((analytic, index) => (
+                                <SortableCardWrapper
+                                    key={analytic.id}
+                                    id={analytic.id}
+                                    isReordering={isConfiguring}
+                                    index={index}
+                                    color={tracker.color}
+                                >
+                                    {renderCard(analytic)}
+                                </SortableCardWrapper>
+                            ))}
+                        </Masonry>
+                    </ResponsiveMasonry>
                 </SortableContext>
             </DndContext>
         </Stack>

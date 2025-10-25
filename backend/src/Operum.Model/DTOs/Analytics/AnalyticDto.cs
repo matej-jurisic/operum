@@ -15,5 +15,6 @@ namespace Operum.Model.DTOs.Analytics
         public string Name { get; set; } = null!;
         public string? Description { get; set; }
         public string ResultType { get; set; } = string.Empty;
+        public int? Order { get; set; }
     }
 }

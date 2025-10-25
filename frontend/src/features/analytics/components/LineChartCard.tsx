@@ -21,9 +21,11 @@ export function LineChartCard({ analytic, isConfiguring }: LineChartCardProps) {
         <Paper withBorder p="md" radius="md">
             <Stack gap="xs">
                 <Group justify="space-between" wrap="nowrap" align="flex-start">
-                    <Text size="sm" mb="sm">
-                        {`${analytic.name}: ${analytic.xField.name} - ${analytic.yField.name}`}
-                    </Text>
+                    <Group align="flex-start">
+                        <Text size="sm" mb="sm">
+                            {`${analytic.name}: ${analytic.xField.name} - ${analytic.yField.name}`}
+                        </Text>
+                    </Group>
                     {isConfiguring && (
                         <ActionIcon
                             size="md"

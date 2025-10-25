@@ -1,6 +1,7 @@
 import { ActionIcon, Group, Paper, Stack, Text } from "@mantine/core";
 import { MdDelete, MdLink } from "react-icons/md";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
+import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { SingleValueAnalyticDto } from "../types/AnalyticDto";
 
@@ -18,7 +19,7 @@ export function SingleValueCard({
     const { tracker } = useTracker();
     const { removeAnalytic } = useTrackerOperations();
     return (
-        <Paper withBorder p="md" radius="md">
+        <Paper withBorder p="md" radius="md" w={"100%"}>
             <Stack gap="xs">
                 <Group
                     justify="space-between"
@@ -26,11 +27,13 @@ export function SingleValueCard({
                     mih={28}
                     wrap="nowrap"
                 >
-                    <Text size="sm" c="dimmed" fw={500}>
-                        {analytic.valueField
-                            ? `${analytic.name}: ${analytic.valueField.name}`
-                            : analytic.name}
-                    </Text>
+                    <Group>
+                        <Text size="sm" c="dimmed" fw={500}>
+                            {analytic.valueField
+                                ? `${analytic.name}: ${analytic.valueField.name}`
+                                : analytic.name}
+                        </Text>
+                    </Group>
                     <Group>
                         {analytic.entryId && (
                             <ActionIcon
@@ -57,7 +60,7 @@ export function SingleValueCard({
                     fw={600}
                     style={{ wordBreak: "break-word", lineHeight: 1.2 }}
                 >
-                    {analytic.value}
+                    {renderValue(analytic.valueField?.type, analytic.value)}
                 </Text>
             </Stack>
         </Paper>

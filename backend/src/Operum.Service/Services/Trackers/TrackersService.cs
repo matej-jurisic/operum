@@ -376,6 +376,7 @@ namespace Operum.Service.Services.Trackers
                 if (calculationResult.IsSuccess)
                 {
                     calculationResult.Data.Id = analytic.Id;
+                    calculationResult.Data.Order = analytic.Order;
                     analyticResults.Add(calculationResult.Data);
                 }
             }

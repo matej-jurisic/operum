@@ -64,9 +64,11 @@ export function CalendarCard({
         <Paper withBorder p="md" radius="md">
             <Stack gap="xs">
                 <Group justify="space-between" wrap="nowrap" align="flex-start">
-                    <Text size="sm" mb={"sm"}>
-                        {`${analytic.name}: ${analytic.whenField.name} - ${analytic.whatField.name}`}
-                    </Text>
+                    <Group align="flex-start">
+                        <Text size="sm" mb={"sm"}>
+                            {`${analytic.name}: ${analytic.whenField.name} - ${analytic.whatField.name}`}
+                        </Text>
+                    </Group>
                     {isConfiguring && (
                         <ActionIcon
                             size="md"
@@ -99,7 +101,7 @@ export function CalendarCard({
 
                                 return (
                                     <Indicator
-                                        size={6}
+                                        size={9}
                                         color={tracker.color || "blue"}
                                         offset={-2}
                                         disabled={!hasEvents}
