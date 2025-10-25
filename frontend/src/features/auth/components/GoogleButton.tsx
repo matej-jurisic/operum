@@ -12,7 +12,7 @@ export const GoogleButton = () => {
         script.defer = true;
         script.onload = () => {
             window.google?.accounts.id.initialize({
-                client_id: "YOUR_GOOGLE_CLIENT_ID",
+                client_id: import.meta.env.VITE_REACT_GOOGLE_CLIENT,
                 callback: (response) => {
                     if (response.credential)
                         auth.loginWithGoogle(response.credential);

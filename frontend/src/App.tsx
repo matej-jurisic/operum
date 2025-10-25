@@ -1,5 +1,4 @@
 import { AppShell } from "@mantine/core";
-import { GoogleOAuthProvider } from "@react-oauth/google";
 import { observer } from "mobx-react";
 import { useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
@@ -38,20 +37,7 @@ const App = observer(() => {
                         <Routes>
                             <Route
                                 path="auth"
-                                element={
-                                    <PublicRoute
-                                        page={
-                                            <GoogleOAuthProvider
-                                                clientId={
-                                                    import.meta.env
-                                                        .VITE_REACT_GOOGLE_CLIENT
-                                                }
-                                            >
-                                                <Auth />
-                                            </GoogleOAuthProvider>
-                                        }
-                                    />
-                                }
+                                element={<PublicRoute page={<Auth />} />}
                             />
                             <Route
                                 path="home"
