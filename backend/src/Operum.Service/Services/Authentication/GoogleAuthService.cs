@@ -1,21 +1,42 @@
-﻿using Operum.Model.DTOs.Auth;
+﻿using Google.Apis.Auth;
+using Microsoft.Extensions.Configuration;
+using Operum.Model.DTOs.Auth;
 using Operum.Service.Interfaces;
-using System.Net.Http.Json;
 
 namespace Operum.Service.Services.Authentication
 {
-    public class GoogleAuthService(HttpClient http) : IGoogleAuthService
+    public class GoogleAuthService(IConfiguration configuration) : IGoogleAuthService
     {
-        private readonly HttpClient _http = http;
+        private readonly string _clientId = configuration["Authentication:Google:ClientId"] ?? throw new ArgumentNullException("Authentication:Google:ClientId");
 
         public async Task<GoogleUserInfo?> GetUserInfoAsync(string idToken)
         {
-            var response = await _http.GetFromJsonAsync<GoogleUserInfo>(
-                $"https://www.googleapis.com/oauth2/v3/tokeninfo?id_token={idToken}"
-            );
+            try
+            {
+                var payload = await GoogleJsonWebSignature.ValidateAsync(idToken, new GoogleJsonWebSignature.ValidationSettings
+                {
+                    Audience = [_clientId]
+                });
 
-            return response;
+                if (payload == null)
+                    return null;
+
+                return new GoogleUserInfo
+                {
+                    Email = payload.Email,
+                    EmailVerified = payload.EmailVerified,
+                    Name = payload.Name,
+                    Picture = payload.Picture,
+                    GivenName = payload.GivenName,
+                    FamilyName = payload.FamilyName,
+                    Locale = payload.Locale
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Token validation failed: {ex.Message}");
+                return null;
+            }
         }
     }
-
 }

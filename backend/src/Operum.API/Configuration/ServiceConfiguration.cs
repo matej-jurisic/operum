@@ -45,7 +45,6 @@ namespace Operum.API.Configuration
             services.AddScoped<IEntriesService, EntriesService>();
             services.AddScoped<IViewsService, ViewsService>();
             services.AddScoped<IGoogleAuthService, GoogleAuthService>();
-            services.AddHttpClient<IGoogleAuthService, GoogleAuthService>();
             services.AddScoped<IAnalyticsService, AnalyticsService>();
 
             return services;

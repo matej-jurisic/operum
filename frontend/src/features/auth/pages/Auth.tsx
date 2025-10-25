@@ -1,11 +1,4 @@
-import {
-    Box,
-    Group,
-    Paper,
-    PasswordInput,
-    Stack,
-    TextInput,
-} from "@mantine/core";
+import { Group, Paper, PasswordInput, Stack, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useState } from "react";
 import { AuthForm } from "../components/AuthForm";
@@ -139,9 +132,7 @@ export default function Auth() {
                             </AuthForm>
                         )}
                         <Group justify="center">
-                            <Box className="google-login-wrapper">
-                                <GoogleButton />
-                            </Box>
+                            <GoogleButton />
                         </Group>
                     </Stack>
                 </Paper>

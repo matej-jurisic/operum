@@ -218,18 +218,27 @@ namespace Operum.Service.Services.Authentication
         public async Task<Result<AuthResponseDto>> LoginWithGoogle(GoogleLoginDto request)
         {
             var googleUser = await googleAuthService.GetUserInfoAsync(request.IdToken);
-            if (googleUser == null || !googleUser.EmailVerified)
+
+            if (googleUser == null)
+            {
                 return Result.Failure(ResultStatusCodes.BadRequest, "Invalid Google token.");
+            }
+
+            if (!googleUser.EmailVerified)
+            {
+                return Result.Failure(ResultStatusCodes.BadRequest, "Email not verified by Google.");
+            }
 
             var user = await userManager.FindByEmailAsync(googleUser.Email);
+
             if (user == null)
             {
                 user = new User(googleUser.Email, googleUser.Email.Split('@')[0])
                 {
                     EmailConfirmed = true
                 };
-
                 var createResult = await userManager.CreateAsync(user);
+
                 if (!createResult.Succeeded)
                     return Result.Failure(ResultStatusCodes.Error, createResult.Errors.Select(e => e.Description));
 
