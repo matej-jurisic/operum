@@ -6,11 +6,13 @@ import {
     useMantineColorScheme,
     useMantineTheme,
 } from "@mantine/core";
-import { JSX } from "react";
+import { observer } from "mobx-react";
+import { JSX, useState } from "react";
 import { CiLogout, CiSettings, CiUser } from "react-icons/ci";
 import { GoSun } from "react-icons/go";
 import { IoMoonOutline } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
+import AuthDialog from "../../features/auth/components/AuthDialog";
 import useAuth from "../../features/auth/hooks/useAuth";
 import globalStore from "../stores/GlobalStore";
 import BackButton from "./BackButton";
@@ -20,12 +22,14 @@ interface Props {
     items?: JSX.Element[];
 }
 
-export default function Header(props: Props) {
+const Header = observer((props: Props) => {
     const { colorScheme, setColorScheme } = useMantineColorScheme();
     const theme = useMantineTheme();
     const computedColorScheme = useComputedColorScheme("light");
     const auth = useAuth();
     const navigate = useNavigate();
+
+    const [isOpenAuth, setIsOpenAuth] = useState(false);
 
     return (
         <Group align="center" justify="flex-end">
@@ -64,7 +68,7 @@ export default function Header(props: Props) {
                         ) : (
                             <Menu.Item
                                 leftSection={<CiUser size={16} />}
-                                onClick={() => navigate("/auth")}
+                                onClick={() => setIsOpenAuth(true)}
                             >
                                 {"Login"}
                             </Menu.Item>
@@ -90,6 +94,10 @@ export default function Header(props: Props) {
                     </Menu.Dropdown>
                 </Menu>
             </Group>
+
+            {isOpenAuth && <AuthDialog onClose={() => setIsOpenAuth(false)} />}
         </Group>
     );
-}
+});
+
+export default Header;

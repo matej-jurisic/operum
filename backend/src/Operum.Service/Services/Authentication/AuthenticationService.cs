@@ -97,7 +97,7 @@ namespace Operum.Service.Services.Authentication
             if (await userManager.Users.AnyAsync(x => x.NormalizedEmail == normalizedEmailRequest))
             {
                 await transaction.RollbackAsync();
-                return Result.Failure(ResultStatusCodes.Conflict, string.Format(Messages.UsernameTaken, registerRequest.Email));
+                return Result.Failure(ResultStatusCodes.Conflict, string.Format(Messages.EmailTaken, registerRequest.Email));
             }
 
             var newUser = new User(registerRequest.Email, registerRequest.UserName);
@@ -196,9 +196,9 @@ namespace Operum.Service.Services.Authentication
             };
         }
 
-        public async Task<Result> ConfirmEmail(ConfirmEmailDto request)
+        public async Task<Result> ConfirmEmail(string userId, string token)
         {
-            var user = await userManager.FindByIdAsync(request.UserId);
+            var user = await userManager.FindByIdAsync(userId);
             if (user == null)
             {
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("user"));
@@ -208,7 +208,7 @@ namespace Operum.Service.Services.Authentication
                 return Result.Success(Messages.EmailAlreadyConfirmed);
             }
 
-            var result = await userManager.ConfirmEmailAsync(user, request.Token.Replace(' ', '+'));
+            var result = await userManager.ConfirmEmailAsync(user, token.Replace(' ', '+'));
             if (result.Succeeded)
                 return Result.Success("Email confirmed successfully!");
 

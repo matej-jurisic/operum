@@ -14,7 +14,7 @@ interface PrivateRouteProps {
 
 export const PrivateRoute = (props: PrivateRouteProps) => {
     if (globalStore.checkingAuth) return <OperumLoader visible />;
-    if (!globalStore.currentUser) return <Navigate to="/auth" />;
+    if (!globalStore.currentUser) return <Navigate to="/home" />;
 
     if (props.allowedRoles && props.allowedRoles.length > 0) {
         const hasRole = props.allowedRoles.some((role) =>

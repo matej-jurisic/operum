@@ -50,7 +50,6 @@ const clearUserData = () => {
     localStorage.removeItem(USERNAME_KEY);
     localStorage.removeItem(ID_KEY);
     localStorage.removeItem(EXP_KEY);
-    // window.location.href = "/auth";
 };
 
 const showSessionExpiredNotification = () => {

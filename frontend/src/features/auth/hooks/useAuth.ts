@@ -1,9 +1,6 @@
 import globalStore from "../../../shared/stores/GlobalStore";
 import { authController } from "../api/authenticationController";
 import { AuthResponseDto } from "../types/AuthResponseDto";
-import { GoogleLoginDto } from "../types/requests/GoogleLoginDto";
-import { LoginRequestDto } from "../types/requests/LoginDto";
-import { RegisterDto } from "../types/requests/RegisterDto";
 
 const USERNAME_KEY = "username";
 const ID_KEY = "id";
@@ -65,27 +62,11 @@ const useAuth = () => {
         localStorage.removeItem(ROLES_KEY);
     };
 
-    const login = async (loginRequest: LoginRequestDto) => {
-        const user = await authController.login(loginRequest);
-        setUserData(user.data);
-    };
-
-    const register = async (registerRequest: RegisterDto) => {
-        await authController.register(registerRequest);
-    };
-
-    const loginWithGoogle = async (idToken: string) => {
-        const googleLoginRequest: GoogleLoginDto = {
-            idToken: idToken,
-        };
-
-        const user = await authController.googleLogin(googleLoginRequest);
-        setUserData(user.data);
-    };
-
     const getUser = async () => {
         const user = await authController.me();
-        setUserData(user.data);
+        if (user.isSuccess) {
+            setUserData(user.data);
+        } else clearUserData();
     };
 
     const refresh = async () => {
@@ -99,12 +80,11 @@ const useAuth = () => {
     };
 
     return {
-        login,
         logout,
         handleUserLoggedInCheck,
         refresh,
-        register,
-        loginWithGoogle,
+        setUserData,
+        clearUserData,
     };
 };
 

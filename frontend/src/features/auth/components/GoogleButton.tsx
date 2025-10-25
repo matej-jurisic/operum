@@ -1,8 +1,14 @@
 import { useMantineColorScheme } from "@mantine/core";
 import { useEffect, useRef } from "react";
+import { authController } from "../api/authenticationController";
 import useAuth from "../hooks/useAuth";
+import { GoogleLoginDto } from "../types/requests/GoogleLoginDto";
 
-export const GoogleButton = () => {
+interface Props {
+    onSuccess: () => void;
+}
+
+export const GoogleButton = (props: Props) => {
     const auth = useAuth();
     const googleButtonRef = useRef<HTMLDivElement>(null);
     const scheme = useMantineColorScheme();
@@ -16,9 +22,19 @@ export const GoogleButton = () => {
             window.google?.accounts.id.initialize({
                 client_id: import.meta.env.VITE_REACT_GOOGLE_CLIENT,
                 ux_mode: "popup", // Use popup mode
-                callback: (response) => {
-                    if (response.credential)
-                        auth.loginWithGoogle(response.credential);
+                callback: async (response) => {
+                    if (response.credential) {
+                        const googleLoginRequest: GoogleLoginDto = {
+                            idToken: response.credential,
+                        };
+                        const user = await authController.googleLogin(
+                            googleLoginRequest
+                        );
+                        if (user.isSuccess) {
+                            auth.setUserData(user.data);
+                            props.onSuccess();
+                        }
+                    }
                 },
             });
 

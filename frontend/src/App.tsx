@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import AdminPanel from "./features/admin/pages/AdminPanel";
 import useAuth from "./features/auth/hooks/useAuth";
-import Auth from "./features/auth/pages/Auth";
 import Home from "./features/home/pages/Home";
 import Trackers from "./features/trackers/components/Trackers";
 import Tracker from "./features/trackers/pages/Tracker";
@@ -35,10 +34,6 @@ const App = observer(() => {
                 <AppShell.Main h="100%" p={"md"}>
                     <BrowserRouter>
                         <Routes>
-                            <Route
-                                path="auth"
-                                element={<PublicRoute page={<Auth />} />}
-                            />
                             <Route
                                 path="home"
                                 element={<GenericRoute page={<Home />} />}
@@ -76,9 +71,9 @@ const App = observer(() => {
                                 path="*"
                                 element={
                                     globalStore.currentUser ? (
-                                        <Navigate to={"/home"} />
+                                        <Navigate to={"/trackers"} />
                                     ) : (
-                                        <Navigate to={"/auth"} />
+                                        <Navigate to={"/home"} />
                                     )
                                 }
                             />

@@ -46,14 +46,9 @@ export function AuthForm<T extends Record<string, any>>({
                 </Stack>
             </form>
 
-            <Group gap={10} align="center" wrap="nowrap">
+            <Group gap={10} align="center" wrap="nowrap" justify="center">
                 <Text>{switchText} </Text>
-                <Button
-                    variant="transparent"
-                    onClick={onSwitchMode}
-                    miw={100}
-                    px={0}
-                >
+                <Button variant="transparent" onClick={onSwitchMode} px={0}>
                     {mode === "login" ? "Register" : "Login"}
                 </Button>
             </Group>
