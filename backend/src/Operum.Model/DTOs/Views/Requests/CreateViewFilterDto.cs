@@ -5,8 +5,8 @@ namespace Operum.Model.DTOs.Views.Requests
 {
     public class CreateViewFilterDto
     {
-        public string FieldId { get; set; } = string.Empty;
-        public string Operator { get; set; } = string.Empty;
+        public required string FieldId { get; set; } = string.Empty;
+        public required string Operator { get; set; } = string.Empty;
         public string? Value { get; set; }
     }
 

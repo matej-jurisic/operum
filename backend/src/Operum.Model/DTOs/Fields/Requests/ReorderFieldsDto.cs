@@ -2,6 +2,6 @@
 {
     public class ReorderFieldsDto
     {
-        public List<string> FieldIds { get; set; } = [];
+        public required List<string> FieldIds { get; set; } = [];
     }
 }

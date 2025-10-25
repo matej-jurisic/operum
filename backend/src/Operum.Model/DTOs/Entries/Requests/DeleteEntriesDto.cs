@@ -2,6 +2,6 @@
 {
     public class DeleteEntriesDto
     {
-        public List<string> EntryIds { get; set; } = [];
+        public required List<string> EntryIds { get; set; } = [];
     }
 }

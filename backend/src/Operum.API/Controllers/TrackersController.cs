@@ -31,10 +31,10 @@ namespace Operum.API.Controllers
             return GetApiResponse(await trackerService.GetPublicTemplateTrackerList());
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetTracker([FromRoute] string id)
+        [HttpGet("{trackerId}")]
+        public async Task<IActionResult> GetTracker([FromRoute] string trackerId)
         {
-            return GetApiResponse(await trackerService.GetTracker(id));
+            return GetApiResponse(await trackerService.GetTracker(trackerId));
         }
 
         [HttpPost]
@@ -43,22 +43,22 @@ namespace Operum.API.Controllers
             return GetApiResponse(await trackerService.CreateTracker(tracker));
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateTracker([FromRoute] string id, UpdateTrackerDto tracker)
+        [HttpPut("{trackerId}")]
+        public async Task<IActionResult> UpdateTracker([FromRoute] string trackerId, UpdateTrackerDto tracker)
         {
-            return GetApiResponse(await trackerService.UpdateTracker(id, tracker));
+            return GetApiResponse(await trackerService.UpdateTracker(trackerId, tracker));
         }
 
-        [HttpPut("{id}/default-view")]
-        public async Task<IActionResult> UpdateDefaultView([FromRoute] string id, [FromQuery] string? defaultViewId)
+        [HttpPut("{trackerId}/default-view")]
+        public async Task<IActionResult> UpdateDefaultView([FromRoute] string trackerId, [FromQuery] string? defaultViewId)
         {
-            return GetApiResponse(await trackerService.UpdateDefaultView(id, defaultViewId));
+            return GetApiResponse(await trackerService.UpdateDefaultView(trackerId, defaultViewId));
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteTracker(string id)
+        [HttpDelete("{trackerId}")]
+        public async Task<IActionResult> DeleteTracker(string trackerId)
         {
-            return GetApiResponse(await trackerService.DeleteTracker(id));
+            return GetApiResponse(await trackerService.DeleteTracker(trackerId));
         }
 
         [HttpGet("{trackerId}/analytics")]

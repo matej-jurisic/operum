@@ -4,6 +4,6 @@ namespace Operum.Model.DTOs.Entries.Requests
 {
     public class ImportEntriesDto
     {
-        public IFormFile File { get; set; } = null!;
+        public required IFormFile File { get; set; } = null!;
     }
 }

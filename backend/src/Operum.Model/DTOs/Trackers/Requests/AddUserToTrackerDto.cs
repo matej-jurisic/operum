@@ -5,7 +5,7 @@ namespace Operum.Model.DTOs.Trackers.Requests
 {
     public class AddUserToTrackerDto
     {
-        public string Username { get; set; } = string.Empty;
+        public required string Username { get; set; } = string.Empty;
     }
 
     public class AddUserToTrackerDtoValidator : AbstractValidator<AddUserToTrackerDto>

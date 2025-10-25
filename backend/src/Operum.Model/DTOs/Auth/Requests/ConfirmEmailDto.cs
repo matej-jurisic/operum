@@ -5,8 +5,8 @@ namespace Operum.Model.DTOs.Auth.Requests
 {
     public class ConfirmEmailDto
     {
-        public string UserId { get; set; } = string.Empty;
-        public string Token { get; set; } = string.Empty;
+        public required string UserId { get; set; } = string.Empty;
+        public required string Token { get; set; } = string.Empty;
     }
 
     public class ConfirmEmailDtoValidator : AbstractValidator<ConfirmEmailDto>

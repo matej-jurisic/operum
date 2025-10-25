@@ -6,8 +6,8 @@ namespace Operum.Model.DTOs.Analytics.Requests
 {
     public class CreateAnalyticDto
     {
-        public string Code { get; set; } = string.Empty;
-        public string Type { get; set; } = string.Empty;
+        public required string Code { get; set; } = string.Empty;
+        public required string Type { get; set; } = string.Empty;
         public List<CreateAnalyticFieldDto> AnalyticFields { get; set; } = [];
     }
 

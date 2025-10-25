@@ -5,8 +5,8 @@ namespace Operum.Model.DTOs.Auth.Requests
 {
     public class LoginDto
     {
-        public string Credentials { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
+        public required string Credentials { get; set; } = string.Empty;
+        public required string Password { get; set; } = string.Empty;
     }
 
     public class LoginRequestDtoValidator : AbstractValidator<LoginDto>

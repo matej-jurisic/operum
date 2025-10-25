@@ -45,7 +45,7 @@ namespace Operum.API.Controllers
         }
 
         [AllowAnonymous]
-        [HttpGet("confirm-email")]
+        [HttpPost("confirm-email")]
         public async Task<IActionResult> ConfirmEmail([FromBody] ConfirmEmailDto request)
         {
             return GetApiResponse(await authenticationService.ConfirmEmail(request));

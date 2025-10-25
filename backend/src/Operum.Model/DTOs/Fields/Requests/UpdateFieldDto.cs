@@ -6,9 +6,9 @@ namespace Operum.Model.DTOs.Fields.Requests
 {
     public class UpdateFieldDto
     {
-        public string Name { get; set; } = string.Empty;
+        public required string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
-        public string Type { get; set; } = string.Empty;
+        public required string Type { get; set; } = string.Empty;
         public bool Required { get; set; } = false;
     }
 

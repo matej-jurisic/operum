@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.RateLimiting;
+﻿using MicroElements.Swashbuckle.FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 
 namespace Operum.API.Configuration
@@ -10,6 +11,7 @@ namespace Operum.API.Configuration
             services.AddControllers();
             services.AddEndpointsApiExplorer();
             services.AddSwaggerGen();
+            services.AddFluentValidationRulesToSwagger();
             services.AddRouting(options => options.LowercaseUrls = true);
             services.AddHttpContextAccessor();
             services.RegisterCors(configuration);

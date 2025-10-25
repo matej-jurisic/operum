@@ -2,6 +2,6 @@
 {
     public class ReorderAnalyticsDto
     {
-        public List<string> AnalyticIds { get; set; } = [];
+        public required List<string> AnalyticIds { get; set; } = [];
     }
 }

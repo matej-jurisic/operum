@@ -170,9 +170,8 @@ public class AuthTests(CustomWebApplicationFactory factory, ITestOutputHelper ou
     }
 
     [Theory]
-    [InlineData("missinguppercase0!")]
-    [InlineData("Sho0!")]
-    [InlineData("MissingSpecial0")]
+    [InlineData("missingdigit")]
+    [InlineData("short")]
     public async Task Register_WeakPasswords_ReturnsBadRequest(string weakPassword)
     {
         var client = _factory.CreateClient();

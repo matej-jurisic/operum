@@ -6,8 +6,8 @@ namespace Operum.Model.DTOs.Analytics.Requests
 {
     public class CreateAnalyticFieldDto
     {
-        public string FieldId { get; set; } = string.Empty;
-        public string Purpose { get; set; } = string.Empty;
+        public required string FieldId { get; set; } = string.Empty;
+        public required string Purpose { get; set; } = string.Empty;
     }
 
     public class CreateAnalyticFieldDtoValidator : AbstractValidator<CreateAnalyticFieldDto>

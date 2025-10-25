@@ -5,7 +5,7 @@ namespace Operum.Model.DTOs.Views.Requests
 {
     public class CreateViewDto
     {
-        public string Name { get; set; } = string.Empty;
+        public required string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
 
         public List<CreateViewSortDto> Sorts { get; set; } = [];

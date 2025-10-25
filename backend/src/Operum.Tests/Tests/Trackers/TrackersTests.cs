@@ -11,7 +11,6 @@ namespace Operum.Tests.Tests.Trackers
     public class TrackersTest(CustomWebApplicationFactory factory, ITestOutputHelper outputHelper) : IClassFixture<CustomWebApplicationFactory>
     {
         private readonly CustomWebApplicationFactory _factory = factory;
-        private readonly ITestOutputHelper _outputHelper = outputHelper;
 
         [Fact]
         public async Task CreateTracker_Valid_ReturnsOk()

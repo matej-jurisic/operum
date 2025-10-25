@@ -5,7 +5,7 @@ namespace Operum.Model.DTOs.Entries.Requests
 {
     public class CreateEntryDto
     {
-        public Dictionary<string, string?> FieldValues { get; set; } = [];
+        public required Dictionary<string, string?> FieldValues { get; set; } = [];
     }
 
     public class CreateEntryDtoValidator : AbstractValidator<CreateEntryDto>
