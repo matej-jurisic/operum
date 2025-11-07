@@ -10,31 +10,32 @@ const EXP_KEY = "exp";
 const useAuth = () => {
     const handleUserLoggedInCheck = async () => {
         globalStore.setCheckingAuth(true);
-        const username = localStorage.getItem(USERNAME_KEY);
-        const id = localStorage.getItem(ID_KEY);
-        const roles = localStorage.getItem(ROLES_KEY);
-        const exp = localStorage.getItem(EXP_KEY);
+        try {
+            const username = localStorage.getItem(USERNAME_KEY);
+            const id = localStorage.getItem(ID_KEY);
+            const roles = localStorage.getItem(ROLES_KEY);
+            const exp = localStorage.getItem(EXP_KEY);
 
-        if (
-            username !== null &&
-            id !== null &&
-            exp !== null &&
-            roles !== null
-        ) {
-            if (Date.now() > parseInt(exp, 10)) {
-                await getUser();
+            if (username && id && exp && roles) {
+                if (Date.now() > parseInt(exp, 10)) {
+                    await getUser();
+                } else {
+                    globalStore.setCurrentUser({
+                        userName: username,
+                        id: id,
+                        roles: JSON.parse(roles),
+                    });
+                }
             } else {
-                globalStore.setCurrentUser({
-                    userName: username,
-                    id: id,
-                    roles: JSON.parse(roles),
-                });
+                globalStore.setCurrentUser(undefined);
             }
-        } else {
+        } catch (err) {
             globalStore.setCurrentUser(undefined);
+        } finally {
+            globalStore.setCheckingAuth(false);
         }
-        globalStore.setCheckingAuth(false);
     };
+
 
     const setUserData = (user: AuthResponseDto) => {
         globalStore.setCurrentUser({
