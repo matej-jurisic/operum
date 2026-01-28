@@ -19,7 +19,7 @@ using System.Globalization;
 
 namespace Operum.Service.Services.Entries
 {
-    public class EntriesService(ICurrentUserService currentUserService, OperumContext db, IMapper mapper, ILogger<EntriesService> logger) : IEntriesService
+    public class EntriesService(ICurrentUserService currentUserService, IAuthorizationService authorizationService, OperumContext db, IMapper mapper, ILogger<EntriesService> logger) : IEntriesService
     {
         public async Task<Result<EntryDto>> CreateEntry(string trackerId, CreateEntryDto entry)
         {
@@ -347,8 +347,10 @@ namespace Operum.Service.Services.Entries
                     validationErrors.Take(5));
             }
 
-            // Check if importing would exceed the limit
-            if (currentEntryCount + parsedRecords.Count > DataLimits.MaxEntryCount)
+            var isAdmin = await authorizationService.HasRole(RoleNames.Admin);
+
+            // Check if importing would exceed the limit for non admin users
+            if (!isAdmin && (currentEntryCount + parsedRecords.Count > DataLimits.MaxEntryCount))
             {
                 return Result.Failure(ResultStatusCodes.BadRequest, Messages.CsvMaxNumberReached(currentEntryCount, parsedRecords.Count, DataLimits.MaxEntryCount));
             }
