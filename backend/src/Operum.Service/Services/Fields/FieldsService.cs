@@ -27,7 +27,7 @@ namespace Operum.Service.Services.Fields
             var fieldCount = await db.Fields.Where(x => x.TrackerId == trackerId).CountAsync();
             if (fieldCount >= DataLimits.MaxFieldCount)
             {
-                return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("views", DataLimits.MaxFieldCount));
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("fields", DataLimits.MaxFieldCount));
             }
 
             if (!DataTypes.IsValid(field.Type)) return Result.Failure(ResultStatusCodes.BadRequest, Messages.NotAllowed("field type"));
