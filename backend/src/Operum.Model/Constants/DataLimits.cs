@@ -3,7 +3,7 @@
     public static class DataLimits
     {
         public const int MaxFieldCount = 25;
-        public const int MaxEntryCount = 500;
+        public const int MaxEntryCount = 1000;
         public const int MaxTrackerCount = 20;
         public const int MaxAnalyticCount = 10;
         public const int MaxSorts = 3;

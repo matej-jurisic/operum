@@ -1,4 +1,5 @@
 ﻿using CsvHelper;
+using CsvHelper.Configuration;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -278,8 +279,27 @@ namespace Operum.Service.Services.Entries
             var parsedRecords = new List<Dictionary<string, string>>();
             var validationErrors = new List<string>();
 
-            using (var reader = new StreamReader(stream))
-            using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+            using var reader = new StreamReader(stream);
+
+            var headerLine = await reader.ReadLineAsync();
+            if (headerLine == null)
+            {
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.FielIsEmpty);
+            }
+
+            var delimiter = headerLine.Contains(';') ? ";" : ",";
+            stream.Position = 0;
+            reader.DiscardBufferedData();
+
+            var csvConfig = new CsvConfiguration(CultureInfo.InvariantCulture)
+            {
+                Delimiter = delimiter,
+                HasHeaderRecord = true,
+                BadDataFound = null,
+                MissingFieldFound = null,
+            };
+
+            using (var csv = new CsvReader(reader, csvConfig))
             {
                 var records = csv.GetRecords<dynamic>();
                 int rowIndex = 1;
