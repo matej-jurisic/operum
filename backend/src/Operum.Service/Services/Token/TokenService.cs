@@ -112,6 +112,10 @@ namespace Operum.Service.Services.Token
 
         public string? GetRefreshToken()
         {
+            var refreshHeader = httpContextAccessor.HttpContext?.Request.Headers["X-Refresh-Token"].FirstOrDefault();
+            if (!string.IsNullOrEmpty(refreshHeader))
+                return refreshHeader;
+
             return GetCookie(CookieNames.RefreshToken);
         }
 
