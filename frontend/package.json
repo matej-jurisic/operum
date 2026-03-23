@@ -21,7 +21,7 @@
     "@mantine/hooks": "^8.1.3",
     "@mantine/notifications": "^8.1.3",
     "@tanstack/react-table": "^8.21.3",
-    "axios": "^1.7.9",
+    "axios": "^1.13.6",
     "frontend": "file:",
     "masonic": "^4.1.0",
     "mobx": "^6.13.7",
