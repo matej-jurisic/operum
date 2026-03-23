@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using Operum.Model;
 using Operum.Model.Common;
 using Operum.Model.Constants;
+using Operum.Model.DTOs.Auth;
 using Operum.Model.Models;
 using Operum.Service.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
@@ -82,12 +83,16 @@ namespace Operum.Service.Services.Token
             SetCookie(key, "", DateTime.UtcNow.AddDays(-1));
         }
 
-        public async Task<Result<DateTime>> SetAuthTokenCookie(User user)
+        public async Task<Result<TokenResponseDto>> SetAuthTokenCookie(User user)
         {
             var expires = GetAuthTokenExpiry();
             var createdToken = await CreateToken(user, expires);
             SetCookie(CookieNames.AuthToken, createdToken, expires);
-            return Result.Success(expires);
+            return Result.Success(new TokenResponseDto()
+            {
+                Expiry = expires,
+                Token = createdToken
+            });
         }
         public async Task<Result> SetRefreshTokenCookie(User user)
         {

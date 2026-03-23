@@ -181,7 +181,7 @@ namespace Operum.Service.Services.Authentication
 
         public async Task<AuthResponseDto> AuthenticateUser(User user)
         {
-            Result<DateTime> expiry = await tokenService.SetAuthTokenCookie(user);
+            var token = await tokenService.SetAuthTokenCookie(user);
             await tokenService.SetRefreshTokenCookie(user);
 
             var roles = await userManager.GetRolesAsync(user);
@@ -191,7 +191,8 @@ namespace Operum.Service.Services.Authentication
                 Id = user.Id,
                 Email = user.Email,
                 UserName = user.UserName,
-                TokenExpiry = expiry.Data,
+                TokenExpiry = token.Data.Expiry,
+                Token = token.Data.Token,
                 Roles = [.. roles]
             };
         }

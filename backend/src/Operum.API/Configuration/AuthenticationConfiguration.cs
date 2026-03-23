@@ -45,10 +45,20 @@ namespace Operum.API.Configuration
                 {
                     OnMessageReceived = context =>
                     {
+                        // Try Authorization header first (for API clients / MCP)
+                        var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
+                        if (authHeader?.StartsWith("Bearer ") == true)
+                        {
+                            context.Token = authHeader["Bearer ".Length..];
+                            return Task.CompletedTask;
+                        }
+
+                        // Fall back to HTTP-only cookie (for browser)
                         if (context.Request.Cookies.TryGetValue("AuthToken", out var token) && !string.IsNullOrEmpty(token))
                         {
                             context.Token = token;
                         }
+
                         return Task.CompletedTask;
                     },
                     OnChallenge = async context =>

@@ -39,9 +39,9 @@ public partial class Program
             await DataSeeder.SeedUsersAsync(userManager, roleManager, configuration);
         }
 
+        app.UseSwagger();
         if (app.Environment.IsDevelopment())
         {
-            app.UseSwagger();
             app.UseSwaggerUI();
         }
 
