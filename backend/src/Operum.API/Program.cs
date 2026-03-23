@@ -24,6 +24,8 @@ public partial class Program
 
         var app = builder.Build();
 
+        app.UsePathBase("/api");
+
         app.UseSerilogRequestLogging();
 
         if (!app.Environment.IsEnvironment("Testing"))
