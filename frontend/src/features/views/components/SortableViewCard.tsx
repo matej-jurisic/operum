@@ -9,7 +9,7 @@ import {
     Title,
 } from "@mantine/core";
 import { CSSProperties } from "react";
-import { MdDelete, MdDragHandle } from "react-icons/md";
+import { MdDelete, MdDragHandle, MdEdit } from "react-icons/md";
 import { RiFileListFill } from "react-icons/ri";
 import globalStore from "../../../shared/stores/GlobalStore";
 import { useTracker } from "../../trackers/context/TrackerContext";
@@ -20,6 +20,7 @@ interface SortableViewCardProps {
     color?: string;
     isReordering: boolean;
     onDetails: (view: ViewDto) => void;
+    onEdit: (view: ViewDto) => void;
     onDelete: (view: ViewDto) => void;
 }
 
@@ -28,6 +29,7 @@ export default function SortableViewCard({
     color,
     isReordering,
     onDetails,
+    onEdit,
     onDelete,
 }: SortableViewCardProps) {
     const {
@@ -91,15 +93,26 @@ export default function SortableViewCard({
                         <RiFileListFill size={16} />
                     </ActionIcon>
                     {globalStore.currentUser?.id === tracker.ownerId && (
-                        <ActionIcon
-                            variant="outline"
-                            color="red"
-                            size="lg"
-                            onClick={() => onDelete(view)}
-                            aria-label={`Delete view ${view.name}`}
-                        >
-                            <MdDelete size={16} />
-                        </ActionIcon>
+                        <>
+                            <ActionIcon
+                                variant="outline"
+                                color="green"
+                                size="lg"
+                                onClick={() => onEdit(view)}
+                                aria-label={`Edit view ${view.name}`}
+                            >
+                                <MdEdit size={16} />
+                            </ActionIcon>
+                            <ActionIcon
+                                variant="outline"
+                                color="red"
+                                size="lg"
+                                onClick={() => onDelete(view)}
+                                aria-label={`Delete view ${view.name}`}
+                            >
+                                <MdDelete size={16} />
+                            </ActionIcon>
+                        </>
                     )}
                 </Group>
             </Group>

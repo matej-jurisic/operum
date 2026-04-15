@@ -7,6 +7,7 @@ import { UpdateFieldDto } from "../../features/fields/types/UpdateFieldDto";
 import { useTracker } from "../../features/trackers/context/TrackerContext";
 import { useViews } from "../../features/views/context/ViewsContext";
 import { CreateViewDto } from "../../features/views/types/requests/CreateViewDto";
+import { UpdateViewDto } from "../../features/views/types/requests/UpdateViewDto";
 
 export const useTrackerOperations = () => {
     const { _createField, _updateField, _updateFieldOrder, _deleteField } =
@@ -24,7 +25,7 @@ export const useTrackerOperations = () => {
     const { markAnalyticsDirty, _addAnalytic, _removeAnalytic } =
         useAnalytics();
 
-    const { _createView, _deleteView, _updateViewOrder } = useViews();
+    const { _createView, _updateView, _deleteView, _updateViewOrder } = useViews();
 
     const { _setSelectedViewId } = useTracker();
 
@@ -104,6 +105,12 @@ export const useTrackerOperations = () => {
         await _createView(view);
     };
 
+    const updateView = async (viewId: string, view: UpdateViewDto) => {
+        await _updateView(viewId, view);
+        markEntriesDirty();
+        markAnalyticsDirty();
+    };
+
     const deleteView = async (viewId: string) => {
         await _deleteView(viewId);
         markEntriesDirty();
@@ -144,6 +151,7 @@ export const useTrackerOperations = () => {
 
         // View operations
         createView,
+        updateView,
         deleteView,
         updateViewOrder,
 

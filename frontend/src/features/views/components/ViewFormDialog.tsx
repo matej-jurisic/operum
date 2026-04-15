@@ -24,11 +24,30 @@ import FieldValueInput from "../../fields/components/FieldValueInput";
 import { useFields } from "../../fields/context/FieldsContext";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { CreateViewDto } from "../types/requests/CreateViewDto";
+import { UpdateViewDto } from "../types/requests/UpdateViewDto";
+import { ViewDto } from "../types/ViewDto";
 import { FilterTemplate, filterTemplates } from "./ViewFilterTemplates";
 
 interface Props {
     tracker: TrackerDto;
+    viewId?: string;
+    initialView?: ViewDto;
     onClose: () => void;
+}
+
+function getFormValue(type: string, storedValue: string | undefined) {
+    if (!storedValue) return undefined;
+    switch (type) {
+        case "date":
+        case "datetime":
+            return new Date(storedValue);
+        case "number":
+            return parseFloat(storedValue);
+        case "bool":
+            return storedValue.toLowerCase();
+        default:
+            return storedValue;
+    }
 }
 
 enum OpenDialogTypes {
@@ -38,20 +57,34 @@ enum OpenDialogTypes {
 const MAX_SORTS = 3;
 const MAX_FILTERS = 6;
 
-export default function ViewFormDialog({ tracker, onClose }: Props) {
+export default function ViewFormDialog({ tracker, viewId, initialView, onClose }: Props) {
     const { fields } = useFields();
-    const { createView } = useTrackerOperations();
+    const { createView, updateView } = useTrackerOperations();
 
     const [openDialogType, setOpenDialogType] = useState<OpenDialogTypes>();
     const [selectedFieldForTemplate, setSelectedFieldForTemplate] =
         useState<string>("");
 
     const form = useForm<CreateViewDto>({
-        initialValues: {
-            name: "",
-            sorts: [],
-            filters: [],
-        },
+        initialValues: initialView
+            ? {
+                  name: initialView.name,
+                  description: initialView.description,
+                  sorts: initialView.sorts.map((s) => ({
+                      fieldId: s.field.id,
+                      descending: s.descending,
+                  })),
+                  filters: initialView.filters.map((f) => ({
+                      fieldId: f.field.id,
+                      operator: f.operator,
+                      value: getFormValue(f.field.type, f.value),
+                  })),
+              }
+            : {
+                  name: "",
+                  sorts: [],
+                  filters: [],
+              },
         validate: {
             name: (value) =>
                 !value.trim()
@@ -191,13 +224,17 @@ export default function ViewFormDialog({ tracker, onClose }: Props) {
                 return filter;
             }),
         };
-        await createView(valuesToSend);
+        if (viewId) {
+            await updateView(viewId, valuesToSend as UpdateViewDto);
+        } else {
+            await createView(valuesToSend);
+        }
         onClose();
         form.reset();
     };
 
     return (
-        <Modal opened centered onClose={onClose} title="Create View" size="lg">
+        <Modal opened centered onClose={onClose} title={viewId ? "Edit View" : "Create View"} size="lg">
             <form onSubmit={form.onSubmit(handleSubmit)}>
                 <Stack gap="lg">
                     {/* Basic Info Section */}
@@ -464,7 +501,7 @@ export default function ViewFormDialog({ tracker, onClose }: Props) {
                             </Text>
                         )}
                         <Button color={tracker.color} type="submit" size="md">
-                            Create View
+                            {viewId ? "Update View" : "Create View"}
                         </Button>
                     </Stack>
                 </Stack>

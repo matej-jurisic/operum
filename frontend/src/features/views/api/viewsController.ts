@@ -1,6 +1,7 @@
 import api from "../../../shared/api/api";
 import { ApiResponse } from "../../../shared/types/ApiResponse";
 import { CreateViewDto } from "../types/requests/CreateViewDto";
+import { UpdateViewDto } from "../types/requests/UpdateViewDto";
 import { ViewDto } from "../types/ViewDto";
 
 export const viewsController = {
@@ -26,6 +27,13 @@ export const viewsController = {
         values: CreateViewDto
     ): Promise<ApiResponse> => {
         return await api.post(`/trackers/${trackerId}/views`, values);
+    },
+    updateView: async (
+        trackerId: string,
+        viewId: string,
+        values: UpdateViewDto
+    ): Promise<ApiResponse> => {
+        return await api.put(`/trackers/${trackerId}/views/${viewId}`, values);
     },
     deleteView: async (
         trackerId: string,

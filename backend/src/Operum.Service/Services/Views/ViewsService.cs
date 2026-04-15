@@ -60,6 +60,68 @@ namespace Operum.Service.Services.Views
             return Result.Success(created.Data);
         }
 
+        public async Task<Result<ViewDto>> UpdateView(string trackerId, string viewId, UpdateViewDto view)
+        {
+            var user = currentUserService.GetCurrentUser();
+            var userView = await db.Views
+                .Include(x => x.Tracker)
+                .FirstOrDefaultAsync(x => x.Id == viewId && x.TrackerId == trackerId);
+
+            if (userView == null || userView.Tracker.OwnerId != user.Id)
+            {
+                return Result.Failure(ResultStatusCodes.NotFound);
+            }
+
+            foreach (var sort in view.Sorts)
+            {
+                var field = await db.Fields.FindAsync(sort.FieldId);
+                if (field == null || field.TrackerId != trackerId)
+                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.ItemNotFound("sort field"));
+            }
+
+            foreach (var filter in view.Filters)
+            {
+                var field = await db.Fields.FindAsync(filter.FieldId);
+                if (field == null || field.TrackerId != trackerId)
+                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.ItemNotFound("filter field"));
+
+                if (!ViewFilterValidator.IsValidOperatorForFieldType(filter.Operator, field.Type))
+                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid($"operator '{filter.Operator}' for field type '{field.Type}'"));
+
+                if (filter.Value != null && !ViewFilterValidator.IsValidFieldValue(filter.Value, field.Type))
+                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid($"value '{filter.Value}' for field type '{field.Type}'"));
+            }
+
+            userView.Name = view.Name;
+            userView.Description = view.Description;
+
+            await db.ViewSorts.Where(x => x.ViewId == viewId).ExecuteDeleteAsync();
+            await db.ViewFilters.Where(x => x.ViewId == viewId).ExecuteDeleteAsync();
+
+            var newSorts = view.Sorts.Select((s, i) =>
+            {
+                var sort = mapper.Map<CreateViewSortDto, ViewSort>(s);
+                sort.ViewId = viewId;
+                sort.Order = i;
+                return sort;
+            }).ToList();
+
+            var newFilters = view.Filters.Select(f =>
+            {
+                var filter = mapper.Map<CreateViewFilterDto, ViewFilter>(f);
+                filter.ViewId = viewId;
+                return filter;
+            }).ToList();
+
+            await db.ViewSorts.AddRangeAsync(newSorts);
+            await db.ViewFilters.AddRangeAsync(newFilters);
+            db.Views.Update(userView);
+            await db.SaveChangesAsync();
+
+            var updated = await GetView(trackerId, viewId);
+            return Result.Success(updated.Data);
+        }
+
         public async Task<Result> DeleteView(string trackerId, string viewId)
         {
             var user = currentUserService.GetCurrentUser();

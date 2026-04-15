@@ -49,6 +49,7 @@ interface Props {
 enum OpenDialogType {
     ViewDetails,
     CreateView,
+    EditView,
     DeleteView,
 }
 
@@ -211,6 +212,10 @@ export default function Views(props: Props) {
                                                 setSelectedView(v);
                                                 setOpenDialogType(OpenDialogType.ViewDetails);
                                             }}
+                                            onEdit={(v) => {
+                                                setSelectedView(v);
+                                                setOpenDialogType(OpenDialogType.EditView);
+                                            }}
                                             onDelete={(v) => {
                                                 setSelectedView(v);
                                                 setOpenDialogType(OpenDialogType.DeleteView);
@@ -248,6 +253,18 @@ export default function Views(props: Props) {
                 <ViewFormDialog
                     tracker={props.tracker}
                     onClose={() => setOpenDialogType(undefined)}
+                />
+            )}
+
+            {selectedView && openDialogType === OpenDialogType.EditView && (
+                <ViewFormDialog
+                    tracker={props.tracker}
+                    viewId={selectedView.id}
+                    initialView={selectedView}
+                    onClose={() => {
+                        setOpenDialogType(undefined);
+                        setSelectedView(undefined);
+                    }}
                 />
             )}
 

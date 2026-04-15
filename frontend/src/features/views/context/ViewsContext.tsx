@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useState } from "react";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { ViewDto } from "../../views/types/ViewDto";
 import { CreateViewDto } from "../../views/types/requests/CreateViewDto";
+import { UpdateViewDto } from "../../views/types/requests/UpdateViewDto";
 import { viewsController } from "../api/viewsController";
 
 type ViewsContextType = {
@@ -10,6 +11,7 @@ type ViewsContextType = {
     refreshViewsIfDirty: () => Promise<void>;
     // API methods - internal use only
     _createView: (view: CreateViewDto) => Promise<void>;
+    _updateView: (viewId: string, view: UpdateViewDto) => Promise<void>;
     _deleteView: (viewId: string) => Promise<void>;
     _updateViewOrder: (viewIds: string[]) => Promise<void>;
 };
@@ -38,6 +40,11 @@ export const ViewsProvider: React.FC<{ children: React.ReactNode }> = ({
         await refreshViews();
     };
 
+    const _updateView = async (viewId: string, viewData: UpdateViewDto) => {
+        await viewsController.updateView(tracker.id, viewId, viewData);
+        await refreshViews();
+    };
+
     const _deleteView = async (viewId: string) => {
         await viewsController.deleteView(tracker.id, viewId);
         if (viewId === selectedViewId) {
@@ -58,6 +65,7 @@ export const ViewsProvider: React.FC<{ children: React.ReactNode }> = ({
                 refreshViews,
                 refreshViewsIfDirty,
                 _createView,
+                _updateView,
                 _deleteView,
                 _updateViewOrder,
             }}
