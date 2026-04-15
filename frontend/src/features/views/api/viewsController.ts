@@ -33,4 +33,10 @@ export const viewsController = {
     ): Promise<ApiResponse> => {
         return api.delete(`trackers/${trackerId}/views/${viewId}`);
     },
+    updateViewOrder: async (
+        trackerId: string,
+        viewIds: string[]
+    ): Promise<ApiResponse> => {
+        return await api.put(`/trackers/${trackerId}/views/reorder`, { viewIds });
+    },
 };

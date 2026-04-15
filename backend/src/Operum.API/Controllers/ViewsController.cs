@@ -32,5 +32,11 @@ namespace Operum.API.Controllers
         {
             return GetApiResponse(await viewsService.DeleteView(trackerId, viewId));
         }
+
+        [HttpPut("reorder")]
+        public async Task<IActionResult> ReorderViews([FromRoute] string trackerId, [FromBody] ReorderViewsDto reorderViews)
+        {
+            return GetApiResponse(await viewsService.ReorderViews(trackerId, reorderViews));
+        }
     }
 }

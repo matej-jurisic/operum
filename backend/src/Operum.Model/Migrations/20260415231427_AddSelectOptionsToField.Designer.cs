@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Operum.Model;
@@ -11,9 +12,11 @@ using Operum.Model;
 namespace Operum.Model.Migrations
 {
     [DbContext(typeof(OperumContext))]
-    partial class OperumContextModelSnapshot : ModelSnapshot
+    [Migration("20260415231427_AddSelectOptionsToField")]
+    partial class AddSelectOptionsToField
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -493,9 +496,6 @@ namespace Operum.Model.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("integer");
 
                     b.Property<string>("TrackerId")
                         .IsRequired()

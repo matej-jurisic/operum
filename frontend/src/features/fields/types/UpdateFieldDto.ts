@@ -3,4 +3,5 @@ export interface UpdateFieldDto {
     description?: string;
     type: string;
     required: boolean;
+    selectOptions?: string[];
 }

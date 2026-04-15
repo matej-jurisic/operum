@@ -17,27 +17,14 @@ export default function SelectViewMenu() {
     }, []);
 
     const selectViewList = useMemo(() => {
-        const list = views.map((v: ViewDto) => ({
+        return views.map((v: ViewDto) => ({
             value: v.id,
             label: v.name,
         }));
-
-        // If something is selected, move it to the top
-        if (selectedViewId) {
-            const selectedIndex = list.findIndex(
-                (v) => v.value === selectedViewId
-            );
-            if (selectedIndex > -1) {
-                const [selected] = list.splice(selectedIndex, 1);
-                list.unshift(selected);
-            }
-        }
-
-        return list;
-    }, [views, selectedViewId]);
+    }, [views]);
 
     return (
-        <Menu position="bottom-start" width={200}>
+        <Menu position="bottom-start" width={280} styles={{ itemLabel: { minWidth: 0, overflow: "hidden" } }}>
             <Menu.Target>
                 <Button
                     variant={selectedViewId ? "filled" : "outline"}
@@ -76,7 +63,9 @@ export default function SelectViewMenu() {
                             ) : null
                         }
                     >
-                        {item.label}
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
+                            {item.label}
+                        </span>
                     </Menu.Item>
                 ))}
             </Menu.Dropdown>

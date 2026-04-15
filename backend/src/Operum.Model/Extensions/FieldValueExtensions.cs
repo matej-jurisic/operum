@@ -13,6 +13,7 @@ namespace Operum.Model.Extensions
                 return fieldValue.Field.Type.ToLowerInvariant() switch
                 {
                     DataTypes.String => fieldValue.StringValue,
+                    DataTypes.Select => fieldValue.StringValue,
                     DataTypes.Number => fieldValue.NumberValue,
                     DataTypes.Date => fieldValue.DateTimeValue,
                     DataTypes.DateTime => fieldValue.DateTimeValue,
@@ -31,6 +32,7 @@ namespace Operum.Model.Extensions
                 switch (currentField.Type.ToLowerInvariant())
                 {
                     case DataTypes.String:
+                    case DataTypes.Select:
                         fieldValue.StringValue = !string.IsNullOrWhiteSpace(value) ? value : null;
                         break;
                     case DataTypes.Number:
@@ -86,6 +88,7 @@ namespace Operum.Model.Extensions
             return fieldValue.Field.Type.ToLowerInvariant() switch
             {
                 DataTypes.String => fieldValue.StringValue,
+                DataTypes.Select => fieldValue.StringValue,
                 DataTypes.Number => fieldValue.NumberValue.HasValue ? DataFormatters.NumberToString(fieldValue.NumberValue.Value) : null,
                 DataTypes.Date => fieldValue.DateTimeValue.HasValue ? DataFormatters.DateTimeToDateString(fieldValue.DateTimeValue.Value) : null,
                 DataTypes.DateTime => fieldValue.DateTimeValue.HasValue ? DataFormatters.DateTimeToDateTimeString(fieldValue.DateTimeValue.Value) : null,
@@ -97,7 +100,7 @@ namespace Operum.Model.Extensions
 
         private static void ClearOtherFieldValues(FieldValue fieldValue, string currentType)
         {
-            if (currentType != DataTypes.String) fieldValue.StringValue = null;
+            if (currentType != DataTypes.String && currentType != DataTypes.Select) fieldValue.StringValue = null;
             if (currentType != DataTypes.Number) fieldValue.NumberValue = null;
             if (currentType != DataTypes.Date && currentType != DataTypes.DateTime) fieldValue.DateTimeValue = null;
             if (currentType != DataTypes.TimeSpan) fieldValue.TimeSpanValue = null;

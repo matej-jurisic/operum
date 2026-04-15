@@ -174,7 +174,12 @@ namespace Operum.Service.Services.Fields
 
             if (!DataTypes.IsValid(field.Type)) return Result.Failure(ResultStatusCodes.BadRequest, Messages.NotAllowed("field type"));
 
-            mapper.Map(field, originalField);
+            mapper.Map(field, originalField, (s, d) =>
+            {
+                d.SelectOptions = s.SelectOptions != null
+                    ? System.Text.Json.JsonSerializer.Serialize(s.SelectOptions)
+                    : null;
+            });
             db.Fields.Update(originalField);
             await db.SaveChangesAsync();
 

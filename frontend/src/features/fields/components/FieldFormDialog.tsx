@@ -4,6 +4,7 @@ import {
     Modal,
     Select,
     Stack,
+    TagsInput,
     Textarea,
     TextInput,
 } from "@mantine/core";
@@ -31,6 +32,7 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
             type: "string",
             required: false,
             description: "",
+            selectOptions: [],
         },
 
         validate: {
@@ -90,6 +92,14 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
                         maxLength={500}
                         {...form.getInputProps("description")}
                     />
+
+                    {form.values.type === "select" && (
+                        <TagsInput
+                            label="Options"
+                            placeholder="Type and press Enter to add options"
+                            {...form.getInputProps("selectOptions")}
+                        />
+                    )}
 
                     <Checkbox
                         label="Required"

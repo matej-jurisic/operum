@@ -24,7 +24,7 @@ export const useTrackerOperations = () => {
     const { markAnalyticsDirty, _addAnalytic, _removeAnalytic } =
         useAnalytics();
 
-    const { _createView, _deleteView } = useViews();
+    const { _createView, _deleteView, _updateViewOrder } = useViews();
 
     const { _setSelectedViewId } = useTracker();
 
@@ -110,6 +110,10 @@ export const useTrackerOperations = () => {
         markAnalyticsDirty();
     };
 
+    const updateViewOrder = async (viewIds: string[]) => {
+        await _updateViewOrder(viewIds);
+    };
+
     // ========================================
     // Tracker Operations
     // ========================================
@@ -141,6 +145,7 @@ export const useTrackerOperations = () => {
         // View operations
         createView,
         deleteView,
+        updateViewOrder,
 
         // Tracker operations
         setSelectedView,

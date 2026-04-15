@@ -33,7 +33,30 @@ namespace Operum.Service.Mappings.Profiles
             mapper.Register<CreateTrackerDto, Tracker>();
             mapper.Register<UpdateTrackerDto, Tracker>();
 
-            mapper.RegisterCrud<Field, FieldDto, CreateFieldDto, UpdateFieldDto>();
+            mapper.Register<Field, FieldDto>((s, d) =>
+            {
+                d.SelectOptions = s.SelectOptions != null
+                    ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(s.SelectOptions)
+                    : null;
+            });
+            mapper.Register<FieldDto, Field>((s, d) =>
+            {
+                d.SelectOptions = s.SelectOptions != null
+                    ? System.Text.Json.JsonSerializer.Serialize(s.SelectOptions)
+                    : null;
+            });
+            mapper.Register<CreateFieldDto, Field>((s, d) =>
+            {
+                d.SelectOptions = s.SelectOptions != null
+                    ? System.Text.Json.JsonSerializer.Serialize(s.SelectOptions)
+                    : null;
+            });
+            mapper.Register<UpdateFieldDto, Field>((s, d) =>
+            {
+                d.SelectOptions = s.SelectOptions != null
+                    ? System.Text.Json.JsonSerializer.Serialize(s.SelectOptions)
+                    : null;
+            });
 
             mapper.Register<FieldValue, FieldValueDto>((s, d) =>
             {

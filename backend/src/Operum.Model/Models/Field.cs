@@ -13,6 +13,7 @@ namespace Operum.Model.Models
         public bool Required { get; set; } = false;
         public bool Visible { get; set; } = true;
         public int Order { get; set; }
+        public string? SelectOptions { get; set; }
 
         public string TrackerId { get; set; } = string.Empty;
         [ForeignKey(nameof(TrackerId))]

@@ -4,4 +4,5 @@ export interface FieldDto {
     description?: string;
     type: string;
     required: boolean;
+    selectOptions?: string[];
 }

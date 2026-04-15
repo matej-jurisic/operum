@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Operum.Model;
 using Operum.Model.Common;
 using Operum.Model.Constants;
@@ -12,7 +13,7 @@ using Operum.Service.Mappings.Mapper;
 
 namespace Operum.Service.Services.Views
 {
-    public class ViewsService(ICurrentUserService currentUserService, OperumContext db, IMapper mapper) : IViewsService
+    public class ViewsService(ICurrentUserService currentUserService, OperumContext db, IMapper mapper, ILogger<ViewsService> logger) : IViewsService
     {
         public async Task<Result<ViewDto>> CreateView(string trackerId, CreateViewDto view)
         {
@@ -47,6 +48,12 @@ namespace Operum.Service.Services.Views
 
             var userView = mapper.Map<CreateViewDto, View>(view);
             userView.TrackerId = trackerId;
+
+            var maxOrder = await db.Views
+                .Where(x => x.TrackerId == trackerId)
+                .MaxAsync(x => (int?)x.Order) ?? 0;
+            userView.Order = maxOrder + 1;
+
             await db.Views.AddAsync(userView);
             await db.SaveChangesAsync();
             var created = await GetView(trackerId, userView.Id);
@@ -113,9 +120,58 @@ namespace Operum.Service.Services.Views
                 .Include(x => x.Sorts.OrderBy(s => s.Order))
                     .ThenInclude(x => x.Field)
                 .Where(x => x.TrackerId == trackerId)
+                .OrderBy(x => x.Order)
                 .ToListAsync();
 
             return Result.Success(mapper.Map<List<View>, List<ViewDto>>(userViews));
+        }
+
+        public async Task<Result> ReorderViews(string trackerId, ReorderViewsDto reorderViews)
+        {
+            var user = currentUserService.GetCurrentUser();
+            var tracker = await db.Trackers.FindAsync(trackerId);
+
+            if (tracker == null || user.Id != tracker.OwnerId)
+            {
+                return Result.Failure(ResultStatusCodes.NotFound);
+            }
+
+            var existingViewIds = await db.Views
+                .Where(x => x.TrackerId == trackerId)
+                .Select(x => x.Id)
+                .ToListAsync();
+
+            if (!reorderViews.ViewIds.ToHashSet().SetEquals(existingViewIds.ToHashSet()))
+            {
+                return Result.Failure(ResultStatusCodes.BadRequest);
+            }
+
+            using var transaction = await db.Database.BeginTransactionAsync();
+            try
+            {
+                for (int i = 0; i < reorderViews.ViewIds.Count; i++)
+                {
+                    var viewId = reorderViews.ViewIds[i];
+                    var view = await db.Views.FindAsync(viewId);
+
+                    if (view != null && view.TrackerId == trackerId)
+                    {
+                        view.Order = i + 1;
+                        db.Views.Update(view);
+                    }
+                }
+
+                await db.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return Result.Success();
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                logger.LogError(ex, "Exception occurred while reordering views.");
+                return Result.Failure(ResultStatusCodes.Error);
+            }
         }
     }
 }

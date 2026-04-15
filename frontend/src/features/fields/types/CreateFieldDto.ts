@@ -3,4 +3,5 @@ export interface CreateFieldDto {
     description?: string;
     type: string;
     required: boolean;
+    selectOptions?: string[];
 }

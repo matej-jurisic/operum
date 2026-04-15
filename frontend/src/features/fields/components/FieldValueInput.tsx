@@ -1,5 +1,5 @@
 // Updated FieldValueInput.tsx
-import { NumberInput, Select, Textarea } from "@mantine/core";
+import { Autocomplete, NumberInput, Select, Textarea } from "@mantine/core";
 import { DatePickerInput, DateTimePicker, TimePicker } from "@mantine/dates";
 import { UseFormReturnType } from "@mantine/form";
 import { CSSProperties } from "react";
@@ -98,6 +98,15 @@ export default function FieldValueInput<T extends Record<string, any> = any>({
                     modalProps={{
                         centered: true,
                     }}
+                />
+            );
+
+        case "select":
+            return (
+                <Autocomplete
+                    {...baseProps}
+                    style={styles}
+                    data={field.selectOptions || []}
                 />
             );
 

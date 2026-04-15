@@ -11,6 +11,7 @@ type ViewsContextType = {
     // API methods - internal use only
     _createView: (view: CreateViewDto) => Promise<void>;
     _deleteView: (viewId: string) => Promise<void>;
+    _updateViewOrder: (viewIds: string[]) => Promise<void>;
 };
 
 const ViewsContext = createContext<ViewsContextType | undefined>(undefined);
@@ -45,6 +46,11 @@ export const ViewsProvider: React.FC<{ children: React.ReactNode }> = ({
         await refreshViews();
     };
 
+    const _updateViewOrder = async (viewIds: string[]) => {
+        await viewsController.updateViewOrder(tracker.id, viewIds);
+        await refreshViews();
+    };
+
     return (
         <ViewsContext.Provider
             value={{
@@ -53,6 +59,7 @@ export const ViewsProvider: React.FC<{ children: React.ReactNode }> = ({
                 refreshViewsIfDirty,
                 _createView,
                 _deleteView,
+                _updateViewOrder,
             }}
         >
             {children}
