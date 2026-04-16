@@ -25,6 +25,13 @@ import { useFields } from "../../fields/context/FieldsContext";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { CreateViewDto } from "../types/requests/CreateViewDto";
 import { UpdateViewDto } from "../types/requests/UpdateViewDto";
+
+interface ViewFormValues {
+    name: string;
+    description?: string;
+    sorts: { fieldId: string; descending: boolean }[];
+    filters: { fieldId: string; operator: string; value?: string | number | Date }[];
+}
 import { ViewDto } from "../types/ViewDto";
 import {
     DynamicDateTokens,
@@ -71,7 +78,7 @@ export default function ViewFormDialog({ tracker, viewId, initialView, onClose }
     const [selectedFieldForTemplate, setSelectedFieldForTemplate] =
         useState<string>("");
 
-    const form = useForm<CreateViewDto>({
+    const form = useForm<ViewFormValues>({
         initialValues: initialView
             ? {
                   name: initialView.name,
@@ -213,7 +220,7 @@ export default function ViewFormDialog({ tracker, viewId, initialView, onClose }
         });
     };
 
-    const handleSubmit = async (values: CreateViewDto) => {
+    const handleSubmit = async (values: ViewFormValues) => {
         const valuesToSend = {
             ...values,
             filters: values.filters.map((filter) => {
@@ -235,7 +242,7 @@ export default function ViewFormDialog({ tracker, viewId, initialView, onClose }
         if (viewId) {
             await updateView(viewId, valuesToSend as UpdateViewDto);
         } else {
-            await createView(valuesToSend);
+            await createView(valuesToSend as CreateViewDto);
         }
         onClose();
         form.reset();
