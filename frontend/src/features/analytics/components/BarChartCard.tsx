@@ -6,6 +6,7 @@ import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { BarChartAnalyticDto } from "../types/AnalyticDto";
 import { createBarChartTooltipContent, getAxisFormatter } from "./ChartFormatters";
+import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 
 interface Props {
     analytic: BarChartAnalyticDto;
@@ -20,6 +21,11 @@ export function BarChartCard({ analytic, isConfiguring }: Props) {
     const subtitle = analytic.valueField
         ? `${analytic.nameField.name} - ${analytic.valueField.name}`
         : analytic.nameField.name;
+
+    const chartData = analytic.points.map(point => ({
+        ...point,
+        name: renderValue(analytic.nameField.type, point.name),
+    }));
 
     return (
         <Paper withBorder p="md" radius="md">
@@ -41,7 +47,7 @@ export function BarChartCard({ analytic, isConfiguring }: Props) {
                 </Group>
                 <BarChart
                     h={isMobile ? 210 : 300}
-                    data={analytic.points}
+                    data={chartData}
                     dataKey="name"
                     series={[
                         {
