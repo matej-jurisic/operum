@@ -44,8 +44,8 @@ enum OpenDialogType {
     ExportEntries,
 }
 
-const ExportCsv = async (trackerId: string, viewId?: string) => {
-    const response = await entriesController.exportCsv(trackerId, viewId);
+const ExportCsv = async (trackerId: string, viewIds?: string[]) => {
+    const response = await entriesController.exportCsv(trackerId, viewIds);
 
     downloadBlob(
         new Blob([response.data]),
@@ -59,7 +59,7 @@ export default function Entries() {
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
     const [currentPage, setCurrentPage] = useState(1);
 
-    const { tracker, selectedViewId } = useTracker();
+    const { tracker, selectedViewIds } = useTracker();
     const { refreshFieldsIfDirty, fields } = useFields();
     const {
         entries,
@@ -99,8 +99,11 @@ export default function Entries() {
     }, [currentPage, entries]);
 
     const viewName = useMemo(() => {
-        return views.find((x) => x.id === selectedViewId)?.name;
-    }, [views, selectedViewId]);
+        const activeViews = views.filter((x) => selectedViewIds.includes(x.id));
+        return activeViews.length > 0
+            ? activeViews.map((v) => v.name).join(", ")
+            : undefined;
+    }, [views, selectedViewIds]);
 
     // Load data on component mount
     useEffect(() => {
@@ -111,7 +114,7 @@ export default function Entries() {
             setIsLoadingData(false);
         };
         loadData();
-    }, [selectedViewId]);
+    }, [selectedViewIds]);
 
     return (
         <>
@@ -419,7 +422,7 @@ export default function Entries() {
                     isOpen
                     onClose={() => setOpenDialogType(undefined)}
                     onConfirm={async () => {
-                        await ExportCsv(tracker.id, selectedViewId);
+                        await ExportCsv(tracker.id, selectedViewIds);
                         setOpenDialogType(undefined);
                     }}
                     title="Export data"

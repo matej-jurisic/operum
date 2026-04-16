@@ -312,7 +312,7 @@ namespace Operum.Service.Services.Trackers
             return Result.Success(updatedTracker.Data);
         }
 
-        public async Task<Result<List<AnalyticDto>>> GetTrackerAnalytics(string trackerId, string? viewId)
+        public async Task<Result<List<AnalyticDto>>> GetTrackerAnalytics(string trackerId, List<string> viewIds)
         {
             var user = currentUserService.GetCurrentUser();
             var tracker = await db.Trackers
@@ -326,10 +326,10 @@ namespace Operum.Service.Services.Trackers
                 return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
-            View? view = null;
-            if (!string.IsNullOrEmpty(viewId))
+            var views = new List<View>();
+            foreach (var viewId in viewIds)
             {
-                view = await db.Views
+                var view = await db.Views
                     .Include(v => v.Filters)
                     .ThenInclude(v => v.Field)
                     .Include(v => v.Sorts)
@@ -337,9 +337,9 @@ namespace Operum.Service.Services.Trackers
                     .FirstOrDefaultAsync(v => v.Id == viewId && v.TrackerId == trackerId);
 
                 if (view == null)
-                {
                     return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("view"));
-                }
+
+                views.Add(view);
             }
 
             var entriesQuery = db.Entries
@@ -347,10 +347,10 @@ namespace Operum.Service.Services.Trackers
                 .ThenInclude(x => x.Field)
                 .Where(x => x.TrackerId == trackerId);
 
-            if (view != null)
+            if (views.Count > 0)
             {
-                entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, view.Filters);
-                entriesQuery = ViewQueryBuilder.ApplyViewSorting(entriesQuery, view.Sorts);
+                entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, ViewQueryBuilder.MergeViewFilters(views));
+                entriesQuery = ViewQueryBuilder.ApplyViewSorting(entriesQuery, ViewQueryBuilder.MergeViewSorts(views));
             }
 
             var entries = await entriesQuery.ToListAsync();

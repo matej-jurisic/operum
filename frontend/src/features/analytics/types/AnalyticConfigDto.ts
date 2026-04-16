@@ -4,6 +4,7 @@ export interface PurposeDto {
 }
 
 export interface CodeDto {
+    code: string;
     name: string;
     purposes: PurposeDto[];
 }

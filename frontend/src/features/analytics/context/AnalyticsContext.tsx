@@ -7,7 +7,7 @@ import { CreateAnalyticDto } from "../types/requests/CreateAnalyticDto";
 type AnalyticsContextType = {
     analytics: AnalyticDto[];
     analyticsDirty: boolean;
-    refreshAnalytics: (viewId?: string) => Promise<void>;
+    refreshAnalytics: (viewIds?: string[]) => Promise<void>;
     refreshAnalyticsIfDirty: () => Promise<void>;
     markAnalyticsDirty: () => void;
     // API methods - internal use only
@@ -22,20 +22,20 @@ const AnalyticsContext = createContext<AnalyticsContextType | undefined>(
 export const AnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({
     children,
 }) => {
-    const { tracker, selectedViewId } = useTracker();
+    const { tracker, selectedViewIds } = useTracker();
     const [analytics, setAnalytics] = useState<AnalyticDto[]>([]);
     const [analyticsDirty, setAnalyticsDirty] = useState(true);
 
     const refreshAnalytics = useCallback(
-        async (implicitViewId?: string) => {
+        async (implicitViewIds?: string[]) => {
             const response = await analyticsController.getTrackerAnalytics(
                 tracker.id,
-                implicitViewId ?? selectedViewId
+                implicitViewIds ?? selectedViewIds
             );
             setAnalytics(response.data);
             setAnalyticsDirty(false);
         },
-        [tracker.id, selectedViewId]
+        [tracker.id, selectedViewIds]
     );
 
     const refreshAnalyticsIfDirty = useCallback(async () => {

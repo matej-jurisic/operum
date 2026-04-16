@@ -62,7 +62,7 @@ namespace Operum.API.Controllers
         }
 
         [HttpGet("{trackerId}/analytics")]
-        public async Task<IActionResult> GetTrackerAnalytics([FromRoute] string trackerId, [FromQuery] string? viewId)
+        public async Task<IActionResult> GetTrackerAnalytics([FromRoute] string trackerId, [FromQuery] List<string> viewId)
         {
             return GetApiResponse(await trackerService.GetTrackerAnalytics(trackerId, viewId));
         }

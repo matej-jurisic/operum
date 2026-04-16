@@ -21,7 +21,7 @@ import AnalyticSelectionDialog from "./analyticSelection/AnalyticSelectionDialog
 import { AnalyticsGrid } from "./AnalyticsGrid";
 
 export default function Analytics() {
-    const { selectedViewId, tracker } = useTracker();
+    const { selectedViewIds, tracker } = useTracker();
     const { refreshAnalyticsIfDirty, analytics } = useAnalytics();
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
     const [isLoadingData, setIsLoadingData] = useState(true);
@@ -38,7 +38,7 @@ export default function Analytics() {
             setIsLoadingData(false);
         };
         loadData();
-    }, [selectedViewId]);
+    }, [selectedViewIds]);
 
     const hasAnalytics = analytics.length > 0;
 

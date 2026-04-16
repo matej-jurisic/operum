@@ -18,11 +18,14 @@ export const analyticsController = {
     },
     getTrackerAnalytics: async (
         trackerId: string,
-        viewId?: string
+        viewIds?: string[]
     ): Promise<ApiResponse<AnalyticDto[]>> => {
-        return await api.get(`/trackers/${trackerId}/analytics`, {
-            params: viewId ? { viewId } : {},
-        });
+        const params = new URLSearchParams();
+        viewIds?.forEach((id) => params.append("viewId", id));
+        const qs = params.toString();
+        return await api.get(
+            `/trackers/${trackerId}/analytics${qs ? `?${qs}` : ""}`
+        );
     },
     addAnalytic: async (
         trackerId: string,

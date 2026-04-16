@@ -13,6 +13,7 @@
 
     public class AnalyticConfigCode
     {
+        public string Code { get; set; } = default!;
         public string Name { get; set; } = default!;
         public List<AnalyticConfigPurpose> Purposes { get; set; } = [];
     }

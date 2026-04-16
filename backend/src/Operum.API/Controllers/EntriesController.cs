@@ -16,7 +16,7 @@ namespace Operum.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetEntries([FromRoute] string trackerId, [FromQuery] string? viewId)
+        public async Task<IActionResult> GetEntries([FromRoute] string trackerId, [FromQuery] List<string> viewId)
         {
             return GetApiResponse(await entriesService.GetEntries(trackerId, viewId));
         }
@@ -52,7 +52,7 @@ namespace Operum.API.Controllers
         }
 
         [HttpGet("export-csv")]
-        public async Task<IActionResult> ExportCsv([FromRoute] string trackerId, [FromQuery] string? viewId)
+        public async Task<IActionResult> ExportCsv([FromRoute] string trackerId, [FromQuery] List<string> viewId)
         {
             return GetApiFileResponse(await entriesService.ExportEntriesToCsv(trackerId, viewId));
         }

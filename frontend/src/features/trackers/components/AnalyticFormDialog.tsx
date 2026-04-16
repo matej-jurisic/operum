@@ -72,7 +72,7 @@ export default function AnalyticFormDialog({
             }));
 
         const dto: CreateAnalyticDto = {
-            code: code.name,
+            code: code.code,
             type: resultType.name,
             analyticFields,
         };

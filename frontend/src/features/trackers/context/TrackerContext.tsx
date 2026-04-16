@@ -3,9 +3,9 @@ import { TrackerDto } from "../types/TrackerDto";
 
 type TrackerContextType = {
     tracker: TrackerDto;
-    selectedViewId: string | undefined;
+    selectedViewIds: string[];
     setTracker: React.Dispatch<React.SetStateAction<TrackerDto>>;
-    _setSelectedViewId: (viewId: string | undefined) => void;
+    _setSelectedViewIds: (viewIds: string[]) => void;
 };
 
 const TrackerContext = createContext<TrackerContextType | undefined>(undefined);
@@ -15,17 +15,17 @@ export const TrackerProvider: React.FC<{
     children: React.ReactNode;
 }> = ({ initialTracker, children }) => {
     const [tracker, setTracker] = useState<TrackerDto>(initialTracker);
-    const [selectedViewId, _setSelectedViewId] = useState<string | undefined>(
-        initialTracker.defaultViewId
+    const [selectedViewIds, _setSelectedViewIds] = useState<string[]>(
+        initialTracker.defaultViewId ? [initialTracker.defaultViewId] : []
     );
 
     return (
         <TrackerContext.Provider
             value={{
                 tracker,
-                selectedViewId,
+                selectedViewIds,
                 setTracker,
-                _setSelectedViewId,
+                _setSelectedViewIds,
             }}
         >
             {children}

@@ -10,8 +10,8 @@ type EntriesContextType = {
     isSelectMode: boolean;
     allEntriesSelected: boolean;
     someEntriesSelected: boolean;
-    refreshEntries: (viewId?: string) => Promise<void>;
-    refreshEntriesIfDirty: (viewId?: string) => Promise<void>;
+    refreshEntries: (viewIds?: string[]) => Promise<void>;
+    refreshEntriesIfDirty: (viewIds?: string[]) => Promise<void>;
     toggleEntrySelection: (entryId: string) => void;
     toggleSelectAll: () => void;
     clearSelection: () => void;
@@ -33,7 +33,7 @@ const EntriesContext = createContext<EntriesContextType | undefined>(undefined);
 export const EntriesProvider: React.FC<{ children: React.ReactNode }> = ({
     children,
 }) => {
-    const { tracker, selectedViewId } = useTracker();
+    const { tracker, selectedViewIds } = useTracker();
     const [entries, setEntries] = useState<EntryDto[]>([]);
     const [entriesDirty, setEntriesDirty] = useState(true);
     const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(
@@ -47,20 +47,20 @@ export const EntriesProvider: React.FC<{ children: React.ReactNode }> = ({
         selectedEntryIds.size > 0 && selectedEntryIds.size < entries.length;
 
     const refreshEntries = useCallback(
-        async (implicitViewId?: string) => {
+        async (implicitViewIds?: string[]) => {
             const response = await entriesController.getEntries(
                 tracker.id,
-                implicitViewId ?? selectedViewId
+                implicitViewIds ?? selectedViewIds
             );
             setEntries(response.data);
             setEntriesDirty(false);
         },
-        [tracker.id, selectedViewId]
+        [tracker.id, selectedViewIds]
     );
 
     const refreshEntriesIfDirty = useCallback(
-        async (viewId?: string) => {
-            if (entriesDirty) await refreshEntries(viewId);
+        async (viewIds?: string[]) => {
+            if (entriesDirty) await refreshEntries(viewIds);
         },
         [entriesDirty, refreshEntries]
     );

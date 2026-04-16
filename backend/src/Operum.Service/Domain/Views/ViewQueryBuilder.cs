@@ -6,6 +6,35 @@ namespace Operum.Service.Domain.Views
 {
     public static class ViewQueryBuilder
     {
+        /// <summary>
+        /// Merges sorts from multiple views using first-view-wins: if two views sort
+        /// the same field, the first view's sort takes priority and the later one is skipped.
+        /// </summary>
+        public static List<ViewSort> MergeViewSorts(List<View> views)
+        {
+            var seenFieldIds = new HashSet<string>();
+            var merged = new List<ViewSort>();
+
+            foreach (var view in views)
+            {
+                foreach (var sort in view.Sorts.OrderBy(s => s.Order))
+                {
+                    if (seenFieldIds.Add(sort.FieldId))
+                        merged.Add(sort);
+                }
+            }
+
+            return merged;
+        }
+
+        /// <summary>
+        /// Merges filters from multiple views by ANDing them all together.
+        /// </summary>
+        public static List<ViewFilter> MergeViewFilters(List<View> views)
+        {
+            return views.SelectMany(v => v.Filters).ToList();
+        }
+
         public static IQueryable<Entry> ApplyViewSorting(IQueryable<Entry> query, List<ViewSort> sorts)
         {
             if (sorts.Count == 0)

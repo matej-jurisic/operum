@@ -79,7 +79,7 @@ namespace Operum.Service.Services.Entries
             return Result.Success(created.Data, Messages.Success);
         }
 
-        public async Task<Result<List<EntryDto>>> GetEntries(string trackerId, string? viewId)
+        public async Task<Result<List<EntryDto>>> GetEntries(string trackerId, List<string> viewIds)
         {
             var user = currentUserService.GetCurrentUser();
             var tracker = await db.Trackers
@@ -93,10 +93,10 @@ namespace Operum.Service.Services.Entries
                 return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
-            View? view = null;
-            if (!string.IsNullOrEmpty(viewId))
+            var views = new List<View>();
+            foreach (var viewId in viewIds)
             {
-                view = await db.Views
+                var view = await db.Views
                     .Include(v => v.Filters)
                     .ThenInclude(s => s.Field)
                     .Include(v => v.Sorts)
@@ -104,9 +104,9 @@ namespace Operum.Service.Services.Entries
                     .FirstOrDefaultAsync(v => v.Id == viewId && v.TrackerId == trackerId);
 
                 if (view == null)
-                {
                     return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("view"));
-                }
+
+                views.Add(view);
             }
 
             var entriesQuery = db.Entries
@@ -114,10 +114,10 @@ namespace Operum.Service.Services.Entries
                 .ThenInclude(x => x.Field)
                 .Where(x => x.TrackerId == trackerId);
 
-            if (view != null)
+            if (views.Count > 0)
             {
-                entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, view.Filters);
-                entriesQuery = ViewQueryBuilder.ApplyViewSorting(entriesQuery, view.Sorts);
+                entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, ViewQueryBuilder.MergeViewFilters(views));
+                entriesQuery = ViewQueryBuilder.ApplyViewSorting(entriesQuery, ViewQueryBuilder.MergeViewSorts(views));
             }
 
             var entries = await entriesQuery.ToListAsync();
@@ -408,7 +408,7 @@ namespace Operum.Service.Services.Entries
             return Result.Success(Messages.Success);
         }
 
-        public async Task<Result<FileContentResult>> ExportEntriesToCsv(string trackerId, string? viewId = null)
+        public async Task<Result<FileContentResult>> ExportEntriesToCsv(string trackerId, List<string> viewIds)
         {
             var user = currentUserService.GetCurrentUser();
             var tracker = await db.Trackers
@@ -422,11 +422,10 @@ namespace Operum.Service.Services.Entries
                 return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
-            // Fetch view if provided
-            View? view = null;
-            if (!string.IsNullOrEmpty(viewId))
+            var views = new List<View>();
+            foreach (var viewId in viewIds)
             {
-                view = await db.Views
+                var view = await db.Views
                     .Include(v => v.Filters)
                     .ThenInclude(f => f.Field)
                     .Include(v => v.Sorts)
@@ -434,9 +433,9 @@ namespace Operum.Service.Services.Entries
                     .FirstOrDefaultAsync(v => v.Id == viewId && v.TrackerId == trackerId);
 
                 if (view == null)
-                {
                     return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("view"));
-                }
+
+                views.Add(view);
             }
 
             var fields = await db.Fields
@@ -449,10 +448,10 @@ namespace Operum.Service.Services.Entries
                 .ThenInclude(fv => fv.Field)
                 .Where(e => e.TrackerId == trackerId);
 
-            if (view != null)
+            if (views.Count > 0)
             {
-                entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, view.Filters);
-                entriesQuery = ViewQueryBuilder.ApplyViewSorting(entriesQuery, view.Sorts);
+                entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, ViewQueryBuilder.MergeViewFilters(views));
+                entriesQuery = ViewQueryBuilder.ApplyViewSorting(entriesQuery, ViewQueryBuilder.MergeViewSorts(views));
             }
 
             var entries = await entriesQuery.ToListAsync();
@@ -503,7 +502,7 @@ namespace Operum.Service.Services.Entries
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Exception while exporting entries to csv with trackerId={trackerId} and viewId={viewId}.", trackerId, viewId);
+                logger.LogError(ex, "Exception while exporting entries to csv with trackerId={trackerId} and viewIds={viewIds}.", trackerId, string.Join(",", viewIds));
                 return Result.Failure(ResultStatusCodes.Error, Messages.SomethingWentWrong);
             }
         }

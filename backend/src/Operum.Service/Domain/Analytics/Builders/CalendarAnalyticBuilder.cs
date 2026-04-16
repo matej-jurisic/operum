@@ -1,5 +1,6 @@
 ﻿using Operum.Model.Common;
 using Operum.Model.Constants.Analytics;
+using Operum.Model.Constants.Analytics.Definitions;
 using Operum.Model.DTOs.Analytics;
 using Operum.Model.Extensions;
 
@@ -13,7 +14,7 @@ namespace Operum.Service.Domain.Analytics.Builders
         {
             var result = new CalendarAnalyticDto
             {
-                Name = request.Analytic.Code,
+                Name = AnalyticDefinitionList.GetLabel(SupportedType, request.Analytic.Code),
                 Description = request.Analytic.Description,
                 Id = request.Analytic.Id,
             };

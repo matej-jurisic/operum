@@ -16,7 +16,8 @@ namespace Operum.Service.Services.Analytics
                     Name = rt.Key,
                     Codes = [.. rt.Value.Codes.Select(code => new AnalyticConfigCode
                     {
-                        Name = code.Key,
+                        Code = code.Key,
+                        Name = string.IsNullOrEmpty(code.Value.Label) ? code.Key : code.Value.Label,
                         Purposes = [.. code.Value.AllowedDataTypes
                             .Select(p => new AnalyticConfigPurpose
                             {

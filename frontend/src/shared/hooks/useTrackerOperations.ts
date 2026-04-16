@@ -27,7 +27,7 @@ export const useTrackerOperations = () => {
 
     const { _createView, _updateView, _deleteView, _updateViewOrder } = useViews();
 
-    const { _setSelectedViewId } = useTracker();
+    const { _setSelectedViewIds, selectedViewIds } = useTracker();
 
     // ========================================
     // Field Operations
@@ -125,8 +125,17 @@ export const useTrackerOperations = () => {
     // Tracker Operations
     // ========================================
 
-    const setSelectedView = async (viewId: string | undefined) => {
-        _setSelectedViewId(viewId);
+    const toggleSelectedView = async (viewId: string) => {
+        const next = selectedViewIds.includes(viewId)
+            ? selectedViewIds.filter((id) => id !== viewId)
+            : [...selectedViewIds, viewId];
+        _setSelectedViewIds(next);
+        markEntriesDirty();
+        markAnalyticsDirty();
+    };
+
+    const clearSelectedViews = async () => {
+        _setSelectedViewIds([]);
         markEntriesDirty();
         markAnalyticsDirty();
     };
@@ -156,6 +165,7 @@ export const useTrackerOperations = () => {
         updateViewOrder,
 
         // Tracker operations
-        setSelectedView,
+        toggleSelectedView,
+        clearSelectedViews,
     };
 };

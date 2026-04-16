@@ -1,4 +1,4 @@
-﻿using Operum.Model.Constants.Fields;
+using Operum.Model.Constants.Fields;
 
 namespace Operum.Model.Constants.Analytics.Definitions
 {
@@ -14,6 +14,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                     {
                         [AnalyticCodes.Count] = new AnalyticPurposeDataTypes
                         {
+                            Label = "Count",
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.Value] = [.. DataTypes.All]
@@ -21,6 +22,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                         },
                         [AnalyticCodes.Min] = new AnalyticPurposeDataTypes
                         {
+                            Label = "Minimum",
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.Value] = [DataTypes.Number, DataTypes.TimeSpan, DataTypes.Date, DataTypes.DateTime]
@@ -28,6 +30,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                         },
                         [AnalyticCodes.Max] = new AnalyticPurposeDataTypes
                         {
+                            Label = "Maximum",
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.Value] = [DataTypes.Number, DataTypes.TimeSpan, DataTypes.Date, DataTypes.DateTime]
@@ -35,6 +38,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                         },
                         [AnalyticCodes.Average] = new AnalyticPurposeDataTypes
                         {
+                            Label = "Average",
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.Value] = [DataTypes.Number, DataTypes.TimeSpan]
@@ -42,6 +46,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                         },
                         [AnalyticCodes.Sum] = new AnalyticPurposeDataTypes
                         {
+                            Label = "Sum",
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.Value] = [DataTypes.Number, DataTypes.TimeSpan]
@@ -49,6 +54,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                         },
                         [AnalyticCodes.StdDev] = new AnalyticPurposeDataTypes
                         {
+                            Label = "Std. Deviation",
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.Value] = [DataTypes.Number, DataTypes.TimeSpan]
@@ -56,6 +62,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                         },
                         [AnalyticCodes.TrueCount] = new AnalyticPurposeDataTypes
                         {
+                            Label = "Yes Count",
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.Value] = [DataTypes.Bool]
@@ -63,6 +70,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                         },
                         [AnalyticCodes.FalseCount] = new AnalyticPurposeDataTypes
                         {
+                            Label = "No Count",
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.Value] = [DataTypes.Bool]
@@ -70,6 +78,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                         },
                         [AnalyticCodes.TruePercentage] = new AnalyticPurposeDataTypes
                         {
+                            Label = "Yes Percentage",
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.Value] = [DataTypes.Bool]
@@ -77,6 +86,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                         },
                         [AnalyticCodes.CountDistinct] = new AnalyticPurposeDataTypes
                         {
+                            Label = "Unique Count",
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.Value] = [.. DataTypes.All]
@@ -84,6 +94,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                         },
                         [AnalyticCodes.MostCommon] = new AnalyticPurposeDataTypes
                         {
+                            Label = "Most Common",
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.Value] = [.. DataTypes.All]
@@ -91,6 +102,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                         },
                         [AnalyticCodes.LeastCommon] = new AnalyticPurposeDataTypes
                         {
+                            Label = "Least Common",
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.Value] = [.. DataTypes.All]
@@ -106,6 +118,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                     {
                         [AnalyticCodes.AggregatedSumLineChart] = new AnalyticPurposeDataTypes
                         {
+                            Label = "Sum by Category",
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.Xaxis] = [.. DataTypes.All],
@@ -114,6 +127,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                         },
                         [AnalyticCodes.CumulativeLineChart] = new AnalyticPurposeDataTypes
                         {
+                            Label = "Cumulative Sum",
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.Xaxis] = [.. DataTypes.All],
@@ -122,6 +136,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                         },
                         [AnalyticCodes.LineChart] = new AnalyticPurposeDataTypes
                         {
+                            Label = "Raw Values",
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.Xaxis] = [.. DataTypes.All],
@@ -130,6 +145,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                         },
                         [AnalyticCodes.DailyLineChart] = new AnalyticPurposeDataTypes
                         {
+                            Label = "Daily Totals",
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.Xaxis] = [DataTypes.Date, DataTypes.DateTime],
@@ -138,6 +154,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                         },
                         [AnalyticCodes.WeeklyLineChart] = new AnalyticPurposeDataTypes
                         {
+                            Label = "Weekly Totals",
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.Xaxis] = [DataTypes.Date, DataTypes.DateTime],
@@ -146,6 +163,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                         },
                         [AnalyticCodes.MonthlyLineChart] = new AnalyticPurposeDataTypes
                         {
+                            Label = "Monthly Totals",
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.Xaxis] = [DataTypes.Date, DataTypes.DateTime],
@@ -154,6 +172,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                         },
                         [AnalyticCodes.YearlyLineChart] = new AnalyticPurposeDataTypes
                         {
+                            Label = "Yearly Totals",
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.Xaxis] = [DataTypes.Date, DataTypes.DateTime],
@@ -170,6 +189,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                     {
                         [AnalyticCodes.CountBarChart] = new AnalyticPurposeDataTypes
                         {
+                            Label = "Count per Category",
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.Name] = [.. DataTypes.All]
@@ -177,6 +197,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                         },
                         [AnalyticCodes.SumBarChart] = new AnalyticPurposeDataTypes
                         {
+                            Label = "Sum per Category",
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.Name] = [.. DataTypes.All],
@@ -185,6 +206,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                         },
                         [AnalyticCodes.AverageBarChart] = new AnalyticPurposeDataTypes
                         {
+                            Label = "Average per Category",
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.Name] = [.. DataTypes.All],
@@ -201,6 +223,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                     {
                         [AnalyticCodes.ScatterChart] = new AnalyticPurposeDataTypes
                         {
+                            Label = "Scatter Plot",
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.Xaxis] = [DataTypes.Number, DataTypes.TimeSpan],
@@ -217,6 +240,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                     {
                         [AnalyticCodes.Calendar] = new AnalyticPurposeDataTypes
                         {
+                            Label = "Calendar",
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.When] = [DataTypes.Date, DataTypes.DateTime],
@@ -233,6 +257,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                     {
                         [AnalyticCodes.DonutChart] = new AnalyticPurposeDataTypes
                         {
+                            Label = "Sum per Category",
                             AllowedDataTypes = new()
                             {
                                 [AnalyticPurposes.Name] = [.. DataTypes.All],
@@ -255,5 +280,12 @@ namespace Operum.Model.Constants.Analytics.Definitions
             def.Codes.TryGetValue(code, out var codeDef) &&
             codeDef.AllowedDataTypes.TryGetValue(purpose, out var allowed) &&
             allowed.Contains(dataType);
+
+        public static string GetLabel(string resultType, string code) =>
+            ByResultType.TryGetValue(resultType, out var def) &&
+            def.Codes.TryGetValue(code, out var codeDef) &&
+            !string.IsNullOrEmpty(codeDef.Label)
+                ? codeDef.Label
+                : code;
     }
 }

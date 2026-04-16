@@ -6,12 +6,15 @@ import { EntryDto } from "../types/EntryDto";
 export const entriesController = {
     exportCsv: async (
         trackerId: string,
-        viewId?: string
+        viewIds?: string[]
     ): Promise<AxiosResponse<BlobPart>> => {
-        return await api.get(`/trackers/${trackerId}/entries/export-csv`, {
-            params: viewId ? { viewId } : {},
-            responseType: "blob",
-        });
+        const params = new URLSearchParams();
+        viewIds?.forEach((id) => params.append("viewId", id));
+        const qs = params.toString();
+        return await api.get(
+            `/trackers/${trackerId}/entries/export-csv${qs ? `?${qs}` : ""}`,
+            { responseType: "blob" }
+        );
     },
     getEntry: async (
         trackerId: string,
@@ -21,11 +24,14 @@ export const entriesController = {
     },
     getEntries: async (
         trackerId: string,
-        viewId?: string
+        viewIds?: string[]
     ): Promise<ApiResponse<EntryDto[]>> => {
-        return await api.get(`/trackers/${trackerId}/entries`, {
-            params: viewId ? { viewId } : {},
-        });
+        const params = new URLSearchParams();
+        viewIds?.forEach((id) => params.append("viewId", id));
+        const qs = params.toString();
+        return await api.get(
+            `/trackers/${trackerId}/entries${qs ? `?${qs}` : ""}`
+        );
     },
     createEntry: async (
         trackerId: string,
