@@ -6,7 +6,6 @@ import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { BarChartAnalyticDto } from "../types/AnalyticDto";
 import { createBarChartTooltipContent, getAxisFormatter } from "./ChartFormatters";
-import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 
 interface Props {
     analytic: BarChartAnalyticDto;
