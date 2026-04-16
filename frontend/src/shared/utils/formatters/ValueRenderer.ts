@@ -1,4 +1,5 @@
 import {
+    formatBoolean,
     formatDateOnly,
     formatDateTime,
     formatTimeSpan,
@@ -9,6 +10,7 @@ export const renderValue = (type: string | undefined, value: unknown) => {
         if (type === "date") return formatDateOnly(value);
         if (type === "datetime") return formatDateTime(value);
         if (type === "timespan") return formatTimeSpan(value);
+        if (type === "bool") return formatBoolean(value);
         return value;
     }
     if (typeof value === "number") return value;
