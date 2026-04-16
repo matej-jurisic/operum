@@ -109,6 +109,7 @@ export default function Entries() {
     useEffect(() => {
         const loadData = async () => {
             setIsLoadingData(true);
+            setCurrentPage(1);
             await refreshEntriesIfDirty();
             await refreshFieldsIfDirty();
             setIsLoadingData(false);
