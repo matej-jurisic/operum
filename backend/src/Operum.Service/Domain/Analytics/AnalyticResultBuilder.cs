@@ -16,7 +16,8 @@ namespace Operum.Service.Domain.Analytics
                 new LineChartAnalyticBuilder(),
                 new ScatterChartAnalyticBuilder(),
                 new CalendarAnalyticBuilder(),
-                new DonutChartAnalyticBuilder()
+                new DonutChartAnalyticBuilder(),
+                new BarChartAnalyticBuilder()
             };
 
             _builders = builders.ToDictionary(b => b.SupportedType);

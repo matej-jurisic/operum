@@ -4,4 +4,5 @@ export enum AnalyticResultTypeEnum {
     ScatterChart = "Scatter Chart",
     Calendar = "Calendar",
     Donut = "Donut Chart",
+    BarChart = "Bar Chart",
 }

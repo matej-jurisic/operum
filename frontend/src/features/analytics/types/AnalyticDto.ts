@@ -38,3 +38,9 @@ export interface CalendarAnalyticDto extends AnalyticDto {
     whatField: FieldDto;
     points: { date: string; name: string; entryId: string }[];
 }
+
+export interface BarChartAnalyticDto extends AnalyticDto {
+    nameField: FieldDto;
+    valueField?: FieldDto;
+    points: { name: string; value: number }[];
+}

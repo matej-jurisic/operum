@@ -74,6 +74,27 @@ namespace Operum.Model.Constants.Analytics.Definitions
                             {
                                 [AnalyticPurposes.Value] = [DataTypes.Bool]
                             }
+                        },
+                        [AnalyticCodes.CountDistinct] = new AnalyticPurposeDataTypes
+                        {
+                            AllowedDataTypes = new()
+                            {
+                                [AnalyticPurposes.Value] = [.. DataTypes.All]
+                            }
+                        },
+                        [AnalyticCodes.MostCommon] = new AnalyticPurposeDataTypes
+                        {
+                            AllowedDataTypes = new()
+                            {
+                                [AnalyticPurposes.Value] = [.. DataTypes.All]
+                            }
+                        },
+                        [AnalyticCodes.LeastCommon] = new AnalyticPurposeDataTypes
+                        {
+                            AllowedDataTypes = new()
+                            {
+                                [AnalyticPurposes.Value] = [.. DataTypes.All]
+                            }
                         }
                     }
                 },
@@ -105,6 +126,69 @@ namespace Operum.Model.Constants.Analytics.Definitions
                             {
                                 [AnalyticPurposes.Xaxis] = [.. DataTypes.All],
                                 [AnalyticPurposes.Yaxis] = [DataTypes.Number, DataTypes.TimeSpan]
+                            }
+                        },
+                        [AnalyticCodes.DailyLineChart] = new AnalyticPurposeDataTypes
+                        {
+                            AllowedDataTypes = new()
+                            {
+                                [AnalyticPurposes.Xaxis] = [DataTypes.Date, DataTypes.DateTime],
+                                [AnalyticPurposes.Yaxis] = [DataTypes.Number, DataTypes.TimeSpan]
+                            }
+                        },
+                        [AnalyticCodes.WeeklyLineChart] = new AnalyticPurposeDataTypes
+                        {
+                            AllowedDataTypes = new()
+                            {
+                                [AnalyticPurposes.Xaxis] = [DataTypes.Date, DataTypes.DateTime],
+                                [AnalyticPurposes.Yaxis] = [DataTypes.Number, DataTypes.TimeSpan]
+                            }
+                        },
+                        [AnalyticCodes.MonthlyLineChart] = new AnalyticPurposeDataTypes
+                        {
+                            AllowedDataTypes = new()
+                            {
+                                [AnalyticPurposes.Xaxis] = [DataTypes.Date, DataTypes.DateTime],
+                                [AnalyticPurposes.Yaxis] = [DataTypes.Number, DataTypes.TimeSpan]
+                            }
+                        },
+                        [AnalyticCodes.YearlyLineChart] = new AnalyticPurposeDataTypes
+                        {
+                            AllowedDataTypes = new()
+                            {
+                                [AnalyticPurposes.Xaxis] = [DataTypes.Date, DataTypes.DateTime],
+                                [AnalyticPurposes.Yaxis] = [DataTypes.Number, DataTypes.TimeSpan]
+                            }
+                        }
+                    }
+                },
+
+                [AnalyticTypes.BarChart] = new AnalyticDefinition
+                {
+                    Purposes = [AnalyticPurposes.Name, AnalyticPurposes.Value],
+                    Codes = new()
+                    {
+                        [AnalyticCodes.CountBarChart] = new AnalyticPurposeDataTypes
+                        {
+                            AllowedDataTypes = new()
+                            {
+                                [AnalyticPurposes.Name] = [.. DataTypes.All]
+                            }
+                        },
+                        [AnalyticCodes.SumBarChart] = new AnalyticPurposeDataTypes
+                        {
+                            AllowedDataTypes = new()
+                            {
+                                [AnalyticPurposes.Name] = [.. DataTypes.All],
+                                [AnalyticPurposes.Value] = [DataTypes.Number, DataTypes.TimeSpan]
+                            }
+                        },
+                        [AnalyticCodes.AverageBarChart] = new AnalyticPurposeDataTypes
+                        {
+                            AllowedDataTypes = new()
+                            {
+                                [AnalyticPurposes.Name] = [.. DataTypes.All],
+                                [AnalyticPurposes.Value] = [DataTypes.Number, DataTypes.TimeSpan]
                             }
                         }
                     }

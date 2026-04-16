@@ -8,6 +8,7 @@ import {
 } from "../../../shared/utils/formatters/TypeFormatter";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 import {
+    BarChartAnalyticDto,
     DonutChartAnaylticDto,
     LineChartAnalyticDto,
     ScatterChartAnalyticDto,
@@ -76,6 +77,39 @@ export const createDonutTooltipContent = (analytic: DonutChartAnaylticDto) => {
                     <Text size="sm">{analytic.valueField.name}</Text>
                     <Text size="sm" ml="auto">
                         {f ? f(value) : ""}
+                    </Text>
+                </Group>
+            </Paper>
+        );
+    };
+};
+
+export const createBarChartTooltipContent = (
+    analytic: BarChartAnalyticDto,
+    color: string
+) => {
+    return ({ payload, label }: any) => {
+        if (!payload?.[0]) return null;
+
+        const value = payload[0].payload.value;
+        const valueLabel = analytic.valueField?.name ?? "Count";
+        const f = analytic.valueField ? getAxisFormatter(analytic.valueField.type) : (v: any) => String(v);
+
+        return (
+            <Paper p="sm" shadow="sm" withBorder>
+                <Text size="sm" c="dimmed" mb="xs">
+                    {renderValue(analytic.nameField.type, label)}
+                </Text>
+                <Group gap="xs" wrap="nowrap" maw={300}>
+                    <Box
+                        w={10}
+                        h={10}
+                        style={{ borderRadius: "50%" }}
+                        bg={color}
+                    />
+                    <Text size="sm">{valueLabel}</Text>
+                    <Text size="sm" ml="auto">
+                        {f(value)}
                     </Text>
                 </Group>
             </Paper>

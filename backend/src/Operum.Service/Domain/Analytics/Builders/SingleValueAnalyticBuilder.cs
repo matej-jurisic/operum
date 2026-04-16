@@ -1,5 +1,6 @@
 ﻿using Operum.Model.Common;
 using Operum.Model.Constants.Analytics;
+using Operum.Model.Constants.Fields;
 using Operum.Model.DTOs.Analytics;
 using Operum.Model.Enums;
 using Operum.Service.Domain.Analytics.Calculators;
@@ -24,7 +25,10 @@ namespace Operum.Service.Domain.Analytics.Builders
                 [AnalyticCodes.Max] = new MaxCalculator(),
                 [AnalyticCodes.Average] = new AverageCalculator(),
                 [AnalyticCodes.Sum] = new SumCalculator(),
-                [AnalyticCodes.StdDev] = new StdDevCalculator()
+                [AnalyticCodes.StdDev] = new StdDevCalculator(),
+                [AnalyticCodes.CountDistinct] = new CountDistinctCalculator(),
+                [AnalyticCodes.MostCommon] = new MostCommonCalculator(),
+                [AnalyticCodes.LeastCommon] = new LeastCommonCalculator()
             };
         }
 
@@ -56,13 +60,20 @@ namespace Operum.Service.Domain.Analytics.Builders
 
             result.Value = opResult.Data.Value;
             result.EntryId = opResult.Data.EntryId;
+
+            // CountDistinct returns a plain integer count — override type so the
+            // frontend doesn't try to format it as the original field type (e.g. timespan).
+            var displayType = request.Analytic.Code == AnalyticCodes.CountDistinct
+                ? DataTypes.Number
+                : valueField.Type;
+
             result.ValueField = new()
             {
                 Description = valueField.Description,
                 Id = valueField.Id,
                 Name = valueField.Name,
                 Required = valueField.Required,
-                Type = valueField.Type,
+                Type = displayType,
             };
 
             return Result.Success<AnalyticDto>(result);

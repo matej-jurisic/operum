@@ -1,5 +1,5 @@
 import { DonutChart } from "@mantine/charts";
-import { ActionIcon, em, Group, Paper, Stack, Text } from "@mantine/core";
+import { ActionIcon, em, Group, Paper, Stack, Text, Tooltip } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { useMemo } from "react";
 import { MdDelete } from "react-icons/md";
@@ -18,11 +18,17 @@ export function DonutChartCard({ analytic, isConfiguring }: Props) {
     const { removeAnalytic } = useTrackerOperations();
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
 
+    const { positivePoints, excludedPoints } = useMemo(() => {
+        const positive = analytic.points.filter((x) => (x.value ?? 0) > 0);
+        const excluded = analytic.points.filter((x) => (x.value ?? 0) <= 0);
+        return { positivePoints: positive, excludedPoints: excluded };
+    }, [analytic.points]);
+
     const coloredPoints = useMemo(() => {
         const baseColor = tracker.color ?? "blue";
 
-        return analytic.points.map((x, index) => {
-            const opacity = 0.2 + (index / analytic.points.length) * 0.8;
+        return positivePoints.map((x, index) => {
+            const opacity = 0.2 + (index / Math.max(positivePoints.length, 1)) * 0.8;
 
             return {
                 name: x.name,
@@ -32,7 +38,7 @@ export function DonutChartCard({ analytic, isConfiguring }: Props) {
                 }%, white)`,
             };
         });
-    }, [analytic.points, tracker.color]);
+    }, [positivePoints, tracker.color]);
 
     return (
         <Paper withBorder p="md" radius="md">
@@ -54,6 +60,17 @@ export function DonutChartCard({ analytic, isConfiguring }: Props) {
                         </ActionIcon>
                     )}
                 </Group>
+                {excludedPoints.length > 0 && (
+                    <Tooltip
+                        label={excludedPoints.map((p) => p.name ?? "Unknown").join(", ")}
+                        multiline
+                        maw={260}
+                    >
+                        <Text size="xs" c="dimmed" style={{ cursor: "default" }}>
+                            {excludedPoints.length} categor{excludedPoints.length === 1 ? "y" : "ies"} not shown (zero or negative value)
+                        </Text>
+                    </Tooltip>
+                )}
                 <Group justify="center">
                     <DonutChart
                         withLabelsLine

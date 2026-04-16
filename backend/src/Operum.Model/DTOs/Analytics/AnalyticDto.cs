@@ -9,6 +9,7 @@ namespace Operum.Model.DTOs.Analytics
     [JsonDerivedType(typeof(ScatterPlotAnalyticDto), AnalyticTypes.ScatterChart)]
     [JsonDerivedType(typeof(CalendarAnalyticDto), AnalyticTypes.Calendar)]
     [JsonDerivedType(typeof(DonutChartAnalyticDto), AnalyticTypes.Donut)]
+    [JsonDerivedType(typeof(BarChartAnalyticDto), AnalyticTypes.BarChart)]
     public abstract class AnalyticDto
     {
         public string Id { get; set; } = string.Empty;

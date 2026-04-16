@@ -23,12 +23,14 @@ import { analyticsController } from "../api/analyticsController";
 import { AnalyticResultTypeEnum } from "../enums/AnalyticResultTypeEnum";
 import {
     AnalyticDto,
+    BarChartAnalyticDto,
     CalendarAnalyticDto,
     DonutChartAnaylticDto,
     LineChartAnalyticDto,
     ScatterChartAnalyticDto,
     SingleValueAnalyticDto,
 } from "../types/AnalyticDto";
+import { BarChartCard } from "./BarChartCard";
 import { CalendarCard } from "./CalendarCard";
 import { DonutChartCard } from "./DonutChartCard";
 import { LineChartCard } from "./LineChartCard";
@@ -41,6 +43,7 @@ export const LineChartCardMemo = React.memo(LineChartCard);
 export const ScatterChartCardMemo = React.memo(ScatterChartCard);
 export const CalendarChartCardMemo = React.memo(CalendarCard);
 export const DonutChartCardMemo = React.memo(DonutChartCard);
+export const BarChartCardMemo = React.memo(BarChartCard);
 
 interface AnalyticsGridProps {
     analytics: AnalyticDto[];
@@ -167,6 +170,13 @@ export function AnalyticsGrid({
                 return (
                     <DonutChartCardMemo
                         analytic={analytic as DonutChartAnaylticDto}
+                        isConfiguring={isConfiguring}
+                    />
+                );
+            case AnalyticResultTypeEnum.BarChart:
+                return (
+                    <BarChartCardMemo
+                        analytic={analytic as BarChartAnalyticDto}
                         isConfiguring={isConfiguring}
                     />
                 );

@@ -20,7 +20,11 @@ namespace Operum.Service.Domain.Analytics.Builders
             {
                 [AnalyticCodes.LineChart] = new LineChartProcessor(),
                 [AnalyticCodes.AggregatedSumLineChart] = new AggregatedSumLineChartProcessor(),
-                [AnalyticCodes.CumulativeLineChart] = new CumulativeLineChartProcessor()
+                [AnalyticCodes.CumulativeLineChart] = new CumulativeLineChartProcessor(),
+                [AnalyticCodes.DailyLineChart] = new DailyLineChartProcessor(),
+                [AnalyticCodes.WeeklyLineChart] = new WeeklyLineChartProcessor(),
+                [AnalyticCodes.MonthlyLineChart] = new MonthlyLineChartProcessor(),
+                [AnalyticCodes.YearlyLineChart] = new YearlyLineChartProcessor()
             };
         }
 
