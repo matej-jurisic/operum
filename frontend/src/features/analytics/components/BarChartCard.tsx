@@ -22,11 +22,6 @@ export function BarChartCard({ analytic, isConfiguring }: Props) {
         ? `${analytic.nameField.name} - ${analytic.valueField.name}`
         : analytic.nameField.name;
 
-    const chartData = analytic.points.map(point => ({
-        ...point,
-        name: renderValue(analytic.nameField.type, point.name),
-    }));
-
     return (
         <Paper withBorder p="md" radius="md">
             <Stack gap="xs">
@@ -47,7 +42,7 @@ export function BarChartCard({ analytic, isConfiguring }: Props) {
                 </Group>
                 <BarChart
                     h={isMobile ? 210 : 300}
-                    data={chartData}
+                    data={analytic.points}
                     dataKey="name"
                     series={[
                         {
