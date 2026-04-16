@@ -2,6 +2,7 @@
 using Operum.Model.Constants.Fields;
 using Operum.Model.Models;
 
+
 namespace Operum.Service.Domain.Views
 {
     public static class ViewQueryBuilder
@@ -195,12 +196,20 @@ namespace Operum.Service.Domain.Views
         {
             if (value != null)
             {
-                if (!DateTime.TryParse(value, null, System.Globalization.DateTimeStyles.RoundtripKind, out var dateValue))
-                    return query;
-                var utcDateValue = dateValue.ToUniversalTime();
-                if (dateValue.Kind == DateTimeKind.Unspecified)
+                // Resolve dynamic tokens (e.g. "today", "start_of_month") to concrete UTC DateTimes
+                var resolved = DynamicDateTokens.Resolve(value);
+                DateTime utcDateValue;
+                if (resolved.HasValue)
                 {
-                    utcDateValue = DateTime.SpecifyKind(dateValue, DateTimeKind.Utc);
+                    utcDateValue = resolved.Value;
+                }
+                else
+                {
+                    if (!DateTime.TryParse(value, null, System.Globalization.DateTimeStyles.RoundtripKind, out var dateValue))
+                        return query;
+                    utcDateValue = dateValue.Kind == DateTimeKind.Unspecified
+                        ? DateTime.SpecifyKind(dateValue, DateTimeKind.Utc)
+                        : dateValue.ToUniversalTime();
                 }
 
                 return operatorType switch

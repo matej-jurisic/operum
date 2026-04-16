@@ -26,6 +26,11 @@ import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { CreateViewDto } from "../types/requests/CreateViewDto";
 import { UpdateViewDto } from "../types/requests/UpdateViewDto";
 import { ViewDto } from "../types/ViewDto";
+import {
+    DynamicDateTokens,
+    dynamicDateTokenOptions,
+    isDynamicDateToken,
+} from "../../../shared/constants/dynamicDateTokens";
 import { FilterTemplate, filterTemplates } from "./ViewFilterTemplates";
 
 interface Props {
@@ -40,6 +45,7 @@ function getFormValue(type: string, storedValue: string | undefined) {
     switch (type) {
         case "date":
         case "datetime":
+            if (isDynamicDateToken(storedValue)) return storedValue;
             return new Date(storedValue);
         case "number":
             return parseFloat(storedValue);
@@ -217,7 +223,9 @@ export default function ViewFormDialog({ tracker, viewId, initialView, onClose }
                         ...filter,
                         value:
                             filter.value !== undefined
-                                ? GetStringValue(field.type, filter.value)
+                                ? isDynamicDateToken(filter.value)
+                                    ? filter.value
+                                    : GetStringValue(field.type, filter.value)
                                 : undefined,
                     };
                 }
@@ -453,20 +461,50 @@ export default function ViewFormDialog({ tracker, viewId, initialView, onClose }
                                                     align="flex-end"
                                                     justify="flex-end"
                                                 >
-                                                    {selectedField && (
-                                                        <Group flex={1}>
-                                                            <FieldValueInput
-                                                                field={
-                                                                    selectedField
-                                                                }
-                                                                form={form}
-                                                                fieldPath={`filters.${index}.value`}
-                                                                styles={{
-                                                                    flex: 1,
-                                                                }}
-                                                            />
-                                                        </Group>
-                                                    )}
+                                                    {selectedField && (() => {
+                                                        const isDateType = selectedField.type === "date" || selectedField.type === "datetime";
+                                                        const isDynamic = isDynamicDateToken(filter.value);
+                                                        return (
+                                                            <Group flex={1} align="flex-end" gap="xs">
+                                                                {isDateType && (
+                                                                    <SegmentedControl
+                                                                        size="xs"
+                                                                        data={[
+                                                                            { value: "fixed", label: "Fixed" },
+                                                                            { value: "dynamic", label: "Dynamic" },
+                                                                        ]}
+                                                                        value={isDynamic ? "dynamic" : "fixed"}
+                                                                        onChange={(v) =>
+                                                                            form.setFieldValue(
+                                                                                `filters.${index}.value`,
+                                                                                v === "dynamic" ? DynamicDateTokens.Today : undefined
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                )}
+                                                                {isDateType && isDynamic ? (
+                                                                    <Select
+                                                                        flex={1}
+                                                                        label={selectedField.name}
+                                                                        placeholder="Select dynamic value"
+                                                                        data={dynamicDateTokenOptions}
+                                                                        value={typeof filter.value === "string" ? filter.value : null}
+                                                                        onChange={(v) =>
+                                                                            form.setFieldValue(`filters.${index}.value`, v ?? undefined)
+                                                                        }
+                                                                        allowDeselect={false}
+                                                                    />
+                                                                ) : (
+                                                                    <FieldValueInput
+                                                                        field={selectedField}
+                                                                        form={form}
+                                                                        fieldPath={`filters.${index}.value`}
+                                                                        styles={{ flex: 1 }}
+                                                                    />
+                                                                )}
+                                                            </Group>
+                                                        );
+                                                    })()}
 
                                                     <ActionIcon
                                                         color="red"

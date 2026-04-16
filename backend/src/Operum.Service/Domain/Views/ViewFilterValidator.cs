@@ -2,6 +2,7 @@
 using Operum.Model.Constants.Fields;
 using Operum.Model.Converters;
 
+
 namespace Operum.Service.Domain.Views
 {
     public static class ViewFilterValidator
@@ -17,7 +18,8 @@ namespace Operum.Service.Domain.Views
                 {
                     DataTypes.String => true,
                     DataTypes.Number => double.TryParse(value, out _),
-                    DataTypes.Date or DataTypes.DateTime => DataFormatters.StringToDateTime(value) != null,
+                    DataTypes.Date or DataTypes.DateTime =>
+                        DynamicDateTokens.All.Contains(value) || DataFormatters.StringToDateTime(value) != null,
                     DataTypes.TimeSpan => TimeSpan.TryParse(value, out _),
                     DataTypes.Bool => bool.TryParse(value, out _),
                     _ => false,
