@@ -18,23 +18,6 @@ Self-hosted data tracking. Define your schema, log entries, build views, and vis
 
 ---
 
-## Limits
-
-| Resource | Limit |
-|---|---|
-| Trackers per account | 20 |
-| Fields per tracker | 25 |
-| Entries per tracker | 1,000 |
-| Views per tracker | 25 |
-| Analytics per tracker | 10 |
-| Constants per tracker | 25 |
-| Conditional values per constant | 6 |
-| Filters per view | 6 |
-| Sorts per view | 3 |
-| Formula length | 500 characters |
-
----
-
 ## Self-hosting
 
 Requires Docker and Docker Compose.
