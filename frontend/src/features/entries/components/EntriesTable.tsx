@@ -42,7 +42,7 @@ export function EntriesTable({
         selectedEntryIds,
         toggleEntrySelection,
     } = useEntries();
-    const { tracker } = useTracker();
+    const { tracker, canEditData } = useTracker();
     const { visibleFields, visibleColumns } = useFields();
 
     // Create table headers from visible fields
@@ -161,6 +161,7 @@ export function EntriesTable({
                                 >
                                     <RiFileListFill size={16} />
                                 </ActionIcon>
+                                {canEditData && <>
                                 <ActionIcon
                                     variant="outline"
                                     color="green"
@@ -182,6 +183,7 @@ export function EntriesTable({
                                 >
                                     <MdDelete size={16} />
                                 </ActionIcon>
+                                </>}
                             </Group>
                         </Table.Td>
                     )}

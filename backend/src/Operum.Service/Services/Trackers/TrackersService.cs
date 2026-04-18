@@ -240,7 +240,19 @@ namespace Operum.Service.Services.Trackers
                 return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
-            return Result.Success(mapper.Map<Tracker, TrackerDto>(tracker));
+            var dto = mapper.Map<Tracker, TrackerDto>(tracker);
+            if (tracker.OwnerId == user.Id)
+            {
+                dto.CurrentUserCanEditData = true;
+                dto.CurrentUserCanEditSchema = true;
+            }
+            else
+            {
+                var ut = tracker.ApplicationUserTrackers.FirstOrDefault(x => x.ApplicationUserId == user.Id);
+                dto.CurrentUserCanEditData = ut?.CanEditData ?? false;
+                dto.CurrentUserCanEditSchema = ut?.CanEditSchema ?? false;
+            }
+            return Result.Success(dto);
         }
 
         public async Task<Result<List<TrackerDto>>> GetTrackerList(string filter)
@@ -449,6 +461,8 @@ namespace Operum.Service.Services.Trackers
             {
                 ApplicationUserId = userToAdd.Id,
                 TrackerId = trackerId,
+                CanEditData = addUserToTracker.CanEditData,
+                CanEditSchema = addUserToTracker.CanEditSchema,
             };
 
             await db.UserTrackers.AddAsync(newRelation);
@@ -457,28 +471,35 @@ namespace Operum.Service.Services.Trackers
             return Result.Success();
         }
 
-        public async Task<Result<List<PublicUserDto>>> GetApplicationUserTrackerList(string trackerId)
+        public async Task<Result<List<TrackerCollaboratorDto>>> GetApplicationUserTrackerList(string trackerId)
         {
             var user = currentUserService.GetCurrentUser();
             var tracker = await db.Trackers
               .Include(x => x.ApplicationUserTrackers)
               .FirstOrDefaultAsync(x => x.Id == trackerId);
 
-            var hasAccess = tracker != null && (tracker.OwnerId == user.Id || tracker.ApplicationUserTrackers.Any(x => x.ApplicationUserId == user.Id));
+            var hasAccess = tracker != null && tracker.OwnerId == user.Id;
 
             if (tracker == null || !hasAccess)
             {
                 return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
-            var appUserTrackerList = await db.UserTrackers
+            var userTrackers = await db.UserTrackers
                 .Include(x => x.ApplicationUser)
                 .Where(x => x.TrackerId == trackerId)
                 .OrderBy(x => x.ApplicationUser.UserName)
-                .Select(x => x.ApplicationUser)
                 .ToListAsync();
 
-            return Result.Success(mapper.Map<List<User>, List<PublicUserDto>>(appUserTrackerList));
+            var result = userTrackers.Select(ut => new TrackerCollaboratorDto
+            {
+                Id = ut.ApplicationUser.Id,
+                UserName = ut.ApplicationUser.UserName,
+                CanEditData = ut.CanEditData,
+                CanEditSchema = ut.CanEditSchema,
+            }).ToList();
+
+            return Result.Success(result);
         }
 
         public async Task<Result> RemoveUserFromTracker(string trackerId, RemoveUserFromTrackerDto addUserToTracker)
@@ -511,11 +532,39 @@ namespace Operum.Service.Services.Trackers
             return Result.Success();
         }
 
-        public async Task<Result> AddAnalytic(string trackerId, CreateAnalyticDto addAnalytic)
+        public async Task<Result> UpdateCollaboratorPermissions(string trackerId, UpdateCollaboratorPermissionsDto dto)
         {
             var user = currentUserService.GetCurrentUser();
             var tracker = await db.Trackers.FindAsync(trackerId);
+
             if (tracker == null || user.Id != tracker.OwnerId)
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("tracker"));
+
+            var targetUser = await db.Users.FirstOrDefaultAsync(x => x.UserName == dto.Username);
+            if (targetUser == null)
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("user"));
+
+            var relation = await db.UserTrackers.FirstOrDefaultAsync(x => x.TrackerId == trackerId && x.ApplicationUserId == targetUser.Id);
+            if (relation == null)
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.NotInTracker);
+
+            relation.CanEditData = dto.CanEditData;
+            relation.CanEditSchema = dto.CanEditSchema;
+            db.UserTrackers.Update(relation);
+            await db.SaveChangesAsync();
+
+            return Result.Success();
+        }
+
+        public async Task<Result> AddAnalytic(string trackerId, CreateAnalyticDto addAnalytic)
+        {
+            var user = currentUserService.GetCurrentUser();
+            var tracker = await db.Trackers
+                .Include(t => t.ApplicationUserTrackers)
+                .FirstOrDefaultAsync(t => t.Id == trackerId);
+            var isOwner = tracker?.OwnerId == user.Id;
+            var userTracker = tracker?.ApplicationUserTrackers.FirstOrDefault(ut => ut.ApplicationUserId == user.Id);
+            if (tracker == null || (!isOwner && userTracker?.CanEditSchema != true))
             {
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("tracker"));
             }
@@ -580,8 +629,12 @@ namespace Operum.Service.Services.Trackers
         public async Task<Result> RemoveAnalytic(string trackerId, string trackerAnalyticId)
         {
             var user = currentUserService.GetCurrentUser();
-            var tracker = await db.Trackers.FindAsync(trackerId);
-            if (tracker == null || user.Id != tracker.OwnerId)
+            var tracker = await db.Trackers
+                .Include(t => t.ApplicationUserTrackers)
+                .FirstOrDefaultAsync(t => t.Id == trackerId);
+            var isOwner = tracker?.OwnerId == user.Id;
+            var userTracker = tracker?.ApplicationUserTrackers.FirstOrDefault(ut => ut.ApplicationUserId == user.Id);
+            if (tracker == null || (!isOwner && userTracker?.CanEditSchema != true))
             {
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("tracker"));
             }
@@ -601,9 +654,13 @@ namespace Operum.Service.Services.Trackers
         public async Task<Result> ReorderAnalytics(string trackerId, ReorderAnalyticsDto reorderAnalyticsDto)
         {
             var user = currentUserService.GetCurrentUser();
-            var tracker = await db.Trackers.FindAsync(trackerId);
+            var tracker = await db.Trackers
+                .Include(t => t.ApplicationUserTrackers)
+                .FirstOrDefaultAsync(t => t.Id == trackerId);
+            var isOwner = tracker?.OwnerId == user.Id;
+            var userTracker = tracker?.ApplicationUserTrackers.FirstOrDefault(ut => ut.ApplicationUserId == user.Id);
 
-            if (tracker == null || user.Id != tracker.OwnerId)
+            if (tracker == null || (!isOwner && userTracker?.CanEditSchema != true))
             {
                 return Result.Failure(ResultStatusCodes.NotFound);
             }

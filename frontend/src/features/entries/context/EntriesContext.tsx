@@ -26,6 +26,7 @@ type EntriesContextType = {
     _deleteEntry: (entryId: string) => Promise<void>;
     _deleteEntries: (entryIds: string[]) => Promise<void>;
     _importEntries: (file: File | null) => Promise<void>;
+    _recalculateEntries: (entryIds: string[]) => Promise<void>;
 };
 
 const EntriesContext = createContext<EntriesContextType | undefined>(undefined);
@@ -134,6 +135,11 @@ export const EntriesProvider: React.FC<{ children: React.ReactNode }> = ({
         await refreshEntries();
     };
 
+    const _recalculateEntries = async (entryIds: string[]) => {
+        await entriesController.recalculateEntries(tracker.id, entryIds);
+        await refreshEntries();
+    };
+
     return (
         <EntriesContext.Provider
             value={{
@@ -155,6 +161,7 @@ export const EntriesProvider: React.FC<{ children: React.ReactNode }> = ({
                 _deleteEntry,
                 _deleteEntries,
                 _importEntries,
+                _recalculateEntries,
             }}
         >
             {children}

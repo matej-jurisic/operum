@@ -45,6 +45,12 @@ namespace Operum.API.Controllers
             return GetApiResponse(await entriesService.DeleteEntries(trackerId, deleteRequest.EntryIds));
         }
 
+        [HttpPost("recalculate")]
+        public async Task<IActionResult> RecalculateEntries([FromRoute] string trackerId, [FromBody] RecalculateEntriesDto request)
+        {
+            return GetApiResponse(await entriesService.RecalculateEntries(trackerId, request.EntryIds));
+        }
+
         [HttpPost("import-csv")]
         public async Task<IActionResult> ImportCsv([FromRoute] string trackerId, [FromForm] ImportEntriesDto file)
         {

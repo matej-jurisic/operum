@@ -19,5 +19,8 @@ namespace Operum.Model.Models
         public virtual Tracker Tracker { get; set; } = null!;
 
         public string? Type { get; set; }
+
+        public bool CanEditData { get; set; }
+        public bool CanEditSchema { get; set; }
     }
 }

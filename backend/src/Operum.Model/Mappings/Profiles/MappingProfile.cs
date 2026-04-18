@@ -1,6 +1,8 @@
 ﻿using Operum.Model.DTOs.Entries;
 using Operum.Model.DTOs.Fields;
 using Operum.Model.DTOs.Fields.Requests;
+using Operum.Model.DTOs.TrackerConstants;
+using Operum.Model.DTOs.TrackerConstants.Requests;
 using Operum.Model.DTOs.Trackers;
 using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Model.DTOs.Users;
@@ -91,6 +93,11 @@ namespace Operum.Service.Mappings.Profiles
             {
                 d.Field = mapper.Map<Field, FieldDto>(s.Field);
             });
+
+            mapper.Register<TrackerConstant, TrackerConstantDto>();
+            mapper.Register<TrackerConstantDto, TrackerConstant>();
+            mapper.Register<CreateTrackerConstantDto, TrackerConstant>();
+            mapper.Register<UpdateTrackerConstantDto, TrackerConstant>();
 
             mapper.Register<CreateViewSortDto, ViewSort>();
             mapper.Register<CreateViewFilterDto, ViewFilter>();

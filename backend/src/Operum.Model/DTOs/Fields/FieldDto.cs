@@ -8,5 +8,7 @@
         public string Type { get; set; } = string.Empty;
         public bool Required { get; set; } = false;
         public List<string>? SelectOptions { get; set; }
+        public bool IsCalculated { get; set; } = false;
+        public string? Formula { get; set; }
     }
 }

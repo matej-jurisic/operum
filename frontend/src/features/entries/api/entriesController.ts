@@ -64,6 +64,14 @@ export const entriesController = {
             data: { entryIds },
         });
     },
+    recalculateEntries: async (
+        trackerId: string,
+        entryIds: string[]
+    ): Promise<ApiResponse> => {
+        return await api.post(`/trackers/${trackerId}/entries/recalculate`, {
+            entryIds,
+        });
+    },
     importEntries: async (
         trackerId: string,
         data: FormData

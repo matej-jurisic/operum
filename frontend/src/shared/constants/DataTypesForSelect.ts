@@ -1,3 +1,9 @@
+export const calculatedFieldTypes = [
+    { value: "number", label: "Number" },
+    { value: "bool", label: "Bool" },
+    { value: "timespan", label: "Timespan" },
+];
+
 export const fieldTypes = [
     { value: "string", label: "String" },
     { value: "number", label: "Number" },

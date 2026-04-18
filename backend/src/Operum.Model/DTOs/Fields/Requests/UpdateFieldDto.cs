@@ -11,6 +11,8 @@ namespace Operum.Model.DTOs.Fields.Requests
         public required string Type { get; set; } = string.Empty;
         public bool Required { get; set; } = false;
         public List<string>? SelectOptions { get; set; }
+        public bool IsCalculated { get; set; } = false;
+        public string? Formula { get; set; }
     }
 
     public class UpdateFieldDtoValidator : AbstractValidator<UpdateFieldDto>
@@ -27,7 +29,25 @@ namespace Operum.Model.DTOs.Fields.Requests
 
             RuleFor(x => x.Type)
                 .NotEmpty().WithMessage((x) => Messages.Required("field type"))
-                .Must(DataTypes.IsValid).WithMessage((x) => Messages.Invalid("field tye"));
+                .Must(DataTypes.IsValid).WithMessage((x) => Messages.Invalid("field type"));
+
+            RuleFor(x => x.Formula)
+                .NotEmpty().WithMessage("Formula is required for calculated fields.")
+                .MaximumLength(500).WithMessage("Formula cannot exceed 500 characters.")
+                .When(x => x.IsCalculated);
+
+            RuleFor(x => x.Formula)
+                .Empty().WithMessage("Formula must be empty for manual fields.")
+                .When(x => !x.IsCalculated);
+
+            RuleFor(x => x.Required)
+                .Equal(false).WithMessage("Calculated fields cannot be required.")
+                .When(x => x.IsCalculated);
+
+            RuleFor(x => x.Type)
+                .Must(DataTypes.CalculatedCompatible.Contains)
+                .WithMessage("Calculated field type must be number, bool, or timespan.")
+                .When(x => x.IsCalculated);
 
             RuleForEach(x => x.SelectOptions)
                 .NotEmpty().WithMessage("Select option cannot be empty.")

@@ -7,21 +7,28 @@ Operum is a personal and collaborative data tracking app. Instead of wrestling w
 ### Build Custom Trackers
 A tracker is a collection of data you care about — a reading list, a workout log, a bug database, anything. You define the structure by adding fields with the types that make sense for your data: text, numbers, dates, and more. Up to 25 fields per tracker, each with its own label, description, ordering, and visibility.
 
+**Field types:** String, Number, Boolean, Date, DateTime, TimeSpan
+
+**Calculated fields:** Mark any Number, Bool, or TimeSpan field as calculated and write a formula to derive its value automatically from other fields and constants. Formulas use `{FieldName}` syntax; TimeSpan fields support `{Field.hours}`, `{Field.minutes}`, and `{Field.seconds}` for unit-aware access. Calculated fields evaluate on every entry create or update and are hidden from the entry form. You can also select a group of entries and re-run their calculated fields on demand, useful when a formula changes after entries already exist.
+
+**Constants:** Define reusable named values (Number, Bool, or TimeSpan) at the tracker level and reference them in formulas by name. Up to 25 constants per tracker.
+
 ### Log Entries
-Once a tracker is set up, you start adding entries. Each entry fills in the fields you've defined. You can create, edit, and delete individual entries or bulk-delete a selection. If you already have data elsewhere, you can import it directly from a CSV file. You can also export your data to CSV at any time.
+Once a tracker is set up, you start adding entries. Each entry fills in the fields you've defined. You can create, edit, duplicate, and delete individual entries or bulk-delete a selection. Select multiple entries to bulk-delete or force-recalculate calculated fields on all of them at once. If you already have data elsewhere, you can import it directly from a CSV file. You can also export your data to CSV at any time, optionally scoped to a specific view's filters.
 
 ### Create Views
-A view is a saved lens on your tracker's data. You can filter by field values, set sort orders, and choose which columns are visible. Switch between views to see the same data from different angles without losing your other configurations. Each tracker can have a default view that opens automatically.
+A view is a saved lens on your tracker's data. You can filter by field values, set sort orders, and choose which columns are visible. Switch between views to see the same data from different angles without losing your other configurations. Each tracker can have a default view that opens automatically. Views can be reordered by dragging.
 
 ### Visualize with Analytics
 Add charts to a tracker to turn raw entries into visual summaries. Up to 10 analytics per tracker, displayed in a draggable masonry grid. You can reorder them by dragging.
 
-**Five chart types:**
+**Six chart types:**
 
 - **Single Value** — shows one calculated metric front and center: count, sum, min, max, average, standard deviation, or boolean percentages
 - **Line Chart** — plots entries along X/Y axes; supports raw lines, aggregated sums grouped by X, or cumulative running totals
 - **Scatter Chart** — numeric X/Y point cloud for spotting correlations between two number fields
 - **Donut Chart** — groups entries by a category field and sums a numeric field per group
+- **Bar Chart** — bar chart visualization grouped by a field
 - **Calendar** — maps entries to a date field and labels each point with another field's value
 
 **Configuring an analytic:**
@@ -29,7 +36,12 @@ Add charts to a tracker to turn raw entries into visual summaries. Up to 10 anal
 Pick a chart type and calculation method, then map your tracker's fields to the roles that chart needs (e.g. X-axis, Y-axis, or Value). The UI only shows fields whose data type is compatible with each role — for example, a Y-axis only accepts Number or TimeSpan fields, while a Calendar's date axis only accepts Date or DateTime fields. Analytics are calculated at query time against the tracker's current entries, and can optionally be scoped to a specific view.
 
 ### Collaborate
-Trackers can be shared with other users. Add teammates or friends to a tracker so they can view and contribute entries. Each tracker has its own set of collaborators.
+Trackers can be shared with other users. Add teammates or friends to a tracker by searching by username. Each collaborator gets two independent permission flags:
+
+- **Edit data** — can create, edit, and delete entries
+- **Edit schema** — can create, edit, and delete fields, views, analytics, and constants
+
+Both flags are off by default (view-only). They can be toggled independently and changed at any time by the tracker owner. Only the owner can manage collaborators and tracker metadata (name, color, description, default views).
 
 ### Use Templates
 Admins can publish public template trackers that other users can use as a starting point. Browse available templates and build on top of them instead of starting from scratch.
@@ -39,6 +51,22 @@ Admins can publish public template trackers that other users can use as a starti
 - Email confirmation on registration
 - Account lockout after repeated failed login attempts
 - Two roles: **User** (create and manage trackers, collaborate) and **Admin** (everything, plus user management and platform configuration)
+
+---
+
+## Limits
+
+| Resource | Limit |
+|---|---|
+| Trackers per account | 20 |
+| Fields per tracker | 25 |
+| Entries per tracker | 1,000 |
+| Views per tracker | 25 |
+| Analytics per tracker | 10 |
+| Constants per tracker | 25 |
+| Filters per view | 6 |
+| Sorts per view | 3 |
+| Formula length | 500 characters |
 
 ---
 

@@ -18,9 +18,10 @@ namespace Operum.Service.Interfaces
         public Task<Result> UpdateDefaultView(string id, List<string>? viewIds);
         public Task<Result> DeleteTracker(string id);
         public Task<Result<List<AnalyticDto>>> GetTrackerAnalytics(string trackerId, List<string> viewIds);
-        public Task<Result<List<PublicUserDto>>> GetApplicationUserTrackerList(string trackerId);
+        public Task<Result<List<TrackerCollaboratorDto>>> GetApplicationUserTrackerList(string trackerId);
         public Task<Result> AddUserToTracker(string trackerId, AddUserToTrackerDto addUserToTracker);
         public Task<Result> RemoveUserFromTracker(string trackerId, RemoveUserFromTrackerDto addUserToTracker);
+        public Task<Result> UpdateCollaboratorPermissions(string trackerId, UpdateCollaboratorPermissionsDto dto);
         public Task<Result> AddAnalytic(string trackerId, CreateAnalyticDto addTrackerAnalytic);
         public Task<Result> RemoveAnalytic(string trackerId, string trackerAnalyticId);
         public Task<Result> ReorderAnalytics(string trackerId, ReorderAnalyticsDto reorderAnalyticsDto);

@@ -6,6 +6,8 @@
         public const int MaxEntryCount = 1000;
         public const int MaxTrackerCount = 20;
         public const int MaxAnalyticCount = 10;
+        public const int MaxConstantCount = 25;
+        public const int MaxViewCount = 25;
         public const int MaxSorts = 3;
         public const int MaxFilters = 6;
     }

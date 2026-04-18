@@ -11,4 +11,6 @@ export interface TrackerDto {
     ownerName?: string;
     defaultViewIds?: string[];
     trackerTypeName?: string;
+    currentUserCanEditData: boolean;
+    currentUserCanEditSchema: boolean;
 }

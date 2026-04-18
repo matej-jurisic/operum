@@ -18,11 +18,19 @@ namespace Operum.Service.Services.Views
         public async Task<Result<ViewDto>> CreateView(string trackerId, CreateViewDto view)
         {
             var user = currentUserService.GetCurrentUser();
-            var tracker = await db.Trackers.FindAsync(trackerId);
-            if (tracker == null || tracker.OwnerId != user.Id)
+            var tracker = await db.Trackers
+                .Include(t => t.ApplicationUserTrackers)
+                .FirstOrDefaultAsync(t => t.Id == trackerId);
+            var isOwner = tracker?.OwnerId == user.Id;
+            var userTracker = tracker?.ApplicationUserTrackers.FirstOrDefault(ut => ut.ApplicationUserId == user.Id);
+            if (tracker == null || (!isOwner && userTracker?.CanEditSchema != true))
             {
                 return Result.Failure(ResultStatusCodes.NotFound);
             }
+
+            var viewCount = await db.Views.CountAsync(v => v.TrackerId == trackerId);
+            if (viewCount >= DataLimits.MaxViewCount)
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("views", DataLimits.MaxViewCount));
 
             foreach (var sort in view.Sorts)
             {
@@ -65,9 +73,12 @@ namespace Operum.Service.Services.Views
             var user = currentUserService.GetCurrentUser();
             var userView = await db.Views
                 .Include(x => x.Tracker)
+                    .ThenInclude(t => t.ApplicationUserTrackers)
                 .FirstOrDefaultAsync(x => x.Id == viewId && x.TrackerId == trackerId);
 
-            if (userView == null || userView.Tracker.OwnerId != user.Id)
+            var isOwnerView = userView?.Tracker.OwnerId == user.Id;
+            var utView = userView?.Tracker.ApplicationUserTrackers.FirstOrDefault(ut => ut.ApplicationUserId == user.Id);
+            if (userView == null || (!isOwnerView && utView?.CanEditSchema != true))
             {
                 return Result.Failure(ResultStatusCodes.NotFound);
             }
@@ -126,8 +137,12 @@ namespace Operum.Service.Services.Views
         {
             var user = currentUserService.GetCurrentUser();
 
-            var tracker = await db.Trackers.FindAsync(trackerId);
-            if (tracker == null || tracker.OwnerId != user.Id)
+            var tracker = await db.Trackers
+                .Include(t => t.ApplicationUserTrackers)
+                .FirstOrDefaultAsync(t => t.Id == trackerId);
+            var isOwnerDel = tracker?.OwnerId == user.Id;
+            var utDel = tracker?.ApplicationUserTrackers.FirstOrDefault(ut => ut.ApplicationUserId == user.Id);
+            if (tracker == null || (!isOwnerDel && utDel?.CanEditSchema != true))
             {
                 return Result.Failure(ResultStatusCodes.NotFound);
             }
@@ -191,9 +206,13 @@ namespace Operum.Service.Services.Views
         public async Task<Result> ReorderViews(string trackerId, ReorderViewsDto reorderViews)
         {
             var user = currentUserService.GetCurrentUser();
-            var tracker = await db.Trackers.FindAsync(trackerId);
+            var tracker = await db.Trackers
+                .Include(t => t.ApplicationUserTrackers)
+                .FirstOrDefaultAsync(t => t.Id == trackerId);
+            var isOwnerReorder = tracker?.OwnerId == user.Id;
+            var utReorder = tracker?.ApplicationUserTrackers.FirstOrDefault(ut => ut.ApplicationUserId == user.Id);
 
-            if (tracker == null || user.Id != tracker.OwnerId)
+            if (tracker == null || (!isOwnerReorder && utReorder?.CanEditSchema != true))
             {
                 return Result.Failure(ResultStatusCodes.NotFound);
             }

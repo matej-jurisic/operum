@@ -19,7 +19,7 @@ using System.Globalization;
 
 namespace Operum.Service.Services.Entries
 {
-    public class EntriesService(ICurrentUserService currentUserService, IAuthorizationService authorizationService, OperumContext db, IMapper mapper, ILogger<EntriesService> logger) : IEntriesService
+    public class EntriesService(ICurrentUserService currentUserService, IAuthorizationService authorizationService, OperumContext db, IMapper mapper, ILogger<EntriesService> logger, IFormulaEvaluationService formulaEvaluationService) : IEntriesService
     {
         public async Task<Result<EntryDto>> CreateEntry(string trackerId, CreateEntryDto entry)
         {
@@ -28,9 +28,9 @@ namespace Operum.Service.Services.Entries
                 .Include(x => x.ApplicationUserTrackers)
                 .FirstOrDefaultAsync(x => x.Id == trackerId);
 
-            var hasAccess = tracker != null && (tracker.OwnerId == user.Id || tracker.ApplicationUserTrackers.Any(x => x.ApplicationUserId == user.Id));
+            var canWrite = tracker != null && (tracker.OwnerId == user.Id || tracker.ApplicationUserTrackers.Any(x => x.ApplicationUserId == user.Id && x.CanEditData));
 
-            if (tracker == null || !hasAccess)
+            if (tracker == null || !canWrite)
             {
                 return Result.Failure(ResultStatusCodes.Forbidden);
             }
@@ -53,7 +53,7 @@ namespace Operum.Service.Services.Entries
             var entryFieldValues = new List<FieldValue>();
             var fieldDict = entry.FieldValues;
 
-            foreach (var field in fields)
+            foreach (var field in fields.Where(f => !f.IsCalculated))
             {
                 if (fieldDict.TryGetValue(field.Name, out string? value) && !(field.Required && string.IsNullOrEmpty(value)))
                 {
@@ -73,6 +73,9 @@ namespace Operum.Service.Services.Entries
 
             await db.FieldValues.AddRangeAsync(entryFieldValues);
             await db.SaveChangesAsync();
+
+            await formulaEvaluationService.EvaluateAndPersistCalculatedFields(
+                trackerId, newEntry.Id, entryFieldValues, fields);
 
             var created = await GetEntry(trackerId, newEntry.Id);
 
@@ -159,9 +162,9 @@ namespace Operum.Service.Services.Entries
                     .ThenInclude(x => x.ApplicationUserTrackers)
                 .FirstOrDefaultAsync(x => x.Id == entryId && x.TrackerId == trackerId);
 
-            var hasAccess = entry?.Tracker != null && (entry.Tracker.OwnerId == user.Id || entry.Tracker.ApplicationUserTrackers.Any(x => x.ApplicationUserId == user.Id));
+            var canWrite = entry?.Tracker != null && (entry.Tracker.OwnerId == user.Id || entry.Tracker.ApplicationUserTrackers.Any(x => x.ApplicationUserId == user.Id && x.CanEditData));
 
-            if (entry == null || !hasAccess)
+            if (entry == null || !canWrite)
             {
                 return Result.Failure(ResultStatusCodes.Forbidden);
             }
@@ -181,7 +184,7 @@ namespace Operum.Service.Services.Entries
 
             var newFieldValues = new List<FieldValue>();
 
-            foreach (var field in allFields)
+            foreach (var field in allFields.Where(f => !f.IsCalculated))
             {
                 fieldValuesDict.TryGetValue(field.Id, out var existingFieldValue);
                 bool hasNewValue = updateEntry.FieldValues.TryGetValue(field.Name, out string? newValue);
@@ -211,6 +214,15 @@ namespace Operum.Service.Services.Entries
 
             await db.FieldValues.AddRangeAsync(newFieldValues);
             await db.SaveChangesAsync();
+
+            var allCurrentValues = fieldValues
+    		.Where(fv => db.Entry(fv).State != EntityState.Deleted) // Filter out items you just deleted
+    		.Concat(newFieldValues)
+    		.ToList();
+
+            await formulaEvaluationService.EvaluateAndPersistCalculatedFields(
+                trackerId, entryId, allCurrentValues, allFields);
+
             var updatedEntry = await GetEntry(trackerId, entryId);
             return Result.Success(updatedEntry.Data);
         }
@@ -223,9 +235,9 @@ namespace Operum.Service.Services.Entries
                     .ThenInclude(x => x.ApplicationUserTrackers)
                 .FirstOrDefaultAsync(x => x.Id == entryId && x.TrackerId == trackerId);
 
-            var hasAccess = entry?.Tracker != null && (entry.Tracker.OwnerId == user.Id || entry.Tracker.ApplicationUserTrackers.Any(x => x.ApplicationUserId == user.Id));
+            var canWrite = entry?.Tracker != null && (entry.Tracker.OwnerId == user.Id || entry.Tracker.ApplicationUserTrackers.Any(x => x.ApplicationUserId == user.Id && x.CanEditData));
 
-            if (entry == null || !hasAccess)
+            if (entry == null || !canWrite)
             {
                 return Result.Failure(ResultStatusCodes.Forbidden);
             }
@@ -242,7 +254,7 @@ namespace Operum.Service.Services.Entries
             var entries = await db.Entries
                 .Include(x => x.Tracker)
                     .ThenInclude(x => x.ApplicationUserTrackers)
-                .Where(x => entryIdList.Contains(x.Id) && x.TrackerId == trackerId && (x.Tracker.OwnerId == user.Id || x.Tracker.ApplicationUserTrackers.Any(a => a.ApplicationUserId == user.Id)))
+                .Where(x => entryIdList.Contains(x.Id) && x.TrackerId == trackerId && (x.Tracker.OwnerId == user.Id || x.Tracker.ApplicationUserTrackers.Any(a => a.ApplicationUserId == user.Id && a.CanEditData)))
                 .ExecuteDeleteAsync();
 
             return Result.Success();
@@ -260,9 +272,9 @@ namespace Operum.Service.Services.Entries
                  .Include(x => x.ApplicationUserTrackers)
                  .FirstOrDefaultAsync(x => x.Id == trackerId);
 
-            var hasAccess = tracker != null && (tracker.OwnerId == user.Id || tracker.ApplicationUserTrackers.Any(x => x.ApplicationUserId == user.Id));
+            var canWrite = tracker != null && (tracker.OwnerId == user.Id || tracker.ApplicationUserTrackers.Any(x => x.ApplicationUserId == user.Id && x.CanEditData));
 
-            if (tracker == null || !hasAccess)
+            if (tracker == null || !canWrite)
             {
                 return Result.Failure(ResultStatusCodes.Forbidden);
             }
@@ -272,8 +284,9 @@ namespace Operum.Service.Services.Entries
 
             using var stream = file.OpenReadStream();
             var fields = await db.Fields.Where(x => x.TrackerId == trackerId).ToListAsync();
-            var fieldsByName = fields.ToDictionary(f => f.Name, f => f);
-            var requiredFields = fields.Where(f => f.Required).ToList();
+            var manualFields = fields.Where(f => !f.IsCalculated).ToList();
+            var fieldsByName = manualFields.ToDictionary(f => f.Name, f => f);
+            var requiredFields = manualFields.Where(f => f.Required).ToList();
 
             // First pass: Parse and validate all records
             var parsedRecords = new List<Dictionary<string, string>>();
@@ -369,7 +382,7 @@ namespace Operum.Service.Services.Entries
                 };
                 newEntries.Add(newEntry);
 
-                // Create field values for this entry
+                // Create field values for manual fields only (calculated fields are derived)
                 foreach (var kvp in parsedRecord)
                 {
                     if (fieldsByName.TryGetValue(kvp.Key, out var field))
@@ -403,6 +416,17 @@ namespace Operum.Service.Services.Entries
             {
                 await transaction.RollbackAsync();
                 throw;
+            }
+
+            // Evaluate calculated fields for each imported entry
+            var fieldValuesByEntry = allFieldValues.GroupBy(fv => fv.EntryId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            foreach (var newEntry in newEntries)
+            {
+                var entryFieldValues = fieldValuesByEntry.TryGetValue(newEntry.Id, out var fvs) ? fvs : [];
+                await formulaEvaluationService.EvaluateAndPersistCalculatedFields(
+                    trackerId, newEntry.Id, entryFieldValues, fields);
             }
 
             return Result.Success(Messages.Success);
@@ -505,6 +529,43 @@ namespace Operum.Service.Services.Entries
                 logger.LogError(ex, "Exception while exporting entries to csv with trackerId={trackerId} and viewIds={viewIds}.", trackerId, string.Join(",", viewIds));
                 return Result.Failure(ResultStatusCodes.Error, Messages.SomethingWentWrong);
             }
+        }
+
+        public async Task<Result> RecalculateEntries(string trackerId, List<string> entryIds)
+        {
+            var user = currentUserService.GetCurrentUser();
+            var tracker = await db.Trackers
+                .Include(x => x.ApplicationUserTrackers)
+                .FirstOrDefaultAsync(x => x.Id == trackerId);
+
+            var canWrite = tracker != null && (tracker.OwnerId == user.Id || tracker.ApplicationUserTrackers.Any(x => x.ApplicationUserId == user.Id && x.CanEditData));
+
+            if (tracker == null || !canWrite)
+                return Result.Failure(ResultStatusCodes.Forbidden);
+
+            var allFields = await db.Fields.Where(f => f.TrackerId == trackerId).ToListAsync();
+            var hasCalculatedFields = allFields.Any(f => f.IsCalculated);
+            if (!hasCalculatedFields)
+                return Result.Success();
+
+            var validEntryIds = await db.Entries
+                .Where(e => entryIds.Contains(e.Id) && e.TrackerId == trackerId)
+                .Select(e => e.Id)
+                .ToListAsync();
+
+            foreach (var entryId in validEntryIds)
+            {
+                var fieldValues = await db.FieldValues
+                    .Include(fv => fv.Field)
+                    .Where(fv => fv.EntryId == entryId)
+                    .AsNoTracking()
+                    .ToListAsync();
+
+                await formulaEvaluationService.EvaluateAndPersistCalculatedFields(
+                    trackerId, entryId, fieldValues, allFields);
+            }
+
+            return Result.Success();
         }
     }
 }

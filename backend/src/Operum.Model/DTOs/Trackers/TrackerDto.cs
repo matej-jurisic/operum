@@ -14,5 +14,7 @@ namespace Operum.Model.DTOs.Trackers
         public string? OwnerId { get; set; } = string.Empty;
         public string? OwnerName { get; set; } = string.Empty;
         public List<FieldDto> Fields { get; set; } = [];
+        public bool CurrentUserCanEditData { get; set; }
+        public bool CurrentUserCanEditSchema { get; set; }
     }
 }

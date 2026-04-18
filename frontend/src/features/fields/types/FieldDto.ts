@@ -5,4 +5,6 @@ export interface FieldDto {
     type: string;
     required: boolean;
     selectOptions?: string[];
+    isCalculated: boolean;
+    formula?: string;
 }

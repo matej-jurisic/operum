@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from "react";
+import globalStore from "../../../shared/stores/GlobalStore";
 import { TrackerDto } from "../types/TrackerDto";
 
 type TrackerContextType = {
@@ -6,6 +7,9 @@ type TrackerContextType = {
     selectedViewIds: string[];
     setTracker: React.Dispatch<React.SetStateAction<TrackerDto>>;
     _setSelectedViewIds: (viewIds: string[]) => void;
+    isOwner: boolean;
+    canEditData: boolean;
+    canEditSchema: boolean;
 };
 
 const TrackerContext = createContext<TrackerContextType | undefined>(undefined);
@@ -19,6 +23,10 @@ export const TrackerProvider: React.FC<{
         initialTracker.defaultViewIds ?? []
     );
 
+    const isOwner = tracker.ownerId === globalStore.currentUser?.id;
+    const canEditData = isOwner || tracker.currentUserCanEditData;
+    const canEditSchema = isOwner || tracker.currentUserCanEditSchema;
+
     return (
         <TrackerContext.Provider
             value={{
@@ -26,6 +34,9 @@ export const TrackerProvider: React.FC<{
                 selectedViewIds,
                 setTracker,
                 _setSelectedViewIds,
+                isOwner,
+                canEditData,
+                canEditSchema,
             }}
         >
             {children}

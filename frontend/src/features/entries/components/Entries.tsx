@@ -17,6 +17,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CiExport } from "react-icons/ci";
 import { FiPlus } from "react-icons/fi";
 import { MdCheck, MdClose, MdDelete, MdSelectAll } from "react-icons/md";
+import { TbRefresh } from "react-icons/tb";
 import { PiFileCsvDuotone } from "react-icons/pi";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
@@ -60,7 +61,7 @@ export default function Entries() {
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
     const [currentPage, setCurrentPage] = useState(1);
 
-    const { tracker, selectedViewIds } = useTracker();
+    const { tracker, selectedViewIds, canEditData } = useTracker();
     const { refreshFieldsIfDirty, fields } = useFields();
     const {
         entries,
@@ -73,7 +74,7 @@ export default function Entries() {
         clearSelection,
     } = useEntries();
     const { views } = useViews();
-    const { deleteEntry, deleteEntries } = useTrackerOperations();
+    const { deleteEntry, deleteEntries, recalculateEntries } = useTrackerOperations();
 
     const [isLoadingData, setIsLoadingData] = useState(false);
 
@@ -124,6 +125,7 @@ export default function Entries() {
                 <Stack gap="md" h={"100%"}>
                     <Group justify="space-between" w="100%">
                         <Group>
+                            {canEditData && (
                             <Menu shadow="md" position="bottom-start">
                                 <Menu.Target>
                                     <Tooltip
@@ -171,11 +173,26 @@ export default function Entries() {
                                     </Menu.Item>
                                 </Menu.Dropdown>
                             </Menu>
+                            )}
                         </Group>
                         <Group justify="flex-end" wrap="nowrap">
                             {/* Bulk actions */}
 
-                            {isSelectMode && !isMobile && (
+                            {canEditData && isSelectMode && !isMobile && fields.some(f => f.isCalculated) && (
+                                <Tooltip label="Rerun calculated fields">
+                                    <ActionIcon
+                                        variant="outline"
+                                        color="violet"
+                                        size="lg"
+                                        onClick={() => recalculateEntries(Array.from(selectedEntryIds))}
+                                        disabled={selectedEntryIds.size === 0}
+                                    >
+                                        <TbRefresh size={18} />
+                                    </ActionIcon>
+                                </Tooltip>
+                            )}
+
+                            {canEditData && isSelectMode && !isMobile && (
                                 <ActionIcon
                                     variant="outline"
                                     color="red"
@@ -249,6 +266,18 @@ export default function Entries() {
                                     >
                                         Select All
                                     </Button>
+                                    {canEditData && fields.some(f => f.isCalculated) && (
+                                        <ActionIcon
+                                            variant="outline"
+                                            color="violet"
+                                            size="lg"
+                                            onClick={() => recalculateEntries(Array.from(selectedEntryIds))}
+                                            disabled={selectedEntryIds.size === 0}
+                                        >
+                                            <TbRefresh size={18} />
+                                        </ActionIcon>
+                                    )}
+                                    {canEditData && (
                                     <ActionIcon
                                         variant="outline"
                                         color="red"
@@ -262,6 +291,7 @@ export default function Entries() {
                                     >
                                         <MdDelete size={18} />
                                     </ActionIcon>
+                                    )}
                                 </Group>
                             )}
                         </Group>

@@ -32,7 +32,7 @@ export function EntriesCards({
     onDuplicate,
     onDelete,
 }: EntriesCardsProps) {
-    const { tracker } = useTracker();
+    const { tracker, canEditData } = useTracker();
     const { fields, visibleFields, visibleColumns } = useFields();
     const { selectedEntryIds, isSelectMode, toggleEntrySelection } =
         useEntries();
@@ -140,6 +140,7 @@ export function EntriesCards({
                                             >
                                                 <RiFileListFill size={16} />
                                             </ActionIcon>
+                                            {canEditData && <>
                                             <ActionIcon
                                                 variant="outline"
                                                 color="green"
@@ -164,6 +165,7 @@ export function EntriesCards({
                                             >
                                                 <MdDelete size={16} />
                                             </ActionIcon>
+                                            </>}
                                         </Group>
                                     )}
                                 </Group>

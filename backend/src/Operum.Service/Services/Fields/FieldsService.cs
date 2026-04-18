@@ -10,16 +10,23 @@ using Operum.Model.Enums;
 using Operum.Model.Models;
 using Operum.Service.Interfaces;
 using Operum.Service.Mappings.Mapper;
+using System.Text.RegularExpressions;
 
 namespace Operum.Service.Services.Fields
 {
     public class FieldsService(ICurrentUserService currentUserService, IMapper mapper, OperumContext db, ILogger<FieldsService> logger) : IFieldsService
     {
+        private static readonly Regex TokenPattern = new(@"\{([^}]+)\}", RegexOptions.Compiled);
+
         public async Task<Result<FieldDto>> CreateField(string trackerId, CreateFieldDto field)
         {
             var user = currentUserService.GetCurrentUser();
-            var tracker = await db.Trackers.FindAsync(trackerId);
-            if (tracker == null || user.Id != tracker.OwnerId)
+            var tracker = await db.Trackers
+                .Include(t => t.ApplicationUserTrackers)
+                .FirstOrDefaultAsync(t => t.Id == trackerId);
+            var isOwner = tracker?.OwnerId == user.Id;
+            var userTracker = tracker?.ApplicationUserTrackers.FirstOrDefault(ut => ut.ApplicationUserId == user.Id);
+            if (tracker == null || (!isOwner && userTracker?.CanEditSchema != true))
             {
                 return Result.Failure(ResultStatusCodes.NotFound);
             }
@@ -31,6 +38,14 @@ namespace Operum.Service.Services.Fields
             }
 
             if (!DataTypes.IsValid(field.Type)) return Result.Failure(ResultStatusCodes.BadRequest, Messages.NotAllowed("field type"));
+
+            if (field.IsCalculated)
+            {
+                var formulaError = await ValidateFormula(trackerId, field.Formula!);
+                if (formulaError != null)
+                    return Result.Failure(ResultStatusCodes.BadRequest, formulaError);
+                field.Required = false;
+            }
 
             var newField = mapper.Map<CreateFieldDto, Field>(field);
 
@@ -53,9 +68,12 @@ namespace Operum.Service.Services.Fields
             var user = currentUserService.GetCurrentUser();
             var field = await db.Fields
                 .Include(x => x.Tracker)
+                    .ThenInclude(t => t.ApplicationUserTrackers)
                 .FirstOrDefaultAsync(x => x.Id == fieldId && x.TrackerId == trackerId);
 
-            if (field == null || user.Id != field.Tracker.OwnerId)
+            var isOwner = field?.Tracker.OwnerId == user.Id;
+            var userTracker = field?.Tracker.ApplicationUserTrackers.FirstOrDefault(ut => ut.ApplicationUserId == user.Id);
+            if (field == null || (!isOwner && userTracker?.CanEditSchema != true))
             {
                 return Result.Failure(ResultStatusCodes.NotFound);
             }
@@ -111,9 +129,13 @@ namespace Operum.Service.Services.Fields
         public async Task<Result> ReorderFields(string trackerId, ReorderFieldsDto reorderFields)
         {
             var user = currentUserService.GetCurrentUser();
-            var tracker = await db.Trackers.FindAsync(trackerId);
+            var tracker = await db.Trackers
+                .Include(t => t.ApplicationUserTrackers)
+                .FirstOrDefaultAsync(t => t.Id == trackerId);
+            var isOwner = tracker?.OwnerId == user.Id;
+            var userTracker = tracker?.ApplicationUserTrackers.FirstOrDefault(ut => ut.ApplicationUserId == user.Id);
 
-            if (tracker == null || user.Id != tracker.OwnerId)
+            if (tracker == null || (!isOwner && userTracker?.CanEditSchema != true))
             {
                 return Result.Failure(ResultStatusCodes.NotFound);
             }
@@ -165,26 +187,75 @@ namespace Operum.Service.Services.Fields
             var user = currentUserService.GetCurrentUser();
             var originalField = await db.Fields
                 .Include(x => x.Tracker)
+                    .ThenInclude(t => t.ApplicationUserTrackers)
                 .FirstOrDefaultAsync(x => x.Id == fieldId && x.TrackerId == trackerId);
 
-            if (originalField == null || user.Id != originalField.Tracker.OwnerId)
+            var isOwnerField = originalField?.Tracker.OwnerId == user.Id;
+            var userTrackerField = originalField?.Tracker.ApplicationUserTrackers.FirstOrDefault(ut => ut.ApplicationUserId == user.Id);
+            if (originalField == null || (!isOwnerField && userTrackerField?.CanEditSchema != true))
             {
                 return Result.Failure(ResultStatusCodes.NotFound);
             }
 
             if (!DataTypes.IsValid(field.Type)) return Result.Failure(ResultStatusCodes.BadRequest, Messages.NotAllowed("field type"));
 
+            if (field.IsCalculated)
+            {
+                var formulaError = await ValidateFormula(trackerId, field.Formula!);
+                if (formulaError != null)
+                    return Result.Failure(ResultStatusCodes.BadRequest, formulaError);
+                field.Required = false;
+            }
+            else
+            {
+                // Switching from calculated to manual clears formula
+                field.Formula = null;
+            }
+
             mapper.Map(field, originalField, (s, d) =>
             {
                 d.SelectOptions = s.SelectOptions != null
                     ? System.Text.Json.JsonSerializer.Serialize(s.SelectOptions)
                     : null;
+                d.IsCalculated = s.IsCalculated;
+                d.Formula = s.IsCalculated ? s.Formula : null;
             });
             db.Fields.Update(originalField);
             await db.SaveChangesAsync();
 
             var updatedField = await GetField(trackerId, fieldId);
             return Result.Success(updatedField.Data);
+        }
+
+        private async Task<string?> ValidateFormula(string trackerId, string formula)
+        {
+            var tokens = TokenPattern.Matches(formula).Select(m => m.Groups[1].Value).ToList();
+            if (tokens.Count == 0)
+                return null;
+
+            var manualFieldNames = await db.Fields
+                .Where(f => f.TrackerId == trackerId && !f.IsCalculated)
+                .Select(f => f.Name)
+                .ToListAsync();
+
+            var constantNames = await db.TrackerConstants
+                .Where(c => c.TrackerId == trackerId)
+                .Select(c => c.Name)
+                .ToListAsync();
+
+            var validNames = new HashSet<string>(
+                manualFieldNames.Concat(constantNames),
+                StringComparer.OrdinalIgnoreCase);
+
+            foreach (var token in tokens)
+            {
+                // Strip optional ".property" suffix (e.g. "Duration.hours" → "Duration")
+                var name = token.Contains('.') ? token[..token.IndexOf('.')] : token;
+                if (!validNames.Contains(name))
+                    return $"Unknown token '{token}' in formula. Only manual fields and constants can be referenced.";
+            }
+
+            return null;
         }
 
         private async Task ReorderFieldsAfterDeletion(string trackerId, int deletedOrder)

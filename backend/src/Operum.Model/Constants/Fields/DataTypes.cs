@@ -13,6 +13,9 @@
         [
             String, Number, Date, DateTime, TimeSpan, Bool
         ];
+
+        public static readonly HashSet<string> CalculatedCompatible = [Number, Bool, TimeSpan];
+
         public static bool IsValid(string value) => All.Contains(value);
     }
 }

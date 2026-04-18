@@ -1,4 +1,4 @@
-import { Button, Modal, Select, Stack } from "@mantine/core";
+import { Button, Checkbox, Modal, Select, Stack } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDebouncedValue } from "@mantine/hooks";
 import { useEffect, useState } from "react";
@@ -19,6 +19,8 @@ export default function UserTrackerFormDialog(props: Props) {
     const form = useForm<AddUserToTrackerDto>({
         initialValues: {
             username: "",
+            canEditData: false,
+            canEditSchema: false,
         },
         validate: {
             username: (value) =>
@@ -83,6 +85,16 @@ export default function UserTrackerFormDialog(props: Props) {
                             form.setFieldValue("username", val ?? "");
                         }}
                         error={form.errors.username}
+                    />
+                    <Checkbox
+                        label="Can edit data (add, edit, delete entries)"
+                        checked={form.values.canEditData}
+                        onChange={(e) => form.setFieldValue("canEditData", e.currentTarget.checked)}
+                    />
+                    <Checkbox
+                        label="Can edit schema (fields, views, analytics, constants)"
+                        checked={form.values.canEditSchema}
+                        onChange={(e) => form.setFieldValue("canEditSchema", e.currentTarget.checked)}
                     />
                     <Button
                         color={tracker?.color || "blue"}

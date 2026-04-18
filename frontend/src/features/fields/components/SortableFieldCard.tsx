@@ -11,7 +11,6 @@ import {
 } from "@mantine/core";
 import { CSSProperties } from "react";
 import { MdDelete, MdDragHandle, MdEdit } from "react-icons/md";
-import globalStore from "../../../shared/stores/GlobalStore";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { FieldDto } from "../types/FieldDto";
 
@@ -46,7 +45,7 @@ export default function SortableFieldCard({
         opacity: isDragging ? 0.5 : 1,
     } as CSSProperties;
 
-    const { tracker } = useTracker();
+    const { canEditSchema } = useTracker();
 
     return (
         <Card ref={setNodeRef} style={style} p="md" radius="md" withBorder>
@@ -88,6 +87,11 @@ export default function SortableFieldCard({
                                 Required
                             </Badge>
                         )}
+                        {field.isCalculated && (
+                            <Badge variant="light" color="violet" size="sm">
+                                Calculated
+                            </Badge>
+                        )}
                         <Badge variant="light" color="blue" size="sm">
                             {field.type}
                         </Badge>
@@ -95,7 +99,7 @@ export default function SortableFieldCard({
                 </Stack>
 
                 {/* Action buttons */}
-                {globalStore.currentUser?.id === tracker.ownerId && (
+                {canEditSchema && (
                     <Group gap="xs" wrap="nowrap">
                         <ActionIcon
                             variant="outline"

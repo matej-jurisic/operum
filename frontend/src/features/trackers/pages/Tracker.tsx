@@ -5,6 +5,7 @@ import Header from "../../../shared/components/Header";
 import { ComposedTrackerProvider } from "../../../shared/context/ComposedTrackerProvider";
 import globalStore from "../../../shared/stores/GlobalStore";
 import AnalyiticsList from "../../analytics/components/Analytics";
+import Constants from "../../constants/components/Constants";
 import Entries from "../../entries/components/Entries";
 import Fields from "../../fields/components/Fields";
 import SelectView from "../../views/components/SelectView";
@@ -28,6 +29,9 @@ export default function Tracker() {
     }, [trackerId]);
 
     if (!tracker) return <></>;
+
+    const isOwner = tracker.ownerId === globalStore.currentUser?.id;
+    const canEditSchema = isOwner || tracker.currentUserCanEditSchema;
 
     return (
         <ComposedTrackerProvider initialTracker={tracker}>
@@ -69,10 +73,12 @@ export default function Tracker() {
                             <Tabs.Tab value="fields">Fields</Tabs.Tab>
                             <Tabs.Tab value="views">Views</Tabs.Tab>
                             <Tabs.Tab value="analytics">Analytics</Tabs.Tab>
-                            {globalStore.currentUser?.id === tracker.ownerId &&
-                                !tracker.trackerTypeId && (
-                                    <Tabs.Tab value="users">Users</Tabs.Tab>
-                                )}
+                            {canEditSchema && (
+                                <Tabs.Tab value="constants">Constants</Tabs.Tab>
+                            )}
+                            {isOwner && !tracker.trackerTypeId && (
+                                <Tabs.Tab value="users">Users</Tabs.Tab>
+                            )}
                         </Tabs.List>
 
                         <Container
@@ -94,6 +100,9 @@ export default function Tracker() {
                             </Tabs.Panel>
                             <Tabs.Panel value="analytics" h="100%">
                                 <AnalyiticsList />
+                            </Tabs.Panel>
+                            <Tabs.Panel value="constants" h="100%">
+                                <Constants tracker={tracker} />
                             </Tabs.Panel>
                             <Tabs.Panel value="users" h="100%">
                                 <TrackerUserList />

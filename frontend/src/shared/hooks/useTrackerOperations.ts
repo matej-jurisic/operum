@@ -20,6 +20,7 @@ export const useTrackerOperations = () => {
         _deleteEntry,
         _deleteEntries,
         _importEntries,
+        _recalculateEntries,
     } = useEntries();
 
     const { markAnalyticsDirty, _addAnalytic, _removeAnalytic } =
@@ -84,6 +85,11 @@ export const useTrackerOperations = () => {
 
     const importEntries = async (file: File | null) => {
         await _importEntries(file);
+        markAnalyticsDirty();
+    };
+
+    const recalculateEntries = async (entryIds: string[]) => {
+        await _recalculateEntries(entryIds);
         markAnalyticsDirty();
     };
 
@@ -153,6 +159,7 @@ export const useTrackerOperations = () => {
         deleteEntry,
         deleteEntries,
         importEntries,
+        recalculateEntries,
 
         // Analytic operations
         addAnalytic,

@@ -11,7 +11,6 @@ import {
 import { CSSProperties } from "react";
 import { MdDelete, MdDragHandle, MdEdit } from "react-icons/md";
 import { RiFileListFill } from "react-icons/ri";
-import globalStore from "../../../shared/stores/GlobalStore";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { ViewDto } from "../types/ViewDto";
 
@@ -47,7 +46,7 @@ export default function SortableViewCard({
         opacity: isDragging ? 0.5 : 1,
     } as CSSProperties;
 
-    const { tracker } = useTracker();
+    const { canEditSchema } = useTracker();
 
     return (
         <Card ref={setNodeRef} style={style} p="md" radius="md" withBorder>
@@ -92,7 +91,7 @@ export default function SortableViewCard({
                     >
                         <RiFileListFill size={16} />
                     </ActionIcon>
-                    {globalStore.currentUser?.id === tracker.ownerId && (
+                    {canEditSchema && (
                         <>
                             <ActionIcon
                                 variant="outline"

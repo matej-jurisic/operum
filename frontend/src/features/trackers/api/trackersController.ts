@@ -1,10 +1,11 @@
 import api from "../../../shared/api/api";
 import { ApiResponse } from "../../../shared/types/ApiResponse";
-import { PublicUserDto } from "../../auth/types/PublicApplicationUserDto";
 import AddUserToTrackerDto from "../types/requests/AddUserToTrackerDto";
 import { CreateTrackerDto } from "../types/requests/CreateTrackerDto";
 import RemoveUserFromTrackerDto from "../types/requests/RemoveUserFromTrackerDto";
+import UpdateCollaboratorPermissionsDto from "../types/requests/UpdateCollaboratorPermissionsDto";
 import { UpdateTrackerDto } from "../types/requests/UpdateTrackerDto";
+import { TrackerCollaboratorDto } from "../types/TrackerCollaboratorDto";
 import { TrackerDto } from "../types/TrackerDto";
 
 export const trackersController = {
@@ -38,7 +39,7 @@ export const trackersController = {
     },
     getTrackerUserList: async (
         trackerId: string
-    ): Promise<ApiResponse<PublicUserDto[]>> => {
+    ): Promise<ApiResponse<TrackerCollaboratorDto[]>> => {
         return await api.get(`/trackers/${trackerId}/users`);
     },
     addUserToTracker: async (
@@ -55,9 +56,15 @@ export const trackersController = {
             data: request,
         });
     },
+    updateCollaboratorPermissions: async (
+        trackerId: string,
+        request: UpdateCollaboratorPermissionsDto
+    ): Promise<ApiResponse> => {
+        return await api.put(`/trackers/${trackerId}/users`, request);
+    },
     searchUsers: async (
         search: string
-    ): Promise<ApiResponse<PublicUserDto[]>> => {
+    ): Promise<ApiResponse<{ id: string; userName: string }[]>> => {
         return await api.get("/users?search=" + encodeURIComponent(search));
     },
 };

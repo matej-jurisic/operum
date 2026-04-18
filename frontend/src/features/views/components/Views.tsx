@@ -31,9 +31,9 @@ import { MdCheck } from "react-icons/md";
 import { RiListOrdered2 } from "react-icons/ri";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
-import globalStore from "../../../shared/stores/GlobalStore";
 import { useFields } from "../../fields/context/FieldsContext";
 import { useTracker } from "../../trackers/context/TrackerContext";
+
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { viewsController } from "../api/viewsController";
 import { useViews } from "../context/ViewsContext";
@@ -105,25 +105,27 @@ export default function Views(props: Props) {
         }
     };
 
-    const isOwner = globalStore.currentUser?.id === tracker.ownerId;
+    const MAX_VIEWS = 25;
+    const { isOwner, canEditSchema } = useTracker();
 
     return (
         <>
             <Stack gap="md" h={"100%"}>
-                {isOwner && (
+                {canEditSchema && (
                     <Group justify="space-between" w="100%">
                         <Button
                             color={props.tracker.color}
                             onClick={() =>
                                 setOpenDialogType(OpenDialogType.CreateView)
                             }
-                            disabled={fields.length === 0}
+                            disabled={fields.length === 0 || views.length >= MAX_VIEWS}
                             variant="outline"
                             leftSection={<FiPlus size={18} />}
                         >
                             Create
                         </Button>
                         <Group>
+                            {isOwner && (
                             <ActionIcon
                                 size={"lg"}
                                 variant={isReordering ? "filled" : "outline"}
@@ -132,7 +134,8 @@ export default function Views(props: Props) {
                             >
                                 <RiListOrdered2 size={18} />
                             </ActionIcon>
-                            <Menu position="bottom-end" width={280} styles={{ itemLabel: { minWidth: 0, overflow: "hidden" } }}>
+                            )}
+                            {isOwner && <Menu position="bottom-end" width={280} styles={{ itemLabel: { minWidth: 0, overflow: "hidden" } }}>
                                 <Menu.Target>
                                     <ActionIcon
                                         variant="outline"
@@ -182,7 +185,7 @@ export default function Views(props: Props) {
                                         );
                                     })}
                                 </Menu.Dropdown>
-                            </Menu>
+                            </Menu>}
                         </Group>
                     </Group>
                 )}

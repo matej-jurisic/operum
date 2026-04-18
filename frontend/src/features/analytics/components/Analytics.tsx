@@ -13,7 +13,6 @@ import { useMediaQuery } from "@mantine/hooks";
 import { useEffect, useState } from "react";
 import { FiSettings } from "react-icons/fi";
 import { MdAdd } from "react-icons/md";
-import globalStore from "../../../shared/stores/GlobalStore";
 import EntryDetailsDialog from "../../entries/components/EntryDetailsDialog";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { useAnalytics } from "../context/AnalyticsContext";
@@ -21,7 +20,7 @@ import AnalyticSelectionDialog from "./analyticSelection/AnalyticSelectionDialog
 import { AnalyticsGrid } from "./AnalyticsGrid";
 
 export default function Analytics() {
-    const { selectedViewIds, tracker } = useTracker();
+    const { selectedViewIds, tracker, canEditSchema } = useTracker();
     const { refreshAnalyticsIfDirty, analytics } = useAnalytics();
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
     const [isLoadingData, setIsLoadingData] = useState(true);
@@ -47,7 +46,7 @@ export default function Analytics() {
     return (
         <>
             <Stack gap="md" h="100%">
-                {globalStore.currentUser?.id === tracker.ownerId && (
+                {canEditSchema && (
                     <Group justify="flex-end" w="100%" h={36}>
                         {isConfiguring && (
                             <Button

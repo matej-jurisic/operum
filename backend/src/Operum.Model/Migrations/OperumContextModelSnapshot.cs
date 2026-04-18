@@ -242,6 +242,12 @@ namespace Operum.Model.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("text");
 
+                    b.Property<string>("Formula")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsCalculated")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -374,6 +380,34 @@ namespace Operum.Model.Migrations
                     b.ToTable("Trackers");
                 });
 
+            modelBuilder.Entity("Operum.Model.Models.TrackerConstant", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TrackerId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TrackerId");
+
+                    b.ToTable("TrackerConstants");
+                });
+
             modelBuilder.Entity("Operum.Model.Models.TrackerType", b =>
                 {
                     b.Property<int>("Id")
@@ -463,6 +497,12 @@ namespace Operum.Model.Migrations
                     b.Property<string>("ApplicationUserId")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<bool>("CanEditData")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CanEditSchema")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("TrackerId")
                         .IsRequired()
@@ -756,6 +796,17 @@ namespace Operum.Model.Migrations
                     b.Navigation("TrackerType");
                 });
 
+            modelBuilder.Entity("Operum.Model.Models.TrackerConstant", b =>
+                {
+                    b.HasOne("Operum.Model.Models.Tracker", "Tracker")
+                        .WithMany("TrackerConstants")
+                        .HasForeignKey("TrackerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tracker");
+                });
+
             modelBuilder.Entity("Operum.Model.Models.UserTracker", b =>
                 {
                     b.HasOne("Operum.Model.Models.User", "ApplicationUser")
@@ -868,6 +919,8 @@ namespace Operum.Model.Migrations
                     b.Navigation("ApplicationUserTrackers");
 
                     b.Navigation("Fields");
+
+                    b.Navigation("TrackerConstants");
 
                     b.Navigation("Views");
                 });

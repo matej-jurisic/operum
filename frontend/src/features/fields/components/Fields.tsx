@@ -28,7 +28,7 @@ import { FiPlus } from "react-icons/fi";
 import { RiListOrdered2 } from "react-icons/ri";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
-import globalStore from "../../../shared/stores/GlobalStore";
+import { useTracker } from "../../trackers/context/TrackerContext";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { useFields } from "../context/FieldsContext";
 import { FieldDto } from "../types/FieldDto";
@@ -53,6 +53,7 @@ export default function Fields(props: FieldsProps) {
 
     const { deleteField, updateFieldOrder } = useTrackerOperations();
     const { fields, refreshFieldsIfDirty } = useFields();
+    const { canEditSchema } = useTracker();
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -108,7 +109,7 @@ export default function Fields(props: FieldsProps) {
     return (
         <>
             <Stack gap="md" h={"100%"}>
-                {globalStore.currentUser?.id === props.tracker.ownerId && (
+                {canEditSchema && (
                     <Group justify="space-between" w="100%">
                         <Button
                             color={props.tracker.color}
