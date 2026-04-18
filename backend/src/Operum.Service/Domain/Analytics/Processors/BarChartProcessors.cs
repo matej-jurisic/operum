@@ -8,7 +8,6 @@ namespace Operum.Service.Domain.Analytics.Processors
         {
             return [.. dataPoints
                 .GroupBy(x => x.Name)
-                .OrderByDescending(g => g.Count())
                 .Select(g => new DonutChartPointDto
                 {
                     Name = g.Key,
@@ -23,7 +22,6 @@ namespace Operum.Service.Domain.Analytics.Processors
         {
             return [.. dataPoints
                 .GroupBy(x => x.Name)
-                .OrderByDescending(g => g.Sum(e => e.Value ?? 0))
                 .Select(g => new DonutChartPointDto
                 {
                     Name = g.Key,
@@ -38,7 +36,6 @@ namespace Operum.Service.Domain.Analytics.Processors
         {
             return [.. dataPoints
                 .GroupBy(x => x.Name)
-                .OrderByDescending(g => g.Average(e => e.Value ?? 0))
                 .Select(g => new DonutChartPointDto
                 {
                     Name = g.Key,
