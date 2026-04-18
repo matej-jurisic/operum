@@ -8,6 +8,7 @@ import { TrackerDto } from "../../trackers/types/TrackerDto";
 interface EntryFormDialogProps {
     tracker: TrackerDto;
     entryId?: string;
+    title?: string;
     initialValues?: Record<string, unknown>;
     onClose: () => void;
 }
@@ -49,6 +50,7 @@ export function GetStringValue(type: string | unknown, value: unknown) {
 }
 
 export default function EntryFormDialog(props: EntryFormDialogProps) {
+    const title = props.title ?? (props.entryId ? "Update Entry" : "Create Entry");
     const { fields } = useFields();
     const { updateEntry, createEntry } = useTrackerOperations();
 
@@ -77,7 +79,7 @@ export default function EntryFormDialog(props: EntryFormDialogProps) {
     return (
         <>
             <Modal
-                title={props.entryId ? "Update Entry" : "Create Entry"}
+                title={title}
                 centered
                 opened
                 onClose={props.onClose}
@@ -99,6 +101,7 @@ export default function EntryFormDialog(props: EntryFormDialogProps) {
                             <Button color={props.tracker.color} type="submit">
                                 {props.entryId ? "Update" : "Create"}
                             </Button>
+
                         </Stack>
                     </form>
                 </>

@@ -384,29 +384,32 @@ namespace Operum.Service.Services.Trackers
             return Result.Success(analyticResults);
         }
 
-        public async Task<Result> UpdateDefaultView(string trackerId, string? defaultViewId)
+        public async Task<Result> UpdateDefaultView(string trackerId, List<string>? viewIds)
         {
             var user = currentUserService.GetCurrentUser();
 
-            Tracker? tracker;
-
-            if (string.IsNullOrEmpty(defaultViewId))
-            {
-                tracker = await db.Trackers.FindAsync(trackerId);
-            }
-            else
-            {
-                tracker = await db.Trackers
-                    .Include(t => t.Views)
-                    .FirstOrDefaultAsync(t => t.Id == trackerId && t.Views.Any(v => v.Id == defaultViewId));
-            }
+            var tracker = await db.Trackers
+                .Include(t => t.Views)
+                .FirstOrDefaultAsync(t => t.Id == trackerId);
 
             if (tracker == null || user.Id != tracker.OwnerId)
             {
                 return Result.Failure(ResultStatusCodes.NotFound);
             }
 
-            tracker.DefaultViewId = defaultViewId;
+            if (viewIds != null && viewIds.Count > 0)
+            {
+                var trackerViewIds = tracker.Views.Select(v => v.Id).ToHashSet();
+                if (!viewIds.All(id => trackerViewIds.Contains(id)))
+                {
+                    return Result.Failure(ResultStatusCodes.BadRequest);
+                }
+            }
+
+            tracker.DefaultViewIds = viewIds != null && viewIds.Count > 0
+                ? System.Text.Json.JsonSerializer.Serialize(viewIds)
+                : null;
+
             db.Update(tracker);
             await db.SaveChangesAsync();
 

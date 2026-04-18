@@ -8,6 +8,7 @@ import {
     Text,
 } from "@mantine/core";
 import { MdDelete, MdEdit } from "react-icons/md";
+import { IoDuplicateOutline } from "react-icons/io5";
 import { RiFileListFill } from "react-icons/ri";
 import { formatDateTimeFromDate } from "../../../shared/utils/formatters/TypeFormatter";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
@@ -20,6 +21,7 @@ interface EntriesCardsProps {
     entries: EntryDto[];
     onViewDetails: (entry: EntryDto) => void;
     onEdit: (entry: EntryDto) => void;
+    onDuplicate: (entry: EntryDto) => void;
     onDelete: (entry: EntryDto) => void;
 }
 
@@ -27,6 +29,7 @@ export function EntriesCards({
     entries,
     onViewDetails,
     onEdit,
+    onDuplicate,
     onDelete,
 }: EntriesCardsProps) {
     const { tracker } = useTracker();
@@ -144,6 +147,14 @@ export function EntriesCards({
                                                 onClick={() => onEdit(entry)}
                                             >
                                                 <MdEdit size={16} />
+                                            </ActionIcon>
+                                            <ActionIcon
+                                                variant="outline"
+                                                color="gray"
+                                                size="lg"
+                                                onClick={() => onDuplicate(entry)}
+                                            >
+                                                <IoDuplicateOutline size={16} />
                                             </ActionIcon>
                                             <ActionIcon
                                                 variant="outline"

@@ -8,11 +8,10 @@
         public const string DateTime = "datetime";
         public const string TimeSpan = "timespan";
         public const string Bool = "bool";
-        public const string Select = "select";
 
         public static readonly HashSet<string> All =
         [
-            String, Number, Date, DateTime, TimeSpan, Bool, Select
+            String, Number, Date, DateTime, TimeSpan, Bool
         ];
         public static bool IsValid(string value) => All.Contains(value);
     }

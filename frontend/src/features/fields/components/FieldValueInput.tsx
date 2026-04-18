@@ -20,8 +20,9 @@ export default function FieldValueInput<T extends Record<string, any> = any>({
 }: FieldValueInputProps<T>) {
     const path = fieldPath || field.name;
 
-    const baseProps = {
+    const { key, ...baseProps } = {
         label: field.name,
+        description: field.description || undefined,
         required: field.required,
         key: field.id,
         ...form.getInputProps(path),
@@ -29,10 +30,18 @@ export default function FieldValueInput<T extends Record<string, any> = any>({
 
     switch (field.type) {
         case "string":
-            return <Textarea {...baseProps} style={styles} autosize />;
+            return field.selectOptions?.length ? (
+                <Autocomplete key={key} {...baseProps} style={styles} data={field.selectOptions} />
+            ) : (
+                <Textarea key={key} {...baseProps} style={styles} autosize />
+            );
 
         case "number":
-            return <NumberInput {...baseProps} style={styles} />;
+            return field.selectOptions?.length ? (
+                <Autocomplete key={key} {...baseProps} style={styles} data={field.selectOptions} />
+            ) : (
+                <NumberInput key={key} {...baseProps} style={styles} />
+            );
 
         case "bool":
             const boolValue = baseProps.value;
@@ -42,6 +51,7 @@ export default function FieldValueInput<T extends Record<string, any> = any>({
                     : boolValue;
             return (
                 <Select
+                    key={key}
                     label={field.name}
                     placeholder="Select"
                     data={[
@@ -58,6 +68,7 @@ export default function FieldValueInput<T extends Record<string, any> = any>({
         case "date":
             return (
                 <DatePickerInput
+                    key={key}
                     dropdownType="modal"
                     style={styles}
                     valueFormat="DD/MM/YYYY"
@@ -73,6 +84,7 @@ export default function FieldValueInput<T extends Record<string, any> = any>({
         case "timespan":
             return (
                 <TimePicker
+                    key={key}
                     style={styles}
                     withSeconds
                     {...baseProps}
@@ -84,6 +96,7 @@ export default function FieldValueInput<T extends Record<string, any> = any>({
         case "datetime":
             return (
                 <DateTimePicker
+                    key={key}
                     valueFormat="DD/MM/YYYY HH:mm:ss"
                     withSeconds
                     placeholder="Pick date/time"
@@ -98,15 +111,6 @@ export default function FieldValueInput<T extends Record<string, any> = any>({
                     modalProps={{
                         centered: true,
                     }}
-                />
-            );
-
-        case "select":
-            return (
-                <Autocomplete
-                    {...baseProps}
-                    style={styles}
-                    data={field.selectOptions || []}
                 />
             );
 

@@ -64,8 +64,8 @@ export default function Views(props: Props) {
     const { fields } = useFields();
     const { deleteView, updateViewOrder } = useTrackerOperations();
 
-    const [defaultView, setDefaultView] = useState<string | null>(
-        tracker.defaultViewId ?? null
+    const [defaultViewIds, setDefaultViewIds] = useState<string[]>(
+        tracker.defaultViewIds ?? []
     );
 
     const sensors = useSensors(
@@ -143,18 +143,15 @@ export default function Views(props: Props) {
                                     </ActionIcon>
                                 </Menu.Target>
                                 <Menu.Dropdown>
-                                    <Menu.Label>Default View</Menu.Label>
+                                    <Menu.Label>Default Views</Menu.Label>
                                     <Menu.Divider />
                                     <Menu.Item
                                         onClick={async () => {
-                                            setDefaultView(null);
-                                            await viewsController.setDefaultView(
-                                                tracker.id,
-                                                undefined
-                                            );
+                                            setDefaultViewIds([]);
+                                            await viewsController.setDefaultViews(tracker.id, []);
                                         }}
                                         rightSection={
-                                            !defaultView ? (
+                                            defaultViewIds.length === 0 ? (
                                                 <MdCheck size={16} />
                                             ) : null
                                         }
@@ -163,27 +160,27 @@ export default function Views(props: Props) {
                                     >
                                         None
                                     </Menu.Item>
-                                    {sortedViews.map((v) => (
-                                        <Menu.Item
-                                            onClick={async () => {
-                                                setDefaultView(v.id);
-                                                await viewsController.setDefaultView(
-                                                    tracker.id,
-                                                    v.id
-                                                );
-                                            }}
-                                            rightSection={
-                                                defaultView === v.id ? (
-                                                    <MdCheck size={16} />
-                                                ) : null
-                                            }
-                                            key={v.id}
-                                        >
-                                            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
-                                                {v.name}
-                                            </span>
-                                        </Menu.Item>
-                                    ))}
+                                    {sortedViews.map((v) => {
+                                        const isDefault = defaultViewIds.includes(v.id);
+                                        return (
+                                            <Menu.Item
+                                                closeMenuOnClick={false}
+                                                onClick={async () => {
+                                                    const next = isDefault
+                                                        ? defaultViewIds.filter((id) => id !== v.id)
+                                                        : [...defaultViewIds, v.id];
+                                                    setDefaultViewIds(next);
+                                                    await viewsController.setDefaultViews(tracker.id, next);
+                                                }}
+                                                rightSection={isDefault ? <MdCheck size={16} /> : null}
+                                                key={v.id}
+                                            >
+                                                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
+                                                    {v.name}
+                                                </span>
+                                            </Menu.Item>
+                                        );
+                                    })}
                                 </Menu.Dropdown>
                             </Menu>
                         </Group>

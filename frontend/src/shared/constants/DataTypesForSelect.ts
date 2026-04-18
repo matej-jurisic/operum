@@ -5,7 +5,6 @@ export const fieldTypes = [
     { value: "date", label: "Date" },
     { value: "timespan", label: "Timespan" },
     { value: "datetime", label: "Datetime" },
-    { value: "select", label: "Select" },
 ];
 
 export const operatorTypes = [

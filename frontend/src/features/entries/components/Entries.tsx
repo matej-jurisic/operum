@@ -38,6 +38,7 @@ enum OpenDialogType {
     CreateEntry,
     DeleteEntry,
     UpdateEntry,
+    DuplicateEntry,
     ImportEntries,
     BulkDelete,
     ViewDetails,
@@ -282,6 +283,12 @@ export default function Entries() {
                                             OpenDialogType.UpdateEntry
                                         );
                                     }}
+                                    onDuplicate={(entry) => {
+                                        setSelectedEntry(entry);
+                                        setOpenDialogType(
+                                            OpenDialogType.DuplicateEntry
+                                        );
+                                    }}
                                     onDelete={(entry) => {
                                         setSelectedEntry(entry);
                                         setOpenDialogType(
@@ -302,6 +309,12 @@ export default function Entries() {
                                         setSelectedEntry(entry);
                                         setOpenDialogType(
                                             OpenDialogType.UpdateEntry
+                                        );
+                                    }}
+                                    onDuplicate={(entry) => {
+                                        setSelectedEntry(entry);
+                                        setOpenDialogType(
+                                            OpenDialogType.DuplicateEntry
                                         );
                                     }}
                                     onDelete={(entry) => {
@@ -400,6 +413,23 @@ export default function Entries() {
                     }}
                 />
             )}
+            {openDialogType === OpenDialogType.DuplicateEntry && selectedEntry && (
+                <EntryFormDialog
+                    tracker={tracker}
+                    title="Duplicate Entry"
+                    initialValues={selectedEntry.fieldValues.reduce(
+                        (acc, field) => {
+                            acc[field.fieldName] = field.value;
+                            return acc;
+                        },
+                        {} as Record<string, unknown>
+                    )}
+                    onClose={() => {
+                        setOpenDialogType(undefined);
+                    }}
+                />
+            )}
+
             {openDialogType === OpenDialogType.ImportEntries && (
                 <ImportEntriesDialog
                     onClose={() => setOpenDialogType(undefined)}

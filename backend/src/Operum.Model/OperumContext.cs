@@ -33,11 +33,6 @@ namespace Operum.Model
                 .HasForeignKey(v => v.TrackerId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            builder.Entity<Tracker>()
-                .HasOne(t => t.DefaultView)
-                .WithMany()
-                .HasForeignKey(t => t.DefaultViewId)
-                .OnDelete(DeleteBehavior.SetNull);
         }
 
         public override DbSet<User> Users { get; set; }

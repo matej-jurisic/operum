@@ -19,9 +19,7 @@ namespace Operum.Model.Models
         [ForeignKey(nameof(OwnerId))]
         public virtual User Owner { get; set; } = null!;
 
-        public string? DefaultViewId { get; set; }
-        [ForeignKey(nameof(DefaultViewId))]
-        public virtual View? DefaultView { get; set; }
+        public string? DefaultViewIds { get; set; }
 
         public virtual List<Field> Fields { get; set; } = [];
         public virtual List<View> Views { get; set; } = [];

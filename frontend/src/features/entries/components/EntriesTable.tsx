@@ -1,6 +1,7 @@
 import { ActionIcon, Badge, Checkbox, Group, Table, Text } from "@mantine/core";
 import { useMemo } from "react";
 import { MdDelete, MdEdit } from "react-icons/md";
+import { IoDuplicateOutline } from "react-icons/io5";
 import { RiFileListFill } from "react-icons/ri";
 import { formatDateTimeFromDate } from "../../../shared/utils/formatters/TypeFormatter";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
@@ -22,6 +23,7 @@ interface EntriesTableProps {
     entries: EntryDto[];
     onViewDetails: (entry: EntryDto) => void;
     onEdit: (entry: EntryDto) => void;
+    onDuplicate: (entry: EntryDto) => void;
     onDelete: (entry: EntryDto) => void;
 }
 
@@ -29,6 +31,7 @@ export function EntriesTable({
     entries,
     onViewDetails,
     onEdit,
+    onDuplicate,
     onDelete,
 }: EntriesTableProps) {
     const {
@@ -93,7 +96,7 @@ export function EntriesTable({
                 id: "actions",
                 label: "Actions",
                 minWidth: "125px",
-                width: "125px",
+                width: "167px",
             });
         }
 
@@ -164,6 +167,13 @@ export function EntriesTable({
                                     onClick={() => onEdit(entry)}
                                 >
                                     <MdEdit size={16} />
+                                </ActionIcon>
+                                <ActionIcon
+                                    variant="outline"
+                                    color="gray"
+                                    onClick={() => onDuplicate(entry)}
+                                >
+                                    <IoDuplicateOutline size={16} />
                                 </ActionIcon>
                                 <ActionIcon
                                     variant="outline"

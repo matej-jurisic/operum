@@ -28,6 +28,9 @@ namespace Operum.Service.Mappings.Profiles
                 d.Fields = mapper.Map<ICollection<Field>, List<FieldDto>>(s.Fields);
                 d.OwnerName = s.Owner?.UserName;
                 d.TrackerTypeName = s.TrackerType?.Name;
+                d.DefaultViewIds = s.DefaultViewIds != null
+                    ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(s.DefaultViewIds)
+                    : null;
             });
             mapper.Register<TrackerDto, Tracker>();
             mapper.Register<CreateTrackerDto, Tracker>();

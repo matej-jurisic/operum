@@ -47,6 +47,10 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
                     ? "Description must be at most 500 characters"
                     : null,
             type: (value) => (value ? null : "Type is required"),
+            selectOptions: (values, form) =>
+                form.type === "number" && values?.some((v) => isNaN(Number(v)))
+                    ? "All suggested options for number fields must be valid numbers"
+                    : null,
         },
     });
 
@@ -93,9 +97,9 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
                         {...form.getInputProps("description")}
                     />
 
-                    {form.values.type === "select" && (
+                    {(form.values.type === "string" || form.values.type === "number") && (
                         <TagsInput
-                            label="Options"
+                            label="Suggested Options"
                             placeholder="Type and press Enter to add options"
                             {...form.getInputProps("selectOptions")}
                         />

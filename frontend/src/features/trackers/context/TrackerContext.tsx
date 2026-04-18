@@ -16,7 +16,7 @@ export const TrackerProvider: React.FC<{
 }> = ({ initialTracker, children }) => {
     const [tracker, setTracker] = useState<TrackerDto>(initialTracker);
     const [selectedViewIds, _setSelectedViewIds] = useState<string[]>(
-        initialTracker.defaultViewId ? [initialTracker.defaultViewId] : []
+        initialTracker.defaultViewIds ?? []
     );
 
     return (

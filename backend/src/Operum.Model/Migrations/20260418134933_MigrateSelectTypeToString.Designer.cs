@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Operum.Model;
@@ -11,9 +12,11 @@ using Operum.Model;
 namespace Operum.Model.Migrations
 {
     [DbContext(typeof(OperumContext))]
-    partial class OperumContextModelSnapshot : ModelSnapshot
+    [Migration("20260418134933_MigrateSelectTypeToString")]
+    partial class MigrateSelectTypeToString
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -348,7 +351,7 @@ namespace Operum.Model.Migrations
                     b.Property<string>("Color")
                         .HasColumnType("text");
 
-                    b.Property<string>("DefaultViewIds")
+                    b.Property<string>("DefaultViewId")
                         .HasColumnType("text");
 
                     b.Property<string>("Description")
@@ -366,6 +369,8 @@ namespace Operum.Model.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DefaultViewId");
 
                     b.HasIndex("OwnerId");
 
@@ -741,6 +746,11 @@ namespace Operum.Model.Migrations
 
             modelBuilder.Entity("Operum.Model.Models.Tracker", b =>
                 {
+                    b.HasOne("Operum.Model.Models.View", "DefaultView")
+                        .WithMany()
+                        .HasForeignKey("DefaultViewId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Operum.Model.Models.User", "Owner")
                         .WithMany()
                         .HasForeignKey("OwnerId")
@@ -750,6 +760,8 @@ namespace Operum.Model.Migrations
                     b.HasOne("Operum.Model.Models.TrackerType", "TrackerType")
                         .WithMany()
                         .HasForeignKey("TrackerTypeId");
+
+                    b.Navigation("DefaultView");
 
                     b.Navigation("Owner");
 

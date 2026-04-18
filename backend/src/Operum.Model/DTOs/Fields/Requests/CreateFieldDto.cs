@@ -33,6 +33,10 @@ namespace Operum.Model.DTOs.Fields.Requests
                 .NotEmpty().WithMessage("Select option cannot be empty.")
                 .MaximumLength(1000).WithMessage("Select option cannot exceed 1000 characters.")
                 .When(x => x.SelectOptions != null);
+
+            RuleForEach(x => x.SelectOptions)
+                .Must(opt => double.TryParse(opt, out _)).WithMessage("Select options for number fields must be valid numbers.")
+                .When(x => x.SelectOptions != null && x.Type == DataTypes.Number);
         }
     }
 }

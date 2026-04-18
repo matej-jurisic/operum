@@ -64,7 +64,15 @@ namespace Operum.Service.Domain.Analytics.Builders
 
             // CountDistinct returns a plain integer count — override type so the
             // frontend doesn't try to format it as the original field type (e.g. timespan).
-            var displayType = request.Analytic.Code == AnalyticCodes.CountDistinct
+            var syntheticNumberCodes = new HashSet<string>
+            {
+                AnalyticCodes.Count,
+                AnalyticCodes.CountDistinct,
+                AnalyticCodes.TrueCount,
+                AnalyticCodes.FalseCount,
+                AnalyticCodes.TruePercentage,
+            };
+            var displayType = syntheticNumberCodes.Contains(request.Analytic.Code)
                 ? DataTypes.Number
                 : valueField.Type;
 

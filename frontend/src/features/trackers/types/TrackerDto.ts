@@ -9,6 +9,6 @@ export interface TrackerDto {
     trackerTypeId?: number;
     ownerId?: string;
     ownerName?: string;
-    defaultViewId?: string;
+    defaultViewIds?: string[];
     trackerTypeName?: string;
 }
