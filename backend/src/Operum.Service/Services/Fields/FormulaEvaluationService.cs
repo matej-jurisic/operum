@@ -101,6 +101,8 @@ namespace Operum.Service.Services.Fields
                     continue;
                 }
 
+                result = Math.Round(result, 10);
+
                 if (double.IsNaN(result) || double.IsInfinity(result))
                 {
                     logger.LogDebug("Formula produced non-finite result for field {FieldId}: {Formula}", field.Id, substitutedFormula);

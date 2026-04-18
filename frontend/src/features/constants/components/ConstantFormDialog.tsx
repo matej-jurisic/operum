@@ -131,7 +131,7 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                   name: props.initialValues.name,
                   type: props.initialValues.type,
                   value: props.initialValues.value,
-                  values: props.initialValues.values.map((v) => ({
+                  values: props.initialValues.values.slice().sort((a, b) => a.priority - b.priority).map((v) => ({
                       priority: v.priority,
                       value: v.value,
                       filters: v.filters.map(toFilterRow),
