@@ -9,7 +9,7 @@ namespace Operum.Service.Interfaces
     public interface IEntriesService
     {
         public Task<Result<EntryDto>> CreateEntry(string trackerId, CreateEntryDto entry);
-        public Task<Result<List<EntryDto>>> GetEntries(string trackerId, List<string> viewIds);
+        public Task<Result<PagedResult<EntryDto>>> GetEntries(string trackerId, List<string> viewIds, int page, int pageSize);
         public Task<Result<EntryDto>> GetEntry(string trackerId, string entryId);
         public Task<Result<EntryDto>> UpdateEntry(string trackerId, string entryId, UpdateEntryDto updateEntry);
         public Task<Result> DeleteEntry(string trackerId, string entryId);

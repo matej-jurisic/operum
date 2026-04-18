@@ -3,6 +3,8 @@ import { EntryDto } from "../../entries/types/EntryDto";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { entriesController } from "../api/entriesController";
 
+const PAGE_SIZE = 50;
+
 type EntriesContextType = {
     entries: EntryDto[];
     entriesDirty: boolean;
@@ -10,8 +12,12 @@ type EntriesContextType = {
     isSelectMode: boolean;
     allEntriesSelected: boolean;
     someEntriesSelected: boolean;
-    refreshEntries: (viewIds?: string[]) => Promise<void>;
+    page: number;
+    pageSize: number;
+    totalCount: number;
+    refreshEntries: (viewIds?: string[], pageOverride?: number) => Promise<void>;
     refreshEntriesIfDirty: (viewIds?: string[]) => Promise<void>;
+    goToPage: (page: number) => Promise<void>;
     toggleEntrySelection: (entryId: string) => void;
     toggleSelectAll: () => void;
     clearSelection: () => void;
@@ -41,22 +47,29 @@ export const EntriesProvider: React.FC<{ children: React.ReactNode }> = ({
         new Set()
     );
     const [isSelectMode, setIsSelectMode] = useState(false);
+    const [page, setPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
 
     const allEntriesSelected =
-        entries.length > 0 && selectedEntryIds.size === entries.length;
+        entries.length > 0 && entries.every((e) => selectedEntryIds.has(e.id));
     const someEntriesSelected =
-        selectedEntryIds.size > 0 && selectedEntryIds.size < entries.length;
+        !allEntriesSelected && entries.some((e) => selectedEntryIds.has(e.id));
 
     const refreshEntries = useCallback(
-        async (implicitViewIds?: string[]) => {
+        async (implicitViewIds?: string[], pageOverride?: number) => {
+            const targetPage = pageOverride ?? page;
             const response = await entriesController.getEntries(
                 tracker.id,
-                implicitViewIds ?? selectedViewIds
+                implicitViewIds ?? selectedViewIds,
+                targetPage,
+                PAGE_SIZE
             );
-            setEntries(response.data);
+            setEntries(response.data.items);
+            setTotalCount(response.data.totalCount);
+            setPage(response.data.page);
             setEntriesDirty(false);
         },
-        [tracker.id, selectedViewIds]
+        [tracker.id, selectedViewIds, page]
     );
 
     const refreshEntriesIfDirty = useCallback(
@@ -64,6 +77,13 @@ export const EntriesProvider: React.FC<{ children: React.ReactNode }> = ({
             if (entriesDirty) await refreshEntries(viewIds);
         },
         [entriesDirty, refreshEntries]
+    );
+
+    const goToPage = useCallback(
+        async (newPage: number) => {
+            await refreshEntries(undefined, newPage);
+        },
+        [refreshEntries]
     );
 
     const markEntriesDirty = useCallback(() => setEntriesDirty(true), []);
@@ -81,15 +101,17 @@ export const EntriesProvider: React.FC<{ children: React.ReactNode }> = ({
     }, []);
 
     const toggleSelectAll = useCallback(() => {
-        const allEntryIds = new Set(entries.map((entry) => entry.id));
-        const allSelected = selectedEntryIds.size === allEntryIds.size;
-
-        if (allSelected) {
-            setSelectedEntryIds(new Set());
-        } else {
-            setSelectedEntryIds(allEntryIds);
-        }
-    }, [entries, selectedEntryIds.size]);
+        const allPageSelected = entries.every((e) => selectedEntryIds.has(e.id));
+        setSelectedEntryIds((prev) => {
+            const newSet = new Set(prev);
+            if (allPageSelected) {
+                entries.forEach((e) => newSet.delete(e.id));
+            } else {
+                entries.forEach((e) => newSet.add(e.id));
+            }
+            return newSet;
+        });
+    }, [entries, selectedEntryIds]);
 
     const clearSelection = useCallback(() => {
         setSelectedEntryIds(new Set());
@@ -98,7 +120,7 @@ export const EntriesProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const _createEntry = async (fieldValues: Record<string, string>) => {
         await entriesController.createEntry(tracker.id, fieldValues);
-        await refreshEntries();
+        await refreshEntries(undefined, 1);
     };
 
     const _updateEntry = async (
@@ -116,23 +138,22 @@ export const EntriesProvider: React.FC<{ children: React.ReactNode }> = ({
             newSet.delete(entryId);
             return newSet;
         });
-        await refreshEntries();
+        const targetPage = entries.length === 1 && page > 1 ? page - 1 : page;
+        await refreshEntries(undefined, targetPage);
     };
 
     const _deleteEntries = async (entryIds: string[]) => {
         await entriesController.deleteEntries(tracker.id, entryIds);
         clearSelection();
-        await refreshEntries();
+        await refreshEntries(undefined, 1);
     };
 
     const _importEntries = async (file: File | null) => {
         if (!file) return;
         const formData = new FormData();
         formData.append("file", file);
-
         await entriesController.importEntries(tracker.id, formData);
-
-        await refreshEntries();
+        await refreshEntries(undefined, 1);
     };
 
     const _recalculateEntries = async (entryIds: string[]) => {
@@ -149,8 +170,12 @@ export const EntriesProvider: React.FC<{ children: React.ReactNode }> = ({
                 isSelectMode,
                 allEntriesSelected,
                 someEntriesSelected,
+                page,
+                pageSize: PAGE_SIZE,
+                totalCount,
                 refreshEntries,
                 refreshEntriesIfDirty,
+                goToPage,
                 toggleEntrySelection,
                 toggleSelectAll,
                 clearSelection,

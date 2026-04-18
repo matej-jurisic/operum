@@ -82,7 +82,7 @@ namespace Operum.Service.Services.Entries
             return Result.Success(created.Data, Messages.Success);
         }
 
-        public async Task<Result<List<EntryDto>>> GetEntries(string trackerId, List<string> viewIds)
+        public async Task<Result<PagedResult<EntryDto>>> GetEntries(string trackerId, List<string> viewIds, int page, int pageSize)
         {
             var user = currentUserService.GetCurrentUser();
             var tracker = await db.Trackers
@@ -123,8 +123,19 @@ namespace Operum.Service.Services.Entries
                 entriesQuery = ViewQueryBuilder.ApplyViewSorting(entriesQuery, ViewQueryBuilder.MergeViewSorts(views));
             }
 
-            var entries = await entriesQuery.ToListAsync();
-            return Result.Success(mapper.Map<List<Entry>, List<EntryDto>>(entries));
+            var totalCount = await entriesQuery.CountAsync();
+            var entries = await entriesQuery
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return Result.Success(new PagedResult<EntryDto>
+            {
+                Items = mapper.Map<List<Entry>, List<EntryDto>>(entries),
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+            });
         }
 
         public async Task<Result<EntryDto>> GetEntry(string trackerId, string entryId)

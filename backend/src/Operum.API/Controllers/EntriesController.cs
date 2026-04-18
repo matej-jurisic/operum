@@ -16,9 +16,13 @@ namespace Operum.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetEntries([FromRoute] string trackerId, [FromQuery] List<string> viewId)
+        public async Task<IActionResult> GetEntries(
+            [FromRoute] string trackerId,
+            [FromQuery] List<string> viewId,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50)
         {
-            return GetApiResponse(await entriesService.GetEntries(trackerId, viewId));
+            return GetApiResponse(await entriesService.GetEntries(trackerId, viewId, page, pageSize));
         }
 
         [HttpGet("{entryId}")]

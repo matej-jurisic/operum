@@ -59,19 +59,22 @@ const ExportCsv = async (trackerId: string, viewIds?: string[]) => {
 export default function Entries() {
     const [selectedEntry, setSelectedEntry] = useState<EntryDto>();
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
-    const [currentPage, setCurrentPage] = useState(1);
 
     const { tracker, selectedViewIds, canEditData } = useTracker();
     const { refreshFieldsIfDirty, fields } = useFields();
     const {
         entries,
-        refreshEntriesIfDirty,
+        refreshEntries,
         isSelectMode,
         selectedEntryIds,
         setIsSelectMode,
         allEntriesSelected,
         toggleSelectAll,
         clearSelection,
+        page,
+        pageSize,
+        totalCount,
+        goToPage,
     } = useEntries();
     const { views } = useViews();
     const { deleteEntry, deleteEntries, recalculateEntries } = useTrackerOperations();
@@ -81,24 +84,14 @@ export default function Entries() {
     // Check if mobile
     const isMobile = useMediaQuery("(max-width: 768px)");
 
-    const pageSize = 10;
-    const totalPages = useMemo(() => {
-        return Math.ceil(entries.length / pageSize);
-    }, [entries]);
+    const totalPages = Math.ceil(totalCount / pageSize);
 
     const message = useMemo(() => {
-        return `Showing ${pageSize * (currentPage - 1) + 1} – ${Math.min(
-            entries.length,
-            pageSize * currentPage
-        )} of ${entries.length}`;
-    }, [currentPage, totalPages]);
-
-    const paginatedEntries = useMemo(() => {
-        return entries.slice(
-            (currentPage - 1) * pageSize,
-            currentPage * pageSize
-        );
-    }, [currentPage, entries]);
+        if (totalCount === 0) return "";
+        const from = pageSize * (page - 1) + 1;
+        const to = Math.min(totalCount, pageSize * page);
+        return `Showing ${from} – ${to} of ${totalCount}`;
+    }, [page, pageSize, totalCount]);
 
     const viewName = useMemo(() => {
         const activeViews = views.filter((x) => selectedViewIds.includes(x.id));
@@ -107,12 +100,11 @@ export default function Entries() {
             : undefined;
     }, [views, selectedViewIds]);
 
-    // Load data on component mount
+    // Load data on component mount or view change — always reset to page 1
     useEffect(() => {
         const loadData = async () => {
             setIsLoadingData(true);
-            setCurrentPage(1);
-            await refreshEntriesIfDirty();
+            await refreshEntries(selectedViewIds, 1);
             await refreshFieldsIfDirty();
             setIsLoadingData(false);
         };
@@ -325,7 +317,7 @@ export default function Entries() {
                                             OpenDialogType.DeleteEntry
                                         );
                                     }}
-                                    entries={paginatedEntries}
+                                    entries={entries}
                                 />
                             ) : (
                                 <EntriesTable
@@ -353,7 +345,7 @@ export default function Entries() {
                                             OpenDialogType.DeleteEntry
                                         );
                                     }}
-                                    entries={paginatedEntries}
+                                    entries={entries}
                                 />
                             )
                         ) : isLoadingData ? (
@@ -372,17 +364,19 @@ export default function Entries() {
                             </Paper>
                         )}
                     </ScrollArea>
-                    <Stack align="center" gap={"xs"}>
-                        <Text size="sm">{message}</Text>
-                        <Pagination
-                            siblings={0}
-                            value={currentPage}
-                            onChange={setCurrentPage}
-                            total={totalPages}
-                            color={tracker.color}
-                            size="md"
-                        />
-                    </Stack>
+                    {totalCount > 0 && (
+                        <Stack align="center" gap={"xs"}>
+                            <Text size="sm">{message}</Text>
+                            <Pagination
+                                siblings={0}
+                                value={page}
+                                onChange={goToPage}
+                                total={totalPages}
+                                color={tracker.color}
+                                size="md"
+                            />
+                        </Stack>
+                    )}
                 </Stack>
             </Skeleton>
 

@@ -1,6 +1,7 @@
 import { AxiosRequestConfig, AxiosResponse } from "axios";
 import api from "../../../shared/api/api";
 import { ApiResponse } from "../../../shared/types/ApiResponse";
+import { PagedResult } from "../../../shared/types/PagedResult";
 import { EntryDto } from "../types/EntryDto";
 
 export const entriesController = {
@@ -24,14 +25,15 @@ export const entriesController = {
     },
     getEntries: async (
         trackerId: string,
-        viewIds?: string[]
-    ): Promise<ApiResponse<EntryDto[]>> => {
+        viewIds?: string[],
+        page: number = 1,
+        pageSize: number = 50
+    ): Promise<ApiResponse<PagedResult<EntryDto>>> => {
         const params = new URLSearchParams();
         viewIds?.forEach((id) => params.append("viewId", id));
-        const qs = params.toString();
-        return await api.get(
-            `/trackers/${trackerId}/entries${qs ? `?${qs}` : ""}`
-        );
+        params.append("page", page.toString());
+        params.append("pageSize", pageSize.toString());
+        return await api.get(`/trackers/${trackerId}/entries?${params.toString()}`);
     },
     createEntry: async (
         trackerId: string,
