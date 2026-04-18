@@ -11,7 +11,7 @@ A tracker is a collection of data you care about — a reading list, a workout l
 
 **Calculated fields:** Mark any Number, Bool, or TimeSpan field as calculated and write a formula to derive its value automatically from other fields and constants. Formulas use `{FieldName}` syntax; TimeSpan fields support `{Field.hours}`, `{Field.minutes}`, and `{Field.seconds}` for unit-aware access. Calculated fields evaluate on every entry create or update and are hidden from the entry form. You can also select a group of entries and re-run their calculated fields on demand, useful when a formula changes after entries already exist.
 
-**Constants:** Define reusable named values (Number, Bool, or TimeSpan) at the tracker level and reference them in formulas by name. Up to 25 constants per tracker.
+**Constants:** Define reusable named values (Number, Bool, or TimeSpan) at the tracker level and reference them in formulas by name. Up to 25 constants per tracker. Each constant can optionally have up to 6 **conditional values** — each with a priority (lower number = higher priority) and one or more filter conditions. When a formula is evaluated for an entry, the evaluator picks the lowest-priority conditional value whose filters all match the entry's field values, falling back to the constant's base value if none match. This lets a single constant behave differently depending on entry data.
 
 ### Log Entries
 Once a tracker is set up, you start adding entries. Each entry fills in the fields you've defined. You can create, edit, duplicate, and delete individual entries or bulk-delete a selection. Select multiple entries to bulk-delete or force-recalculate calculated fields on all of them at once. If you already have data elsewhere, you can import it directly from a CSV file. You can also export your data to CSV at any time, optionally scoped to a specific view's filters.
@@ -64,6 +64,7 @@ Admins can publish public template trackers that other users can use as a starti
 | Views per tracker | 25 |
 | Analytics per tracker | 10 |
 | Constants per tracker | 25 |
+| Conditional values per constant | 6 |
 | Filters per view | 6 |
 | Sorts per view | 3 |
 | Formula length | 500 characters |

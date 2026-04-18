@@ -14,5 +14,6 @@ namespace Operum.Model.Models
         public string TrackerId { get; set; } = string.Empty;
         [ForeignKey(nameof(TrackerId))]
         public virtual Tracker Tracker { get; set; } = null!;
+        public virtual List<TrackerConstantValue> Values { get; set; } = [];
     }
 }

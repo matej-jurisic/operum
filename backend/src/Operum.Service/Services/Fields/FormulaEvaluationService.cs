@@ -4,6 +4,7 @@ using NCalc2;
 using Operum.Model;
 using Operum.Model.Constants.Fields;
 using Operum.Model.Models;
+using Operum.Service.Domain.Constants;
 using Operum.Service.Interfaces;
 using System.Globalization;
 using System.Text.RegularExpressions;
@@ -24,6 +25,8 @@ namespace Operum.Service.Services.Fields
             List<Field> allFields)
         {
             var constants = await db.TrackerConstants
+                .Include(c => c.Values)
+                    .ThenInclude(v => v.Filters)
                 .Where(c => c.TrackerId == trackerId)
                 .ToListAsync();
 
@@ -41,6 +44,10 @@ namespace Operum.Service.Services.Fields
                 .Where(f => f.IsCalculated && !string.IsNullOrWhiteSpace(f.Formula))
                 .ToList();
 
+            var fieldsByIdForMatcher = allFields
+                .Where(f => !f.IsCalculated)
+                .ToDictionary(f => f.Id, f => f);
+
             var newFieldValues = new List<FieldValue>();
 
             // Build a lookup from the already-tracked currentFieldValues so we never
@@ -56,7 +63,7 @@ namespace Operum.Service.Services.Fields
 
                 foreach (var token in tokens)
                 {
-                    var resolved = TryResolveTokenValue(token, manualFieldsByName, fieldValuesByFieldId, constantsByName);
+                    var resolved = TryResolveTokenValue(token, manualFieldsByName, fieldValuesByFieldId, constantsByName, fieldsByIdForMatcher);
                     if (resolved == null)
                     {
                         anyMissing = true;
@@ -154,7 +161,8 @@ namespace Operum.Service.Services.Fields
             string tokenName,
             Dictionary<string, Field> manualFieldsByName,
             Dictionary<string, FieldValue> fieldValuesByFieldId,
-            Dictionary<string, TrackerConstant> constantsByName)
+            Dictionary<string, TrackerConstant> constantsByName,
+            Dictionary<string, Field> fieldsByIdForMatcher)
         {
             var (name, property) = ParseToken(tokenName);
 
@@ -192,11 +200,22 @@ namespace Operum.Service.Services.Fields
 
             if (constantsByName.TryGetValue(name, out var constant))
             {
+                var rawValue = constant.Value;
+
+                if (constant.Values.Count > 0)
+                {
+                    var match = constant.Values
+                        .OrderBy(v => v.Priority)
+                        .FirstOrDefault(v => EntryFilterMatcher.Matches(v.Filters, fieldValuesByFieldId, fieldsByIdForMatcher));
+                    if (match != null)
+                        rawValue = match.Value;
+                }
+
                 return constant.Type switch
                 {
-                    DataTypes.Number => double.TryParse(constant.Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var n) ? n : null,
-                    DataTypes.Bool => bool.TryParse(constant.Value, out var b) ? (b ? 1.0 : 0.0) : null,
-                    DataTypes.TimeSpan => TimeSpan.TryParse(constant.Value, out var ts) ? ts.TotalSeconds : null,
+                    DataTypes.Number => double.TryParse(rawValue, NumberStyles.Any, CultureInfo.InvariantCulture, out var n) ? n : null,
+                    DataTypes.Bool => bool.TryParse(rawValue, out var b) ? (b ? 1.0 : 0.0) : null,
+                    DataTypes.TimeSpan => TimeSpan.TryParse(rawValue, out var ts) ? ts.TotalSeconds : null,
                     _ => null
                 };
             }

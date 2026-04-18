@@ -13,10 +13,12 @@ import {
 import { useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { MdDelete, MdEdit } from "react-icons/md";
+import { RiFileListFill } from "react-icons/ri";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { useConstants } from "../context/ConstantsContext";
 import { TrackerConstantDto } from "../types/TrackerConstantDto";
+import ConstantDetailsDialog from "./ConstantDetailsDialog";
 import { ConstantFormDialog } from "./ConstantFormDialog";
 
 interface ConstantsProps {
@@ -24,6 +26,7 @@ interface ConstantsProps {
 }
 
 enum OpenDialogType {
+    View,
     Create,
     Edit,
     Delete,
@@ -70,9 +73,25 @@ export default function Constants(props: ConstantsProps) {
                                                 <Text size="sm" c="dimmed">
                                                     {constant.value}
                                                 </Text>
+                                                {constant.values?.length > 0 && (
+                                                    <Badge variant="light" color="grape" size="sm">
+                                                        {constant.values.length} conditional
+                                                    </Badge>
+                                                )}
                                             </Group>
                                         </Stack>
                                         <Group gap="xs" wrap="nowrap">
+                                            <ActionIcon
+                                                variant="outline"
+                                                color={props.tracker.color}
+                                                size="lg"
+                                                onClick={() => {
+                                                    setSelectedConstant(constant);
+                                                    setOpenDialogType(OpenDialogType.View);
+                                                }}
+                                            >
+                                                <RiFileListFill size={16} />
+                                            </ActionIcon>
                                             <ActionIcon
                                                 variant="outline"
                                                 color="green"
@@ -114,6 +133,17 @@ export default function Constants(props: ConstantsProps) {
                     )}
                 </ScrollArea>
             </Stack>
+
+            {openDialogType === OpenDialogType.View && selectedConstant && (
+                <ConstantDetailsDialog
+                    constant={selectedConstant}
+                    tracker={props.tracker}
+                    onClose={() => {
+                        setOpenDialogType(undefined);
+                        setSelectedConstant(undefined);
+                    }}
+                />
+            )}
 
             {openDialogType === OpenDialogType.Create && (
                 <ConstantFormDialog

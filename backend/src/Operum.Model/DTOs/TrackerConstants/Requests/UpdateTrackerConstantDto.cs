@@ -8,6 +8,7 @@ namespace Operum.Model.DTOs.TrackerConstants.Requests
         public required string Name { get; set; } = string.Empty;
         public required string Type { get; set; } = string.Empty;
         public required string Value { get; set; } = string.Empty;
+        public List<CreateTrackerConstantValueDto> Values { get; set; } = [];
     }
 
     public class UpdateTrackerConstantDtoValidator : AbstractValidator<UpdateTrackerConstantDto>

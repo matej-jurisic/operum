@@ -558,7 +558,7 @@ namespace Operum.Service.Services.Entries
                 var fieldValues = await db.FieldValues
                     .Include(fv => fv.Field)
                     .Where(fv => fv.EntryId == entryId)
-                    .AsNoTracking()
+                    .AsTracking()
                     .ToListAsync();
 
                 await formulaEvaluationService.EvaluateAndPersistCalculatedFields(

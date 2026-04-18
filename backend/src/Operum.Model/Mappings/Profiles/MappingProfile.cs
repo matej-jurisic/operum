@@ -94,10 +94,18 @@ namespace Operum.Service.Mappings.Profiles
                 d.Field = mapper.Map<Field, FieldDto>(s.Field);
             });
 
-            mapper.Register<TrackerConstant, TrackerConstantDto>();
+            mapper.Register<TrackerConstant, TrackerConstantDto>((s, d) =>
+            {
+                d.Values = mapper.Map<List<TrackerConstantValue>, List<TrackerConstantValueDto>>(s.Values);
+            });
             mapper.Register<TrackerConstantDto, TrackerConstant>();
             mapper.Register<CreateTrackerConstantDto, TrackerConstant>();
             mapper.Register<UpdateTrackerConstantDto, TrackerConstant>();
+            mapper.Register<TrackerConstantValue, TrackerConstantValueDto>((s, d) =>
+            {
+                d.Filters = mapper.Map<List<TrackerConstantValueFilter>, List<TrackerConstantValueFilterDto>>(s.Filters);
+            });
+            mapper.Register<TrackerConstantValueFilter, TrackerConstantValueFilterDto>();
 
             mapper.Register<CreateViewSortDto, ViewSort>();
             mapper.Register<CreateViewFilterDto, ViewFilter>();
