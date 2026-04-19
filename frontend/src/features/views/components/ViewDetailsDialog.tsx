@@ -8,6 +8,7 @@ import {
     Title,
 } from "@mantine/core";
 import { useEffect, useState } from "react";
+import { formatOperator } from "../../../shared/utils/formatters/OperatorFormatter";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { viewsController } from "../api/viewsController";
@@ -91,15 +92,13 @@ export default function ViewDetailsDialog(props: Props) {
                                 justify="space-between"
                                 wrap="nowrap"
                             >
-                                <Text fw={500} truncate="end" style={{ flex: 1, minWidth: 0 }}>
-                                    {filter.field.name}
-                                </Text>
-                                <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
+                                <Text fw={500}>{filter.field.name}</Text>
+                                <Group gap="xs">
                                     <Badge
                                         color={props.tracker.color}
                                         variant="light"
                                     >
-                                        {filter.operator}
+                                        {formatOperator(filter.operator)}
                                     </Badge>
                                     <Badge
                                         color={props.tracker.color}

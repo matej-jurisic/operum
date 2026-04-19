@@ -61,26 +61,12 @@ export default function Constants(props: ConstantsProps) {
                         <Stack gap="md">
                             {constants.map((constant) => (
                                 <Card key={constant.id} p="md" radius="md" withBorder>
-                                    <Group align="flex-start" justify="space-between" wrap="nowrap">
-                                        <Stack gap="xs" flex={1}>
-                                            <Title order={4} lineClamp={1} className="wrapped-text">
+                                    <Stack gap="xs">
+                                        <Group justify="space-between" wrap="nowrap">
+                                            <Title order={4} lineClamp={1} className="wrapped-text" style={{ flex: 1, minWidth: 0 }}>
                                                 {constant.name}
                                             </Title>
-                                            <Group wrap="wrap">
-                                                <Badge variant="light" color="blue" size="sm">
-                                                    {constant.type}
-                                                </Badge>
-                                                {constant.values?.length > 0 && (
-                                                    <Badge variant="light" color="grape" size="sm">
-                                                        {constant.values.length} conditional
-                                                    </Badge>
-                                                )}
-                                            </Group>
-                                            <Text size="sm" c="dimmed" lineClamp={1} className="wrapped-text">
-                                                {constant.value}
-                                            </Text>
-                                        </Stack>
-                                        <Group gap="xs" wrap="nowrap">
+                                            <Group gap="xs" wrap="nowrap">
                                             <ActionIcon
                                                 variant="outline"
                                                 color={props.tracker.color}
@@ -116,6 +102,20 @@ export default function Constants(props: ConstantsProps) {
                                             </ActionIcon>
                                         </Group>
                                     </Group>
+                                        <Group wrap="wrap">
+                                            <Badge variant="light" color="blue" size="sm">
+                                                {constant.type}
+                                            </Badge>
+                                            {constant.values?.length > 0 && (
+                                                <Badge variant="light" color="grape" size="sm">
+                                                    {constant.values.length} conditional
+                                                </Badge>
+                                            )}
+                                        </Group>
+                                        <Text size="sm" c="dimmed" lineClamp={1} className="wrapped-text">
+                                            Base value: {constant.value}
+                                        </Text>
+                                    </Stack>
                                 </Card>
                             ))}
                         </Stack>

@@ -1,6 +1,5 @@
 import {
     Badge,
-    Box,
     Code,
     Divider,
     Group,
@@ -10,6 +9,7 @@ import {
     Text,
     Title,
 } from "@mantine/core";
+import { formatOperator } from "../../../shared/utils/formatters/OperatorFormatter";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 import { useFields } from "../../fields/context/FieldsContext";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
@@ -54,12 +54,10 @@ export default function ConstantDetailsDialog({
                     <Badge variant="light" color="blue">{constant.type}</Badge>
                 </Group>
 
-                <Stack gap="xs">
+                <Group justify="space-between" wrap="nowrap">
                     <Text fw={500}>Base Value</Text>
-                    <Box p="sm" style={(theme) => ({ background: theme.colors.dark[8], borderRadius: theme.radius.sm, border: `1px solid ${theme.colors.dark[4]}` })}>
-                        <Text fw={700} size="lg" ta="center">{constant.value}</Text>
-                    </Box>
-                </Stack>
+                    <Code>{constant.value}</Code>
+                </Group>
 
                 {constant.values?.length > 0 && (
                     <>
@@ -84,12 +82,10 @@ export default function ConstantDetailsDialog({
                                                         const field = getField(f.fieldId);
                                                         return (
                                                             <Group key={f.id} justify="space-between" wrap="nowrap">
-                                                                <Text fw={500} truncate="end" style={{ flex: 1, minWidth: 0 }}>
-                                                                    {field?.name ?? f.fieldId}
-                                                                </Text>
-                                                                <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
+                                                                <Text fw={500}>{field?.name ?? f.fieldId}</Text>
+                                                                <Group gap="xs">
                                                                     <Badge color={tracker.color} variant="light">
-                                                                        {f.operator}
+                                                                        {formatOperator(f.operator)}
                                                                     </Badge>
                                                                     <Badge color={tracker.color} variant="outline">
                                                                         {f.value
