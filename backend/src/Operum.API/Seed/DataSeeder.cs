@@ -54,13 +54,6 @@ namespace Operum.API.Seed
                 {
                     await userManager.AddToRoleAsync(adminUser, RoleNames.Admin);
                 }
-                else
-                {
-                    foreach (var error in result.Errors)
-                    {
-                        Console.WriteLine($"Error creating admin user: {error.Description}");
-                    }
-                }
             }
 
             User testUser = new(DefaultUsers.TestUserData.Email, DefaultUsers.TestUserData.UserName);
@@ -72,13 +65,6 @@ namespace Operum.API.Seed
                 if (result.Succeeded)
                 {
                     await userManager.AddToRoleAsync(testUser, RoleNames.User);
-                }
-                else
-                {
-                    foreach (var error in result.Errors)
-                    {
-                        Console.WriteLine($"Error creating test user: {error.Description}");
-                    }
                 }
             }
         }
