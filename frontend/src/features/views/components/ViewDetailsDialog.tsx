@@ -91,8 +91,10 @@ export default function ViewDetailsDialog(props: Props) {
                                 justify="space-between"
                                 wrap="nowrap"
                             >
-                                <Text fw={500}>{filter.field.name}</Text>
-                                <Group gap="xs">
+                                <Text fw={500} truncate="end" style={{ flex: 1, minWidth: 0 }}>
+                                    {filter.field.name}
+                                </Text>
+                                <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
                                     <Badge
                                         color={props.tracker.color}
                                         variant="light"

@@ -544,6 +544,9 @@ namespace Operum.Service.Services.Entries
 
         public async Task<Result> RecalculateEntries(string trackerId, List<string> entryIds)
         {
+            if (entryIds.Count > DataLimits.MaxRecalculateCount)
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("entries to recalculate at once", DataLimits.MaxRecalculateCount));
+
             var user = currentUserService.GetCurrentUser();
             var tracker = await db.Trackers
                 .Include(x => x.ApplicationUserTrackers)

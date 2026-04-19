@@ -1,5 +1,6 @@
 import {
     Badge,
+    Box,
     Code,
     Divider,
     Group,
@@ -53,10 +54,12 @@ export default function ConstantDetailsDialog({
                     <Badge variant="light" color="blue">{constant.type}</Badge>
                 </Group>
 
-                <Group justify="space-between" wrap="nowrap">
+                <Stack gap="xs">
                     <Text fw={500}>Base Value</Text>
-                    <Code>{constant.value}</Code>
-                </Group>
+                    <Box p="sm" style={(theme) => ({ background: theme.colors.dark[8], borderRadius: theme.radius.sm, border: `1px solid ${theme.colors.dark[4]}` })}>
+                        <Text fw={700} size="lg" ta="center">{constant.value}</Text>
+                    </Box>
+                </Stack>
 
                 {constant.values?.length > 0 && (
                     <>
@@ -81,8 +84,10 @@ export default function ConstantDetailsDialog({
                                                         const field = getField(f.fieldId);
                                                         return (
                                                             <Group key={f.id} justify="space-between" wrap="nowrap">
-                                                                <Text fw={500}>{field?.name ?? f.fieldId}</Text>
-                                                                <Group gap="xs">
+                                                                <Text fw={500} truncate="end" style={{ flex: 1, minWidth: 0 }}>
+                                                                    {field?.name ?? f.fieldId}
+                                                                </Text>
+                                                                <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
                                                                     <Badge color={tracker.color} variant="light">
                                                                         {f.operator}
                                                                     </Badge>
