@@ -1,6 +1,8 @@
 # Operum
 
-Self-hosted data tracking. Define your schema, log entries, build views, and visualize trends — without wrestling with spreadsheets.
+Available at operum.app
+
+Flexible data tracking. Define your schema, log entries, build views, and visualize trends — without wrestling with spreadsheets.
 
 ---
 
@@ -54,7 +56,7 @@ Admins can publish tracker templates that any user can clone as a starting point
 
 ---
 
-## Self-hosting
+## Setup & Installation
 
 Requires Docker and Docker Compose.
 
