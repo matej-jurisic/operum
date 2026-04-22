@@ -24,7 +24,7 @@ Create, edit, duplicate, and delete entries individually, or select a group to b
 
 ### Views
 
-A view is a saved lens on your data: a set of filters, a sort order, and a column selection. Switch between views without losing any configuration. Drag to reorder them, and mark one as the default that opens automatically.
+A view is a saved lens on your data: a set of filters, a sort order, and a column selection. Switch between views without losing any configuration. Drag to reorder them, and mark one as the default that opens automatically. Make use of dynamic value filters to create live views that change over time by using Date values such as `today`, `start of month`, `end of year` and such.
 
 ### Analytics
 
