@@ -1,5 +1,5 @@
 import { DonutChart } from "@mantine/charts";
-import { ActionIcon, em, Group, Paper, Stack, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Box, em, Group, Paper, Stack, Text, Tooltip } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { useMemo } from "react";
 import { MdDelete } from "react-icons/md";
@@ -60,35 +60,40 @@ export function DonutChartCard({ analytic, isConfiguring }: Props) {
                         </ActionIcon>
                     )}
                 </Group>
-                {excludedPoints.length > 0 && (
-                    <Tooltip
-                        label={excludedPoints.map((p) => p.name ?? "Unknown").join(", ")}
-                        multiline
-                        maw={260}
-                    >
-                        <Text size="xs" c="dimmed" style={{ cursor: "default" }}>
-                            {excludedPoints.length} categor{excludedPoints.length === 1 ? "y" : "ies"} not shown (zero or negative value)
-                        </Text>
-                    </Tooltip>
-                )}
-                <Group justify="center">
-                    <DonutChart
-                        withLabelsLine
-                        w={"100%"}
-                        withLabels
-                        size={isMobile ? 150 : 200}
-                        thickness={20}
-                        paddingAngle={2}
-                        tooltipDataSource="segment"
-                        tooltipProps={{
-                            content: createDonutTooltipContent(analytic),
-                        }}
-                        labelsType="percent"
-                        tooltipAnimationDuration={200}
-                        data={coloredPoints}
-                        h={isMobile ? 210 : 300}
-                    />
-                </Group>
+                <Box
+                    h={isMobile ? 210 : 300}
+                    style={{ display: "flex", flexDirection: "column", gap: "var(--mantine-spacing-xs)" }}
+                >
+                    {excludedPoints.length > 0 && (
+                        <Tooltip
+                            label={excludedPoints.map((p) => p.name ?? "Unknown").join(", ")}
+                            multiline
+                            maw={260}
+                        >
+                            <Text size="xs" c="dimmed" style={{ cursor: "default" }}>
+                                {excludedPoints.length} categor{excludedPoints.length === 1 ? "y" : "ies"} not shown (zero or negative value)
+                            </Text>
+                        </Tooltip>
+                    )}
+                    <Box style={{ flex: 1, minHeight: 0, display: "flex", justifyContent: "center" }}>
+                        <DonutChart
+                            withLabelsLine
+                            w={"100%"}
+                            withLabels
+                            size={isMobile ? 150 : 200}
+                            thickness={20}
+                            paddingAngle={2}
+                            tooltipDataSource="segment"
+                            tooltipProps={{
+                                content: createDonutTooltipContent(analytic),
+                            }}
+                            labelsType="percent"
+                            tooltipAnimationDuration={200}
+                            data={coloredPoints}
+                            h={"100%"}
+                        />
+                    </Box>
+                </Box>
             </Stack>
         </Paper>
     );

@@ -111,3 +111,7 @@ dist-ssr/
 
 # Ignore logs
 log-*
+
+# Claude
+.claude
+CLAUDE.md

@@ -59,7 +59,7 @@ export default function Views(props: Props) {
     const [sortedViews, setSortedViews] = useState<ViewDto[]>([]);
     const [isReordering, setIsReordering] = useState(false);
 
-    const { tracker } = useTracker();
+    const { tracker, setTracker } = useTracker();
     const { views, refreshViewsIfDirty } = useViews();
     const { fields } = useFields();
     const { deleteView, updateViewOrder } = useTrackerOperations();
@@ -150,8 +150,14 @@ export default function Views(props: Props) {
                                     <Menu.Divider />
                                     <Menu.Item
                                         onClick={async () => {
+                                            const prev = defaultViewIds;
                                             setDefaultViewIds([]);
-                                            await viewsController.setDefaultViews(tracker.id, []);
+                                            try {
+                                                await viewsController.setDefaultViews(tracker.id, []);
+                                                setTracker(t => ({ ...t, defaultViewIds: [] }));
+                                            } catch {
+                                                setDefaultViewIds(prev);
+                                            }
                                         }}
                                         rightSection={
                                             defaultViewIds.length === 0 ? (
@@ -169,11 +175,17 @@ export default function Views(props: Props) {
                                             <Menu.Item
                                                 closeMenuOnClick={false}
                                                 onClick={async () => {
+                                                    const prev = defaultViewIds;
                                                     const next = isDefault
                                                         ? defaultViewIds.filter((id) => id !== v.id)
                                                         : [...defaultViewIds, v.id];
                                                     setDefaultViewIds(next);
-                                                    await viewsController.setDefaultViews(tracker.id, next);
+                                                    try {
+                                                        await viewsController.setDefaultViews(tracker.id, next);
+                                                        setTracker(t => ({ ...t, defaultViewIds: next }));
+                                                    } catch {
+                                                        setDefaultViewIds(prev);
+                                                    }
                                                 }}
                                                 rightSection={isDefault ? <MdCheck size={16} /> : null}
                                                 key={v.id}

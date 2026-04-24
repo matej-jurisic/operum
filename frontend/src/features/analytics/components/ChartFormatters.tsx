@@ -142,7 +142,7 @@ export const createScatterTooltipContent = (
                             {analytic.xField.name}
                         </Text>
                         <Text size="sm" ml="auto">
-                            {renderValue(analytic.xField.type, xValue)}
+                            {getAxisFormatter(analytic.xField.type)(xValue)}
                         </Text>
                     </Group>
                     <Group gap="xs" wrap="nowrap" maw={300}>
@@ -156,7 +156,7 @@ export const createScatterTooltipContent = (
                             {analytic.yField.name}
                         </Text>
                         <Text size="sm" ml="auto">
-                            {renderValue(analytic.yField.type, yValue)}
+                            {getAxisFormatter(analytic.yField.type)(yValue)}
                         </Text>
                     </Group>
                 </Stack>

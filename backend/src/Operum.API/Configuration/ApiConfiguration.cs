@@ -27,8 +27,8 @@ namespace Operum.API.Configuration
         {
             services.AddCors(opt =>
             {
-                var allowedHosts = configuration.GetValue<string?>("AllowedHosts");
-                var origins = allowedHosts?.Split(';', StringSplitOptions.RemoveEmptyEntries) ?? [];
+                var clientUrl = configuration.GetValue<string?>("ClientUrl");
+                var origins = clientUrl?.Split(';', StringSplitOptions.RemoveEmptyEntries) ?? [];
 
                 opt.AddPolicy("CorsPolicy", policy =>
                 {
