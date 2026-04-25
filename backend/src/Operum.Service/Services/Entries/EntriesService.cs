@@ -227,9 +227,9 @@ namespace Operum.Service.Services.Entries
             await db.SaveChangesAsync();
 
             var allCurrentValues = fieldValues
-    		.Where(fv => db.Entry(fv).State != EntityState.Deleted) // Filter out items you just deleted
-    		.Concat(newFieldValues)
-    		.ToList();
+            .Where(fv => db.Entry(fv).State != EntityState.Deleted) // Filter out items you just deleted
+            .Concat(newFieldValues)
+            .ToList();
 
             await formulaEvaluationService.EvaluateAndPersistCalculatedFields(
                 trackerId, entryId, allCurrentValues, allFields);
@@ -580,6 +580,128 @@ namespace Operum.Service.Services.Entries
             }
 
             return Result.Success();
+        }
+
+        public async Task<Result> BatchEntries(string trackerId, BatchEntriesDto batch)
+        {
+            var user = currentUserService.GetCurrentUser();
+            var tracker = await db.Trackers
+                .Include(x => x.ApplicationUserTrackers)
+                .FirstOrDefaultAsync(x => x.Id == trackerId);
+
+            var canWrite = tracker != null && (tracker.OwnerId == user.Id || tracker.ApplicationUserTrackers.Any(x => x.ApplicationUserId == user.Id && x.CanEditData));
+
+            if (tracker == null || !canWrite)
+                return Result.Failure(ResultStatusCodes.Forbidden);
+
+            if (batch.Creates.Count > 0)
+            {
+                var currentCount = await db.Entries.CountAsync(x => x.TrackerId == trackerId);
+                if (currentCount + batch.Creates.Count > DataLimits.MaxEntryCount)
+                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("entries", DataLimits.MaxEntryCount));
+            }
+
+            var fields = await db.Fields.Where(x => x.TrackerId == trackerId).ToListAsync();
+            var nonCalculated = fields.Where(f => !f.IsCalculated).ToList();
+
+            using var transaction = await db.Database.BeginTransactionAsync();
+            try
+            {
+                var createdEntries = new List<(Entry entry, List<FieldValue> fieldValues)>();
+                var updatedEntries = new List<(string entryId, List<FieldValue> allCurrentValues)>();
+
+                foreach (var createDto in batch.Creates)
+                {
+                    var newEntry = new Entry { TrackerId = trackerId, CreatedAt = DateTime.UtcNow };
+                    await db.Entries.AddAsync(newEntry);
+
+                    var entryFieldValues = new List<FieldValue>();
+                    foreach (var field in nonCalculated)
+                    {
+                        if (createDto.TryGetValue(field.Name, out string? value))
+                        {
+                            var fv = new FieldValue { EntryId = newEntry.Id, FieldId = field.Id };
+                            fv.SetFieldValue(field, value);
+                            entryFieldValues.Add(fv);
+                        }
+                        else if (field.Required)
+                        {
+                            return Result.Failure(ResultStatusCodes.BadRequest, Messages.Required(field.Name));
+                        }
+                    }
+                    await db.FieldValues.AddRangeAsync(entryFieldValues);
+                    createdEntries.Add((newEntry, entryFieldValues));
+                }
+
+                foreach (var updateDto in batch.Updates)
+                {
+                    var entryExists = await db.Entries.AnyAsync(x => x.Id == updateDto.EntryId && x.TrackerId == trackerId);
+                    if (!entryExists)
+                        return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("entry"));
+
+                    var existingFvs = await db.FieldValues
+                        .Include(x => x.Field)
+                        .Where(x => x.EntryId == updateDto.EntryId)
+                        .AsTracking()
+                        .ToListAsync();
+
+                    var fvDict = existingFvs.ToDictionary(x => x.FieldId);
+                    var newFvs = new List<FieldValue>();
+
+                    foreach (var field in nonCalculated)
+                    {
+                        fvDict.TryGetValue(field.Id, out var existingFv);
+                        bool hasNewValue = updateDto.FieldValues.TryGetValue(field.Name, out string? newValue);
+
+                        if (hasNewValue)
+                        {
+                            if (existingFv != null)
+                                existingFv.SetFieldValue(field, newValue);
+                            else
+                            {
+                                var newFv = new FieldValue { EntryId = updateDto.EntryId, FieldId = field.Id };
+                                newFv.SetFieldValue(field, newValue);
+                                newFvs.Add(newFv);
+                            }
+                        }
+                        else if (existingFv != null)
+                        {
+                            db.FieldValues.Remove(existingFv);
+                        }
+                    }
+
+                    await db.FieldValues.AddRangeAsync(newFvs);
+                    var allCurrent = existingFvs
+                        .Where(fv => db.Entry(fv).State != EntityState.Deleted)
+                        .Concat(newFvs)
+                        .ToList();
+                    updatedEntries.Add((updateDto.EntryId, allCurrent));
+                }
+
+                if (batch.Deletes.Count > 0)
+                {
+                    var toDelete = await db.Entries
+                        .Where(x => batch.Deletes.Contains(x.Id) && x.TrackerId == trackerId)
+                        .ToListAsync();
+                    db.Entries.RemoveRange(toDelete);
+                }
+
+                var result = await db.SaveChangesAsync();
+
+                foreach (var (entry, fieldValues) in createdEntries)
+                    await formulaEvaluationService.EvaluateAndPersistCalculatedFields(trackerId, entry.Id, fieldValues, fields);
+
+                foreach (var (entryId, allCurrent) in updatedEntries)
+                    await formulaEvaluationService.EvaluateAndPersistCalculatedFields(trackerId, entryId, allCurrent, fields);
+
+                await transaction.CommitAsync();
+                return Result.Success();
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                return Result.Failure(ResultStatusCodes.Error, "Batch save failed. No changes were applied.");
+            }
         }
     }
 }

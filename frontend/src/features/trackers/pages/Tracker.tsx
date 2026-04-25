@@ -1,6 +1,6 @@
 import { Badge, Container, Group, Stack, Tabs, Title } from "@mantine/core";
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import Header from "../../../shared/components/Header";
 import { ComposedTrackerProvider } from "../../../shared/context/ComposedTrackerProvider";
 import globalStore from "../../../shared/stores/GlobalStore";
@@ -15,8 +15,13 @@ import TrackerUserList from "../components/TrackerUserList";
 import { TrackerDto } from "../types/TrackerDto";
 
 export default function Tracker() {
-    const { trackerId } = useParams();
+    const { trackerId, '*': splat } = useParams();
+    const navigate = useNavigate();
     const [tracker, setTracker] = useState<TrackerDto>();
+
+    const urlParts = (splat ?? '').split('/').filter(Boolean);
+    const activeTab = urlParts[0] || 'entries';
+    const action = urlParts[1];
 
     useEffect(() => {
         const fetchData = async () => {
@@ -63,7 +68,8 @@ export default function Tracker() {
                         variant="default"
                         color={tracker.color}
                         keepMounted={false}
-                        defaultValue="entries"
+                        value={activeTab}
+                        onChange={(value) => value && navigate(`/trackers/${trackerId}/${value}`)}
                         h="100%"
                         display={"flex"}
                         style={{ flexDirection: "column" }}
@@ -90,7 +96,7 @@ export default function Tracker() {
                             mih={0}
                         >
                             <Tabs.Panel value="entries" h="100%">
-                                <Entries />
+                                <Entries autoOpenCreate={action === 'create'} />
                             </Tabs.Panel>
                             <Tabs.Panel value="views" h="100%">
                                 <Views tracker={tracker} />

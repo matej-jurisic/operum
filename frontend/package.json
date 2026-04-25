@@ -22,6 +22,7 @@
     "@mantine/notifications": "^8.1.3",
     "@tanstack/react-table": "^8.21.3",
     "axios": "^1.13.6",
+    "dayjs": "^1.11.20",
     "frontend": "file:",
     "masonic": "^4.1.0",
     "mobx": "^6.13.7",
@@ -52,6 +53,7 @@
     "postcss-simple-vars": "^7.0.1",
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.22.0",
-    "vite": "^6.1.1"
+    "vite": "^6.1.1",
+    "vite-plugin-pwa": "^1.2.0"
   }
 }

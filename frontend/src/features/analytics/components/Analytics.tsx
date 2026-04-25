@@ -20,8 +20,8 @@ import AnalyticSelectionDialog from "./analyticSelection/AnalyticSelectionDialog
 import { AnalyticsGrid } from "./AnalyticsGrid";
 
 export default function Analytics() {
-    const { selectedViewIds, tracker, canEditSchema } = useTracker();
-    const { refreshAnalyticsIfDirty, analytics } = useAnalytics();
+    const { tracker, canEditSchema } = useTracker();
+    const { refreshAnalytics, analytics, analyticsDirty } = useAnalytics();
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
     const [isLoadingData, setIsLoadingData] = useState(true);
     const [openDialogType, setOpenDialogType] = useState<
@@ -31,13 +31,14 @@ export default function Analytics() {
     const [selectedEntryId, setSelectedEntryId] = useState<string>();
 
     useEffect(() => {
+        if (!analyticsDirty) return;
         const loadData = async () => {
             setIsLoadingData(true);
-            await refreshAnalyticsIfDirty();
+            await refreshAnalytics();
             setIsLoadingData(false);
         };
         loadData();
-    }, [selectedViewIds]);
+    }, [analyticsDirty]);
 
     const hasAnalytics = analytics.length > 0;
 

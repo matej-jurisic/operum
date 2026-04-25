@@ -74,6 +74,16 @@ export const entriesController = {
             entryIds,
         });
     },
+    batchEntries: async (
+        trackerId: string,
+        body: {
+            creates: Record<string, string>[];
+            updates: { entryId: string; fieldValues: Record<string, string> }[];
+            deletes: string[];
+        }
+    ): Promise<ApiResponse> => {
+        return await api.post(`/trackers/${trackerId}/entries/batch`, body);
+    },
     importEntries: async (
         trackerId: string,
         data: FormData

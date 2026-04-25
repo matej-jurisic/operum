@@ -4,6 +4,7 @@ import {
     Button,
     Group,
     Menu,
+    Modal,
     Pagination,
     Paper,
     ScrollArea,
@@ -13,12 +14,13 @@ import {
     Tooltip,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { CiExport } from "react-icons/ci";
 import { FiPlus } from "react-icons/fi";
 import { MdCheck, MdClose, MdDelete, MdSelectAll } from "react-icons/md";
-import { TbRefresh } from "react-icons/tb";
 import { PiFileCsvDuotone } from "react-icons/pi";
+import { TbNotes, TbRefresh } from "react-icons/tb";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import { downloadBlob } from "../../../shared/utils/BlobDownloader";
@@ -34,6 +36,7 @@ import { EntriesTable } from "./EntriesTable";
 import EntryDetailsDialog from "./EntryDetailsDialog";
 import EntryFormDialog from "./EntryFormDialog";
 import ImportEntriesDialog from "./ImportEntriesDialog";
+import { NoteView } from "./NoteView";
 
 enum OpenDialogType {
     CreateEntry,
@@ -44,6 +47,7 @@ enum OpenDialogType {
     BulkDelete,
     ViewDetails,
     ExportEntries,
+    NoteView,
 }
 
 const ExportCsv = async (trackerId: string, viewIds?: string[]) => {
@@ -52,11 +56,19 @@ const ExportCsv = async (trackerId: string, viewIds?: string[]) => {
     downloadBlob(
         new Blob([response.data]),
         `tracker-export.csv`,
-        response.headers["content-disposition"]
+        response.headers["content-disposition"],
     );
 };
 
-export default function Entries() {
+interface EntriesProps {
+    autoOpenCreate?: boolean;
+}
+
+export default function Entries({ autoOpenCreate = false }: EntriesProps) {
+    const { trackerId } = useParams();
+    const navigate = useNavigate();
+    const hasAutoOpened = useRef(false);
+
     const [selectedEntry, setSelectedEntry] = useState<EntryDto>();
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
 
@@ -64,6 +76,7 @@ export default function Entries() {
     const { refreshFieldsIfDirty, fields } = useFields();
     const {
         entries,
+        entriesDirty,
         refreshEntries,
         isSelectMode,
         selectedEntryIds,
@@ -77,7 +90,8 @@ export default function Entries() {
         goToPage,
     } = useEntries();
     const { views } = useViews();
-    const { deleteEntry, deleteEntries, recalculateEntries } = useTrackerOperations();
+    const { deleteEntry, deleteEntries, recalculateEntries } =
+        useTrackerOperations();
 
     const [isLoadingData, setIsLoadingData] = useState(false);
 
@@ -100,8 +114,8 @@ export default function Entries() {
             : undefined;
     }, [views, selectedViewIds]);
 
-    // Load data on component mount or view change — always reset to page 1
     useEffect(() => {
+        if (!entriesDirty) return;
         const loadData = async () => {
             setIsLoadingData(true);
             await refreshEntries(selectedViewIds, 1);
@@ -109,7 +123,14 @@ export default function Entries() {
             setIsLoadingData(false);
         };
         loadData();
-    }, [selectedViewIds]);
+    }, [entriesDirty]);
+
+    useEffect(() => {
+        if (autoOpenCreate && !hasAutoOpened.current) {
+            hasAutoOpened.current = true;
+            setOpenDialogType(OpenDialogType.CreateEntry);
+        }
+    }, [autoOpenCreate]);
 
     return (
         <>
@@ -118,71 +139,84 @@ export default function Entries() {
                     <Group justify="space-between" w="100%">
                         <Group>
                             {canEditData && (
-                            <Menu shadow="md" position="bottom-start">
-                                <Menu.Target>
-                                    <Tooltip
-                                        label={
-                                            fields.length === 0
-                                                ? "Cannot create entry: No fields available"
-                                                : ""
-                                        }
-                                        disabled={fields.length > 0}
-                                        withArrow
-                                    >
-                                        <Button
-                                            variant="outline"
-                                            color={tracker.color}
-                                            disabled={fields.length === 0}
-                                            leftSection={<FiPlus size={18} />}
+                                <Menu shadow="md" position="bottom-start">
+                                    <Menu.Target>
+                                        <Tooltip
+                                            label={
+                                                fields.length === 0
+                                                    ? "Cannot create entry: No fields available"
+                                                    : ""
+                                            }
+                                            disabled={fields.length > 0}
+                                            withArrow
                                         >
-                                            Create
-                                        </Button>
-                                    </Tooltip>
-                                </Menu.Target>
+                                            <Button
+                                                variant="outline"
+                                                color={tracker.color}
+                                                disabled={fields.length === 0}
+                                                leftSection={
+                                                    <FiPlus size={18} />
+                                                }
+                                            >
+                                                Create
+                                            </Button>
+                                        </Tooltip>
+                                    </Menu.Target>
 
-                                <Menu.Dropdown>
-                                    <Menu.Item
-                                        leftSection={<FiPlus size={16} />}
-                                        onClick={() =>
-                                            setOpenDialogType(
-                                                OpenDialogType.CreateEntry
-                                            )
-                                        }
-                                    >
-                                        Create Entry
-                                    </Menu.Item>
-                                    <Menu.Item
-                                        leftSection={
-                                            <PiFileCsvDuotone size={16} />
-                                        }
-                                        onClick={() =>
-                                            setOpenDialogType(
-                                                OpenDialogType.ImportEntries
-                                            )
-                                        }
-                                    >
-                                        Import Entries
-                                    </Menu.Item>
-                                </Menu.Dropdown>
-                            </Menu>
+                                    <Menu.Dropdown>
+                                        <Menu.Item
+                                            leftSection={<FiPlus size={16} />}
+                                            onClick={() =>
+                                                setOpenDialogType(
+                                                    OpenDialogType.CreateEntry,
+                                                )
+                                            }
+                                        >
+                                            Create Entry
+                                        </Menu.Item>
+                                        <Menu.Item
+                                            leftSection={
+                                                <PiFileCsvDuotone size={16} />
+                                            }
+                                            onClick={() =>
+                                                setOpenDialogType(
+                                                    OpenDialogType.ImportEntries,
+                                                )
+                                            }
+                                        >
+                                            Import Entries
+                                        </Menu.Item>
+                                    </Menu.Dropdown>
+                                </Menu>
                             )}
                         </Group>
                         <Group justify="flex-end" wrap="nowrap">
                             {/* Bulk actions */}
 
-                            {canEditData && isSelectMode && !isMobile && fields.some(f => f.isCalculated) && (
-                                <Tooltip label="Rerun calculated fields">
-                                    <ActionIcon
-                                        variant="outline"
-                                        color="violet"
-                                        size="lg"
-                                        onClick={() => recalculateEntries(Array.from(selectedEntryIds))}
-                                        disabled={selectedEntryIds.size === 0}
-                                    >
-                                        <TbRefresh size={18} />
-                                    </ActionIcon>
-                                </Tooltip>
-                            )}
+                            {canEditData &&
+                                isSelectMode &&
+                                !isMobile &&
+                                fields.some((f) => f.isCalculated) && (
+                                    <Tooltip label="Rerun calculated fields">
+                                        <ActionIcon
+                                            variant="outline"
+                                            color="violet"
+                                            size="lg"
+                                            onClick={() =>
+                                                recalculateEntries(
+                                                    Array.from(
+                                                        selectedEntryIds,
+                                                    ),
+                                                )
+                                            }
+                                            disabled={
+                                                selectedEntryIds.size === 0
+                                            }
+                                        >
+                                            <TbRefresh size={18} />
+                                        </ActionIcon>
+                                    </Tooltip>
+                                )}
 
                             {canEditData && isSelectMode && !isMobile && (
                                 <ActionIcon
@@ -191,7 +225,7 @@ export default function Entries() {
                                     size="lg"
                                     onClick={() =>
                                         setOpenDialogType(
-                                            OpenDialogType.BulkDelete
+                                            OpenDialogType.BulkDelete,
                                         )
                                     }
                                     disabled={selectedEntryIds.size === 0}
@@ -217,166 +251,197 @@ export default function Entries() {
                                 size={"lg"}
                                 onClick={() =>
                                     setOpenDialogType(
-                                        OpenDialogType.ExportEntries
+                                        OpenDialogType.ExportEntries,
                                     )
                                 }
                             >
                                 <CiExport size={18} />
                             </ActionIcon>
+
+                            <ActionIcon
+                                variant="outline"
+                                color={tracker.color}
+                                size="lg"
+                                onClick={() =>
+                                    setOpenDialogType(OpenDialogType.NoteView)
+                                }
+                            >
+                                <TbNotes size={18} />
+                            </ActionIcon>
                         </Group>
                     </Group>
 
-                    {isSelectMode && isMobile && (
-                        <Group justify="space-between" w="100%" align="center">
-                            <Group>
-                                {isMobile && isSelectMode && (
-                                    <Badge
-                                        color={tracker.color}
-                                        variant="filled"
-                                    >
-                                        {selectedEntryIds.size} selected
-                                    </Badge>
-                                )}
-                            </Group>
-                            {isMobile && (
+                    <>
+                        {isSelectMode && isMobile && (
+                            <Group
+                                justify="space-between"
+                                w="100%"
+                                align="center"
+                            >
                                 <Group>
-                                    <Button
-                                        variant={
-                                            allEntriesSelected
-                                                ? "filled"
-                                                : "outline"
-                                        }
-                                        color={tracker.color}
-                                        leftSection={
-                                            allEntriesSelected ? (
-                                                <MdClose size={18} />
-                                            ) : (
-                                                <MdCheck size={18} />
-                                            )
-                                        }
-                                        onClick={toggleSelectAll}
-                                    >
-                                        Select All
-                                    </Button>
-                                    {canEditData && fields.some(f => f.isCalculated) && (
-                                        <ActionIcon
-                                            variant="outline"
-                                            color="violet"
-                                            size="lg"
-                                            onClick={() => recalculateEntries(Array.from(selectedEntryIds))}
-                                            disabled={selectedEntryIds.size === 0}
+                                    {isMobile && isSelectMode && (
+                                        <Badge
+                                            color={tracker.color}
+                                            variant="filled"
                                         >
-                                            <TbRefresh size={18} />
-                                        </ActionIcon>
-                                    )}
-                                    {canEditData && (
-                                    <ActionIcon
-                                        variant="outline"
-                                        color="red"
-                                        size="lg"
-                                        onClick={() =>
-                                            setOpenDialogType(
-                                                OpenDialogType.BulkDelete
-                                            )
-                                        }
-                                        disabled={selectedEntryIds.size === 0}
-                                    >
-                                        <MdDelete size={18} />
-                                    </ActionIcon>
+                                            {selectedEntryIds.size} selected
+                                        </Badge>
                                     )}
                                 </Group>
-                            )}
-                        </Group>
-                    )}
-
-                    <ScrollArea flex={1}>
-                        {entries.length > 0 && !isLoadingData ? (
-                            isMobile ? (
-                                <EntriesCards
-                                    onViewDetails={(entry) => {
-                                        setSelectedEntry(entry);
-                                        setOpenDialogType(
-                                            OpenDialogType.ViewDetails
-                                        );
-                                    }}
-                                    onEdit={(entry) => {
-                                        setSelectedEntry(entry);
-                                        setOpenDialogType(
-                                            OpenDialogType.UpdateEntry
-                                        );
-                                    }}
-                                    onDuplicate={(entry) => {
-                                        setSelectedEntry(entry);
-                                        setOpenDialogType(
-                                            OpenDialogType.DuplicateEntry
-                                        );
-                                    }}
-                                    onDelete={(entry) => {
-                                        setSelectedEntry(entry);
-                                        setOpenDialogType(
-                                            OpenDialogType.DeleteEntry
-                                        );
-                                    }}
-                                    entries={entries}
-                                />
-                            ) : (
-                                <EntriesTable
-                                    onViewDetails={(entry) => {
-                                        setSelectedEntry(entry);
-                                        setOpenDialogType(
-                                            OpenDialogType.ViewDetails
-                                        );
-                                    }}
-                                    onEdit={(entry) => {
-                                        setSelectedEntry(entry);
-                                        setOpenDialogType(
-                                            OpenDialogType.UpdateEntry
-                                        );
-                                    }}
-                                    onDuplicate={(entry) => {
-                                        setSelectedEntry(entry);
-                                        setOpenDialogType(
-                                            OpenDialogType.DuplicateEntry
-                                        );
-                                    }}
-                                    onDelete={(entry) => {
-                                        setSelectedEntry(entry);
-                                        setOpenDialogType(
-                                            OpenDialogType.DeleteEntry
-                                        );
-                                    }}
-                                    entries={entries}
-                                />
-                            )
-                        ) : isLoadingData ? (
-                            <></>
-                        ) : (
-                            <Paper withBorder p="xl" radius="md">
-                                <Stack gap="md" align="center">
-                                    <Text size="lg" fw={500} c="dimmed">
-                                        No Entries Available
-                                    </Text>
-                                    <Text ta="center" c="dimmed">
-                                        Entries will appear here when you create
-                                        them.
-                                    </Text>
-                                </Stack>
-                            </Paper>
+                                {isMobile && (
+                                    <Group>
+                                        <Button
+                                            variant={
+                                                allEntriesSelected
+                                                    ? "filled"
+                                                    : "outline"
+                                            }
+                                            color={tracker.color}
+                                            leftSection={
+                                                allEntriesSelected ? (
+                                                    <MdClose size={18} />
+                                                ) : (
+                                                    <MdCheck size={18} />
+                                                )
+                                            }
+                                            onClick={toggleSelectAll}
+                                        >
+                                            Select All
+                                        </Button>
+                                        {canEditData &&
+                                            fields.some(
+                                                (f) => f.isCalculated,
+                                            ) && (
+                                                <ActionIcon
+                                                    variant="outline"
+                                                    color="violet"
+                                                    size="lg"
+                                                    onClick={() =>
+                                                        recalculateEntries(
+                                                            Array.from(
+                                                                selectedEntryIds,
+                                                            ),
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        selectedEntryIds.size ===
+                                                        0
+                                                    }
+                                                >
+                                                    <TbRefresh size={18} />
+                                                </ActionIcon>
+                                            )}
+                                        {canEditData && (
+                                            <ActionIcon
+                                                variant="outline"
+                                                color="red"
+                                                size="lg"
+                                                onClick={() =>
+                                                    setOpenDialogType(
+                                                        OpenDialogType.BulkDelete,
+                                                    )
+                                                }
+                                                disabled={
+                                                    selectedEntryIds.size === 0
+                                                }
+                                            >
+                                                <MdDelete size={18} />
+                                            </ActionIcon>
+                                        )}
+                                    </Group>
+                                )}
+                            </Group>
                         )}
-                    </ScrollArea>
-                    {totalCount > 0 && (
-                        <Stack align="center" gap={"xs"}>
-                            <Text size="sm">{message}</Text>
-                            <Pagination
-                                siblings={0}
-                                value={page}
-                                onChange={goToPage}
-                                total={totalPages}
-                                color={tracker.color}
-                                size="md"
-                            />
-                        </Stack>
-                    )}
+
+                        <ScrollArea flex={1}>
+                            {entries.length > 0 && !isLoadingData ? (
+                                isMobile ? (
+                                    <EntriesCards
+                                        onViewDetails={(entry) => {
+                                            setSelectedEntry(entry);
+                                            setOpenDialogType(
+                                                OpenDialogType.ViewDetails,
+                                            );
+                                        }}
+                                        onEdit={(entry) => {
+                                            setSelectedEntry(entry);
+                                            setOpenDialogType(
+                                                OpenDialogType.UpdateEntry,
+                                            );
+                                        }}
+                                        onDuplicate={(entry) => {
+                                            setSelectedEntry(entry);
+                                            setOpenDialogType(
+                                                OpenDialogType.DuplicateEntry,
+                                            );
+                                        }}
+                                        onDelete={(entry) => {
+                                            setSelectedEntry(entry);
+                                            setOpenDialogType(
+                                                OpenDialogType.DeleteEntry,
+                                            );
+                                        }}
+                                        entries={entries}
+                                    />
+                                ) : (
+                                    <EntriesTable
+                                        onViewDetails={(entry) => {
+                                            setSelectedEntry(entry);
+                                            setOpenDialogType(
+                                                OpenDialogType.ViewDetails,
+                                            );
+                                        }}
+                                        onEdit={(entry) => {
+                                            setSelectedEntry(entry);
+                                            setOpenDialogType(
+                                                OpenDialogType.UpdateEntry,
+                                            );
+                                        }}
+                                        onDuplicate={(entry) => {
+                                            setSelectedEntry(entry);
+                                            setOpenDialogType(
+                                                OpenDialogType.DuplicateEntry,
+                                            );
+                                        }}
+                                        onDelete={(entry) => {
+                                            setSelectedEntry(entry);
+                                            setOpenDialogType(
+                                                OpenDialogType.DeleteEntry,
+                                            );
+                                        }}
+                                        entries={entries}
+                                    />
+                                )
+                            ) : isLoadingData ? (
+                                <></>
+                            ) : (
+                                <Paper withBorder p="xl" radius="md">
+                                    <Stack gap="md" align="center">
+                                        <Text size="lg" fw={500} c="dimmed">
+                                            No Entries Available
+                                        </Text>
+                                        <Text ta="center" c="dimmed">
+                                            Entries will appear here when you
+                                            create them.
+                                        </Text>
+                                    </Stack>
+                                </Paper>
+                            )}
+                        </ScrollArea>
+                        {totalCount > 0 && (
+                            <Stack align="center" gap={"xs"}>
+                                <Text size="sm">{message}</Text>
+                                <Pagination
+                                    siblings={0}
+                                    value={page}
+                                    onChange={goToPage}
+                                    total={totalPages}
+                                    color={tracker.color}
+                                    size="md"
+                                />
+                            </Stack>
+                        )}
+                    </>
                 </Stack>
             </Skeleton>
 
@@ -417,6 +482,9 @@ export default function Entries() {
                     tracker={tracker}
                     onClose={() => {
                         setOpenDialogType(undefined);
+                        if (autoOpenCreate) {
+                            navigate(`/trackers/${trackerId}/entries`, { replace: true });
+                        }
                     }}
                 />
             )}
@@ -430,29 +498,30 @@ export default function Entries() {
                             acc[field.fieldName] = field.value;
                             return acc;
                         },
-                        {} as Record<string, unknown>
+                        {} as Record<string, unknown>,
                     )}
                     onClose={() => {
                         setOpenDialogType(undefined);
                     }}
                 />
             )}
-            {openDialogType === OpenDialogType.DuplicateEntry && selectedEntry && (
-                <EntryFormDialog
-                    tracker={tracker}
-                    title="Duplicate Entry"
-                    initialValues={selectedEntry.fieldValues.reduce(
-                        (acc, field) => {
-                            acc[field.fieldName] = field.value;
-                            return acc;
-                        },
-                        {} as Record<string, unknown>
-                    )}
-                    onClose={() => {
-                        setOpenDialogType(undefined);
-                    }}
-                />
-            )}
+            {openDialogType === OpenDialogType.DuplicateEntry &&
+                selectedEntry && (
+                    <EntryFormDialog
+                        tracker={tracker}
+                        title="Duplicate Entry"
+                        initialValues={selectedEntry.fieldValues.reduce(
+                            (acc, field) => {
+                                acc[field.fieldName] = field.value;
+                                return acc;
+                            },
+                            {} as Record<string, unknown>,
+                        )}
+                        onClose={() => {
+                            setOpenDialogType(undefined);
+                        }}
+                    />
+                )}
 
             {openDialogType === OpenDialogType.ImportEntries && (
                 <ImportEntriesDialog
@@ -501,6 +570,27 @@ export default function Entries() {
                     }
                 />
             )}
+
+            <Modal
+                opened={openDialogType === OpenDialogType.NoteView}
+                onClose={() => setOpenDialogType(undefined)}
+                title="Note View"
+                size="xl"
+                styles={{
+                    body: {
+                        display: "flex",
+                        flexDirection: "column",
+                        height: "80vh",
+                    },
+                }}
+            >
+                <NoteView
+                    onClose={() => {
+                        setOpenDialogType(undefined);
+                        refreshEntries(selectedViewIds);
+                    }}
+                />
+            </Modal>
         </>
     );
 }

@@ -47,6 +47,10 @@ const App = observer(() => {
                                 element={<PrivateRoute page={<Tracker />} />}
                             />
                             <Route
+                                path="trackers/:trackerId/*"
+                                element={<PrivateRoute page={<Tracker />} />}
+                            />
+                            <Route
                                 path="confirm-email"
                                 element={
                                     <PublicRoute page={<ConfirmEmail />} />

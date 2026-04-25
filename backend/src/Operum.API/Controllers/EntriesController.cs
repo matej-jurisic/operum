@@ -49,6 +49,12 @@ namespace Operum.API.Controllers
             return GetApiResponse(await entriesService.DeleteEntries(trackerId, deleteRequest.EntryIds));
         }
 
+        [HttpPost("batch")]
+        public async Task<IActionResult> BatchEntries([FromRoute] string trackerId, [FromBody] BatchEntriesDto batch)
+        {
+            return GetApiResponse(await entriesService.BatchEntries(trackerId, batch));
+        }
+
         [HttpPost("recalculate")]
         public async Task<IActionResult> RecalculateEntries([FromRoute] string trackerId, [FromBody] RecalculateEntriesDto request)
         {
