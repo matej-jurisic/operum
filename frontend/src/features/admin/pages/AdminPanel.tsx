@@ -10,11 +10,13 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../../../shared/components/Header";
 import Trackers from "../../trackers/components/Trackers";
 import Users from "../../users/components/Users";
+import AdminStats from "../components/AdminStats";
+import AdminTrackers from "../components/AdminTrackers";
 
 export default function AdminPanel() {
     const location = useLocation();
     const navigate = useNavigate();
-    const currentTab = location.pathname.split("/").pop() || "users";
+    const currentTab = location.pathname.split("/").pop() || "overview";
     const theme = useMantineTheme();
 
     return (
@@ -31,13 +33,15 @@ export default function AdminPanel() {
                 <Stack flex="1" mih={0}>
                     <Tabs
                         variant="default"
-                        keepMounted={true}
+                        keepMounted={false}
                         value={currentTab}
                         onChange={(value) => navigate(`/admin-panel/${value}`)}
                         h="100%"
                     >
                         <Tabs.List>
+                            <Tabs.Tab value="overview">Overview</Tabs.Tab>
                             <Tabs.Tab value="users">Users</Tabs.Tab>
+                            <Tabs.Tab value="trackers">Trackers</Tabs.Tab>
                             <Tabs.Tab value="templates">Templates</Tabs.Tab>
                         </Tabs.List>
 
@@ -49,8 +53,14 @@ export default function AdminPanel() {
                             px={0}
                             mih={0}
                         >
+                            <Tabs.Panel value="overview" h="100%">
+                                <AdminStats />
+                            </Tabs.Panel>
                             <Tabs.Panel value="users" h="100%">
                                 <Users />
+                            </Tabs.Panel>
+                            <Tabs.Panel value="trackers" h="100%">
+                                <AdminTrackers />
                             </Tabs.Panel>
                             <Tabs.Panel value="templates" h="100%">
                                 <Trackers isTemplates />

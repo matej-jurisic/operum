@@ -11,6 +11,7 @@ import { RegisterDto } from "../types/requests/RegisterDto";
 
 interface Props {
     onClose: () => void;
+    initialTab?: "login" | "register";
 }
 
 export default function AuthDialog(props: Props) {
@@ -92,7 +93,7 @@ export default function AuthDialog(props: Props) {
         await authController.register(values);
     };
 
-    const [selectedTab, setSelectedTab] = useState("login");
+    const [selectedTab, setSelectedTab] = useState(props.initialTab ?? "login");
 
     return (
         <>

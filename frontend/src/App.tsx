@@ -1,19 +1,24 @@
 import { AppShell } from "@mantine/core";
 import { observer } from "mobx-react";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import AdminPanel from "./features/admin/pages/AdminPanel";
 import useAuth from "./features/auth/hooks/useAuth";
-import Home from "./features/home/pages/Home";
-import Trackers from "./features/trackers/components/Trackers";
-import Tracker from "./features/trackers/pages/Tracker";
-import { ConfirmEmail } from "./features/users/pages/ConfirmEmail";
 import OperumLoader from "./shared/components/OperumLoader";
 import GenericRoute from "./shared/components/routing/GenericRoute";
 import PrivateRoute from "./shared/components/routing/PrivateRoute";
 import PublicRoute from "./shared/components/routing/PublicRoute";
 import { useLoading } from "./shared/context/LoadingContext";
 import globalStore from "./shared/stores/GlobalStore";
+
+const AdminPanel = lazy(() => import("./features/admin/pages/AdminPanel"));
+const Home = lazy(() => import("./features/home/pages/Home"));
+const Trackers = lazy(() => import("./features/trackers/components/Trackers"));
+const Tracker = lazy(() => import("./features/trackers/pages/Tracker"));
+const ConfirmEmail = lazy(() =>
+    import("./features/users/pages/ConfirmEmail").then((m) => ({
+        default: m.ConfirmEmail,
+    }))
+);
 
 const App = observer(() => {
     const auth = useAuth();
@@ -33,6 +38,7 @@ const App = observer(() => {
             <AppShell h={"100vh"} w={"100vw"}>
                 <AppShell.Main h="100%" p={"md"}>
                     <BrowserRouter>
+                        <Suspense fallback={<OperumLoader visible />}>
                         <Routes>
                             <Route
                                 path="home"
@@ -59,7 +65,7 @@ const App = observer(() => {
                             <Route
                                 path="admin-panel"
                                 element={
-                                    <Navigate to="/admin-panel/users" replace />
+                                    <Navigate to="/admin-panel/overview" replace />
                                 }
                             />
                             <Route
@@ -82,6 +88,7 @@ const App = observer(() => {
                                 }
                             />
                         </Routes>
+                        </Suspense>
                     </BrowserRouter>
                 </AppShell.Main>
             </AppShell>
