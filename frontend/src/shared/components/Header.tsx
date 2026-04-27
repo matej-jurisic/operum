@@ -58,14 +58,12 @@ const Header = observer((props: Props) => {
                     <Menu.Dropdown>
                         {globalStore.currentUser ? (
                             <>
-                                <Menu.Item leftSection={<CiUser size={16} />}>
-                                    {globalStore.currentUser?.userName || "Guest"}
-                                </Menu.Item>
                                 <Menu.Item
                                     leftSection={<TbUserCircle size={16} />}
                                     onClick={() => navigate("/profile")}
                                 >
-                                    Profile
+                                    {globalStore.currentUser?.userName ||
+                                        "Guest"}
                                 </Menu.Item>
                             </>
                         ) : (

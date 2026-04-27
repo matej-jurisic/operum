@@ -22,7 +22,10 @@ import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
 import Header from "../../../shared/components/Header";
 import globalStore from "../../../shared/stores/GlobalStore";
 import useAuth from "../../auth/hooks/useAuth";
-import { profileController, UserProfileStatsDto } from "../api/profileController";
+import {
+    profileController,
+    UserProfileStatsDto,
+} from "../api/profileController";
 
 export default function ProfilePage() {
     const theme = useMantineTheme();
@@ -40,8 +43,8 @@ export default function ProfilePage() {
                 v.length < 3
                     ? "At least 3 characters"
                     : v.length > 20
-                    ? "At most 20 characters"
-                    : null,
+                      ? "At most 20 characters"
+                      : null,
         },
     });
 
@@ -57,8 +60,8 @@ export default function ProfilePage() {
                 v.length < 6
                     ? "At least 6 characters"
                     : !/\d/.test(v)
-                    ? "Must contain a digit"
-                    : null,
+                      ? "Must contain a digit"
+                      : null,
             confirmPassword: (v, values) =>
                 v !== values.newPassword ? "Passwords do not match" : null,
         },
@@ -84,7 +87,7 @@ export default function ProfilePage() {
     const handlePasswordSubmit = async (values: typeof passwordForm.values) => {
         const res = await profileController.changePassword(
             values.currentPassword,
-            values.newPassword
+            values.newPassword,
         );
         if (res.isSuccess) passwordForm.reset();
     };
@@ -134,177 +137,183 @@ export default function ProfilePage() {
                 </Group>
 
                 <ScrollArea flex={1}>
-                    <Stack gap="xl" maw={680}>
-                        {/* Identity card */}
-                        <Card withBorder radius="md" p="xl">
-                            <Group gap="xl" align="flex-start">
-                                <Avatar
-                                    size={72}
-                                    radius="xl"
-                                    color={theme.primaryColor}
-                                    variant="filled"
-                                >
-                                    {initials}
-                                </Avatar>
-                                <Stack gap={6} flex={1}>
-                                    <Text fw={700} size="xl">
-                                        {user.userName}
-                                    </Text>
-                                    {user.email && (
-                                        <Text size="sm" c="dimmed">
-                                            {user.email}
-                                        </Text>
-                                    )}
-                                    <Group gap="xs" mt={4}>
-                                        {user.roles.map((r) => (
-                                            <Badge
-                                                key={r}
-                                                variant="light"
-                                                color={theme.primaryColor}
-                                                size="sm"
-                                            >
-                                                {r}
-                                            </Badge>
-                                        ))}
-                                    </Group>
-                                </Stack>
-                            </Group>
-                        </Card>
-
-                        {/* Stats */}
-                        <SimpleGrid cols={{ base: 1, sm: 3 }}>
-                            {statCards.map((s) => (
-                                <Card
-                                    key={s.label}
-                                    withBorder
-                                    radius="md"
-                                    p="lg"
-                                    style={{
-                                        borderTop: `3px solid var(--mantine-color-${s.color}-5)`,
-                                    }}
-                                >
-                                    <Stack gap={4}>
-                                        <Text
-                                            size="xs"
-                                            c="dimmed"
-                                            fw={600}
-                                            tt="uppercase"
-                                            style={{ letterSpacing: "0.05em" }}
-                                        >
-                                            {s.label}
-                                        </Text>
-                                        <Text fw={700} size="xl">
-                                            {s.value}
-                                        </Text>
-                                    </Stack>
-                                </Card>
-                            ))}
-                        </SimpleGrid>
-
-                        {/* Change username */}
-                        <Card withBorder radius="md" p="lg">
-                            <form
-                                onSubmit={usernameForm.onSubmit(
-                                    handleUsernameSubmit
-                                )}
-                            >
-                                <Stack gap="md">
-                                    <Text fw={600}>Username</Text>
-                                    <TextInput
-                                        label="Username"
-                                        {...usernameForm.getInputProps(
-                                            "userName"
-                                        )}
-                                    />
-                                    <Group justify="flex-end">
-                                        <Button
-                                            type="submit"
-                                            variant="outline"
-                                        >
-                                            Save Username
-                                        </Button>
-                                    </Group>
-                                </Stack>
-                            </form>
-                        </Card>
-
-                        {/* Change password */}
-                        <Card withBorder radius="md" p="lg">
-                            <form
-                                onSubmit={passwordForm.onSubmit(
-                                    handlePasswordSubmit
-                                )}
-                            >
-                                <Stack gap="md">
-                                    <Text fw={600}>Change Password</Text>
-                                    <PasswordInput
-                                        label="Current Password"
-                                        {...passwordForm.getInputProps(
-                                            "currentPassword"
-                                        )}
-                                    />
-                                    <PasswordInput
-                                        label="New Password"
-                                        {...passwordForm.getInputProps(
-                                            "newPassword"
-                                        )}
-                                    />
-                                    <PasswordInput
-                                        label="Confirm New Password"
-                                        {...passwordForm.getInputProps(
-                                            "confirmPassword"
-                                        )}
-                                    />
-                                    <Group justify="flex-end">
-                                        <Button
-                                            type="submit"
-                                            variant="outline"
-                                        >
-                                            Change Password
-                                        </Button>
-                                    </Group>
-                                </Stack>
-                            </form>
-                        </Card>
-
-                        {/* Danger zone */}
-                        <Card
-                            withBorder
-                            radius="md"
-                            p="lg"
-                            style={{
-                                borderColor:
-                                    "var(--mantine-color-red-5)",
-                            }}
-                        >
-                            <Stack gap="md">
-                                <Text fw={600} c="red">
-                                    Danger Zone
-                                </Text>
-                                <Divider color="red" opacity={0.3} />
-                                <Group justify="space-between" align="center">
-                                    <Stack gap={2}>
-                                        <Text fw={500} size="sm">
-                                            Delete Account
-                                        </Text>
-                                        <Text size="xs" c="dimmed">
-                                            Permanently deletes your account and
-                                            all trackers you own. Cannot be
-                                            undone.
-                                        </Text>
-                                    </Stack>
-                                    <Button
-                                        color="red"
-                                        variant="outline"
-                                        onClick={() =>
-                                            setShowDeleteDialog(true)
-                                        }
+                    <Stack align="center">
+                        <Stack gap="xl" maw={680}>
+                            {/* Identity card */}
+                            <Card withBorder radius="md" p="xl">
+                                <Group gap="xl" align="flex-start">
+                                    <Avatar
+                                        size={72}
+                                        radius="xl"
+                                        color={theme.primaryColor}
+                                        variant="filled"
                                     >
-                                        Delete Account
-                                    </Button>
+                                        {initials}
+                                    </Avatar>
+                                    <Stack gap={6} flex={1}>
+                                        <Text fw={700} size="xl">
+                                            {user.userName}
+                                        </Text>
+                                        {user.email && (
+                                            <Text size="sm" c="dimmed">
+                                                {user.email}
+                                            </Text>
+                                        )}
+                                        <Group gap="xs" mt={4}>
+                                            {user.roles.map((r) => (
+                                                <Badge
+                                                    key={r}
+                                                    variant="light"
+                                                    color={theme.primaryColor}
+                                                    size="sm"
+                                                >
+                                                    {r}
+                                                </Badge>
+                                            ))}
+                                        </Group>
+                                    </Stack>
                                 </Group>
-                            </Stack>
-                        </Card>
+                            </Card>
+
+                            {/* Stats */}
+                            <SimpleGrid cols={{ base: 1, sm: 3 }}>
+                                {statCards.map((s) => (
+                                    <Card
+                                        key={s.label}
+                                        withBorder
+                                        radius="md"
+                                        p="lg"
+                                        style={{
+                                            borderTop: `3px solid var(--mantine-color-${s.color}-5)`,
+                                        }}
+                                    >
+                                        <Stack gap={4}>
+                                            <Text
+                                                size="xs"
+                                                c="dimmed"
+                                                fw={600}
+                                                tt="uppercase"
+                                                style={{
+                                                    letterSpacing: "0.05em",
+                                                }}
+                                            >
+                                                {s.label}
+                                            </Text>
+                                            <Text fw={700} size="xl">
+                                                {s.value}
+                                            </Text>
+                                        </Stack>
+                                    </Card>
+                                ))}
+                            </SimpleGrid>
+
+                            {/* Change username */}
+                            <Card withBorder radius="md" p="lg">
+                                <form
+                                    onSubmit={usernameForm.onSubmit(
+                                        handleUsernameSubmit,
+                                    )}
+                                >
+                                    <Stack gap="md">
+                                        <Text fw={600}>Username</Text>
+                                        <TextInput
+                                            label="Username"
+                                            {...usernameForm.getInputProps(
+                                                "userName",
+                                            )}
+                                        />
+                                        <Group justify="flex-end">
+                                            <Button
+                                                type="submit"
+                                                variant="outline"
+                                            >
+                                                Save Username
+                                            </Button>
+                                        </Group>
+                                    </Stack>
+                                </form>
+                            </Card>
+
+                            {/* Change password */}
+                            <Card withBorder radius="md" p="lg">
+                                <form
+                                    onSubmit={passwordForm.onSubmit(
+                                        handlePasswordSubmit,
+                                    )}
+                                >
+                                    <Stack gap="md">
+                                        <Text fw={600}>Change Password</Text>
+                                        <PasswordInput
+                                            label="Current Password"
+                                            {...passwordForm.getInputProps(
+                                                "currentPassword",
+                                            )}
+                                        />
+                                        <PasswordInput
+                                            label="New Password"
+                                            {...passwordForm.getInputProps(
+                                                "newPassword",
+                                            )}
+                                        />
+                                        <PasswordInput
+                                            label="Confirm New Password"
+                                            {...passwordForm.getInputProps(
+                                                "confirmPassword",
+                                            )}
+                                        />
+                                        <Group justify="flex-end">
+                                            <Button
+                                                type="submit"
+                                                variant="outline"
+                                            >
+                                                Change Password
+                                            </Button>
+                                        </Group>
+                                    </Stack>
+                                </form>
+                            </Card>
+
+                            {/* Danger zone */}
+                            <Card
+                                withBorder
+                                radius="md"
+                                p="lg"
+                                style={{
+                                    borderColor: "var(--mantine-color-red-5)",
+                                }}
+                            >
+                                <Stack gap="md">
+                                    <Text fw={600} c="red">
+                                        Danger Zone
+                                    </Text>
+                                    <Divider color="red" opacity={0.3} />
+                                    <Group
+                                        justify="space-between"
+                                        align="center"
+                                    >
+                                        <Stack gap={2}>
+                                            <Text fw={500} size="sm">
+                                                Delete Account
+                                            </Text>
+                                            <Text size="xs" c="dimmed">
+                                                Permanently deletes your account
+                                                and all trackers you own. Cannot
+                                                be undone.
+                                            </Text>
+                                        </Stack>
+                                        <Button
+                                            color="red"
+                                            variant="outline"
+                                            onClick={() =>
+                                                setShowDeleteDialog(true)
+                                            }
+                                        >
+                                            Delete Account
+                                        </Button>
+                                    </Group>
+                                </Stack>
+                            </Card>
+                        </Stack>
                     </Stack>
                 </ScrollArea>
             </Stack>
