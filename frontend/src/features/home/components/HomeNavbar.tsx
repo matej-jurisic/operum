@@ -3,6 +3,7 @@ import {
     Box,
     Group,
     Text,
+    Title,
     useMantineColorScheme,
     useMantineTheme,
 } from "@mantine/core";
@@ -53,15 +54,15 @@ const HomeNavbar = observer(({ scrolled, scrollTo, color }: Props) => {
             }}
         >
             <Group justify="space-between">
-                <Text
+                <Title
+                    order={2}
                     fw={800}
-                    size="xl"
                     c={iconColor}
                     style={{ cursor: "pointer", userSelect: "none" }}
                     onClick={() => scrollTo("hero")}
                 >
                     Operum
-                </Text>
+                </Title>
 
                 {/* Navigation Links */}
                 <Group gap={2} visibleFrom="md">

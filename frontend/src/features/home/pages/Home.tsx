@@ -4,13 +4,11 @@ import {
     Box,
     Button,
     Card,
-    Code,
     Container,
     Divider,
     Grid,
     Group,
     List,
-    Paper,
     ScrollArea,
     SimpleGrid,
     Stack,
@@ -401,6 +399,7 @@ const Home = observer(() => {
                     margin: "calc(-1 * var(--mantine-spacing-md))",
                     width: "calc(100% + 2 * var(--mantine-spacing-md))",
                     height: "calc(100% + 2 * var(--mantine-spacing-md))",
+                    overflowX: "hidden",
                     background: heroBg,
                 }}
             >
@@ -465,7 +464,7 @@ const Home = observer(() => {
                                     lh={1.6}
                                 >
                                     Define custom schemas, log entries, build
-                                    saved views, and visualize your data —
+                                    saved views, and visualize your data
                                     without writing a single line of code.
                                 </Text>
 
@@ -509,7 +508,7 @@ const Home = observer(() => {
                                             >
                                                 {stat.value}
                                             </Text>
-                                            <Text size="sm" c="dimmed">
+                                            <Text size="sm" c="dimmed" ta="center">
                                                 {stat.label}
                                             </Text>
                                         </Stack>
@@ -536,7 +535,7 @@ const Home = observer(() => {
                                     {FEATURES.map((f) => (
                                         <Grid.Col
                                             key={f.title}
-                                            span={{ base: 12, sm: 6, md: 3 }}
+                                            span={{ base: 6, sm: 6, md: 3 }}
                                         >
                                             <Card
                                                 withBorder
@@ -608,44 +607,6 @@ const Home = observer(() => {
                                             </Text>
                                         </div>
 
-                                        <Stack gap="xs">
-                                            <Text
-                                                size="xs"
-                                                fw={600}
-                                                tt="uppercase"
-                                                c="dimmed"
-                                                style={{
-                                                    letterSpacing: "0.06em",
-                                                }}
-                                            >
-                                                Formula example
-                                            </Text>
-                                            <Code block fz="sm">
-                                                {`Revenue = {Price} * {Quantity}\nProfit = Revenue - {Cost}\nMargin = Profit / Revenue`}
-                                            </Code>
-                                            <Text size="xs" c="dimmed">
-                                                Reference any field with{" "}
-                                                <Code>{"{FieldName}"}</Code>.
-                                                Results update automatically
-                                                when source values change.
-                                            </Text>
-                                        </Stack>
-
-                                        <Paper
-                                            withBorder
-                                            p="md"
-                                            radius="md"
-                                        >
-                                            <Text size="sm" fw={500} mb={4}>
-                                                Select options
-                                            </Text>
-                                            <Text size="xs" c="dimmed" lh={1.6}>
-                                                String fields can be configured
-                                                with a predefined list of
-                                                options, turning free-text into
-                                                a structured dropdown.
-                                            </Text>
-                                        </Paper>
                                     </Stack>
                                 </Grid.Col>
 
@@ -699,7 +660,7 @@ const Home = observer(() => {
                                     {USE_CASES.map((uc) => (
                                         <Grid.Col
                                             key={uc.title}
-                                            span={{ base: 12, sm: 6, md: 4 }}
+                                            span={{ base: 6, sm: 6, md: 4 }}
                                         >
                                             <Card
                                                 withBorder
@@ -889,7 +850,7 @@ const Home = observer(() => {
                                     {COLLAB_ROLES.map((role) => (
                                         <Grid.Col
                                             key={role.title}
-                                            span={{ base: 12, sm: 6, md: 3 }}
+                                            span={{ base: 6, sm: 6, md: 3 }}
                                         >
                                             <Card
                                                 withBorder

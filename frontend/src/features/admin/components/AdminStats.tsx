@@ -1,4 +1,4 @@
-import { Paper, SimpleGrid, Skeleton, Text, Title } from "@mantine/core";
+import { Paper, SimpleGrid, Skeleton, Stack, Text } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { adminController } from "../api/adminController";
 import { AdminStatsDto } from "../types/AdminStatsDto";
@@ -29,13 +29,15 @@ export default function AdminStats() {
             <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }}>
                 {stats &&
                     statCards(stats).map((card) => (
-                        <Paper key={card.label} withBorder p="xl" radius="md">
-                            <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-                                {card.label}
-                            </Text>
-                            <Title order={2} mt="xs">
-                                {card.value.toLocaleString()}
-                            </Title>
+                        <Paper key={card.label} withBorder p="md" radius="md">
+                            <Stack gap="xs">
+                                <Text size="sm" c="dimmed" fw={500}>
+                                    {card.label}
+                                </Text>
+                                <Text size="xl" fw={600} style={{ lineHeight: 1.2 }}>
+                                    {card.value.toLocaleString()}
+                                </Text>
+                            </Stack>
                         </Paper>
                     ))}
             </SimpleGrid>
