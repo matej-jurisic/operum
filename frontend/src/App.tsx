@@ -37,6 +37,7 @@ function AppShellLayout({ children }: { children: React.ReactNode }) {
 
 const AdminPanel = lazy(() => import("./features/admin/pages/AdminPanel"));
 const Home = lazy(() => import("./features/home/pages/Home"));
+const ProfilePage = lazy(() => import("./features/profile/pages/ProfilePage"));
 const Trackers = lazy(() => import("./features/trackers/components/Trackers"));
 const Tracker = lazy(() => import("./features/trackers/pages/Tracker"));
 const ConfirmEmail = lazy(() =>
@@ -67,6 +68,10 @@ const App = observer(() => {
                             <Route
                                 path="home"
                                 element={<GenericRoute page={<Home />} />}
+                            />
+                            <Route
+                                path="profile"
+                                element={<PrivateRoute page={<ProfilePage />} />}
                             />
                             <Route
                                 path="trackers"

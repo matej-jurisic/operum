@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Operum.API.Controllers.Base;
 using Operum.Model.DTOs.Users.Requests;
 using Operum.Service.Interfaces;
+using Operum.Model.DTOs.Users;
 
 namespace Operum.API.Controllers
 {
@@ -54,6 +55,30 @@ namespace Operum.API.Controllers
         public async Task<IActionResult> ConfirmUserEmail([FromRoute] string userId)
         {
             return GetApiResponse(await usersService.ConfirmUserEmail(userId));
+        }
+
+        [HttpGet("me/stats")]
+        public async Task<IActionResult> GetProfileStats()
+        {
+            return GetApiResponse(await usersService.GetProfileStats());
+        }
+
+        [HttpPut("me/username")]
+        public async Task<IActionResult> UpdateUsername([FromBody] UpdateUsernameDto request)
+        {
+            return GetApiResponse(await usersService.UpdateUsername(request));
+        }
+
+        [HttpPut("me/password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto request)
+        {
+            return GetApiResponse(await usersService.ChangePassword(request));
+        }
+
+        [HttpDelete("me")]
+        public async Task<IActionResult> DeleteAccount()
+        {
+            return GetApiResponse(await usersService.DeleteAccount());
         }
     }
 }
