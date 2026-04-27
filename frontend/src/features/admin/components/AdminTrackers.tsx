@@ -50,7 +50,7 @@ export default function AdminTrackers() {
                             {isMobile ? (
                                 <AdminTrackersCards trackers={trackers} />
                             ) : (
-                                <Table.ScrollContainer minWidth={0}>
+                                <Table.ScrollContainer minWidth={0} style={{ backgroundColor: "var(--mantine-color-body)" }}>
                                     <Table
                                         striped
                                         highlightOnHover

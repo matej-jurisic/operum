@@ -53,15 +53,17 @@ const HomeNavbar = observer(({ scrolled, scrollTo, color }: Props) => {
             }}
         >
             <Group justify="space-between">
-                <Title
-                    order={2}
-                    fw={800}
-                    c={iconColor}
-                    style={{ cursor: "pointer", userSelect: "none" }}
-                    onClick={() => scrollTo("hero")}
-                >
-                    Operum
-                </Title>
+                <Box flex={{ base: "none", md: 1 }}>
+                    <Title
+                        order={2}
+                        fw={800}
+                        c={iconColor}
+                        style={{ cursor: "pointer", userSelect: "none" }}
+                        onClick={() => scrollTo("hero")}
+                    >
+                        Operum
+                    </Title>
+                </Box>
 
                 {/* Navigation Links */}
                 <Group gap={2} visibleFrom="md">
@@ -84,7 +86,9 @@ const HomeNavbar = observer(({ scrolled, scrollTo, color }: Props) => {
                     ))}
                 </Group>
 
-                <Header />
+                <Group flex={{ base: "none", md: 1 }} justify="flex-end">
+                    <Header />
+                </Group>
             </Group>
         </Box>
     );

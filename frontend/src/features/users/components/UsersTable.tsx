@@ -30,6 +30,7 @@ export default function UsersTable(props: Props) {
                 withColumnBorders
                 withTableBorder
                 verticalSpacing={"sm"}
+                style={{ backgroundColor: "var(--mantine-color-body)" }}
             >
                 <Table.Thead>
                     <Table.Tr>

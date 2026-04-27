@@ -204,7 +204,7 @@ export function EntriesTable({
     ]);
 
     return (
-        <Table.ScrollContainer minWidth={0}>
+        <Table.ScrollContainer minWidth={0} style={{ backgroundColor: "var(--mantine-color-body)" }}>
             <Table
                 striped
                 highlightOnHover

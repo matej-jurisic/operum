@@ -374,8 +374,8 @@ const Home = observer(() => {
         : `radial-gradient(ellipse 140% 55% at 50% 0%, color-mix(in srgb, var(--mantine-color-${theme.primaryColor}-2) 100%, transparent) 0%, transparent 100%)`;
 
     const dotPattern = isDark
-        ? "radial-gradient(circle, rgba(255,255,255,0.055) 1px, transparent 1px)"
-        : "radial-gradient(circle, rgba(0,0,0,0.07) 1px, transparent 1px)";
+        ? "radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px)"
+        : "radial-gradient(circle, rgba(0,0,0,0.08) 1px, transparent 1px)";
 
     const altBg = isDark
         ? "var(--mantine-color-dark-8)"
@@ -392,17 +392,7 @@ const Home = observer(() => {
                 onAuthOpen={setAuthTab}
             />
 
-            {/* Full-bleed wrapper: bleeds into AppShell.Main padding */}
-            <Box
-                style={{
-                    position: "relative",
-                    margin: "calc(-1 * var(--mantine-spacing-md))",
-                    width: "calc(100% + 2 * var(--mantine-spacing-md))",
-                    height: "calc(100% + 2 * var(--mantine-spacing-md))",
-                    overflowX: "hidden",
-                    background: heroBg,
-                }}
-            >
+            <Box style={{ position: "relative", height: "100%", background: heroBg }}>
                 {/* Dot grid */}
                 <Box
                     style={{
@@ -416,6 +406,7 @@ const Home = observer(() => {
                 />
 
                 <ScrollArea
+                    scrollbars="y"
                     style={{ height: "100%", position: "relative", zIndex: 1 }}
                     styles={{
                         root: { background: "transparent" },

@@ -1,7 +1,7 @@
-import { AppShell } from "@mantine/core";
+import { AppShell, useMantineColorScheme } from "@mantine/core";
 import { observer } from "mobx-react";
 import { lazy, Suspense, useEffect } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import useAuth from "./features/auth/hooks/useAuth";
 import OperumLoader from "./shared/components/OperumLoader";
 import GenericRoute from "./shared/components/routing/GenericRoute";
@@ -9,6 +9,31 @@ import PrivateRoute from "./shared/components/routing/PrivateRoute";
 import PublicRoute from "./shared/components/routing/PublicRoute";
 import { useLoading } from "./shared/context/LoadingContext";
 import globalStore from "./shared/stores/GlobalStore";
+
+function AppShellLayout({ children }: { children: React.ReactNode }) {
+    const location = useLocation();
+    const { colorScheme } = useMantineColorScheme();
+    const isHome = location.pathname === "/home";
+
+    const dotPattern = colorScheme === "dark"
+        ? "radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px)"
+        : "radial-gradient(circle, rgba(0,0,0,0.08) 1px, transparent 1px)";
+
+    return (
+        <AppShell h={"100vh"} w={"100vw"} transitionDuration={0}>
+            <AppShell.Main
+                h="100%"
+                p={isHome ? 0 : "md"}
+                style={{
+                    backgroundImage: isHome ? undefined : dotPattern,
+                    backgroundSize: "28px 28px",
+                }}
+            >
+                {children}
+            </AppShell.Main>
+        </AppShell>
+    );
+}
 
 const AdminPanel = lazy(() => import("./features/admin/pages/AdminPanel"));
 const Home = lazy(() => import("./features/home/pages/Home"));
@@ -35,10 +60,9 @@ const App = observer(() => {
     return (
         <>
             <OperumLoader visible={loading} />
-            <AppShell h={"100vh"} w={"100vw"}>
-                <AppShell.Main h="100%" p={"md"}>
-                    <BrowserRouter>
-                        <Suspense fallback={<OperumLoader visible />}>
+            <BrowserRouter>
+                <AppShellLayout>
+                    <Suspense fallback={<OperumLoader visible />}>
                         <Routes>
                             <Route
                                 path="home"
@@ -88,10 +112,9 @@ const App = observer(() => {
                                 }
                             />
                         </Routes>
-                        </Suspense>
-                    </BrowserRouter>
-                </AppShell.Main>
-            </AppShell>
+                    </Suspense>
+                </AppShellLayout>
+            </BrowserRouter>
         </>
     );
 });

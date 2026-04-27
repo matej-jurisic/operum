@@ -23,7 +23,7 @@ export default function Analytics() {
     const { tracker, canEditSchema } = useTracker();
     const { refreshAnalytics, analytics, analyticsDirty } = useAnalytics();
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
-    const [isLoadingData, setIsLoadingData] = useState(true);
+    const [isLoadingData, setIsLoadingData] = useState(analyticsDirty);
     const [openDialogType, setOpenDialogType] = useState<
         "configureAnalytics" | undefined
     >();
