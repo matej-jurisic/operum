@@ -2,7 +2,6 @@ import {
     Anchor,
     Box,
     Group,
-    Text,
     Title,
     useMantineColorScheme,
     useMantineTheme,
