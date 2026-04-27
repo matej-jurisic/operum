@@ -2,7 +2,6 @@ import {
     Button,
     Group,
     Menu,
-    useComputedColorScheme,
     useMantineColorScheme,
     useMantineTheme,
 } from "@mantine/core";
@@ -23,9 +22,8 @@ interface Props {
 }
 
 const Header = observer((props: Props) => {
-    const { colorScheme, setColorScheme } = useMantineColorScheme();
+    const { colorScheme, toggleColorScheme } = useMantineColorScheme();
     const theme = useMantineTheme();
-    const computedColorScheme = useComputedColorScheme("light");
     const auth = useAuth();
     const navigate = useNavigate();
 
@@ -38,11 +36,7 @@ const Header = observer((props: Props) => {
                 <Button
                     variant="outline"
                     color={props.color ?? theme.primaryColor}
-                    onClick={() => {
-                        setColorScheme(
-                            computedColorScheme === "dark" ? "light" : "dark"
-                        );
-                    }}
+                    onClick={() => toggleColorScheme()}
                 >
                     {colorScheme === "light" ? (
                         <IoMoonOutline size={16} />

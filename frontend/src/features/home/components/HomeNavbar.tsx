@@ -1,22 +1,13 @@
 import {
     Anchor,
     Box,
-    Button,
-    Container,
     Group,
-    Menu,
     Text,
-    useComputedColorScheme,
     useMantineColorScheme,
     useMantineTheme,
 } from "@mantine/core";
 import { observer } from "mobx-react";
-import { CiLogout, CiSettings, CiUser } from "react-icons/ci";
-import { GoSun } from "react-icons/go";
-import { IoMoonOutline } from "react-icons/io5";
-import { useNavigate } from "react-router-dom";
-import useAuth from "../../auth/hooks/useAuth";
-import globalStore from "../../../shared/stores/GlobalStore";
+import Header from "../../../shared/components/Header";
 
 const NAV_LINKS = [
     { label: "Features", id: "features" },
@@ -29,18 +20,18 @@ interface Props {
     scrolled: boolean;
     scrollTo: (id: string) => void;
     onAuthOpen: (tab: "login" | "register") => void;
+    color?: string;
 }
 
-const HomeNavbar = observer(({ scrolled, scrollTo, onAuthOpen }: Props) => {
+const HomeNavbar = observer(({ scrolled, scrollTo, color }: Props) => {
     const theme = useMantineTheme();
-    const { colorScheme, setColorScheme } = useMantineColorScheme();
-    const computedColorScheme = useComputedColorScheme("light");
+    const { colorScheme } = useMantineColorScheme();
     const isDark = colorScheme === "dark";
-    const navigate = useNavigate();
-    const auth = useAuth();
+    const iconColor = color ?? theme.primaryColor;
 
     return (
         <Box
+            p={"md"}
             style={{
                 position: "fixed",
                 top: 0,
@@ -61,126 +52,40 @@ const HomeNavbar = observer(({ scrolled, scrollTo, onAuthOpen }: Props) => {
                     "background 0.25s ease, border-color 0.25s ease, backdrop-filter 0.25s ease",
             }}
         >
-            <Container size="lg">
-                <Group h={60} justify="space-between">
-                    <Text
-                        fw={800}
-                        size="xl"
-                        c={theme.primaryColor}
-                        style={{ cursor: "pointer", userSelect: "none" }}
-                        onClick={() => scrollTo("hero")}
-                    >
-                        Operum
-                    </Text>
+            <Group justify="space-between">
+                <Text
+                    fw={800}
+                    size="xl"
+                    c={iconColor}
+                    style={{ cursor: "pointer", userSelect: "none" }}
+                    onClick={() => scrollTo("hero")}
+                >
+                    Operum
+                </Text>
 
-                    <Group gap={2} visibleFrom="md">
-                        {NAV_LINKS.map((link) => (
-                            <Anchor
-                                key={link.id}
-                                component="button"
-                                onClick={() => scrollTo(link.id)}
-                                c="dimmed"
-                                underline="never"
-                                fz="sm"
-                                fw={500}
-                                style={{
-                                    padding: "5px 12px",
-                                    borderRadius: "var(--mantine-radius-sm)",
-                                }}
-                            >
-                                {link.label}
-                            </Anchor>
-                        ))}
-                    </Group>
-
-                    <Group gap="xs">
-                        <Button
-                            variant="subtle"
-                            size="sm"
-                            px="xs"
-                            onClick={() =>
-                                setColorScheme(
-                                    computedColorScheme === "dark"
-                                        ? "light"
-                                        : "dark"
-                                )
-                            }
+                {/* Navigation Links */}
+                <Group gap={2} visibleFrom="md">
+                    {NAV_LINKS.map((link) => (
+                        <Anchor
+                            key={link.id}
+                            component="button"
+                            onClick={() => scrollTo(link.id)}
+                            c="dimmed"
+                            underline="never"
+                            fz="sm"
+                            fw={500}
+                            style={{
+                                padding: "5px 12px",
+                                borderRadius: "var(--mantine-radius-sm)",
+                            }}
                         >
-                            {colorScheme === "light" ? (
-                                <IoMoonOutline size={16} />
-                            ) : (
-                                <GoSun size={16} />
-                            )}
-                        </Button>
-
-                        {globalStore.currentUser ? (
-                            <>
-                                <Button
-                                    size="sm"
-                                    variant="light"
-                                    onClick={() => navigate("/trackers")}
-                                >
-                                    Go to Trackers
-                                </Button>
-                                <Menu>
-                                    <Menu.Target>
-                                        <Button
-                                            variant="subtle"
-                                            size="sm"
-                                            px="xs"
-                                        >
-                                            <CiUser size={18} />
-                                        </Button>
-                                    </Menu.Target>
-                                    <Menu.Dropdown>
-                                        <Menu.Item
-                                            leftSection={<CiUser size={16} />}
-                                        >
-                                            {globalStore.currentUser.userName}
-                                        </Menu.Item>
-                                        {globalStore.userHasRole("admin") && (
-                                            <Menu.Item
-                                                leftSection={
-                                                    <CiSettings size={16} />
-                                                }
-                                                onClick={() =>
-                                                    navigate("/admin-panel")
-                                                }
-                                            >
-                                                Admin Panel
-                                            </Menu.Item>
-                                        )}
-                                        <Menu.Item
-                                            leftSection={
-                                                <CiLogout size={16} />
-                                            }
-                                            onClick={() => auth.logout()}
-                                        >
-                                            Logout
-                                        </Menu.Item>
-                                    </Menu.Dropdown>
-                                </Menu>
-                            </>
-                        ) : (
-                            <>
-                                <Button
-                                    variant="subtle"
-                                    size="sm"
-                                    onClick={() => onAuthOpen("login")}
-                                >
-                                    Sign In
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    onClick={() => onAuthOpen("register")}
-                                >
-                                    Get Started
-                                </Button>
-                            </>
-                        )}
-                    </Group>
+                            {link.label}
+                        </Anchor>
+                    ))}
                 </Group>
-            </Container>
+
+                <Header />
+            </Group>
         </Box>
     );
 });

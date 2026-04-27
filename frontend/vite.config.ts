@@ -29,20 +29,11 @@ export default defineConfig({
                     if (id.includes("recharts") || id.includes("@mantine/charts")) {
                         return "vendor-charts";
                     }
-                    if (id.includes("@mantine/")) {
-                        return "vendor-mantine";
-                    }
-                    if (
-                        id.includes("node_modules/react/") ||
-                        id.includes("node_modules/react-dom/") ||
-                        id.includes("react-router")
-                    ) {
-                        return "vendor-react";
-                    }
+                    // Group Mantine, React, and other core node_modules together
                     if (id.includes("node_modules")) {
-                        return "vendor-misc";
+                        return "vendor-core"; 
                     }
-                },
+                }
             },
         },
     },
