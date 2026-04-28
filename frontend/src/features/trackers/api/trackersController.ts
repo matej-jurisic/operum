@@ -62,6 +62,9 @@ export const trackersController = {
     ): Promise<ApiResponse> => {
         return await api.put(`/trackers/${trackerId}/users`, request);
     },
+    reorderTrackers: async (trackerIds: string[], filter: string): Promise<ApiResponse> => {
+        return await api.put("/trackers/reorder", { trackerIds, filter });
+    },
     searchUsers: async (
         search: string
     ): Promise<ApiResponse<{ id: string; userName: string }[]>> => {

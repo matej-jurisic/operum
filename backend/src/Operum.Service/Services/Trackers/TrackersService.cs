@@ -266,6 +266,7 @@ namespace Operum.Service.Services.Trackers
                 .Include(x => x.ApplicationUserTrackers)
                 .Include(x => x.Owner)
                 .Where(x => x.TrackerTypeId == null && x.OwnerId == user.Id)
+                .OrderBy(x => x.Order == null ? int.MaxValue : x.Order)
                 .ToListAsync();
                 return Result.Success(mapper.Map<List<Tracker>, List<TrackerDto>>(ownedTrackers));
             }
@@ -277,7 +278,16 @@ namespace Operum.Service.Services.Trackers
                     .Include(x => x.Owner)
                     .Where(x => x.TrackerTypeId == null && x.OwnerId != user.Id && x.ApplicationUserTrackers.Any(a => a.ApplicationUserId == user.Id))
                     .ToListAsync();
-                return Result.Success(mapper.Map<List<Tracker>, List<TrackerDto>>(trackers));
+
+                var ordered = trackers
+                    .OrderBy(x =>
+                    {
+                        var ut = x.ApplicationUserTrackers.FirstOrDefault(a => a.ApplicationUserId == user.Id);
+                        return ut?.Order ?? int.MaxValue;
+                    })
+                    .ToList();
+
+                return Result.Success(mapper.Map<List<Tracker>, List<TrackerDto>>(ordered));
             }
 
             return Result.Failure(ResultStatusCodes.BadRequest, Messages.ItemNotFound("filter"));
@@ -698,6 +708,69 @@ namespace Operum.Service.Services.Trackers
                 await db.SaveChangesAsync();
                 await transaction.CommitAsync();
 
+                return Result.Success();
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                return Result.Failure(ResultStatusCodes.Error);
+            }
+        }
+
+        public async Task<Result> ReorderTrackers(ReorderTrackersDto dto)
+        {
+            var user = currentUserService.GetCurrentUser();
+
+            using var transaction = await db.Database.BeginTransactionAsync();
+            try
+            {
+                if (dto.Filter == TrackerFilters.Owned)
+                {
+                    var existingIds = await db.Trackers
+                        .Where(x => x.OwnerId == user.Id && x.TrackerTypeId == null)
+                        .Select(x => x.Id)
+                        .ToHashSetAsync();
+
+                    if (!dto.TrackerIds.ToHashSet().SetEquals(existingIds))
+                        return Result.Failure(ResultStatusCodes.BadRequest);
+
+                    for (int i = 0; i < dto.TrackerIds.Count; i++)
+                    {
+                        var tracker = await db.Trackers.FindAsync(dto.TrackerIds[i]);
+                        if (tracker != null && tracker.OwnerId == user.Id)
+                        {
+                            tracker.Order = i + 1;
+                            db.Trackers.Update(tracker);
+                        }
+                    }
+                }
+                else if (dto.Filter == TrackerFilters.Collaborating)
+                {
+                    var existingIds = await db.UserTrackers
+                        .Where(x => x.ApplicationUserId == user.Id)
+                        .Select(x => x.TrackerId)
+                        .ToHashSetAsync();
+
+                    if (!dto.TrackerIds.ToHashSet().SetEquals(existingIds))
+                        return Result.Failure(ResultStatusCodes.BadRequest);
+
+                    for (int i = 0; i < dto.TrackerIds.Count; i++)
+                    {
+                        var ut = await db.UserTrackers.FirstOrDefaultAsync(x => x.TrackerId == dto.TrackerIds[i] && x.ApplicationUserId == user.Id);
+                        if (ut != null)
+                        {
+                            ut.Order = i + 1;
+                            db.UserTrackers.Update(ut);
+                        }
+                    }
+                }
+                else
+                {
+                    return Result.Failure(ResultStatusCodes.BadRequest);
+                }
+
+                await db.SaveChangesAsync();
+                await transaction.CommitAsync();
                 return Result.Success();
             }
             catch (Exception)

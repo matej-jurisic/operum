@@ -22,5 +22,6 @@ namespace Operum.Model.Models
 
         public bool CanEditData { get; set; }
         public bool CanEditSchema { get; set; }
+        public int? Order { get; set; }
     }
 }

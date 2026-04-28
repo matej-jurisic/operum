@@ -5,6 +5,7 @@ using Operum.Model.DTOs.Trackers;
 using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Model.DTOs.Users;
 
+
 namespace Operum.Service.Interfaces
 {
     public interface ITrackersService
@@ -25,5 +26,6 @@ namespace Operum.Service.Interfaces
         public Task<Result> AddAnalytic(string trackerId, CreateAnalyticDto addTrackerAnalytic);
         public Task<Result> RemoveAnalytic(string trackerId, string trackerAnalyticId);
         public Task<Result> ReorderAnalytics(string trackerId, ReorderAnalyticsDto reorderAnalyticsDto);
+        public Task<Result> ReorderTrackers(ReorderTrackersDto dto);
     }
 }

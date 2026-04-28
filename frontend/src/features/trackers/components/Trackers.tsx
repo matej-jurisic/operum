@@ -1,8 +1,22 @@
 import {
+    closestCenter,
+    DndContext,
+    DragEndEvent,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from "@dnd-kit/core";
+import { restrictToParentElement } from "@dnd-kit/modifiers";
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import {
     ActionIcon,
-    Badge,
     Button,
-    Card,
     Group,
     Menu,
     ScrollArea,
@@ -15,11 +29,9 @@ import {
 } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
-import { FiMoreVertical, FiPlus, FiPlusSquare, FiZap } from "react-icons/fi";
-import { MdDelete, MdEdit } from "react-icons/md";
+import { FiPlus, FiPlusSquare, FiZap } from "react-icons/fi";
+import { RiListOrdered2 } from "react-icons/ri";
 import { TbLayoutGrid } from "react-icons/tb";
-import { createElement } from "react";
-import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
 import { useNavigate } from "react-router-dom";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
 import Header from "../../../shared/components/Header";
@@ -27,12 +39,12 @@ import {
     TrackerFilters,
     TrackerFiltersForSelect,
 } from "../../../shared/constants/TrackerFilters";
-import globalStore from "../../../shared/stores/GlobalStore";
 import { trackersController } from "../api/trackersController";
 import { TrackerDto } from "../types/TrackerDto";
 import QuickAddEntryDialog from "../../entries/components/QuickAddEntryDialog";
 import TrackerFormDialog from "./TrackerFormDialog";
 import TrackerWizard from "./TrackerWizard";
+import SortableTrackerCard from "./SortableTrackerCard";
 
 enum OpenDialogType {
     CreateTracker,
@@ -42,8 +54,6 @@ enum OpenDialogType {
     Wizard,
     QuickAddEntry,
 }
-
-const hasInputtableFields = (t: TrackerDto) => t.fields.some((f) => !f.isCalculated);
 
 interface Props {
     isTemplates?: boolean;
@@ -57,8 +67,14 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
         TrackerFilters.Owned
     );
     const [isLoading, setIsLoading] = useState(true);
+    const [isReordering, setIsReordering] = useState(false);
     const theme = useMantineTheme();
     const navigate = useNavigate();
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    );
 
     const GetData = async () => {
         setIsLoading(true);
@@ -66,7 +82,7 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
         if (isTemplates) {
             response = await trackersController.getAdminTemplateList();
         } else {
-            response = await trackersController.getTrackerList();
+            response = await trackersController.getTrackerList(selectedFilter);
         }
         setTrackerList(response.data);
         setIsLoading(false);
@@ -76,36 +92,63 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
         GetData();
     }, []);
 
+    const handleDragEnd = async (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (over && active.id !== over.id) {
+            const oldIndex = trackerList.findIndex((t) => t.id === active.id);
+            const newIndex = trackerList.findIndex((t) => t.id === over.id);
+            const newList = arrayMove(trackerList, oldIndex, newIndex);
+            setTrackerList(newList);
+            try {
+                await trackersController.reorderTrackers(newList.map((t) => t.id), selectedFilter);
+            } catch {
+                setTrackerList([...trackerList]);
+            }
+        }
+    };
+
     return (
         <>
             <Stack gap="md" h="100%">
+                {!isTemplates && (
+                    <Group w="100%" justify="space-between">
+                        <Title order={2} c={theme.primaryColor}>
+                            Operum
+                        </Title>
+                        <Header />
+                    </Group>
+                )}
+                <Group justify="space-between" align="flex-end">
                     {!isTemplates && (
-                        <Group w="100%" justify="space-between">
-                            <Title order={2} c={theme.primaryColor}>
-                                Operum
-                            </Title>
-                            <Header />
-                        </Group>
+                        <Select
+                            value={selectedFilter}
+                            w={150}
+                            label="Filter"
+                            data={TrackerFiltersForSelect}
+                            allowDeselect={false}
+                            onChange={async (e) => {
+                                if (e) {
+                                    setSelectedFilter(e);
+                                    setIsReordering(false);
+                                    setIsLoading(true);
+                                    const response =
+                                        await trackersController.getTrackerList(e);
+                                    setTrackerList(response.data);
+                                    setIsLoading(false);
+                                }
+                            }}
+                        />
                     )}
-                    <Group justify="space-between" align="flex-end">
+                    <Group gap="xs">
                         {!isTemplates && (
-                            <Select
-                                value={selectedFilter}
-                                w={150}
-                                label="Filter"
-                                data={TrackerFiltersForSelect}
-                                allowDeselect={false}
-                                onChange={async (e) => {
-                                    if (e) {
-                                        setSelectedFilter(e);
-                                        setIsLoading(true);
-                                        const response =
-                                            await trackersController.getTrackerList(e);
-                                        setTrackerList(response.data);
-                                        setIsLoading(false);
-                                    }
-                                }}
-                            />
+                            <ActionIcon
+                                size="lg"
+                                variant={isReordering ? "filled" : "outline"}
+                                onClick={() => setIsReordering((prev) => !prev)}
+                                color={theme.primaryColor}
+                            >
+                                <RiListOrdered2 size={18} />
+                            </ActionIcon>
                         )}
                         <Menu shadow="md" position="bottom-start">
                             <Menu.Target>
@@ -145,17 +188,18 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
                             </Menu.Dropdown>
                         </Menu>
                     </Group>
+                </Group>
 
-                    <ScrollArea flex={1}>
-                        {!isLoading && trackerList.length === 0 ? (
-                            selectedFilter === TrackerFilters.Collaborating ? (
-                                <Stack align="center" gap="md" py={80}>
-                                    <Text fw={700} size="xl">No shared trackers</Text>
-                                    <Text size="sm" c="dimmed">
-                                        Trackers shared with you will appear here.
-                                    </Text>
-                                </Stack>
-                            ) : (
+                <ScrollArea flex={1}>
+                    {!isLoading && trackerList.length === 0 ? (
+                        selectedFilter === TrackerFilters.Collaborating ? (
+                            <Stack align="center" gap="md" py={80}>
+                                <Text fw={700} size="xl">No shared trackers</Text>
+                                <Text size="sm" c="dimmed">
+                                    Trackers shared with you will appear here.
+                                </Text>
+                            </Stack>
+                        ) : (
                             <Stack align="center" gap="md" py={80}>
                                 <ThemeIcon
                                     size={72}
@@ -182,183 +226,53 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
                                     Get Started
                                 </Button>
                             </Stack>
-                            )
-                        ) : (
-                            <Stack>
-                                {trackerList.map((x) => {
-                                    const color =
-                                        x.color && x.color in theme.colors
-                                            ? x.color
-                                            : "indigo";
-
-                                    return (
-                                        <Card
-                                            key={x.id}
-                                            shadow="sm"
-                                            padding="lg"
-                                            radius="md"
-                                            withBorder
-                                            style={{
-                                                borderTop: `3px solid var(--mantine-color-${color}-5)`,
-                                                cursor: "pointer",
-                                            }}
-                                            onClick={() =>
-                                                navigate(`/trackers/${x.id}`)
-                                            }
-                                        >
-                                            <Group
-                                                gap="md"
-                                                align="center"
-                                                wrap="nowrap"
-                                            >
-                                                <ThemeIcon
-                                                    size={44}
-                                                    radius="md"
-                                                    variant="light"
-                                                    color={color}
-                                                    style={{ flexShrink: 0 }}
-                                                >
-                                                    {createElement(resolveTrackerIcon(x.icon), { size: 22 })}
-                                                </ThemeIcon>
-                                                <Stack
-                                                    gap={4}
-                                                    flex={1}
-                                                    style={{ minWidth: 0 }}
-                                                >
-                                                    <Group
-                                                        justify="space-between"
-                                                        align="center"
-                                                        wrap="nowrap"
-                                                        gap="xs"
-                                                    >
-                                                        <Group
-                                                            gap="xs"
-                                                            align="center"
-                                                            wrap="nowrap"
-                                                            style={{ minWidth: 0 }}
-                                                        >
-                                                            <Title
-                                                                order={4}
-                                                                lineClamp={1}
-                                                                className="wrapped-text"
-                                                                style={{ minWidth: 0 }}
-                                                            >
-                                                                {x.name}
-                                                            </Title>
-                                                            {x.fields.length > 0 && (
-                                                                <Badge
-                                                                    size="sm"
-                                                                    variant="light"
-                                                                    color={color}
-                                                                    style={{ flexShrink: 0 }}
-                                                                >
-                                                                    {x.fields.length}{" "}
-                                                                    {x.fields.length === 1
-                                                                        ? "field"
-                                                                        : "fields"}
-                                                                </Badge>
-                                                            )}
-                                                        </Group>
-                                                        <Group
-                                                            gap="xs"
-                                                            wrap="nowrap"
-                                                            style={{ flexShrink: 0 }}
-                                                        >
-                                                            {globalStore.currentUser?.id === x.ownerId ? (
-                                                                <>
-                                                                    {!isTemplates && hasInputtableFields(x) && (
-                                                                        <ActionIcon
-                                                                            size="lg"
-                                                                            variant="outline"
-                                                                            color={color}
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                setSelectedTracker(x);
-                                                                                setOpenDialogType(OpenDialogType.QuickAddEntry);
-                                                                            }}
-                                                                        >
-                                                                            <FiPlus size={18} />
-                                                                        </ActionIcon>
-                                                                    )}
-                                                                    <Menu shadow="md" position="bottom-end" withinPortal>
-                                                                        <Menu.Target>
-                                                                            <ActionIcon
-                                                                                size="lg"
-                                                                                variant="outline"
-                                                                                color="gray"
-                                                                                onClick={(e) => e.stopPropagation()}
-                                                                            >
-                                                                                <FiMoreVertical size={18} />
-                                                                            </ActionIcon>
-                                                                        </Menu.Target>
-                                                                        <Menu.Dropdown>
-                                                                            <Menu.Item
-                                                                                leftSection={<MdEdit size={16} />}
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    setSelectedTracker(x);
-                                                                                    setOpenDialogType(OpenDialogType.UpdateTracker);
-                                                                                }}
-                                                                            >
-                                                                                Edit
-                                                                            </Menu.Item>
-                                                                            <Menu.Item
-                                                                                color="red"
-                                                                                leftSection={<MdDelete size={16} />}
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    setSelectedTracker(x);
-                                                                                    setOpenDialogType(OpenDialogType.DeleteTracker);
-                                                                                }}
-                                                                            >
-                                                                                Delete
-                                                                            </Menu.Item>
-                                                                        </Menu.Dropdown>
-                                                                    </Menu>
-                                                                </>
-                                                            ) : x.currentUserCanEditData && hasInputtableFields(x) && !isTemplates ? (
-                                                                <>
-                                                                    <ActionIcon
-                                                                        size="lg"
-                                                                        variant="outline"
-                                                                        color={color}
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            setSelectedTracker(x);
-                                                                            setOpenDialogType(OpenDialogType.QuickAddEntry);
-                                                                        }}
-                                                                    >
-                                                                        <FiPlus size={18} />
-                                                                    </ActionIcon>
-                                                                    <Badge variant="outline">
-                                                                        Owned by: {x.ownerName}
-                                                                    </Badge>
-                                                                </>
-                                                            ) : (
-                                                                <Badge variant="outline">
-                                                                    Owned by: {x.ownerName}
-                                                                </Badge>
-                                                            )}
-                                                        </Group>
-                                                    </Group>
-                                                    <Text
-                                                        c="dimmed"
-                                                        size="sm"
-                                                        className="wrapped-text"
-                                                        lineClamp={2}
-                                                    >
-                                                        {x.description ||
-                                                            "No description"}
-                                                    </Text>
-                                                </Stack>
-                                            </Group>
-                                        </Card>
-                                    );
-                                })}
-                            </Stack>
-                        )}
-                    </ScrollArea>
-                </Stack>
+                        )
+                    ) : (
+                        <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={handleDragEnd}
+                            modifiers={[restrictToParentElement]}
+                        >
+                            <SortableContext
+                                items={trackerList.map((t) => t.id)}
+                                strategy={verticalListSortingStrategy}
+                            >
+                                <Stack>
+                                    {trackerList.map((x) => {
+                                        const color =
+                                            x.color && x.color in theme.colors
+                                                ? x.color
+                                                : "indigo";
+                                        return (
+                                            <SortableTrackerCard
+                                                key={x.id}
+                                                tracker={x}
+                                                color={color}
+                                                isReordering={isReordering}
+                                                isTemplates={isTemplates}
+                                                onNavigate={(t) => navigate(`/trackers/${t.id}`)}
+                                                onQuickAdd={(t) => {
+                                                    setSelectedTracker(t);
+                                                    setOpenDialogType(OpenDialogType.QuickAddEntry);
+                                                }}
+                                                onEdit={(t) => {
+                                                    setSelectedTracker(t);
+                                                    setOpenDialogType(OpenDialogType.UpdateTracker);
+                                                }}
+                                                onDelete={(t) => {
+                                                    setSelectedTracker(t);
+                                                    setOpenDialogType(OpenDialogType.DeleteTracker);
+                                                }}
+                                            />
+                                        );
+                                    })}
+                                </Stack>
+                            </SortableContext>
+                        </DndContext>
+                    )}
+                </ScrollArea>
+            </Stack>
 
             {openDialogType === OpenDialogType.Wizard && (
                 <TrackerWizard

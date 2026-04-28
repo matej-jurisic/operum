@@ -108,5 +108,11 @@ namespace Operum.API.Controllers
         {
             return GetApiResponse(await trackerService.ReorderAnalytics(trackerId, reorderAnalyticsDto));
         }
+
+        [HttpPut("reorder")]
+        public async Task<IActionResult> ReorderTrackers([FromBody] ReorderTrackersDto dto)
+        {
+            return GetApiResponse(await trackerService.ReorderTrackers(dto));
+        }
     }
 }

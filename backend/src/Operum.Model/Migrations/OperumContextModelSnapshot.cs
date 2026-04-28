@@ -367,6 +367,9 @@ namespace Operum.Model.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int?>("Order")
+                        .HasColumnType("integer");
+
                     b.Property<string>("OwnerId")
                         .IsRequired()
                         .HasColumnType("text");
@@ -556,6 +559,9 @@ namespace Operum.Model.Migrations
 
                     b.Property<bool>("CanEditSchema")
                         .HasColumnType("boolean");
+
+                    b.Property<int?>("Order")
+                        .HasColumnType("integer");
 
                     b.Property<string>("TrackerId")
                         .IsRequired()

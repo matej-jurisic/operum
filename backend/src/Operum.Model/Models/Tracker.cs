@@ -21,6 +21,7 @@ namespace Operum.Model.Models
         public virtual User Owner { get; set; } = null!;
 
         public string? DefaultViewIds { get; set; }
+        public int? Order { get; set; }
 
         public virtual List<Field> Fields { get; set; } = [];
         public virtual List<View> Views { get; set; } = [];
