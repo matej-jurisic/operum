@@ -27,7 +27,7 @@ namespace Operum.Service.Mappings.Profiles
 
             mapper.Register<Tracker, TrackerDto>((s, d) =>
             {
-                d.Fields = mapper.Map<ICollection<Field>, List<FieldDto>>(s.Fields);
+                d.Fields = mapper.Map<ICollection<Field>, List<FieldDto>>(s.Fields.OrderBy(f => f.Order).ToList());
                 d.OwnerName = s.Owner?.UserName;
                 d.TrackerTypeName = s.TrackerType?.Name;
                 d.DefaultViewIds = s.DefaultViewIds != null
