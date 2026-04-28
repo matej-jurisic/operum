@@ -61,61 +61,61 @@ export default function Constants(props: ConstantsProps) {
                         <Stack gap="md">
                             {constants.map((constant) => (
                                 <Card key={constant.id} p="md" radius="md" withBorder>
-                                    <Group align="flex-start" justify="space-between" wrap="nowrap">
-                                        <Stack gap="xs" flex={1} style={{ minWidth: 0 }}>
-                                            <Title order={4} lineClamp={1} className="wrapped-text">
+                                    <Stack gap="xs">
+                                        <Group justify="space-between" wrap="nowrap">
+                                            <Title order={4} lineClamp={1} style={{ minWidth: 0 }}>
                                                 {constant.name}
                                             </Title>
-                                            <Text size="sm" c="dimmed" lineClamp={1} className="wrapped-text">
-                                                Base value: {constant.value}
-                                            </Text>
-                                            <Group wrap="wrap">
-                                                <Badge variant="light" color="blue" size="sm">
-                                                    {constant.type}
-                                                </Badge>
-                                                {constant.values?.length > 0 && (
-                                                    <Badge variant="light" color="grape" size="sm">
-                                                        {constant.values.length} conditional
-                                                    </Badge>
-                                                )}
+                                            <Group gap="xs" wrap="nowrap">
+                                                <ActionIcon
+                                                    variant="outline"
+                                                    color={props.tracker.color}
+                                                    size="lg"
+                                                    onClick={() => {
+                                                        setSelectedConstant(constant);
+                                                        setOpenDialogType(OpenDialogType.View);
+                                                    }}
+                                                >
+                                                    <RiFileListFill size={16} />
+                                                </ActionIcon>
+                                                <ActionIcon
+                                                    variant="outline"
+                                                    color="green"
+                                                    size="lg"
+                                                    onClick={() => {
+                                                        setSelectedConstant(constant);
+                                                        setOpenDialogType(OpenDialogType.Edit);
+                                                    }}
+                                                >
+                                                    <MdEdit size={16} />
+                                                </ActionIcon>
+                                                <ActionIcon
+                                                    variant="outline"
+                                                    color="red"
+                                                    size="lg"
+                                                    onClick={() => {
+                                                        setSelectedConstant(constant);
+                                                        setOpenDialogType(OpenDialogType.Delete);
+                                                    }}
+                                                >
+                                                    <MdDelete size={16} />
+                                                </ActionIcon>
                                             </Group>
-                                        </Stack>
-                                        <Group gap="xs" wrap="nowrap">
-                                            <ActionIcon
-                                                variant="outline"
-                                                color={props.tracker.color}
-                                                size="lg"
-                                                onClick={() => {
-                                                    setSelectedConstant(constant);
-                                                    setOpenDialogType(OpenDialogType.View);
-                                                }}
-                                            >
-                                                <RiFileListFill size={16} />
-                                            </ActionIcon>
-                                            <ActionIcon
-                                                variant="outline"
-                                                color="green"
-                                                size="lg"
-                                                onClick={() => {
-                                                    setSelectedConstant(constant);
-                                                    setOpenDialogType(OpenDialogType.Edit);
-                                                }}
-                                            >
-                                                <MdEdit size={16} />
-                                            </ActionIcon>
-                                            <ActionIcon
-                                                variant="outline"
-                                                color="red"
-                                                size="lg"
-                                                onClick={() => {
-                                                    setSelectedConstant(constant);
-                                                    setOpenDialogType(OpenDialogType.Delete);
-                                                }}
-                                            >
-                                                <MdDelete size={16} />
-                                            </ActionIcon>
                                         </Group>
-                                    </Group>
+                                        <Text size="sm" c="dimmed" lineClamp={1}>
+                                            Base value: {constant.value}
+                                        </Text>
+                                        <Group wrap="wrap">
+                                            <Badge variant="light" color="blue" size="sm">
+                                                {constant.type}
+                                            </Badge>
+                                            {constant.values?.length > 0 && (
+                                                <Badge variant="light" color="grape" size="sm">
+                                                    {constant.values.length} conditional
+                                                </Badge>
+                                            )}
+                                        </Group>
+                                    </Stack>
                                 </Card>
                             ))}
                         </Stack>

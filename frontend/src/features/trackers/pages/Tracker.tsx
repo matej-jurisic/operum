@@ -98,6 +98,7 @@ export default function Tracker() {
                         <Tabs.List>
                             <Tabs.Tab
                                 value="entries"
+                                px={isMobile ? "xs" : undefined}
                                 leftSection={
                                     isMobile ? (
                                         <CiViewList size={18} />
@@ -109,6 +110,7 @@ export default function Tracker() {
                             </Tabs.Tab>
                             <Tabs.Tab
                                 value="fields"
+                                px={isMobile ? "xs" : undefined}
                                 leftSection={
                                     isMobile ? (
                                         <CiGrid41 size={18} />
@@ -120,6 +122,7 @@ export default function Tracker() {
                             </Tabs.Tab>
                             <Tabs.Tab
                                 value="views"
+                                px={isMobile ? "xs" : undefined}
                                 leftSection={
                                     isMobile ? (
                                         <CiFilter size={18} />
@@ -131,6 +134,7 @@ export default function Tracker() {
                             </Tabs.Tab>
                             <Tabs.Tab
                                 value="analytics"
+                                px={isMobile ? "xs" : undefined}
                                 leftSection={
                                     isMobile ? (
                                         <CiWavePulse1 size={18} />
@@ -143,6 +147,7 @@ export default function Tracker() {
                             {canEditSchema && (
                                 <Tabs.Tab
                                     value="constants"
+                                    px={isMobile ? "xs" : undefined}
                                     leftSection={
                                         isMobile ? (
                                             <CiHashtag size={18} />
@@ -156,6 +161,7 @@ export default function Tracker() {
                             {isOwner && !tracker.trackerTypeId && (
                                 <Tabs.Tab
                                     value="users"
+                                    px={isMobile ? "xs" : undefined}
                                     leftSection={
                                         isMobile ? (
                                             <CiUser size={18} />
