@@ -18,14 +18,15 @@ import {
     UnstyledButton,
     useMantineTheme,
 } from "@mantine/core";
-import { useState } from "react";
+import { createElement, useState } from "react";
 import { FaCircle } from "react-icons/fa";
 import { CiCircleCheck } from "react-icons/ci";
 import { MdAdd, MdDelete } from "react-icons/md";
-import { TbLayoutGrid } from "react-icons/tb";
 import { useNavigate } from "react-router-dom";
+import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
 import { fieldsController } from "../../fields/api/fieldsController";
 import { trackersController } from "../api/trackersController";
+import IconPicker from "./IconPicker";
 
 interface Props {
     onClose: () => void;
@@ -81,6 +82,7 @@ export default function TrackerWizard({ onClose }: Props) {
     const [step, setStep] = useState(0);
     const [name, setName] = useState("");
     const [color, setColor] = useState("indigo");
+    const [icon, setIcon] = useState<string | undefined>();
     const [description, setDescription] = useState("");
     const [fields, setFields] = useState<WizardField[]>([]);
     const [nameError, setNameError] = useState<string | null>(null);
@@ -149,6 +151,7 @@ export default function TrackerWizard({ onClose }: Props) {
                 name: name.trim(),
                 description: description.trim() || undefined,
                 color,
+                icon,
             });
             const trackerId = (trackerRes as { data: { id: string } }).data?.id;
             if (!trackerId) return;
@@ -246,6 +249,11 @@ export default function TrackerWizard({ onClose }: Props) {
                                 ))}
                             </Group>
                         </Stack>
+                        <IconPicker
+                            value={icon}
+                            onChange={setIcon}
+                            color={color}
+                        />
                     </Stack>
                 )}
 
@@ -347,7 +355,7 @@ export default function TrackerWizard({ onClose }: Props) {
                         <Card withBorder radius="md" p="md" style={{ borderTop: `3px solid ${accentColor}` }}>
                             <Group gap="md" align="flex-start">
                                 <ThemeIcon size={44} radius="md" variant="light" color={color} style={{ flexShrink: 0 }}>
-                                    <TbLayoutGrid size={22} />
+                                    {createElement(resolveTrackerIcon(icon), { size: 22 })}
                                 </ThemeIcon>
                                 <Stack gap={4} flex={1}>
                                     <Title order={4}>{name}</Title>

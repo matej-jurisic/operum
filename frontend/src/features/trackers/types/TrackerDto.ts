@@ -5,6 +5,7 @@ export interface TrackerDto {
     name: string;
     description?: string;
     color?: string;
+    icon?: string;
     fields: FieldDto[];
     trackerTypeId?: number;
     ownerId?: string;

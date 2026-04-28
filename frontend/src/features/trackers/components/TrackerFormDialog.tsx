@@ -19,6 +19,7 @@ import { trackersController } from "../api/trackersController";
 import { CreateTrackerDto } from "../types/requests/CreateTrackerDto";
 import { UpdateTrackerDto } from "../types/requests/UpdateTrackerDto";
 import { TrackerDto } from "../types/TrackerDto";
+import IconPicker from "./IconPicker";
 
 export interface TrackerFormDialogProps {
     onClose: () => void;
@@ -78,6 +79,7 @@ export default function TrackerFormDialog(props: TrackerFormDialogProps) {
                   name: props.initialValues.name,
                   description: props.initialValues.description,
                   color: props.initialValues.color,
+                  icon: props.initialValues.icon,
                   trackerTypeId: props.initialValues.trackerTypeId,
                   templateTrackerId: undefined,
               }
@@ -85,6 +87,7 @@ export default function TrackerFormDialog(props: TrackerFormDialogProps) {
                   name: "",
                   description: "",
                   color: "indigo",
+                  icon: undefined,
                   trackerTypeId: props.asTemplate
                       ? PublicityEnum.Draft
                       : undefined,
@@ -193,6 +196,13 @@ export default function TrackerFormDialog(props: TrackerFormDialogProps) {
                             ))}
                         </Group>
                     </Stack>
+                    {!props.asTemplate && (
+                        <IconPicker
+                            value={form.values.icon}
+                            onChange={(icon) => form.setFieldValue("icon", icon)}
+                            color={form.values.color ?? "indigo"}
+                        />
+                    )}
                     {props.asTemplate && props.trackerId && (
                         <Select
                             label={`${entityName} Type`}

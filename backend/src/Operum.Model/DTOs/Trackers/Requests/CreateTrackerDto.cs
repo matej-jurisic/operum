@@ -9,6 +9,7 @@ namespace Operum.Model.DTOs.Trackers.Requests
         public required string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string? Color { get; set; }
+        public string? Icon { get; set; }
         public int? TrackerTypeId { get; set; } = null;
         public string? TemplateTrackerId { get; set; } = null;
     }

@@ -1,6 +1,6 @@
-import { Badge, Container, Group, Stack, Tabs, Title } from "@mantine/core";
+import { Badge, Container, Group, Stack, Tabs, ThemeIcon, Title } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { useEffect, useState } from "react";
+import { createElement, useEffect, useState } from "react";
 import {
     CiFilter,
     CiGrid41,
@@ -19,6 +19,7 @@ import Entries from "../../entries/components/Entries";
 import Fields from "../../fields/components/Fields";
 import SelectView from "../../views/components/SelectView";
 import Views from "../../views/components/Views";
+import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
 import { trackersController } from "../api/trackersController";
 import TrackerUserList from "../components/TrackerUserList";
 import { TrackerDto } from "../types/TrackerDto";
@@ -58,9 +59,16 @@ export default function Tracker() {
                         <Header color={tracker.color} />
                     </Group>
                     <Group align="center" flex={1} justify="space-between">
-                        <Title order={2} c={tracker.color}>
-                            {tracker.name}
-                        </Title>
+                        <Group gap="sm" align="center">
+                            {tracker.icon && (
+                                <ThemeIcon size={36} radius="md" variant="light" color={tracker.color}>
+                                    {createElement(resolveTrackerIcon(tracker.icon), { size: 20 })}
+                                </ThemeIcon>
+                            )}
+                            <Title order={2} c={tracker.color}>
+                                {tracker.name}
+                            </Title>
+                        </Group>
                         {tracker.trackerTypeName && (
                             <Badge variant="light">
                                 {tracker.trackerTypeName}

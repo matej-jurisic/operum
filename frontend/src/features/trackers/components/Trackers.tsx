@@ -17,6 +17,8 @@ import { useEffect, useState } from "react";
 import { FiPlus, FiPlusSquare, FiZap } from "react-icons/fi";
 import { MdDelete, MdEdit } from "react-icons/md";
 import { TbLayoutGrid } from "react-icons/tb";
+import { createElement } from "react";
+import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
 import { useNavigate } from "react-router-dom";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
 import Header from "../../../shared/components/Header";
@@ -211,7 +213,7 @@ export default function Trackers({ isTemplates = false }: Props) {
                                                     color={color}
                                                     style={{ flexShrink: 0 }}
                                                 >
-                                                    <TbLayoutGrid size={22} />
+                                                    {createElement(resolveTrackerIcon(x.icon), { size: 22 })}
                                                 </ThemeIcon>
                                                 <Stack
                                                     gap={4}
