@@ -266,7 +266,7 @@ namespace Operum.Service.Services.Trackers
                 .Include(x => x.ApplicationUserTrackers)
                 .Include(x => x.Owner)
                 .Where(x => x.TrackerTypeId == null && x.OwnerId == user.Id)
-                .OrderBy(x => x.Order == null ? int.MaxValue : x.Order)
+                .OrderBy(x => x.Order ?? int.MaxValue)
                 .ToListAsync();
                 return Result.Success(mapper.Map<List<Tracker>, List<TrackerDto>>(ownedTrackers));
             }
