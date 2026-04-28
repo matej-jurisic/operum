@@ -14,6 +14,7 @@ import {
     useMantineTheme,
 } from "@mantine/core";
 import { useEffect, useState } from "react";
+import { observer } from "mobx-react";
 import { FiMoreVertical, FiPlus, FiPlusSquare, FiZap } from "react-icons/fi";
 import { MdDelete, MdEdit } from "react-icons/md";
 import { TbLayoutGrid } from "react-icons/tb";
@@ -48,7 +49,7 @@ interface Props {
     isTemplates?: boolean;
 }
 
-export default function Trackers({ isTemplates = false }: Props) {
+const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
     const [trackerList, setTrackerList] = useState<TrackerDto[]>([]);
     const [selectedTracker, setSelectedTracker] = useState<TrackerDto>();
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
@@ -428,4 +429,6 @@ export default function Trackers({ isTemplates = false }: Props) {
                 )}
         </>
     );
-}
+});
+
+export default Trackers;
