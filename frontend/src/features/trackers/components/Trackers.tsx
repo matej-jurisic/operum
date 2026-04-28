@@ -14,7 +14,7 @@ import {
     useMantineTheme,
 } from "@mantine/core";
 import { useEffect, useState } from "react";
-import { FiPlus, FiPlusSquare, FiZap } from "react-icons/fi";
+import { FiMoreVertical, FiPlus, FiPlusSquare, FiZap } from "react-icons/fi";
 import { MdDelete, MdEdit } from "react-icons/md";
 import { TbLayoutGrid } from "react-icons/tb";
 import { createElement } from "react";
@@ -29,6 +29,7 @@ import {
 import globalStore from "../../../shared/stores/GlobalStore";
 import { trackersController } from "../api/trackersController";
 import { TrackerDto } from "../types/TrackerDto";
+import QuickAddEntryDialog from "../../entries/components/QuickAddEntryDialog";
 import TrackerFormDialog from "./TrackerFormDialog";
 import TrackerWizard from "./TrackerWizard";
 
@@ -38,7 +39,10 @@ enum OpenDialogType {
     UpdateTracker,
     CreateFromTemplate,
     Wizard,
+    QuickAddEntry,
 }
+
+const hasInputtableFields = (t: TrackerDto) => t.fields.some((f) => !f.isCalculated);
 
 interface Props {
     isTemplates?: boolean;
@@ -259,37 +263,75 @@ export default function Trackers({ isTemplates = false }: Props) {
                                                             wrap="nowrap"
                                                             style={{ flexShrink: 0 }}
                                                         >
-                                                            {globalStore.currentUser?.id ===
-                                                            x.ownerId ? (
+                                                            {globalStore.currentUser?.id === x.ownerId ? (
+                                                                <>
+                                                                    {!isTemplates && hasInputtableFields(x) && (
+                                                                        <ActionIcon
+                                                                            size="lg"
+                                                                            variant="outline"
+                                                                            color={color}
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setSelectedTracker(x);
+                                                                                setOpenDialogType(OpenDialogType.QuickAddEntry);
+                                                                            }}
+                                                                        >
+                                                                            <FiPlus size={18} />
+                                                                        </ActionIcon>
+                                                                    )}
+                                                                    <Menu shadow="md" position="bottom-end" withinPortal>
+                                                                        <Menu.Target>
+                                                                            <ActionIcon
+                                                                                size="lg"
+                                                                                variant="outline"
+                                                                                color="gray"
+                                                                                onClick={(e) => e.stopPropagation()}
+                                                                            >
+                                                                                <FiMoreVertical size={18} />
+                                                                            </ActionIcon>
+                                                                        </Menu.Target>
+                                                                        <Menu.Dropdown>
+                                                                            <Menu.Item
+                                                                                leftSection={<MdEdit size={16} />}
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    setSelectedTracker(x);
+                                                                                    setOpenDialogType(OpenDialogType.UpdateTracker);
+                                                                                }}
+                                                                            >
+                                                                                Edit
+                                                                            </Menu.Item>
+                                                                            <Menu.Item
+                                                                                color="red"
+                                                                                leftSection={<MdDelete size={16} />}
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    setSelectedTracker(x);
+                                                                                    setOpenDialogType(OpenDialogType.DeleteTracker);
+                                                                                }}
+                                                                            >
+                                                                                Delete
+                                                                            </Menu.Item>
+                                                                        </Menu.Dropdown>
+                                                                    </Menu>
+                                                                </>
+                                                            ) : x.currentUserCanEditData && hasInputtableFields(x) && !isTemplates ? (
                                                                 <>
                                                                     <ActionIcon
                                                                         size="lg"
                                                                         variant="outline"
-                                                                        color="green"
+                                                                        color={color}
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
                                                                             setSelectedTracker(x);
-                                                                            setOpenDialogType(
-                                                                                OpenDialogType.UpdateTracker
-                                                                            );
+                                                                            setOpenDialogType(OpenDialogType.QuickAddEntry);
                                                                         }}
                                                                     >
-                                                                        <MdEdit size={18} />
+                                                                        <FiPlus size={18} />
                                                                     </ActionIcon>
-                                                                    <ActionIcon
-                                                                        size="lg"
-                                                                        variant="outline"
-                                                                        color="red"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            setSelectedTracker(x);
-                                                                            setOpenDialogType(
-                                                                                OpenDialogType.DeleteTracker
-                                                                            );
-                                                                        }}
-                                                                    >
-                                                                        <MdDelete size={18} />
-                                                                    </ActionIcon>
+                                                                    <Badge variant="outline">
+                                                                        Owned by: {x.ownerName}
+                                                                    </Badge>
                                                                 </>
                                                             ) : (
                                                                 <Badge variant="outline">
@@ -348,6 +390,16 @@ export default function Trackers({ isTemplates = false }: Props) {
                         onClose={() => setOpenDialogType(undefined)}
                         initialValues={selectedTracker}
                         trackerId={selectedTracker.id}
+                    />
+                )}
+            {openDialogType === OpenDialogType.QuickAddEntry &&
+                selectedTracker && (
+                    <QuickAddEntryDialog
+                        tracker={selectedTracker}
+                        onClose={() => {
+                            setSelectedTracker(undefined);
+                            setOpenDialogType(undefined);
+                        }}
                     />
                 )}
             {openDialogType === OpenDialogType.DeleteTracker &&
