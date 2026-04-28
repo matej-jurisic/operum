@@ -10,7 +10,6 @@ import { JSX, useState } from "react";
 import { CiLogout, CiSettings, CiUser } from "react-icons/ci";
 import { GoSun } from "react-icons/go";
 import { IoMoonOutline } from "react-icons/io5";
-import { TbUserCircle } from "react-icons/tb";
 import { useNavigate } from "react-router-dom";
 import AuthDialog from "../../features/auth/components/AuthDialog";
 import useAuth from "../../features/auth/hooks/useAuth";
@@ -59,7 +58,7 @@ const Header = observer((props: Props) => {
                         {globalStore.currentUser ? (
                             <>
                                 <Menu.Item
-                                    leftSection={<TbUserCircle size={16} />}
+                                    leftSection={<CiUser size={16} />}
                                     onClick={() => navigate("/profile")}
                                 >
                                     {globalStore.currentUser?.userName ||

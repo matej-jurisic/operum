@@ -1,7 +1,7 @@
-import { Group, Modal, PasswordInput, Stack, TextInput } from "@mantine/core";
+import { Anchor, Checkbox, Group, Modal, PasswordInput, Stack, Text, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { authController } from "../api/authenticationController";
 import { AuthForm } from "../components/AuthForm";
 import { GoogleButton } from "../components/GoogleButton";
@@ -26,12 +26,13 @@ export default function AuthDialog(props: Props) {
         },
     });
 
-    const registerForm = useForm<RegisterDto>({
+    const registerForm = useForm<RegisterDto & { agreedToTerms: boolean }>({
         initialValues: {
             email: "",
             userName: "",
             password: "",
             confirmPassword: "",
+            agreedToTerms: false,
         },
         validate: {
             email: (value) => {
@@ -73,6 +74,8 @@ export default function AuthDialog(props: Props) {
                 }
                 return null;
             },
+            agreedToTerms: (value) =>
+                !value ? "You must agree to the Terms and Privacy Policy" : null,
         },
     });
 
@@ -89,8 +92,9 @@ export default function AuthDialog(props: Props) {
         }
     };
 
-    const onRegister = async (values: RegisterDto) => {
-        await authController.register(values);
+    const onRegister = async (values: RegisterDto & { agreedToTerms: boolean }) => {
+        const { agreedToTerms: _, ...dto } = values;
+        await authController.register(dto);
     };
 
     const [selectedTab, setSelectedTab] = useState(props.initialTab ?? "login");
@@ -118,7 +122,7 @@ export default function AuthDialog(props: Props) {
                             />
                         </AuthForm>
                     ) : (
-                        <AuthForm<RegisterDto>
+                        <AuthForm<RegisterDto & { agreedToTerms: boolean }>
                             mode="register"
                             form={registerForm}
                             onSubmit={onRegister}
@@ -142,9 +146,23 @@ export default function AuthDialog(props: Props) {
                             <PasswordInput
                                 required
                                 label="Confirm Password"
-                                {...registerForm.getInputProps(
-                                    "confirmPassword"
-                                )}
+                                {...registerForm.getInputProps("confirmPassword")}
+                            />
+                            <Checkbox
+                                mt="xs"
+                                {...registerForm.getInputProps("agreedToTerms", { type: "checkbox" })}
+                                label={
+                                    <Text size="xs">
+                                        I agree to the{" "}
+                                        <Anchor component={Link} to="/terms" size="xs" target="_blank">
+                                            Terms of Service
+                                        </Anchor>{" "}
+                                        and{" "}
+                                        <Anchor component={Link} to="/privacy" size="xs" target="_blank">
+                                            Privacy Policy
+                                        </Anchor>
+                                    </Text>
+                                }
                             />
                         </AuthForm>
                     )}

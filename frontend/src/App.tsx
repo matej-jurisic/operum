@@ -37,6 +37,8 @@ function AppShellLayout({ children }: { children: React.ReactNode }) {
 
 const AdminPanel = lazy(() => import("./features/admin/pages/AdminPanel"));
 const Home = lazy(() => import("./features/home/pages/Home"));
+const PrivacyPolicy = lazy(() => import("./features/legal/pages/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("./features/legal/pages/TermsOfService"));
 const ProfilePage = lazy(() => import("./features/profile/pages/ProfilePage"));
 const Trackers = lazy(() => import("./features/trackers/components/Trackers"));
 const Tracker = lazy(() => import("./features/trackers/pages/Tracker"));
@@ -72,6 +74,14 @@ const App = observer(() => {
                             <Route
                                 path="profile"
                                 element={<PrivateRoute page={<ProfilePage />} />}
+                            />
+                            <Route
+                                path="privacy"
+                                element={<GenericRoute page={<PrivacyPolicy />} />}
+                            />
+                            <Route
+                                path="terms"
+                                element={<GenericRoute page={<TermsOfService />} />}
                             />
                             <Route
                                 path="trackers"

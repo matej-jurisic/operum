@@ -14,7 +14,7 @@ interface Props {
 }
 
 export function NoteView({ onClose }: Props) {
-    const { tracker, selectedViewIds } = useTracker();
+    const { tracker, selectedViewIds, canEditData } = useTracker();
     const { totalCount, markEntriesDirty } = useEntries();
     const { visibleFields } = useFields();
 
@@ -131,12 +131,20 @@ export function NoteView({ onClose }: Props) {
     return (
         <Stack gap="md" flex={1} style={{ minHeight: 0, overflow: "hidden" }}>
             <Group justify="flex-end">
-                <Button variant="outline" color={tracker.color} onClick={onClose} disabled={isSaving}>
-                    Discard
-                </Button>
-                <Button color={tracker.color} onClick={handleSave} loading={isSaving}>
-                    Save
-                </Button>
+                {canEditData ? (
+                    <>
+                        <Button variant="outline" color={tracker.color} onClick={onClose} disabled={isSaving}>
+                            Discard
+                        </Button>
+                        <Button color={tracker.color} onClick={handleSave} loading={isSaving}>
+                            Save
+                        </Button>
+                    </>
+                ) : (
+                    <Button variant="outline" color={tracker.color} onClick={onClose}>
+                        Close
+                    </Button>
+                )}
             </Group>
             {isCapped && (
                 <Alert color="orange" icon={<MdWarning size={16} />}>
@@ -155,7 +163,8 @@ export function NoteView({ onClose }: Props) {
             ) : (
                 <Textarea
                     value={text}
-                    onChange={(e) => { setText(e.currentTarget.value); setError(null); }}
+                    readOnly={!canEditData}
+                    onChange={(e) => { if (canEditData) { setText(e.currentTarget.value); setError(null); } }}
                     flex={1}
                     styles={{
                         root: { display: "flex", flexDirection: "column", minHeight: 0 },

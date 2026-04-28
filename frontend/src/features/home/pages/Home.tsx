@@ -1,5 +1,6 @@
 import { BarChart, DonutChart, LineChart, ScatterChart } from "@mantine/charts";
 import {
+    Anchor,
     Badge,
     Box,
     Button,
@@ -46,7 +47,7 @@ import {
     TbVariable,
     TbWallet,
 } from "react-icons/tb";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import AuthDialog from "../../auth/components/AuthDialog";
 import HomeNavbar from "../components/HomeNavbar";
 import globalStore from "../../../shared/stores/GlobalStore";
@@ -916,6 +917,40 @@ const Home = observer(() => {
                             </Card>
                         </Container>
                     )}
+                    {/* ── Footer ───────────────────────────────────────── */}
+                    <Box
+                        style={{
+                            borderTop: "1px solid var(--mantine-color-default-border)",
+                        }}
+                    >
+                        <Container size="lg" py="lg">
+                            <Group justify="space-between" align="center">
+                                <Text size="sm" c="dimmed">
+                                    © {new Date().getFullYear()} Operum. All rights reserved.
+                                </Text>
+                                <Group gap="lg">
+                                    <Anchor
+                                        component={Link}
+                                        to="/terms"
+                                        size="sm"
+                                        c="dimmed"
+                                        underline="hover"
+                                    >
+                                        Terms of Service
+                                    </Anchor>
+                                    <Anchor
+                                        component={Link}
+                                        to="/privacy"
+                                        size="sm"
+                                        c="dimmed"
+                                        underline="hover"
+                                    >
+                                        Privacy Policy
+                                    </Anchor>
+                                </Group>
+                            </Group>
+                        </Container>
+                    </Box>
                 </ScrollArea>
             </Box>
 

@@ -1,5 +1,14 @@
 import { Badge, Container, Group, Stack, Tabs, Title } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { useEffect, useState } from "react";
+import {
+    CiFilter,
+    CiGrid41,
+    CiHashtag,
+    CiUser,
+    CiViewList,
+    CiWavePulse1,
+} from "react-icons/ci";
 import { useNavigate, useParams } from "react-router-dom";
 import Header from "../../../shared/components/Header";
 import { ComposedTrackerProvider } from "../../../shared/context/ComposedTrackerProvider";
@@ -15,12 +24,12 @@ import TrackerUserList from "../components/TrackerUserList";
 import { TrackerDto } from "../types/TrackerDto";
 
 export default function Tracker() {
-    const { trackerId, '*': splat } = useParams();
+    const { trackerId, "*": splat } = useParams();
     const navigate = useNavigate();
     const [tracker, setTracker] = useState<TrackerDto>();
 
-    const urlParts = (splat ?? '').split('/').filter(Boolean);
-    const activeTab = urlParts[0] || 'entries';
+    const urlParts = (splat ?? "").split("/").filter(Boolean);
+    const activeTab = urlParts[0] || "entries";
     const action = urlParts[1];
 
     useEffect(() => {
@@ -32,6 +41,8 @@ export default function Tracker() {
         };
         fetchData();
     }, [trackerId]);
+
+    const isMobile = useMediaQuery("(max-width: 48em)");
 
     if (!tracker) return <></>;
 
@@ -69,21 +80,83 @@ export default function Tracker() {
                         color={tracker.color}
                         keepMounted={false}
                         value={activeTab}
-                        onChange={(value) => value && navigate(`/trackers/${trackerId}/${value}`)}
+                        onChange={(value) =>
+                            value && navigate(`/trackers/${trackerId}/${value}`)
+                        }
                         h="100%"
                         display={"flex"}
-                        style={{ flexDirection: "column" }}
+                        style={{ flexDirection: "column", gap: "xs" }}
                     >
                         <Tabs.List>
-                            <Tabs.Tab value="entries">Entries</Tabs.Tab>
-                            <Tabs.Tab value="fields">Fields</Tabs.Tab>
-                            <Tabs.Tab value="views">Views</Tabs.Tab>
-                            <Tabs.Tab value="analytics">Analytics</Tabs.Tab>
+                            <Tabs.Tab
+                                value="entries"
+                                leftSection={
+                                    isMobile ? (
+                                        <CiViewList size={18} />
+                                    ) : undefined
+                                }
+                            >
+                                {(!isMobile || activeTab === "entries") &&
+                                    "Entries"}
+                            </Tabs.Tab>
+                            <Tabs.Tab
+                                value="fields"
+                                leftSection={
+                                    isMobile ? (
+                                        <CiGrid41 size={18} />
+                                    ) : undefined
+                                }
+                            >
+                                {(!isMobile || activeTab === "fields") &&
+                                    "Fields"}
+                            </Tabs.Tab>
+                            <Tabs.Tab
+                                value="views"
+                                leftSection={
+                                    isMobile ? (
+                                        <CiFilter size={18} />
+                                    ) : undefined
+                                }
+                            >
+                                {(!isMobile || activeTab === "views") &&
+                                    "Views"}
+                            </Tabs.Tab>
+                            <Tabs.Tab
+                                value="analytics"
+                                leftSection={
+                                    isMobile ? (
+                                        <CiWavePulse1 size={18} />
+                                    ) : undefined
+                                }
+                            >
+                                {(!isMobile || activeTab === "analytics") &&
+                                    "Analytics"}
+                            </Tabs.Tab>
                             {canEditSchema && (
-                                <Tabs.Tab value="constants">Constants</Tabs.Tab>
+                                <Tabs.Tab
+                                    value="constants"
+                                    leftSection={
+                                        isMobile ? (
+                                            <CiHashtag size={18} />
+                                        ) : undefined
+                                    }
+                                >
+                                    {(!isMobile || activeTab === "constants") &&
+                                        "Constants"}
+                                </Tabs.Tab>
                             )}
                             {isOwner && !tracker.trackerTypeId && (
-                                <Tabs.Tab value="users">Users</Tabs.Tab>
+                                <Tabs.Tab
+                                    value="users"
+                                    leftSection={
+                                        isMobile ? (
+                                            <CiUser size={18} />
+                                        ) : undefined
+                                    }
+                                >
+                                    {(!isMobile || activeTab === "users") &&
+                                        "Users"}
+                                </Tabs.Tab>
                             )}
                         </Tabs.List>
 
@@ -96,7 +169,7 @@ export default function Tracker() {
                             mih={0}
                         >
                             <Tabs.Panel value="entries" h="100%">
-                                <Entries autoOpenCreate={action === 'create'} />
+                                <Entries autoOpenCreate={action === "create"} />
                             </Tabs.Panel>
                             <Tabs.Panel value="views" h="100%">
                                 <Views tracker={tracker} />

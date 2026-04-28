@@ -6,6 +6,13 @@ import {
     Title,
     useMantineTheme,
 } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
+import {
+    CiBoxList,
+    CiDatabase,
+    CiHome,
+    CiUser,
+} from "react-icons/ci";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../../../shared/components/Header";
 import Trackers from "../../trackers/components/Trackers";
@@ -18,6 +25,7 @@ export default function AdminPanel() {
     const navigate = useNavigate();
     const currentTab = location.pathname.split("/").pop() || "overview";
     const theme = useMantineTheme();
+    const isMobile = useMediaQuery("(max-width: 48em)");
 
     return (
         <>
@@ -39,10 +47,18 @@ export default function AdminPanel() {
                         h="100%"
                     >
                         <Tabs.List>
-                            <Tabs.Tab value="overview">Overview</Tabs.Tab>
-                            <Tabs.Tab value="users">Users</Tabs.Tab>
-                            <Tabs.Tab value="trackers">Trackers</Tabs.Tab>
-                            <Tabs.Tab value="templates">Templates</Tabs.Tab>
+                            <Tabs.Tab value="overview" leftSection={isMobile ? <CiHome size={20} /> : undefined}>
+                                {(!isMobile || currentTab === "overview") && "Overview"}
+                            </Tabs.Tab>
+                            <Tabs.Tab value="users" leftSection={isMobile ? <CiUser size={20} /> : undefined}>
+                                {(!isMobile || currentTab === "users") && "Users"}
+                            </Tabs.Tab>
+                            <Tabs.Tab value="trackers" leftSection={isMobile ? <CiDatabase size={20} /> : undefined}>
+                                {(!isMobile || currentTab === "trackers") && "Trackers"}
+                            </Tabs.Tab>
+                            <Tabs.Tab value="templates" leftSection={isMobile ? <CiBoxList size={20} /> : undefined}>
+                                {(!isMobile || currentTab === "templates") && "Templates"}
+                            </Tabs.Tab>
                         </Tabs.List>
 
                         <Container
