@@ -847,19 +847,22 @@ const Home = observer(() => {
                                             <Card
                                                 withBorder
                                                 radius="md"
-                                                p="xl"
+                                                p="lg"
                                                 h="100%"
+                                                style={{
+                                                    borderTop: `3px solid var(--mantine-color-${role.color}-5)`,
+                                                }}
                                             >
-                                                <Stack gap="md">
+                                                <Stack gap="sm">
                                                     <ThemeIcon
-                                                        size={48}
+                                                        size={44}
                                                         radius="md"
                                                         variant="light"
                                                         color={role.color}
                                                     >
                                                         {role.icon}
                                                     </ThemeIcon>
-                                                    <Text fw={700} size="md">
+                                                    <Text fw={600} size="sm">
                                                         {role.title}
                                                     </Text>
                                                     <List

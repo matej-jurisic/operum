@@ -8,6 +8,7 @@ import {
     Text,
     Textarea,
     TextInput,
+    UnstyledButton,
     useMantineTheme,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
@@ -35,41 +36,14 @@ interface TemplateItem {
 }
 
 const colorOptions = [
-    { value: "indigo", label: "Indigo" },
-    { value: "blue", label: "Blue" },
-    { value: "cyan", label: "Cyan" },
-    // { value: "dark", label: "Dark" },
-    { value: "grape", label: "Grape" },
-    // { value: "gray", label: "Gray" },
-    { value: "green", label: "Green" },
-    { value: "lime", label: "Lime" },
-    { value: "orange", label: "Orange" },
-    { value: "pink", label: "Pink" },
-    { value: "red", label: "Red" },
-    { value: "teal", label: "Teal" },
-    { value: "yellow", label: "Yellow" },
-    { value: "violet", label: "Violet" },
+    "indigo", "blue", "cyan", "grape", "green", "lime",
+    "orange", "pink", "red", "teal", "yellow", "violet",
 ];
 
 const trackerTypeOptions = [
     { value: PublicityEnum.Draft.toString(), label: "Template Draft" },
     { value: PublicityEnum.Public.toString(), label: "Public Template" },
 ];
-
-const renderColorOption = (
-    theme: ReturnType<typeof useMantineTheme>
-): SelectProps["renderOption"] => {
-    return ({ option, checked }) => (
-        <Group wrap="nowrap" gap="sm">
-            <FaCircle
-                size={16}
-                color={theme.colors[option.value]?.[6] ?? option.value}
-            />
-            <Text>{option.label}</Text>
-            {checked && <FaCheck color="gray" />}
-        </Group>
-    );
-};
 
 const renderTemplateOption: SelectProps["renderOption"] = ({
     option,
@@ -198,14 +172,27 @@ export default function TrackerFormDialog(props: TrackerFormDialogProps) {
                         maxLength={500}
                         {...form.getInputProps("description")}
                     />
-                    <Select
-                        label={`${entityName} Color`}
-                        placeholder={`Select ${entityName.toLowerCase()} color`}
-                        data={colorOptions}
-                        allowDeselect={false}
-                        renderOption={renderColorOption(theme)}
-                        {...form.getInputProps("color")}
-                    />
+                    <Stack gap="xs">
+                        <Text size="sm" fw={500}>{entityName} Color</Text>
+                        <Group gap="xs">
+                            {colorOptions.map((c) => (
+                                <UnstyledButton
+                                    key={c}
+                                    onClick={() => form.setFieldValue("color", c)}
+                                    style={{
+                                        borderRadius: "50%",
+                                        padding: 2,
+                                        border: form.values.color === c
+                                            ? `2px solid ${theme.colors[c]?.[6]}`
+                                            : "2px solid transparent",
+                                        lineHeight: 0,
+                                    }}
+                                >
+                                    <FaCircle size={22} color={theme.colors[c]?.[6]} />
+                                </UnstyledButton>
+                            ))}
+                        </Group>
+                    </Stack>
                     {props.asTemplate && props.trackerId && (
                         <Select
                             label={`${entityName} Type`}

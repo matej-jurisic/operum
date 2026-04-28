@@ -2,6 +2,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
     ActionIcon,
+    Badge,
     Card,
     Group,
     Stack,
@@ -68,7 +69,7 @@ export default function SortableViewCard({
                         <MdDragHandle size={25} />
                     </ActionIcon>
                 )}
-                <Stack gap="sm" flex={1}>
+                <Stack gap="xs" flex={1}>
                     <Title order={4} lineClamp={1} className="wrapped-text">
                         {view.name}
                     </Title>
@@ -80,6 +81,20 @@ export default function SortableViewCard({
                     >
                         {view.description || "No description"}
                     </Text>
+                    {(view.filters.length > 0 || view.sorts.length > 0) && (
+                        <Group wrap="wrap">
+                            {view.filters.length > 0 && (
+                                <Badge variant="light" color="blue" size="sm">
+                                    {view.filters.length} {view.filters.length === 1 ? "filter" : "filters"}
+                                </Badge>
+                            )}
+                            {view.sorts.length > 0 && (
+                                <Badge variant="light" color="teal" size="sm">
+                                    {view.sorts.length} {view.sorts.length === 1 ? "sort" : "sorts"}
+                                </Badge>
+                            )}
+                        </Group>
+                    )}
                 </Stack>
                 <Group gap="xs" wrap="nowrap">
                     <ActionIcon

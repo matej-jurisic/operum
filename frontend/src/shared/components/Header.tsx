@@ -44,7 +44,7 @@ const Header = observer((props: Props) => {
                         <GoSun size={16} />
                     )}
                 </Button>
-                <Menu>
+                <Menu zIndex={400}>
                     <Menu.Target>
                         <Button
                             variant="outline"

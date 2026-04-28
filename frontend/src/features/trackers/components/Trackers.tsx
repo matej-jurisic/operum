@@ -14,7 +14,7 @@ import {
     useMantineTheme,
 } from "@mantine/core";
 import { useEffect, useState } from "react";
-import { FiPlus, FiPlusSquare } from "react-icons/fi";
+import { FiPlus, FiPlusSquare, FiZap } from "react-icons/fi";
 import { MdDelete, MdEdit } from "react-icons/md";
 import { TbLayoutGrid } from "react-icons/tb";
 import { useNavigate } from "react-router-dom";
@@ -28,12 +28,14 @@ import globalStore from "../../../shared/stores/GlobalStore";
 import { trackersController } from "../api/trackersController";
 import { TrackerDto } from "../types/TrackerDto";
 import TrackerFormDialog from "./TrackerFormDialog";
+import TrackerWizard from "./TrackerWizard";
 
 enum OpenDialogType {
     CreateTracker,
     DeleteTracker,
     UpdateTracker,
     CreateFromTemplate,
+    Wizard,
 }
 
 interface Props {
@@ -47,10 +49,12 @@ export default function Trackers({ isTemplates = false }: Props) {
     const [selectedFilter, setSelectedFilter] = useState<string>(
         TrackerFilters.Owned
     );
+    const [isLoading, setIsLoading] = useState(true);
     const theme = useMantineTheme();
     const navigate = useNavigate();
 
     const GetData = async () => {
+        setIsLoading(true);
         let response;
         if (isTemplates) {
             response = await trackersController.getAdminTemplateList();
@@ -58,6 +62,7 @@ export default function Trackers({ isTemplates = false }: Props) {
             response = await trackersController.getTrackerList();
         }
         setTrackerList(response.data);
+        setIsLoading(false);
     };
 
     useEffect(() => {
@@ -86,9 +91,11 @@ export default function Trackers({ isTemplates = false }: Props) {
                                 onChange={async (e) => {
                                     if (e) {
                                         setSelectedFilter(e);
+                                        setIsLoading(true);
                                         const response =
                                             await trackersController.getTrackerList(e);
                                         setTrackerList(response.data);
+                                        setIsLoading(false);
                                     }
                                 }}
                             />
@@ -103,6 +110,15 @@ export default function Trackers({ isTemplates = false }: Props) {
                                 </Button>
                             </Menu.Target>
                             <Menu.Dropdown>
+                                <Menu.Item
+                                    leftSection={<FiZap size={16} />}
+                                    onClick={() =>
+                                        setOpenDialogType(OpenDialogType.Wizard)
+                                    }
+                                >
+                                    Guided Setup
+                                </Menu.Item>
+                                <Menu.Divider />
                                 <Menu.Item
                                     leftSection={<FiPlus size={16} />}
                                     onClick={() =>
@@ -124,7 +140,15 @@ export default function Trackers({ isTemplates = false }: Props) {
                     </Group>
 
                     <ScrollArea flex={1}>
-                        {trackerList.length === 0 ? (
+                        {!isLoading && trackerList.length === 0 ? (
+                            selectedFilter === TrackerFilters.Collaborating ? (
+                                <Stack align="center" gap="md" py={80}>
+                                    <Text fw={700} size="xl">No shared trackers</Text>
+                                    <Text size="sm" c="dimmed">
+                                        Trackers shared with you will appear here.
+                                    </Text>
+                                </Stack>
+                            ) : (
                             <Stack align="center" gap="md" py={80}>
                                 <ThemeIcon
                                     size={72}
@@ -143,14 +167,15 @@ export default function Trackers({ isTemplates = false }: Props) {
                                     </Text>
                                 </Stack>
                                 <Button
-                                    leftSection={<FiPlus size={16} />}
+                                    leftSection={<FiZap size={16} />}
                                     onClick={() =>
-                                        setOpenDialogType(OpenDialogType.CreateTracker)
+                                        setOpenDialogType(OpenDialogType.Wizard)
                                     }
                                 >
-                                    Create Tracker
+                                    Get Started
                                 </Button>
                             </Stack>
+                            )
                         ) : (
                             <Stack>
                                 {trackerList.map((x) => {
@@ -175,40 +200,41 @@ export default function Trackers({ isTemplates = false }: Props) {
                                             }
                                         >
                                             <Group
-                                                justify="space-between"
-                                                align="flex-start"
+                                                gap="md"
+                                                align="center"
                                                 wrap="nowrap"
                                             >
-                                                <Group
-                                                    gap="md"
-                                                    align="flex-start"
-                                                    wrap="nowrap"
+                                                <ThemeIcon
+                                                    size={44}
+                                                    radius="md"
+                                                    variant="light"
+                                                    color={color}
+                                                    style={{ flexShrink: 0 }}
+                                                >
+                                                    <TbLayoutGrid size={22} />
+                                                </ThemeIcon>
+                                                <Stack
+                                                    gap={4}
                                                     flex={1}
                                                     style={{ minWidth: 0 }}
                                                 >
-                                                    <ThemeIcon
-                                                        size={44}
-                                                        radius="md"
-                                                        variant="light"
-                                                        color={color}
-                                                        style={{ flexShrink: 0 }}
-                                                    >
-                                                        <TbLayoutGrid size={22} />
-                                                    </ThemeIcon>
-                                                    <Stack
-                                                        gap={4}
-                                                        flex={1}
-                                                        style={{ minWidth: 0 }}
+                                                    <Group
+                                                        justify="space-between"
+                                                        align="center"
+                                                        wrap="nowrap"
+                                                        gap="xs"
                                                     >
                                                         <Group
                                                             gap="xs"
                                                             align="center"
-                                                            wrap="wrap"
+                                                            wrap="nowrap"
+                                                            style={{ minWidth: 0 }}
                                                         >
                                                             <Title
                                                                 order={4}
                                                                 lineClamp={1}
                                                                 className="wrapped-text"
+                                                                style={{ minWidth: 0 }}
                                                             >
                                                                 {x.name}
                                                             </Title>
@@ -217,6 +243,7 @@ export default function Trackers({ isTemplates = false }: Props) {
                                                                     size="sm"
                                                                     variant="light"
                                                                     color={color}
+                                                                    style={{ flexShrink: 0 }}
                                                                 >
                                                                     {x.fields.length}{" "}
                                                                     {x.fields.length === 1
@@ -225,61 +252,60 @@ export default function Trackers({ isTemplates = false }: Props) {
                                                                 </Badge>
                                                             )}
                                                         </Group>
-                                                        <Text
-                                                            c="dimmed"
-                                                            size="sm"
-                                                            className="wrapped-text"
-                                                            lineClamp={2}
+                                                        <Group
+                                                            gap="xs"
+                                                            wrap="nowrap"
+                                                            style={{ flexShrink: 0 }}
                                                         >
-                                                            {x.description ||
-                                                                "No description"}
-                                                        </Text>
-                                                    </Stack>
-                                                </Group>
-                                                <Group
-                                                    gap="xs"
-                                                    justify="flex-end"
-                                                    wrap="nowrap"
-                                                    style={{ flexShrink: 0 }}
-                                                >
-                                                    {globalStore.currentUser?.id ===
-                                                    x.ownerId ? (
-                                                        <>
-                                                            <ActionIcon
-                                                                size="lg"
-                                                                variant="subtle"
-                                                                color="green"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setSelectedTracker(x);
-                                                                    setOpenDialogType(
-                                                                        OpenDialogType.UpdateTracker
-                                                                    );
-                                                                }}
-                                                            >
-                                                                <MdEdit size={18} />
-                                                            </ActionIcon>
-                                                            <ActionIcon
-                                                                size="lg"
-                                                                variant="subtle"
-                                                                color="red"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setSelectedTracker(x);
-                                                                    setOpenDialogType(
-                                                                        OpenDialogType.DeleteTracker
-                                                                    );
-                                                                }}
-                                                            >
-                                                                <MdDelete size={18} />
-                                                            </ActionIcon>
-                                                        </>
-                                                    ) : (
-                                                        <Badge variant="outline">
-                                                            Owned by: {x.ownerName}
-                                                        </Badge>
-                                                    )}
-                                                </Group>
+                                                            {globalStore.currentUser?.id ===
+                                                            x.ownerId ? (
+                                                                <>
+                                                                    <ActionIcon
+                                                                        size="lg"
+                                                                        variant="outline"
+                                                                        color="green"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setSelectedTracker(x);
+                                                                            setOpenDialogType(
+                                                                                OpenDialogType.UpdateTracker
+                                                                            );
+                                                                        }}
+                                                                    >
+                                                                        <MdEdit size={18} />
+                                                                    </ActionIcon>
+                                                                    <ActionIcon
+                                                                        size="lg"
+                                                                        variant="outline"
+                                                                        color="red"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setSelectedTracker(x);
+                                                                            setOpenDialogType(
+                                                                                OpenDialogType.DeleteTracker
+                                                                            );
+                                                                        }}
+                                                                    >
+                                                                        <MdDelete size={18} />
+                                                                    </ActionIcon>
+                                                                </>
+                                                            ) : (
+                                                                <Badge variant="outline">
+                                                                    Owned by: {x.ownerName}
+                                                                </Badge>
+                                                            )}
+                                                        </Group>
+                                                    </Group>
+                                                    <Text
+                                                        c="dimmed"
+                                                        size="sm"
+                                                        className="wrapped-text"
+                                                        lineClamp={2}
+                                                    >
+                                                        {x.description ||
+                                                            "No description"}
+                                                    </Text>
+                                                </Stack>
                                             </Group>
                                         </Card>
                                     );
@@ -289,6 +315,14 @@ export default function Trackers({ isTemplates = false }: Props) {
                     </ScrollArea>
                 </Stack>
 
+            {openDialogType === OpenDialogType.Wizard && (
+                <TrackerWizard
+                    onClose={() => {
+                        setOpenDialogType(undefined);
+                        GetData();
+                    }}
+                />
+            )}
             {openDialogType === OpenDialogType.CreateTracker && (
                 <TrackerFormDialog
                     asTemplate={isTemplates}

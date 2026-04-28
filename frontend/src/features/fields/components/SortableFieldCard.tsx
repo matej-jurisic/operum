@@ -69,7 +69,7 @@ export default function SortableFieldCard({
                     </ActionIcon>
                 )}
                 {/* Field info section */}
-                <Stack gap={"sm"} flex={1}>
+                <Stack gap="xs" flex={1}>
                     <Title order={4} lineClamp={1} className="wrapped-text">
                         {field.name}
                     </Title>
