@@ -262,6 +262,7 @@ namespace Operum.Service.Services.Trackers
             if (filter == TrackerFilters.Owned)
             {
                 var ownedTrackers = await db.Trackers
+                .Include(x => x.Fields)
                 .Include(x => x.ApplicationUserTrackers)
                 .Include(x => x.Owner)
                 .Where(x => x.TrackerTypeId == null && x.OwnerId == user.Id)
@@ -271,6 +272,7 @@ namespace Operum.Service.Services.Trackers
             else if (filter == TrackerFilters.Collaborating)
             {
                 var trackers = await db.Trackers
+                    .Include(x => x.Fields)
                     .Include(x => x.ApplicationUserTrackers)
                     .Include(x => x.Owner)
                     .Where(x => x.TrackerTypeId == null && x.OwnerId != user.Id && x.ApplicationUserTrackers.Any(a => a.ApplicationUserId == user.Id))
