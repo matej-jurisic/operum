@@ -13,8 +13,8 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { TimePicker } from "@mantine/dates";
+import { CiTrash } from "react-icons/ci";
 import { FiPlus } from "react-icons/fi";
-import { MdDelete } from "react-icons/md";
 import { operatorTypes } from "../../../shared/constants/DataTypesForSelect";
 import { calculatedFieldTypes } from "../../../shared/constants/DataTypesForSelect";
 import { GetStringValue } from "../../entries/components/EntryFormDialog";
@@ -333,7 +333,7 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                                                     onClick={() => removeConditionalValue(vi)}
                                                     aria-label="Remove conditional value"
                                                 >
-                                                    <MdDelete size={16} />
+                                                    <CiTrash size={16} />
                                                 </ActionIcon>
                                             </Group>
 
@@ -403,7 +403,7 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                                                                         onClick={() => removeFilter(vi, fi)}
                                                                         aria-label="Remove filter"
                                                                     >
-                                                                        <MdDelete size={18} />
+                                                                        <CiTrash size={18} />
                                                                     </ActionIcon>
                                                                 </Group>
                                                             </Stack>

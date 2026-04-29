@@ -215,6 +215,66 @@ namespace Operum.Model.Migrations
                     b.ToTable("AnalyticFields");
                 });
 
+            modelBuilder.Entity("Operum.Model.Models.Dashboard", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Color")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Icon")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Dashboards");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.DashboardItem", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("AnalyticId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("DashboardId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TrackerId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ViewIds")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AnalyticId");
+
+                    b.HasIndex("DashboardId");
+
+                    b.HasIndex("TrackerId");
+
+                    b.ToTable("DashboardItems");
+                });
+
             modelBuilder.Entity("Operum.Model.Models.Entry", b =>
                 {
                     b.Property<string>("Id")
@@ -786,6 +846,44 @@ namespace Operum.Model.Migrations
                     b.Navigation("Field");
                 });
 
+            modelBuilder.Entity("Operum.Model.Models.Dashboard", b =>
+                {
+                    b.HasOne("Operum.Model.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.DashboardItem", b =>
+                {
+                    b.HasOne("Operum.Model.Models.Analytic", "Analytic")
+                        .WithMany()
+                        .HasForeignKey("AnalyticId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Operum.Model.Models.Dashboard", "Dashboard")
+                        .WithMany("Items")
+                        .HasForeignKey("DashboardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Operum.Model.Models.Tracker", "Tracker")
+                        .WithMany()
+                        .HasForeignKey("TrackerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Analytic");
+
+                    b.Navigation("Dashboard");
+
+                    b.Navigation("Tracker");
+                });
+
             modelBuilder.Entity("Operum.Model.Models.Entry", b =>
                 {
                     b.HasOne("Operum.Model.Models.Tracker", "Tracker")
@@ -981,6 +1079,11 @@ namespace Operum.Model.Migrations
             modelBuilder.Entity("Operum.Model.Models.Analytic", b =>
                 {
                     b.Navigation("AnalyticFields");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.Dashboard", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("Operum.Model.Models.Entry", b =>

@@ -27,8 +27,7 @@ import {
 import { useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { IoChevronDownCircle } from "react-icons/io5";
-import { MdCheck } from "react-icons/md";
-import { RiListOrdered2 } from "react-icons/ri";
+import { CiBoxList, CiCircleCheck } from "react-icons/ci";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import { useFields } from "../../fields/context/FieldsContext";
@@ -132,7 +131,7 @@ export default function Views(props: Props) {
                                 onClick={() => setIsReordering((prev) => !prev)}
                                 color={props.tracker.color}
                             >
-                                <RiListOrdered2 size={18} />
+                                <CiBoxList size={18} />
                             </ActionIcon>
                             )}
                             {isOwner && <Menu position="bottom-end" width={280} styles={{ itemLabel: { minWidth: 0, overflow: "hidden" } }}>
@@ -161,7 +160,7 @@ export default function Views(props: Props) {
                                         }}
                                         rightSection={
                                             defaultViewIds.length === 0 ? (
-                                                <MdCheck size={16} />
+                                                <CiCircleCheck size={16} />
                                             ) : null
                                         }
                                         c="dimmed"
@@ -187,7 +186,7 @@ export default function Views(props: Props) {
                                                         setDefaultViewIds(prev);
                                                     }
                                                 }}
-                                                rightSection={isDefault ? <MdCheck size={16} /> : null}
+                                                rightSection={isDefault ? <CiCircleCheck size={16} /> : null}
                                                 key={v.id}
                                             >
                                                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>

@@ -15,8 +15,8 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useState } from "react";
-import { FiPlus, FiPlusSquare } from "react-icons/fi";
-import { MdDelete } from "react-icons/md";
+import { CiSquarePlus, CiTrash } from "react-icons/ci";
+import { FiPlus } from "react-icons/fi";
 import { operatorTypes } from "../../../shared/constants/DataTypesForSelect";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import { GetStringValue } from "../../entries/components/EntryFormDialog";
@@ -347,7 +347,7 @@ export default function ViewFormDialog({ tracker, viewId, initialView, onClose }
                                                 aria-label="Remove sort"
                                                 size="lg"
                                             >
-                                                <MdDelete size={18} />
+                                                <CiTrash size={18} />
                                             </ActionIcon>
                                         </Group>
                                     </Paper>
@@ -390,7 +390,7 @@ export default function ViewFormDialog({ tracker, viewId, initialView, onClose }
                                         </Menu.Item>
                                         <Menu.Item
                                             leftSection={
-                                                <FiPlusSquare size={14} />
+                                                <CiSquarePlus size={14} />
                                             }
                                             onClick={() => {
                                                 setSelectedFieldForTemplate("");
@@ -522,7 +522,7 @@ export default function ViewFormDialog({ tracker, viewId, initialView, onClose }
                                                         aria-label="Remove filter"
                                                         size="lg"
                                                     >
-                                                        <MdDelete size={18} />
+                                                        <CiTrash size={18} />
                                                     </ActionIcon>
                                                 </Group>
                                             </Stack>

@@ -1,7 +1,7 @@
 import { ScatterChart } from "@mantine/charts";
 import { ActionIcon, em, Group, Paper, Stack, Text } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { MdDelete } from "react-icons/md";
+import { CiTrash } from "react-icons/ci";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { ScatterChartAnalyticDto } from "../types/AnalyticDto";
@@ -39,7 +39,7 @@ export function ScatterChartCard({
                             variant="outline"
                             onClick={() => removeAnalytic(analytic.id)}
                         >
-                            <MdDelete size={18} />
+                            <CiTrash size={18} />
                         </ActionIcon>
                     )}
                 </Group>

@@ -36,6 +36,8 @@ function AppShellLayout({ children }: { children: React.ReactNode }) {
 }
 
 const AdminPanel = lazy(() => import("./features/admin/pages/AdminPanel"));
+const DashboardListPage = lazy(() => import("./features/dashboard/pages/DashboardListPage"));
+const DashboardPage = lazy(() => import("./features/dashboard/pages/DashboardPage"));
 const Home = lazy(() => import("./features/home/pages/Home"));
 const PrivacyPolicy = lazy(() => import("./features/legal/pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./features/legal/pages/TermsOfService"));
@@ -100,6 +102,14 @@ const App = observer(() => {
                                 element={
                                     <PublicRoute page={<ConfirmEmail />} />
                                 }
+                            />
+                            <Route
+                                path="dashboard"
+                                element={<PrivateRoute page={<DashboardListPage />} />}
+                            />
+                            <Route
+                                path="dashboard/:dashboardId"
+                                element={<PrivateRoute page={<DashboardPage />} />}
                             />
                             <Route
                                 path="admin-panel"

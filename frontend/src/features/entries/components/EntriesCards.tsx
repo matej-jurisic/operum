@@ -7,9 +7,8 @@ import {
     Stack,
     Text,
 } from "@mantine/core";
-import { MdDelete, MdEdit } from "react-icons/md";
+import { CiBoxList, CiEdit, CiTrash } from "react-icons/ci";
 import { IoDuplicateOutline } from "react-icons/io5";
-import { RiFileListFill } from "react-icons/ri";
 import { formatDateTimeFromDate } from "../../../shared/utils/formatters/TypeFormatter";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 import { useFields } from "../../fields/context/FieldsContext";
@@ -138,7 +137,7 @@ export function EntriesCards({
                                                     onViewDetails(entry)
                                                 }
                                             >
-                                                <RiFileListFill size={16} />
+                                                <CiBoxList size={16} />
                                             </ActionIcon>
                                             {canEditData && <>
                                             <ActionIcon
@@ -147,7 +146,7 @@ export function EntriesCards({
                                                 size="lg"
                                                 onClick={() => onEdit(entry)}
                                             >
-                                                <MdEdit size={16} />
+                                                <CiEdit size={16} />
                                             </ActionIcon>
                                             <ActionIcon
                                                 variant="outline"
@@ -163,7 +162,7 @@ export function EntriesCards({
                                                 size="lg"
                                                 onClick={() => onDelete(entry)}
                                             >
-                                                <MdDelete size={16} />
+                                                <CiTrash size={16} />
                                             </ActionIcon>
                                             </>}
                                         </Group>

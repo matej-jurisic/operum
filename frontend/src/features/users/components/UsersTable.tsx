@@ -1,6 +1,5 @@
 import { ActionIcon, Avatar, Badge, Group, Table, Text } from "@mantine/core";
-import { IoMdMail, IoMdPerson } from "react-icons/io";
-import { MdMail } from "react-icons/md";
+import { CiMail, CiUser } from "react-icons/ci";
 import globalStore from "../../../shared/stores/GlobalStore";
 import { UserDto } from "../../auth/types/UserDto";
 
@@ -51,7 +50,7 @@ export default function UsersTable(props: Props) {
                                         radius="xl"
                                         color="indigo"
                                     >
-                                        <IoMdPerson size={16} />
+                                        <CiUser size={16} />
                                     </Avatar>
                                     <div>
                                         <Text fw={500}>{user.userName}</Text>
@@ -63,7 +62,7 @@ export default function UsersTable(props: Props) {
                             </Table.Td>
                             <Table.Td>
                                 <Group gap="xs" wrap="nowrap">
-                                    <IoMdMail size={14} />
+                                    <CiMail size={14} />
                                     <Text size="sm">{user.email}</Text>
                                 </Group>
                             </Table.Td>
@@ -114,7 +113,7 @@ export default function UsersTable(props: Props) {
                                                     props.handleEditRoles(user)
                                                 }
                                             >
-                                                <IoMdPerson size={14} />
+                                                <CiUser size={14} />
                                             </ActionIcon>
                                         )}
                                     {!user.mailConfirmed && (
@@ -125,7 +124,7 @@ export default function UsersTable(props: Props) {
                                                 props.handleConfirmMail(user)
                                             }
                                         >
-                                            <MdMail size={14} />
+                                            <CiMail size={14} />
                                         </ActionIcon>
                                     )}
                                 </Group>

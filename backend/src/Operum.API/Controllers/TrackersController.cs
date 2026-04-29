@@ -67,6 +67,12 @@ namespace Operum.API.Controllers
             return GetApiResponse(await trackerService.GetTrackerAnalytics(trackerId, viewId));
         }
 
+        [HttpGet("{trackerId}/analytics/summary")]
+        public async Task<IActionResult> GetTrackerAnalyticsSummary([FromRoute] string trackerId)
+        {
+            return GetApiResponse(await trackerService.GetTrackerAnalyticsSummary(trackerId));
+        }
+
         [HttpPost("{trackerId}/users")]
         public async Task<IActionResult> AddUserToTracker([FromRoute] string trackerId, [FromBody] AddUserToTrackerDto request)
         {

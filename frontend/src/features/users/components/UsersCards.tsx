@@ -7,8 +7,7 @@ import {
     Stack,
     Text,
 } from "@mantine/core";
-import { IoMdMail, IoMdPerson } from "react-icons/io";
-import { MdMail } from "react-icons/md";
+import { CiMail, CiUser } from "react-icons/ci";
 import { UserDto } from "../../auth/types/UserDto";
 
 interface UsersCardsProps {
@@ -44,7 +43,7 @@ export function UsersCards({
                         <Group justify="space-between" align="flex-start">
                             <Group gap="sm" wrap="nowrap" flex={1}>
                                 <Avatar size="md" radius="xl" color="indigo">
-                                    <IoMdPerson size={20} />
+                                    <CiUser size={20} />
                                 </Avatar>
                                 <Stack gap={4} flex={1}>
                                     <Text fw={500} size="sm">
@@ -59,7 +58,7 @@ export function UsersCards({
 
                         {/* Email */}
                         <Group gap="xs" wrap="nowrap">
-                            <IoMdMail size={14} />
+                            <CiMail size={14} />
                             <Text size="sm" flex={1} truncate>
                                 {user.email}
                             </Text>
@@ -107,7 +106,7 @@ export function UsersCards({
                                             color="blue"
                                             onClick={() => onEditRoles(user)}
                                         >
-                                            <IoMdPerson size={14} />
+                                            <CiUser size={14} />
                                         </ActionIcon>
                                     )}
                                 {!user.mailConfirmed && (
@@ -116,7 +115,7 @@ export function UsersCards({
                                         color="blue"
                                         onClick={() => onConfirmMail(user)}
                                     >
-                                        <MdMail size={14} />
+                                        <CiMail size={14} />
                                     </ActionIcon>
                                 )}
                             </Group>

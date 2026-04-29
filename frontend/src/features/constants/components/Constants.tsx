@@ -11,9 +11,8 @@ import {
     Title,
 } from "@mantine/core";
 import { useEffect, useState } from "react";
+import { CiBoxList, CiEdit, CiTrash } from "react-icons/ci";
 import { FiPlus } from "react-icons/fi";
-import { MdDelete, MdEdit } from "react-icons/md";
-import { RiFileListFill } from "react-icons/ri";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { useConstants } from "../context/ConstantsContext";
@@ -76,7 +75,7 @@ export default function Constants(props: ConstantsProps) {
                                                         setOpenDialogType(OpenDialogType.View);
                                                     }}
                                                 >
-                                                    <RiFileListFill size={16} />
+                                                    <CiBoxList size={16} />
                                                 </ActionIcon>
                                                 <ActionIcon
                                                     variant="outline"
@@ -87,7 +86,7 @@ export default function Constants(props: ConstantsProps) {
                                                         setOpenDialogType(OpenDialogType.Edit);
                                                     }}
                                                 >
-                                                    <MdEdit size={16} />
+                                                    <CiEdit size={16} />
                                                 </ActionIcon>
                                                 <ActionIcon
                                                     variant="outline"
@@ -98,7 +97,7 @@ export default function Constants(props: ConstantsProps) {
                                                         setOpenDialogType(OpenDialogType.Delete);
                                                     }}
                                                 >
-                                                    <MdDelete size={16} />
+                                                    <CiTrash size={16} />
                                                 </ActionIcon>
                                             </Group>
                                         </Group>

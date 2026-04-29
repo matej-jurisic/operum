@@ -19,9 +19,8 @@ import {
     useMantineTheme,
 } from "@mantine/core";
 import { createElement, useState } from "react";
+import { CiCircleCheck, CiCirclePlus, CiTrash } from "react-icons/ci";
 import { FaCircle } from "react-icons/fa";
-import { CiCircleCheck } from "react-icons/ci";
-import { MdAdd, MdDelete } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
 import { fieldsController } from "../../fields/api/fieldsController";
@@ -271,7 +270,7 @@ export default function TrackerWizard({ onClose }: Props) {
                                         variant="light"
                                         color={color}
                                         size="xs"
-                                        leftSection={<MdAdd size={14} />}
+                                        leftSection={<CiCirclePlus size={14} />}
                                         onClick={() => addQuickField(qf.label, qf.type)}
                                     >
                                         {qf.label}
@@ -321,7 +320,7 @@ export default function TrackerWizard({ onClose }: Props) {
                                                 onClick={() => removeField(f.id)}
                                                 mt={fieldErrors[f.id] ? -20 : 0}
                                             >
-                                                <MdDelete size={16} />
+                                                <CiTrash size={16} />
                                             </ActionIcon>
                                         </Group>
                                     ))}
@@ -332,7 +331,7 @@ export default function TrackerWizard({ onClose }: Props) {
                                 variant="subtle"
                                 color={color}
                                 size="xs"
-                                leftSection={<MdAdd size={14} />}
+                                leftSection={<CiCirclePlus size={14} />}
                                 onClick={() =>
                                     setFields((prev) => [
                                         ...prev,

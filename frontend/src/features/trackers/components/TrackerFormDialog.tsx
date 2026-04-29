@@ -13,7 +13,8 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useEffect, useMemo, useState } from "react";
-import { FaCheck, FaCircle } from "react-icons/fa";
+import { CiCircleCheck } from "react-icons/ci";
+import { FaCircle } from "react-icons/fa";
 import { PublicityEnum } from "../../../shared/enums/PublicityEnum";
 import { trackersController } from "../api/trackersController";
 import { CreateTrackerDto } from "../types/requests/CreateTrackerDto";
@@ -61,7 +62,7 @@ const renderTemplateOption: SelectProps["renderOption"] = ({
                     </Text>
                 )}
             </Stack>
-            {checked && <FaCheck color="gray" />}
+            {checked && <CiCircleCheck color="gray" />}
         </Group>
     );
 };

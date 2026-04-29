@@ -1,4 +1,5 @@
-import { FiCalendar, FiClock, FiPlus, FiTrendingUp } from "react-icons/fi";
+import { CiCalendar, CiClock2 } from "react-icons/ci";
+import { FiPlus, FiTrendingUp } from "react-icons/fi";
 import { FieldTypes, OperatorTypes } from "../../../shared/constants/DataTypes";
 
 // Filter template definitions
@@ -20,7 +21,7 @@ export const filterTemplates: FilterTemplate[] = [
         id: "current_month",
         name: "Current Month",
         description: "Show entries from the current month",
-        icon: <FiCalendar size={16} />,
+        icon: <CiCalendar size={16} />,
         fieldTypes: [FieldTypes.Date, FieldTypes.DateTime],
         filters: [
             {
@@ -43,7 +44,7 @@ export const filterTemplates: FilterTemplate[] = [
         id: "last_7_days",
         name: "Last 7 Days",
         description: "Show entries from the past week",
-        icon: <FiClock size={16} />,
+        icon: <CiClock2 size={16} />,
         fieldTypes: [FieldTypes.Date, FieldTypes.DateTime],
         filters: [
             {
@@ -60,7 +61,7 @@ export const filterTemplates: FilterTemplate[] = [
         id: "last_30_days",
         name: "Last 30 Days",
         description: "Show entries from the past month",
-        icon: <FiClock size={16} />,
+        icon: <CiClock2 size={16} />,
         fieldTypes: [FieldTypes.Date, FieldTypes.DateTime],
         filters: [
             {
@@ -77,7 +78,7 @@ export const filterTemplates: FilterTemplate[] = [
         id: "today",
         name: "Today",
         description: "Show entries from today",
-        icon: <FiCalendar size={16} />,
+        icon: <CiCalendar size={16} />,
         fieldTypes: [FieldTypes.Date, FieldTypes.DateTime],
         filters: [
             {

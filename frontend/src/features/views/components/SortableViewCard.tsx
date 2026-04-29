@@ -10,8 +10,8 @@ import {
     Title,
 } from "@mantine/core";
 import { CSSProperties } from "react";
-import { MdDelete, MdDragHandle, MdEdit } from "react-icons/md";
-import { RiFileListFill } from "react-icons/ri";
+import { CiBoxList, CiEdit, CiTrash } from "react-icons/ci";
+import { MdDragHandle } from "react-icons/md";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { ViewDto } from "../types/ViewDto";
 
@@ -104,7 +104,7 @@ export default function SortableViewCard({
                         onClick={() => onDetails(view)}
                         aria-label={`View details ${view.name}`}
                     >
-                        <RiFileListFill size={16} />
+                        <CiBoxList size={16} />
                     </ActionIcon>
                     {canEditSchema && (
                         <>
@@ -115,7 +115,7 @@ export default function SortableViewCard({
                                 onClick={() => onEdit(view)}
                                 aria-label={`Edit view ${view.name}`}
                             >
-                                <MdEdit size={16} />
+                                <CiEdit size={16} />
                             </ActionIcon>
                             <ActionIcon
                                 variant="outline"
@@ -124,7 +124,7 @@ export default function SortableViewCard({
                                 onClick={() => onDelete(view)}
                                 aria-label={`Delete view ${view.name}`}
                             >
-                                <MdDelete size={16} />
+                                <CiTrash size={16} />
                             </ActionIcon>
                         </>
                     )}

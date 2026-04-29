@@ -13,8 +13,8 @@ import {
     Title,
 } from "@mantine/core";
 import { useEffect, useState } from "react";
+import { CiEdit, CiTrash } from "react-icons/ci";
 import { FiPlus } from "react-icons/fi";
-import { MdDelete, MdEdit } from "react-icons/md";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
 import globalStore from "../../../shared/stores/GlobalStore";
 import { trackersController } from "../api/trackersController";
@@ -116,7 +116,7 @@ export default function TrackerUserList() {
                                                     onClick={() => handleOpenEditPermissions(user)}
                                                     aria-label={`Edit permissions for ${user.userName}`}
                                                 >
-                                                    <MdEdit size={16} />
+                                                    <CiEdit size={16} />
                                                 </ActionIcon>
                                                 <ActionIcon
                                                     variant="outline"
@@ -128,7 +128,7 @@ export default function TrackerUserList() {
                                                     }}
                                                     aria-label={`Remove user`}
                                                 >
-                                                    <MdDelete size={16} />
+                                                    <CiTrash size={16} />
                                                 </ActionIcon>
                                             </Group>
                                         )}

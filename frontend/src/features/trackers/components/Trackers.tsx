@@ -29,7 +29,8 @@ import {
 } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
-import { FiPlus, FiPlusSquare, FiZap } from "react-icons/fi";
+import { CiSquarePlus } from "react-icons/ci";
+import { FiPlus, FiZap } from "react-icons/fi";
 import { RiListOrdered2 } from "react-icons/ri";
 import { TbLayoutGrid } from "react-icons/tb";
 import { useNavigate } from "react-router-dom";
@@ -178,7 +179,7 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
                                     Create New
                                 </Menu.Item>
                                 <Menu.Item
-                                    leftSection={<FiPlusSquare size={16} />}
+                                    leftSection={<CiSquarePlus size={16} />}
                                     onClick={() =>
                                         setOpenDialogType(OpenDialogType.CreateFromTemplate)
                                     }

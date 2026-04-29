@@ -1,6 +1,6 @@
 import { ActionIcon, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { createElement } from "react";
-import { MdClose } from "react-icons/md";
+import { CiCircleRemove } from "react-icons/ci";
 import { CURATED_ICONS } from "../../../shared/constants/TrackerIcons";
 
 interface Props {
@@ -22,7 +22,7 @@ export default function IconPicker({ value, onChange, color = "indigo" }: Props)
                         color={!value ? color : "gray"}
                         onClick={() => onChange(undefined)}
                     >
-                        <MdClose size={16} />
+                        <CiCircleRemove size={16} />
                     </ActionIcon>
                 </Tooltip>
                 {CURATED_ICONS.map((def) => (

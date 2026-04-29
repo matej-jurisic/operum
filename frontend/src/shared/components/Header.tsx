@@ -7,9 +7,7 @@ import {
 } from "@mantine/core";
 import { observer } from "mobx-react";
 import { JSX, useState } from "react";
-import { CiLogout, CiSettings, CiUser } from "react-icons/ci";
-import { GoSun } from "react-icons/go";
-import { IoMoonOutline } from "react-icons/io5";
+import { CiDark, CiHome, CiLogout, CiMenuBurger, CiSettings, CiSun, CiUser } from "react-icons/ci";
 import { useNavigate } from "react-router-dom";
 import AuthDialog from "../../features/auth/components/AuthDialog";
 import useAuth from "../../features/auth/hooks/useAuth";
@@ -39,9 +37,9 @@ const Header = observer((props: Props) => {
                     onClick={() => toggleColorScheme()}
                 >
                     {colorScheme === "light" ? (
-                        <IoMoonOutline size={16} />
+                        <CiDark size={16} />
                     ) : (
-                        <GoSun size={16} />
+                        <CiSun size={16} />
                     )}
                 </Button>
                 <Menu zIndex={400}>
@@ -50,7 +48,7 @@ const Header = observer((props: Props) => {
                             variant="outline"
                             color={props.color ?? theme.primaryColor}
                         >
-                            <CiUser size={18} />
+                            <CiMenuBurger size={16} />
                         </Button>
                     </Menu.Target>
 
@@ -61,8 +59,7 @@ const Header = observer((props: Props) => {
                                     leftSection={<CiUser size={16} />}
                                     onClick={() => navigate("/profile")}
                                 >
-                                    {globalStore.currentUser?.userName ||
-                                        "Guest"}
+                                    Profile
                                 </Menu.Item>
                             </>
                         ) : (
@@ -71,6 +68,14 @@ const Header = observer((props: Props) => {
                                 onClick={() => setIsOpenAuth(true)}
                             >
                                 {"Login"}
+                            </Menu.Item>
+                        )}
+                        {globalStore.currentUser && (
+                            <Menu.Item
+                                leftSection={<CiHome size={16} />}
+                                onClick={() => navigate("/home")}
+                            >
+                                Home
                             </Menu.Item>
                         )}
                         {globalStore.userHasRole("admin") && (

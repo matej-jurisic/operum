@@ -1,6 +1,6 @@
 import { Alert, Button, Center, Group, Loader, Stack, Textarea } from "@mantine/core";
 import { useEffect, useState } from "react";
-import { MdWarning } from "react-icons/md";
+import { CiWarning } from "react-icons/ci";
 import { useFields } from "../../fields/context/FieldsContext";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { useEntries } from "../context/EntriesContext";
@@ -147,12 +147,12 @@ export function NoteView({ onClose }: Props) {
                 )}
             </Group>
             {isCapped && (
-                <Alert color="orange" icon={<MdWarning size={16} />}>
+                <Alert color="orange" icon={<CiWarning size={16} />}>
                     Showing first {NOTE_CAP} of {totalCount} entries. Changes beyond entry {NOTE_CAP} will not be reflected here.
                 </Alert>
             )}
             {error && (
-                <Alert color="red" icon={<MdWarning size={16} />} onClose={() => setError(null)} withCloseButton>
+                <Alert color="red" icon={<CiWarning size={16} />} onClose={() => setError(null)} withCloseButton>
                     {error}
                 </Alert>
             )}

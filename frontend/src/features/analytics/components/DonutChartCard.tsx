@@ -2,7 +2,7 @@ import { DonutChart } from "@mantine/charts";
 import { ActionIcon, Box, em, Group, Paper, Stack, Text, Tooltip } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { useMemo } from "react";
-import { MdDelete } from "react-icons/md";
+import { CiTrash } from "react-icons/ci";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { DonutChartAnaylticDto } from "../types/AnalyticDto";
@@ -56,7 +56,7 @@ export function DonutChartCard({ analytic, isConfiguring }: Props) {
                             variant="outline"
                             onClick={() => removeAnalytic(analytic.id)}
                         >
-                            <MdDelete size={18} />
+                            <CiTrash size={18} />
                         </ActionIcon>
                     )}
                 </Group>

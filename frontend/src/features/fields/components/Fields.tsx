@@ -24,8 +24,8 @@ import {
     Text,
 } from "@mantine/core";
 import { useEffect, useState } from "react";
+import { CiBoxList } from "react-icons/ci";
 import { FiPlus } from "react-icons/fi";
-import { RiListOrdered2 } from "react-icons/ri";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import { useTracker } from "../../trackers/context/TrackerContext";
@@ -128,7 +128,7 @@ export default function Fields(props: FieldsProps) {
                                 onClick={() => setIsReordering((prev) => !prev)}
                                 color={props.tracker.color}
                             >
-                                <RiListOrdered2 size={18} />
+                                <CiBoxList size={18} />
                             </ActionIcon>
                         </Group>
                     </Group>

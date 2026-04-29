@@ -51,6 +51,18 @@ namespace Operum.Model
                 .HasForeignKey(f => f.TrackerConstantValueId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            builder.Entity<Dashboard>()
+                .HasOne(d => d.User)
+                .WithMany()
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<DashboardItem>()
+                .HasOne(i => i.Dashboard)
+                .WithMany(d => d.Items)
+                .HasForeignKey(i => i.DashboardId)
+                .OnDelete(DeleteBehavior.Cascade);
+
         }
 
         public override DbSet<User> Users { get; set; }
@@ -71,5 +83,7 @@ namespace Operum.Model
         public DbSet<TrackerConstant> TrackerConstants { get; set; }
         public DbSet<TrackerConstantValue> TrackerConstantValues { get; set; }
         public DbSet<TrackerConstantValueFilter> TrackerConstantValueFilters { get; set; }
+        public DbSet<Dashboard> Dashboards { get; set; }
+        public DbSet<DashboardItem> DashboardItems { get; set; }
     }
 }

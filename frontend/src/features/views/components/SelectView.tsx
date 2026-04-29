@@ -1,7 +1,6 @@
 import { Button, Menu, Text } from "@mantine/core";
 import { useEffect, useMemo } from "react";
-import { LuFilter } from "react-icons/lu";
-import { MdCheck } from "react-icons/md";
+import { CiCircleCheck, CiFilter } from "react-icons/ci";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { useViews } from "../context/ViewsContext";
@@ -55,7 +54,7 @@ export default function SelectViewMenu() {
                     variant={selectedViewIds.length > 0 ? "filled" : "outline"}
                     color={tracker.color}
                 >
-                    <LuFilter size={16} />
+                    <CiFilter size={16} />
                     {selectedViewIds.length > 1 && (
                         <Text span size="xs" ml={6}>
                             {selectedViewIds.length}
@@ -71,7 +70,7 @@ export default function SelectViewMenu() {
                 <Menu.Item
                     onClick={clearSelectedViews}
                     rightSection={
-                        selectedViewIds.length === 0 ? <MdCheck size={16} /> : null
+                        selectedViewIds.length === 0 ? <CiCircleCheck size={16} /> : null
                     }
                     c="dimmed"
                     style={{ fontStyle: "italic" }}
@@ -85,7 +84,7 @@ export default function SelectViewMenu() {
                         onClick={() => toggleSelectedView(view.id)}
                         rightSection={
                             selectedViewIds.includes(view.id) ? (
-                                <MdCheck size={16} />
+                                <CiCircleCheck size={16} />
                             ) : null
                         }
                     >

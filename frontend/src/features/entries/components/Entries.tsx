@@ -16,9 +16,9 @@ import {
 import { useMediaQuery } from "@mantine/hooks";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { CiExport } from "react-icons/ci";
+import { CiCircleCheck, CiCircleRemove, CiExport, CiTrash } from "react-icons/ci";
 import { FiPlus } from "react-icons/fi";
-import { MdCheck, MdClose, MdDelete, MdSelectAll } from "react-icons/md";
+import { MdSelectAll } from "react-icons/md";
 import { PiFileCsvDuotone } from "react-icons/pi";
 import { TbNotes, TbRefresh } from "react-icons/tb";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
@@ -230,7 +230,7 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                                     }
                                     disabled={selectedEntryIds.size === 0}
                                 >
-                                    <MdDelete size={18} />
+                                    <CiTrash size={18} />
                                 </ActionIcon>
                             )}
 
@@ -299,9 +299,9 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                                             color={tracker.color}
                                             leftSection={
                                                 allEntriesSelected ? (
-                                                    <MdClose size={18} />
+                                                    <CiCircleRemove size={18} />
                                                 ) : (
-                                                    <MdCheck size={18} />
+                                                    <CiCircleCheck size={18} />
                                                 )
                                             }
                                             onClick={toggleSelectAll}
@@ -345,7 +345,7 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                                                     selectedEntryIds.size === 0
                                                 }
                                             >
-                                                <MdDelete size={18} />
+                                                <CiTrash size={18} />
                                             </ActionIcon>
                                         )}
                                     </Group>

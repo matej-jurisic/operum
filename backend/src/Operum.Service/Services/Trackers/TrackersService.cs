@@ -290,6 +290,17 @@ namespace Operum.Service.Services.Trackers
                 return Result.Success(mapper.Map<List<Tracker>, List<TrackerDto>>(ordered));
             }
 
+            else if (filter == TrackerFilters.Accessible)
+            {
+                var trackers = await db.Trackers
+                    .Include(x => x.ApplicationUserTrackers)
+                    .Include(x => x.Owner)
+                    .Where(x => x.TrackerTypeId == null &&
+                        (x.OwnerId == user.Id || x.ApplicationUserTrackers.Any(a => a.ApplicationUserId == user.Id)))
+                    .ToListAsync();
+                return Result.Success(mapper.Map<List<Tracker>, List<TrackerDto>>(trackers));
+            }
+
             return Result.Failure(ResultStatusCodes.BadRequest, Messages.ItemNotFound("filter"));
         }
 
@@ -566,6 +577,41 @@ namespace Operum.Service.Services.Trackers
             await db.SaveChangesAsync();
 
             return Result.Success();
+        }
+
+        public async Task<Result<List<AnalyticSummaryDto>>> GetTrackerAnalyticsSummary(string trackerId)
+        {
+            var user = currentUserService.GetCurrentUser();
+            var tracker = await db.Trackers
+                .Include(t => t.ApplicationUserTrackers)
+                .FirstOrDefaultAsync(t => t.Id == trackerId);
+
+            var hasAccess = tracker != null &&
+                (tracker.OwnerId == user.Id || tracker.ApplicationUserTrackers.Any(ut => ut.ApplicationUserId == user.Id));
+
+            if (tracker == null || !hasAccess)
+                return Result.Failure(ResultStatusCodes.Forbidden);
+
+            var analytics = await db.Analytics
+                .Include(a => a.AnalyticFields).ThenInclude(af => af.Field)
+                .Where(a => a.TrackerId == trackerId)
+                .OrderBy(a => a.Order)
+                .ToListAsync();
+
+            var summaries = analytics.Select(a =>
+            {
+                var label = AnalyticDefinitionList.GetLabel(a.ResultType, a.Code);
+                var fieldNames = a.AnalyticFields
+                    .Where(af => af.Field != null)
+                    .Select(af => af.Field.Name)
+                    .ToList();
+                var name = fieldNames.Count > 0
+                    ? $"{label}: {string.Join(", ", fieldNames)}"
+                    : label;
+                return new AnalyticSummaryDto { Id = a.Id, Name = name, ResultType = a.ResultType };
+            }).ToList();
+
+            return Result.Success(summaries);
         }
 
         public async Task<Result> AddAnalytic(string trackerId, CreateAnalyticDto addAnalytic)

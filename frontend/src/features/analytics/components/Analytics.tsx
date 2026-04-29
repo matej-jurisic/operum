@@ -11,8 +11,7 @@ import {
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { useEffect, useState } from "react";
-import { FiSettings } from "react-icons/fi";
-import { MdAdd } from "react-icons/md";
+import { CiCirclePlus, CiSettings } from "react-icons/ci";
 import EntryDetailsDialog from "../../entries/components/EntryDetailsDialog";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { useAnalytics } from "../context/AnalyticsContext";
@@ -53,7 +52,7 @@ export default function Analytics() {
                             <Button
                                 variant="outline"
                                 color={tracker.color}
-                                leftSection={<MdAdd size={20} />}
+                                leftSection={<CiCirclePlus size={20} />}
                                 onClick={() => {
                                     setOpenDialogType("configureAnalytics");
                                 }}
@@ -67,7 +66,7 @@ export default function Analytics() {
                             color={tracker.color}
                             onClick={() => setIsConfiguring((prev) => !prev)}
                         >
-                            <FiSettings size={18} />
+                            <CiSettings size={18} />
                         </ActionIcon>
                     </Group>
                 )}

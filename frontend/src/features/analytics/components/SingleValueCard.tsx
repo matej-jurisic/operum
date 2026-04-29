@@ -1,5 +1,5 @@
 import { ActionIcon, Group, Paper, Stack, Text } from "@mantine/core";
-import { MdDelete, MdLink } from "react-icons/md";
+import { CiLink, CiTrash } from "react-icons/ci";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 import { useTracker } from "../../trackers/context/TrackerContext";
@@ -40,7 +40,7 @@ export function SingleValueCard({
                                 color={tracker.color}
                                 onClick={() => onEntryClick(analytic.entryId!)}
                             >
-                                <MdLink size={18} />
+                                <CiLink size={18} />
                             </ActionIcon>
                         )}
                         {isConfiguring && (
@@ -50,7 +50,7 @@ export function SingleValueCard({
                                 variant="outline"
                                 onClick={() => removeAnalytic(analytic.id)}
                             >
-                                <MdDelete size={18} />
+                                <CiTrash size={18} />
                             </ActionIcon>
                         )}
                     </Group>

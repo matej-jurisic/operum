@@ -12,8 +12,9 @@ import {
     Title,
 } from "@mantine/core";
 import { createElement, CSSProperties } from "react";
+import { CiEdit, CiTrash } from "react-icons/ci";
 import { FiMoreVertical, FiPlus } from "react-icons/fi";
-import { MdDelete, MdDragHandle, MdEdit } from "react-icons/md";
+import { MdDragHandle } from "react-icons/md";
 import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
 import globalStore from "../../../shared/stores/GlobalStore";
 import { TrackerDto } from "../types/TrackerDto";
@@ -135,7 +136,7 @@ export default function SortableTrackerCard({
                                             </Menu.Target>
                                             <Menu.Dropdown>
                                                 <Menu.Item
-                                                    leftSection={<MdEdit size={16} />}
+                                                    leftSection={<CiEdit size={16} />}
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         onEdit(tracker);
@@ -145,7 +146,7 @@ export default function SortableTrackerCard({
                                                 </Menu.Item>
                                                 <Menu.Item
                                                     color="red"
-                                                    leftSection={<MdDelete size={16} />}
+                                                    leftSection={<CiTrash size={16} />}
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         onDelete(tracker);

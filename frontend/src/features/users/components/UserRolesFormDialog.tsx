@@ -9,7 +9,7 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useEffect, useState } from "react";
-import { IoMdPerson } from "react-icons/io";
+import { CiUser } from "react-icons/ci";
 import { UserDto } from "../../auth/types/UserDto";
 import { usersController } from "../api/usersController";
 import { ChangeUserRoleDto } from "../types/requests/ChangeUserRoleDto";
@@ -50,7 +50,7 @@ export default function UserRolesFormDialog(props: Props) {
             title={
                 <Group>
                     <Avatar size="sm" radius="xl" color="indigo">
-                        <IoMdPerson size={16} />
+                        <CiUser size={16} />
                     </Avatar>
                     <Text>{props.user.userName}</Text>
                 </Group>

@@ -15,6 +15,7 @@ using Operum.Service.Services.Token;
 using Operum.Service.Services.Admin;
 using Operum.Service.Services.Trackers;
 using Operum.Service.Services.Users;
+using Operum.Service.Services.Dashboards;
 using Operum.Service.Services.Views;
 
 namespace Operum.API.Configuration
@@ -50,6 +51,7 @@ namespace Operum.API.Configuration
             services.AddScoped<IAnalyticsService, AnalyticsService>();
             services.AddScoped<ITrackerConstantsService, TrackerConstantsService>();
             services.AddScoped<IFormulaEvaluationService, FormulaEvaluationService>();
+            services.AddScoped<IDashboardService, DashboardService>();
 
             return services;
         }
