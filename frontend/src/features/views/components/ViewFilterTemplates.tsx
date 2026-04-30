@@ -1,5 +1,5 @@
-import { CiCalendar, CiClock2 } from "react-icons/ci";
-import { FiPlus, FiTrendingUp } from "react-icons/fi";
+import { CiClock2 } from "react-icons/ci";
+import { FiCalendar, FiPlus, FiTrendingUp } from "react-icons/fi";
 import { FieldTypes, OperatorTypes } from "../../../shared/constants/DataTypes";
 
 // Filter template definitions
@@ -21,7 +21,7 @@ export const filterTemplates: FilterTemplate[] = [
         id: "current_month",
         name: "Current Month",
         description: "Show entries from the current month",
-        icon: <CiCalendar size={16} />,
+        icon: <FiCalendar size={16} />,
         fieldTypes: [FieldTypes.Date, FieldTypes.DateTime],
         filters: [
             {
@@ -78,7 +78,7 @@ export const filterTemplates: FilterTemplate[] = [
         id: "today",
         name: "Today",
         description: "Show entries from today",
-        icon: <CiCalendar size={16} />,
+        icon: <FiCalendar size={16} />,
         fieldTypes: [FieldTypes.Date, FieldTypes.DateTime],
         filters: [
             {

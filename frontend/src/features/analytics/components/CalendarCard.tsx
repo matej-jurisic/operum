@@ -9,8 +9,7 @@ import {
 } from "@mantine/core";
 import { Calendar } from "@mantine/dates";
 import { useMemo, useState } from "react";
-import { CiLink, CiTrash } from "react-icons/ci";
-import { MdArrowBack } from "react-icons/md";
+import { MdArrowBack, MdDelete, MdLink } from "react-icons/md";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 import { useTracker } from "../../trackers/context/TrackerContext";
@@ -77,7 +76,7 @@ export function CalendarCard({
                             variant="outline"
                             onClick={() => removeAnalytic(analytic.id)}
                         >
-                            <CiTrash size={18} />
+                            <MdDelete size={18} />
                         </ActionIcon>
                     )}
                 </Group>
@@ -165,7 +164,7 @@ export function CalendarCard({
                                                                 analytic
                                                                     .whenField
                                                                     .type,
-                                                                event.date
+                                                                event.date,
                                                             )}
                                                         </Text>
                                                     </Stack>
@@ -173,15 +172,15 @@ export function CalendarCard({
                                                         color={tracker.color}
                                                         onClick={() =>
                                                             onEntryClick(
-                                                                event.entryId
+                                                                event.entryId,
                                                             )
                                                         }
                                                     >
-                                                        <CiLink size={18} />
+                                                        <MdLink size={18} />
                                                     </ActionIcon>
                                                 </Group>
                                             </Paper>
-                                        )
+                                        ),
                                     )}
                                 </Stack>
                             )}

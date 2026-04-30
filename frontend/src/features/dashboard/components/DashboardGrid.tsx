@@ -1,30 +1,11 @@
 import {
-    BarChart,
-    DonutChart,
-    LineChart,
-    ScatterChart,
-} from "@mantine/charts";
-import {
-    ActionIcon,
-    Box,
-    Group,
-    Indicator,
-    Paper,
-    ScrollArea,
-    Stack,
-    Text,
-    Tooltip,
-    em,
-} from "@mantine/core";
-import { Calendar } from "@mantine/dates";
-import { useMediaQuery } from "@mantine/hooks";
-import {
     DndContext,
     DragEndEvent,
     PointerSensor,
     useSensor,
     useSensors,
 } from "@dnd-kit/core";
+import { restrictToFirstScrollableAncestor } from "@dnd-kit/modifiers";
 import {
     arrayMove,
     rectSortingStrategy,
@@ -32,10 +13,24 @@ import {
     useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { restrictToFirstScrollableAncestor } from "@dnd-kit/modifiers";
+import { BarChart, DonutChart, LineChart, ScatterChart } from "@mantine/charts";
+import {
+    ActionIcon,
+    Box,
+    em,
+    Group,
+    Indicator,
+    Paper,
+    ScrollArea,
+    Stack,
+    Text,
+    Tooltip,
+} from "@mantine/core";
+import { Calendar } from "@mantine/dates";
+import { useMediaQuery } from "@mantine/hooks";
 import React, { CSSProperties, useEffect, useMemo, useState } from "react";
+import { MdDelete } from "react-icons/md";
 import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
-import { CiTrash } from "react-icons/ci";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 import {
     createBarChartTooltipContent,
@@ -44,6 +39,7 @@ import {
     createTooltipContent,
     getAxisFormatter,
 } from "../../analytics/components/ChartFormatters";
+import { closestToPointer } from "../../analytics/components/MasonryCollision";
 import { AnalyticResultTypeEnum } from "../../analytics/enums/AnalyticResultTypeEnum";
 import {
     AnalyticDto,
@@ -54,7 +50,6 @@ import {
     ScatterChartAnalyticDto,
     SingleValueAnalyticDto,
 } from "../../analytics/types/AnalyticDto";
-import { closestToPointer } from "../../analytics/components/MasonryCollision";
 
 interface DashboardGridProps {
     analytics: AnalyticDto[];
@@ -127,7 +122,7 @@ function SortableCardWrapper({
                                 onRemove(id);
                             }}
                         >
-                            <CiTrash size={18} />
+                            <MdDelete size={18} />
                         </ActionIcon>
                     )}
                 </div>
@@ -237,7 +232,9 @@ function BarChartCardDisplay({
                     ]}
                     tooltipAnimationDuration={200}
                     xAxisProps={{
-                        tickFormatter: getAxisFormatter(analytic.nameField.type),
+                        tickFormatter: getAxisFormatter(
+                            analytic.nameField.type,
+                        ),
                     }}
                     yAxisProps={{
                         tickFormatter: analytic.valueField
@@ -245,7 +242,10 @@ function BarChartCardDisplay({
                             : undefined,
                     }}
                     tooltipProps={{
-                        content: createBarChartTooltipContent(analytic, resolvedColor),
+                        content: createBarChartTooltipContent(
+                            analytic,
+                            resolvedColor,
+                        ),
                     }}
                 />
             </Stack>
@@ -282,7 +282,7 @@ function DonutChartCardDisplay({
                     }%, white)`,
                 };
             }),
-        [positivePoints, baseColor]
+        [positivePoints, baseColor],
     );
 
     return (
@@ -385,7 +385,7 @@ function ScatterChartCardDisplay({
                     tooltipProps={{
                         content: createScatterTooltipContent(
                             analytic,
-                            resolvedColor
+                            resolvedColor,
                         ),
                     }}
                     dataKey={{ x: "x", y: "y" }}
@@ -446,7 +446,7 @@ function CalendarCardDisplay({
                             renderDay={(date) => {
                                 const dateObj = new Date(date);
                                 const hasEvents = events.has(
-                                    getDateKey(dateObj)
+                                    getDateKey(dateObj),
                                 );
                                 return (
                                     <Indicator
@@ -499,12 +499,12 @@ function CalendarCardDisplay({
                                                         {renderValue(
                                                             analytic.whenField
                                                                 .type,
-                                                            event.date
+                                                            event.date,
                                                         )}
                                                     </Text>
                                                 </Stack>
                                             </Paper>
-                                        )
+                                        ),
                                     )}
                                 </Stack>
                             )}
@@ -579,7 +579,7 @@ export function DashboardGrid({
     }, [analytics]);
 
     const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     );
 
     const handleDragEnd = (event: DragEndEvent) => {

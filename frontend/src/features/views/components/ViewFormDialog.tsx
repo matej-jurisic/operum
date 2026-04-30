@@ -15,9 +15,14 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useState } from "react";
-import { CiSquarePlus, CiTrash } from "react-icons/ci";
-import { FiPlus } from "react-icons/fi";
+import { FiPlus, FiPlusSquare } from "react-icons/fi";
+import { MdDelete } from "react-icons/md";
 import { operatorTypes } from "../../../shared/constants/DataTypesForSelect";
+import {
+    dynamicDateTokenOptions,
+    DynamicDateTokens,
+    isDynamicDateToken,
+} from "../../../shared/constants/dynamicDateTokens";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import { GetStringValue } from "../../entries/components/EntryFormDialog";
 import FieldValueInput from "../../fields/components/FieldValueInput";
@@ -25,20 +30,19 @@ import { useFields } from "../../fields/context/FieldsContext";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { CreateViewDto } from "../types/requests/CreateViewDto";
 import { UpdateViewDto } from "../types/requests/UpdateViewDto";
+import { ViewDto } from "../types/ViewDto";
+import { FilterTemplate, filterTemplates } from "./ViewFilterTemplates";
 
 interface ViewFormValues {
     name: string;
     description?: string;
     sorts: { fieldId: string; descending: boolean }[];
-    filters: { fieldId: string; operator: string; value?: string | number | Date }[];
+    filters: {
+        fieldId: string;
+        operator: string;
+        value?: string | number | Date;
+    }[];
 }
-import { ViewDto } from "../types/ViewDto";
-import {
-    DynamicDateTokens,
-    dynamicDateTokenOptions,
-    isDynamicDateToken,
-} from "../../../shared/constants/dynamicDateTokens";
-import { FilterTemplate, filterTemplates } from "./ViewFilterTemplates";
 
 interface Props {
     tracker: TrackerDto;
@@ -70,7 +74,12 @@ enum OpenDialogTypes {
 const MAX_SORTS = 3;
 const MAX_FILTERS = 6;
 
-export default function ViewFormDialog({ tracker, viewId, initialView, onClose }: Props) {
+export default function ViewFormDialog({
+    tracker,
+    viewId,
+    initialView,
+    onClose,
+}: Props) {
     const { fields } = useFields();
     const { createView, updateView } = useTrackerOperations();
 
@@ -103,8 +112,8 @@ export default function ViewFormDialog({ tracker, viewId, initialView, onClose }
                 !value.trim()
                     ? "View name is required"
                     : value.length > 50
-                    ? "View name must be at most 50 characters"
-                    : null,
+                      ? "View name must be at most 50 characters"
+                      : null,
             description: (value) =>
                 value && value.length > 500
                     ? "Description must be at most 500 characters"
@@ -249,7 +258,13 @@ export default function ViewFormDialog({ tracker, viewId, initialView, onClose }
     };
 
     return (
-        <Modal opened centered onClose={onClose} title={viewId ? "Edit View" : "Create View"} size="lg">
+        <Modal
+            opened
+            centered
+            onClose={onClose}
+            title={viewId ? "Edit View" : "Create View"}
+            size="lg"
+        >
             <form onSubmit={form.onSubmit(handleSubmit)}>
                 <Stack gap="lg">
                     {/* Basic Info Section */}
@@ -309,7 +324,7 @@ export default function ViewFormDialog({ tracker, viewId, initialView, onClose }
                                                 allowDeselect={false}
                                                 data={fieldOptions}
                                                 {...form.getInputProps(
-                                                    `sorts.${index}.fieldId`
+                                                    `sorts.${index}.fieldId`,
                                                 )}
                                                 flex={1}
                                             />
@@ -333,7 +348,7 @@ export default function ViewFormDialog({ tracker, viewId, initialView, onClose }
                                                 onChange={(value) =>
                                                     form.setFieldValue(
                                                         `sorts.${index}.descending`,
-                                                        value === "desc"
+                                                        value === "desc",
                                                     )
                                                 }
                                             />
@@ -347,7 +362,7 @@ export default function ViewFormDialog({ tracker, viewId, initialView, onClose }
                                                 aria-label="Remove sort"
                                                 size="lg"
                                             >
-                                                <CiTrash size={18} />
+                                                <MdDelete size={18} />
                                             </ActionIcon>
                                         </Group>
                                     </Paper>
@@ -390,12 +405,12 @@ export default function ViewFormDialog({ tracker, viewId, initialView, onClose }
                                         </Menu.Item>
                                         <Menu.Item
                                             leftSection={
-                                                <CiSquarePlus size={14} />
+                                                <FiPlusSquare size={14} />
                                             }
                                             onClick={() => {
                                                 setSelectedFieldForTemplate("");
                                                 setOpenDialogType(
-                                                    OpenDialogTypes.AddFilterFromTemplate
+                                                    OpenDialogTypes.AddFilterFromTemplate,
                                                 );
                                             }}
                                         >
@@ -416,7 +431,7 @@ export default function ViewFormDialog({ tracker, viewId, initialView, onClose }
                             <Stack gap="sm">
                                 {form.values.filters.map((filter, index) => {
                                     const selectedField = getFieldById(
-                                        filter.fieldId
+                                        filter.fieldId,
                                     );
 
                                     return (
@@ -431,10 +446,10 @@ export default function ViewFormDialog({ tracker, viewId, initialView, onClose }
                                                         placeholder="Select field"
                                                         data={fieldOptions}
                                                         {...form.getInputProps(
-                                                            `filters.${index}.fieldId`
+                                                            `filters.${index}.fieldId`,
                                                         )}
                                                         onChange={(
-                                                            newFieldId
+                                                            newFieldId,
                                                         ) => {
                                                             form.setFieldValue(
                                                                 `filters.${index}`,
@@ -445,7 +460,7 @@ export default function ViewFormDialog({ tracker, viewId, initialView, onClose }
                                                                     operator:
                                                                         "",
                                                                     value: undefined,
-                                                                }
+                                                                },
                                                             );
                                                         }}
                                                     />
@@ -457,7 +472,7 @@ export default function ViewFormDialog({ tracker, viewId, initialView, onClose }
                                                         placeholder="Select operator"
                                                         data={operatorTypes}
                                                         {...form.getInputProps(
-                                                            `filters.${index}.operator`
+                                                            `filters.${index}.operator`,
                                                         )}
                                                     />
                                                 </Group>
@@ -468,50 +483,103 @@ export default function ViewFormDialog({ tracker, viewId, initialView, onClose }
                                                     align="flex-end"
                                                     justify="flex-end"
                                                 >
-                                                    {selectedField && (() => {
-                                                        const isDateType = selectedField.type === "date" || selectedField.type === "datetime";
-                                                        const isDynamic = isDynamicDateToken(filter.value);
-                                                        return (
-                                                            <Group flex={1} align="flex-end" gap="xs">
-                                                                {isDateType && (
-                                                                    <SegmentedControl
-                                                                        size="xs"
-                                                                        data={[
-                                                                            { value: "fixed", label: "Fixed" },
-                                                                            { value: "dynamic", label: "Dynamic" },
-                                                                        ]}
-                                                                        value={isDynamic ? "dynamic" : "fixed"}
-                                                                        onChange={(v) =>
-                                                                            form.setFieldValue(
-                                                                                `filters.${index}.value`,
-                                                                                v === "dynamic" ? DynamicDateTokens.Today : undefined
-                                                                            )
-                                                                        }
-                                                                    />
-                                                                )}
-                                                                {isDateType && isDynamic ? (
-                                                                    <Select
-                                                                        flex={1}
-                                                                        label={selectedField.name}
-                                                                        placeholder="Select dynamic value"
-                                                                        data={dynamicDateTokenOptions}
-                                                                        value={typeof filter.value === "string" ? filter.value : null}
-                                                                        onChange={(v) =>
-                                                                            form.setFieldValue(`filters.${index}.value`, v ?? undefined)
-                                                                        }
-                                                                        allowDeselect={false}
-                                                                    />
-                                                                ) : (
-                                                                    <FieldValueInput
-                                                                        field={selectedField}
-                                                                        form={form}
-                                                                        fieldPath={`filters.${index}.value`}
-                                                                        styles={{ flex: 1 }}
-                                                                    />
-                                                                )}
-                                                            </Group>
-                                                        );
-                                                    })()}
+                                                    {selectedField &&
+                                                        (() => {
+                                                            const isDateType =
+                                                                selectedField.type ===
+                                                                    "date" ||
+                                                                selectedField.type ===
+                                                                    "datetime";
+                                                            const isDynamic =
+                                                                isDynamicDateToken(
+                                                                    filter.value,
+                                                                );
+                                                            return (
+                                                                <Group
+                                                                    flex={1}
+                                                                    align="flex-end"
+                                                                    gap="xs"
+                                                                >
+                                                                    {isDateType && (
+                                                                        <SegmentedControl
+                                                                            size="xs"
+                                                                            data={[
+                                                                                {
+                                                                                    value: "fixed",
+                                                                                    label: "Fixed",
+                                                                                },
+                                                                                {
+                                                                                    value: "dynamic",
+                                                                                    label: "Dynamic",
+                                                                                },
+                                                                            ]}
+                                                                            value={
+                                                                                isDynamic
+                                                                                    ? "dynamic"
+                                                                                    : "fixed"
+                                                                            }
+                                                                            onChange={(
+                                                                                v,
+                                                                            ) =>
+                                                                                form.setFieldValue(
+                                                                                    `filters.${index}.value`,
+                                                                                    v ===
+                                                                                        "dynamic"
+                                                                                        ? DynamicDateTokens.Today
+                                                                                        : undefined,
+                                                                                )
+                                                                            }
+                                                                        />
+                                                                    )}
+                                                                    {isDateType &&
+                                                                    isDynamic ? (
+                                                                        <Select
+                                                                            flex={
+                                                                                1
+                                                                            }
+                                                                            label={
+                                                                                selectedField.name
+                                                                            }
+                                                                            placeholder="Select dynamic value"
+                                                                            data={
+                                                                                dynamicDateTokenOptions
+                                                                            }
+                                                                            value={
+                                                                                typeof filter.value ===
+                                                                                "string"
+                                                                                    ? filter.value
+                                                                                    : null
+                                                                            }
+                                                                            onChange={(
+                                                                                v,
+                                                                            ) =>
+                                                                                form.setFieldValue(
+                                                                                    `filters.${index}.value`,
+                                                                                    v ??
+                                                                                        undefined,
+                                                                                )
+                                                                            }
+                                                                            allowDeselect={
+                                                                                false
+                                                                            }
+                                                                        />
+                                                                    ) : (
+                                                                        <FieldValueInput
+                                                                            field={
+                                                                                selectedField
+                                                                            }
+                                                                            form={
+                                                                                form
+                                                                            }
+                                                                            fieldPath={`filters.${index}.value`}
+                                                                            styles={{
+                                                                                flex: 1,
+                                                                            }}
+                                                                        />
+                                                                    )}
+                                                                </Group>
+                                                            );
+                                                        })()}
 
                                                     <ActionIcon
                                                         color="red"
@@ -522,7 +590,7 @@ export default function ViewFormDialog({ tracker, viewId, initialView, onClose }
                                                         aria-label="Remove filter"
                                                         size="lg"
                                                     >
-                                                        <CiTrash size={18} />
+                                                        <MdDelete size={18} />
                                                     </ActionIcon>
                                                 </Group>
                                             </Stack>
@@ -596,7 +664,7 @@ export default function ViewFormDialog({ tracker, viewId, initialView, onClose }
                                 </Text>
 
                                 {getAvailableTemplatesForField(
-                                    selectedFieldForTemplate
+                                    selectedFieldForTemplate,
                                 ).length === 0 ? (
                                     <Paper p="md" withBorder>
                                         <Text c="dimmed" ta="center" size="sm">
@@ -608,7 +676,7 @@ export default function ViewFormDialog({ tracker, viewId, initialView, onClose }
                                 ) : (
                                     <Stack gap="sm">
                                         {getAvailableTemplatesForField(
-                                            selectedFieldForTemplate
+                                            selectedFieldForTemplate,
                                         ).map((template) => (
                                             <Card
                                                 key={template.id}

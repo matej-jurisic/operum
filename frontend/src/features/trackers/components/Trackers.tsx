@@ -27,10 +27,9 @@ import {
     Title,
     useMantineTheme,
 } from "@mantine/core";
-import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
-import { CiSquarePlus } from "react-icons/ci";
-import { FiPlus, FiZap } from "react-icons/fi";
+import { useEffect, useState } from "react";
+import { FiPlus, FiPlusSquare, FiZap } from "react-icons/fi";
 import { RiListOrdered2 } from "react-icons/ri";
 import { TbLayoutGrid } from "react-icons/tb";
 import { useNavigate } from "react-router-dom";
@@ -40,12 +39,12 @@ import {
     TrackerFilters,
     TrackerFiltersForSelect,
 } from "../../../shared/constants/TrackerFilters";
+import QuickAddEntryDialog from "../../entries/components/QuickAddEntryDialog";
 import { trackersController } from "../api/trackersController";
 import { TrackerDto } from "../types/TrackerDto";
-import QuickAddEntryDialog from "../../entries/components/QuickAddEntryDialog";
+import SortableTrackerCard from "./SortableTrackerCard";
 import TrackerFormDialog from "./TrackerFormDialog";
 import TrackerWizard from "./TrackerWizard";
-import SortableTrackerCard from "./SortableTrackerCard";
 
 enum OpenDialogType {
     CreateTracker,
@@ -65,7 +64,7 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
     const [selectedTracker, setSelectedTracker] = useState<TrackerDto>();
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
     const [selectedFilter, setSelectedFilter] = useState<string>(
-        TrackerFilters.Owned
+        TrackerFilters.Owned,
     );
     const [isLoading, setIsLoading] = useState(true);
     const [isReordering, setIsReordering] = useState(false);
@@ -74,7 +73,9 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        }),
     );
 
     const GetData = async () => {
@@ -101,7 +102,10 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
             const newList = arrayMove(trackerList, oldIndex, newIndex);
             setTrackerList(newList);
             try {
-                await trackersController.reorderTrackers(newList.map((t) => t.id), selectedFilter);
+                await trackersController.reorderTrackers(
+                    newList.map((t) => t.id),
+                    selectedFilter,
+                );
             } catch {
                 setTrackerList([...trackerList]);
             }
@@ -133,7 +137,9 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
                                     setIsReordering(false);
                                     setIsLoading(true);
                                     const response =
-                                        await trackersController.getTrackerList(e);
+                                        await trackersController.getTrackerList(
+                                            e,
+                                        );
                                     setTrackerList(response.data);
                                     setIsLoading(false);
                                 }
@@ -173,15 +179,19 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
                                 <Menu.Item
                                     leftSection={<FiPlus size={16} />}
                                     onClick={() =>
-                                        setOpenDialogType(OpenDialogType.CreateTracker)
+                                        setOpenDialogType(
+                                            OpenDialogType.CreateTracker,
+                                        )
                                     }
                                 >
                                     Create New
                                 </Menu.Item>
                                 <Menu.Item
-                                    leftSection={<CiSquarePlus size={16} />}
+                                    leftSection={<FiPlusSquare size={16} />}
                                     onClick={() =>
-                                        setOpenDialogType(OpenDialogType.CreateFromTemplate)
+                                        setOpenDialogType(
+                                            OpenDialogType.CreateFromTemplate,
+                                        )
                                     }
                                 >
                                     Create From Template
@@ -195,7 +205,9 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
                     {!isLoading && trackerList.length === 0 ? (
                         selectedFilter === TrackerFilters.Collaborating ? (
                             <Stack align="center" gap="md" py={80}>
-                                <Text fw={700} size="xl">No shared trackers</Text>
+                                <Text fw={700} size="xl">
+                                    No shared trackers
+                                </Text>
                                 <Text size="sm" c="dimmed">
                                     Trackers shared with you will appear here.
                                 </Text>
@@ -215,7 +227,8 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
                                         No trackers yet
                                     </Text>
                                     <Text size="sm" c="dimmed">
-                                        Create your first tracker to start logging data
+                                        Create your first tracker to start
+                                        logging data
                                     </Text>
                                 </Stack>
                                 <Button
@@ -252,18 +265,28 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
                                                 color={color}
                                                 isReordering={isReordering}
                                                 isTemplates={isTemplates}
-                                                onNavigate={(t) => navigate(`/trackers/${t.id}`)}
+                                                onNavigate={(t) =>
+                                                    navigate(
+                                                        `/trackers/${t.id}`,
+                                                    )
+                                                }
                                                 onQuickAdd={(t) => {
                                                     setSelectedTracker(t);
-                                                    setOpenDialogType(OpenDialogType.QuickAddEntry);
+                                                    setOpenDialogType(
+                                                        OpenDialogType.QuickAddEntry,
+                                                    );
                                                 }}
                                                 onEdit={(t) => {
                                                     setSelectedTracker(t);
-                                                    setOpenDialogType(OpenDialogType.UpdateTracker);
+                                                    setOpenDialogType(
+                                                        OpenDialogType.UpdateTracker,
+                                                    );
                                                 }}
                                                 onDelete={(t) => {
                                                     setSelectedTracker(t);
-                                                    setOpenDialogType(OpenDialogType.DeleteTracker);
+                                                    setOpenDialogType(
+                                                        OpenDialogType.DeleteTracker,
+                                                    );
                                                 }}
                                             />
                                         );
@@ -328,7 +351,7 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
                         }}
                         onConfirm={async () => {
                             await trackersController.deleteTracker(
-                                selectedTracker.id
+                                selectedTracker.id,
                             );
                             GetData();
                             setSelectedTracker(undefined);

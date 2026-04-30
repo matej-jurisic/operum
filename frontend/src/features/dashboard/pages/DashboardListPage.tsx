@@ -17,23 +17,33 @@ import {
     useMantineTheme,
 } from "@mantine/core";
 import { createElement, useEffect, useState } from "react";
-import { CiTrash } from "react-icons/ci";
 import { FaCircle } from "react-icons/fa";
 import { FiPlus } from "react-icons/fi";
+import { MdDelete } from "react-icons/md";
 import { TbLayoutDashboard } from "react-icons/tb";
 import { useNavigate } from "react-router-dom";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
 import Header from "../../../shared/components/Header";
 import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
-import { dashboardController } from "../api/dashboardController";
 import IconPicker from "../../trackers/components/IconPicker";
+import { dashboardController } from "../api/dashboardController";
 import { DashboardDto } from "../types/DashboardDto";
 
 const PAGE_COLOR = "violet";
 
 const colorOptions = [
-    "indigo", "blue", "cyan", "grape", "green", "lime",
-    "orange", "pink", "red", "teal", "yellow", "violet",
+    "indigo",
+    "blue",
+    "cyan",
+    "grape",
+    "green",
+    "lime",
+    "orange",
+    "pink",
+    "red",
+    "teal",
+    "yellow",
+    "violet",
 ];
 
 export default function DashboardListPage() {
@@ -110,13 +120,21 @@ export default function DashboardListPage() {
                 </Center>
             ) : dashboards.length === 0 ? (
                 <Stack align="center" gap="md" py={80}>
-                    <ThemeIcon size={72} radius="xl" variant="light" color={PAGE_COLOR}>
+                    <ThemeIcon
+                        size={72}
+                        radius="xl"
+                        variant="light"
+                        color={PAGE_COLOR}
+                    >
                         <TbLayoutDashboard size={36} />
                     </ThemeIcon>
                     <Stack align="center" gap={4}>
-                        <Text fw={700} size="xl">No dashboards yet</Text>
+                        <Text fw={700} size="xl">
+                            No dashboards yet
+                        </Text>
                         <Text size="sm" c="dimmed">
-                            Create a dashboard to aggregate analytics from your trackers
+                            Create a dashboard to aggregate analytics from your
+                            trackers
                         </Text>
                     </Stack>
                     <Button
@@ -129,10 +147,11 @@ export default function DashboardListPage() {
                 </Stack>
             ) : (
                 <ScrollArea flex={1}>
-                    <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
+                    <SimpleGrid cols={{ base: 2, sm: 3, md: 5 }} spacing="md">
                         {dashboards.map((dashboard) => {
                             const color =
-                                dashboard.color && dashboard.color in theme.colors
+                                dashboard.color &&
+                                dashboard.color in theme.colors
                                     ? dashboard.color
                                     : "indigo";
 
@@ -147,20 +166,30 @@ export default function DashboardListPage() {
                                         borderTop: `3px solid var(--mantine-color-${color}-5)`,
                                         cursor: "pointer",
                                     }}
-                                    onClick={() => navigate(`/dashboard/${dashboard.id}`)}
+                                    onClick={() =>
+                                        navigate(`/dashboard/${dashboard.id}`)
+                                    }
                                 >
-                                    <Stack align="center" gap="sm" style={{ position: "relative" }}>
+                                    <Stack
+                                        align="center"
+                                        gap="sm"
+                                        style={{ position: "relative" }}
+                                    >
                                         <ActionIcon
-                                            size="sm"
-                                            variant="subtle"
-                                            color="red"
-                                            style={{ position: "absolute", top: 0, right: 0 }}
+                                            size="lg"
+                                            variant="outline"
+                                            color={"red"}
+                                            style={{
+                                                position: "absolute",
+                                                top: 0,
+                                                right: 0,
+                                            }}
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 setDeleteTarget(dashboard);
                                             }}
                                         >
-                                            <CiTrash size={16} />
+                                            <MdDelete size={16} />
                                         </ActionIcon>
                                         <ThemeIcon
                                             size={52}
@@ -168,15 +197,27 @@ export default function DashboardListPage() {
                                             variant="light"
                                             color={color}
                                         >
-                                            {createElement(resolveTrackerIcon(dashboard.icon), { size: 26 })}
+                                            {createElement(
+                                                resolveTrackerIcon(
+                                                    dashboard.icon,
+                                                ),
+                                                { size: 26 },
+                                            )}
                                         </ThemeIcon>
                                         <Stack gap={2} align="center">
-                                            <Title order={4} ta="center" lineClamp={1}>
+                                            <Title
+                                                order={4}
+                                                ta="center"
+                                                lineClamp={1}
+                                            >
                                                 {dashboard.name}
                                             </Title>
                                             <Text size="sm" c="dimmed">
-                                                {dashboard.items.length} analytic
-                                                {dashboard.items.length !== 1 ? "s" : ""}
+                                                {dashboard.items.length}{" "}
+                                                analytic
+                                                {dashboard.items.length !== 1
+                                                    ? "s"
+                                                    : ""}
                                             </Text>
                                         </Stack>
                                     </Stack>
@@ -206,7 +247,9 @@ export default function DashboardListPage() {
                         autoFocus
                     />
                     <Stack gap="xs">
-                        <Text size="sm" fw={500}>Dashboard Color</Text>
+                        <Text size="sm" fw={500}>
+                            Dashboard Color
+                        </Text>
                         <Group gap="xs">
                             {colorOptions.map((c) => (
                                 <UnstyledButton
@@ -215,13 +258,17 @@ export default function DashboardListPage() {
                                     style={{
                                         borderRadius: "50%",
                                         padding: 2,
-                                        border: newColor === c
-                                            ? `2px solid ${theme.colors[c]?.[6]}`
-                                            : "2px solid transparent",
+                                        border:
+                                            newColor === c
+                                                ? `2px solid ${theme.colors[c]?.[6]}`
+                                                : "2px solid transparent",
                                         lineHeight: 0,
                                     }}
                                 >
-                                    <FaCircle size={22} color={theme.colors[c]?.[6]} />
+                                    <FaCircle
+                                        size={22}
+                                        color={theme.colors[c]?.[6]}
+                                    />
                                 </UnstyledButton>
                             ))}
                         </Group>
@@ -257,7 +304,9 @@ export default function DashboardListPage() {
                 isOpen={!!deleteTarget}
                 onClose={() => setDeleteTarget(null)}
                 onConfirm={handleDelete}
-                title={deleteTarget ? `Delete "${deleteTarget.name}"?` : "Delete?"}
+                title={
+                    deleteTarget ? `Delete "${deleteTarget.name}"?` : "Delete?"
+                }
                 message="This will permanently delete the dashboard and all its items."
                 severity="warning"
             />

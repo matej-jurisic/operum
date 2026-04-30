@@ -7,13 +7,15 @@ import {
 } from "@mantine/core";
 import { observer } from "mobx-react";
 import { JSX, useState } from "react";
-import { CiDark, CiHome, CiLogout, CiMenuBurger, CiSettings, CiSun, CiUser } from "react-icons/ci";
+import { CiLogout, CiSettings, CiUser } from "react-icons/ci";
+import { GoSun } from "react-icons/go";
+import { IoHomeOutline, IoMoonOutline } from "react-icons/io5";
+import { RxHamburgerMenu } from "react-icons/rx";
 import { useNavigate } from "react-router-dom";
 import AuthDialog from "../../features/auth/components/AuthDialog";
 import useAuth from "../../features/auth/hooks/useAuth";
 import globalStore from "../stores/GlobalStore";
 import BackButton from "./BackButton";
-
 interface Props {
     color?: string;
     items?: JSX.Element[];
@@ -37,9 +39,9 @@ const Header = observer((props: Props) => {
                     onClick={() => toggleColorScheme()}
                 >
                     {colorScheme === "light" ? (
-                        <CiDark size={16} />
+                        <IoMoonOutline size={16} />
                     ) : (
-                        <CiSun size={16} />
+                        <GoSun size={16} />
                     )}
                 </Button>
                 <Menu zIndex={400}>
@@ -48,7 +50,7 @@ const Header = observer((props: Props) => {
                             variant="outline"
                             color={props.color ?? theme.primaryColor}
                         >
-                            <CiMenuBurger size={16} />
+                            <RxHamburgerMenu size={16} />
                         </Button>
                     </Menu.Target>
 
@@ -72,7 +74,7 @@ const Header = observer((props: Props) => {
                         )}
                         {globalStore.currentUser && (
                             <Menu.Item
-                                leftSection={<CiHome size={16} />}
+                                leftSection={<IoHomeOutline size={16} />}
                                 onClick={() => navigate("/home")}
                             >
                                 Home

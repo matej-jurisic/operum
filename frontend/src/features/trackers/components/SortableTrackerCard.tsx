@@ -12,9 +12,8 @@ import {
     Title,
 } from "@mantine/core";
 import { createElement, CSSProperties } from "react";
-import { CiEdit, CiTrash } from "react-icons/ci";
 import { FiMoreVertical, FiPlus } from "react-icons/fi";
-import { MdDragHandle } from "react-icons/md";
+import { MdDelete, MdDragHandle, MdEdit } from "react-icons/md";
 import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
 import globalStore from "../../../shared/stores/GlobalStore";
 import { TrackerDto } from "../types/TrackerDto";
@@ -30,7 +29,8 @@ interface SortableTrackerCardProps {
     onDelete: (tracker: TrackerDto) => void;
 }
 
-const hasInputtableFields = (t: TrackerDto) => t.fields.some((f) => !f.isCalculated);
+const hasInputtableFields = (t: TrackerDto) =>
+    t.fields.some((f) => !f.isCalculated);
 
 export default function SortableTrackerCard({
     tracker,
@@ -81,7 +81,11 @@ export default function SortableTrackerCard({
                         size="xl"
                         {...attributes}
                         {...listeners}
-                        style={{ cursor: "grab", alignSelf: "center", touchAction: "none" }}
+                        style={{
+                            cursor: "grab",
+                            alignSelf: "center",
+                            touchAction: "none",
+                        }}
                         aria-label={`Drag to reorder tracker ${tracker.name}`}
                     >
                         <MdDragHandle size={25} />
@@ -94,10 +98,17 @@ export default function SortableTrackerCard({
                     color={color}
                     style={{ flexShrink: 0 }}
                 >
-                    {createElement(resolveTrackerIcon(tracker.icon), { size: 22 })}
+                    {createElement(resolveTrackerIcon(tracker.icon), {
+                        size: 22,
+                    })}
                 </ThemeIcon>
                 <Stack gap={4} flex={1} style={{ minWidth: 0 }}>
-                    <Group justify="space-between" align="center" wrap="nowrap" gap="xs">
+                    <Group
+                        justify="space-between"
+                        align="center"
+                        wrap="nowrap"
+                        gap="xs"
+                    >
                         <Title
                             order={4}
                             lineClamp={1}
@@ -107,36 +118,49 @@ export default function SortableTrackerCard({
                             {tracker.name}
                         </Title>
                         {!isReordering && (
-                            <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
+                            <Group
+                                gap="xs"
+                                wrap="nowrap"
+                                style={{ flexShrink: 0 }}
+                            >
                                 {isOwner ? (
                                     <>
-                                        {!isTemplates && hasInputtableFields(tracker) && (
-                                            <ActionIcon
-                                                size="lg"
-                                                variant="outline"
-                                                color={color}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    onQuickAdd(tracker);
-                                                }}
-                                            >
-                                                <FiPlus size={18} />
-                                            </ActionIcon>
-                                        )}
-                                        <Menu shadow="md" position="bottom-end" withinPortal>
+                                        {!isTemplates &&
+                                            hasInputtableFields(tracker) && (
+                                                <ActionIcon
+                                                    size="lg"
+                                                    variant="outline"
+                                                    color={color}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onQuickAdd(tracker);
+                                                    }}
+                                                >
+                                                    <FiPlus size={18} />
+                                                </ActionIcon>
+                                            )}
+                                        <Menu
+                                            shadow="md"
+                                            position="bottom-end"
+                                            withinPortal
+                                        >
                                             <Menu.Target>
                                                 <ActionIcon
                                                     size="lg"
                                                     variant="outline"
                                                     color="gray"
-                                                    onClick={(e) => e.stopPropagation()}
+                                                    onClick={(e) =>
+                                                        e.stopPropagation()
+                                                    }
                                                 >
                                                     <FiMoreVertical size={18} />
                                                 </ActionIcon>
                                             </Menu.Target>
                                             <Menu.Dropdown>
                                                 <Menu.Item
-                                                    leftSection={<CiEdit size={16} />}
+                                                    leftSection={
+                                                        <MdEdit size={16} />
+                                                    }
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         onEdit(tracker);
@@ -146,7 +170,9 @@ export default function SortableTrackerCard({
                                                 </Menu.Item>
                                                 <Menu.Item
                                                     color="red"
-                                                    leftSection={<CiTrash size={16} />}
+                                                    leftSection={
+                                                        <MdDelete size={16} />
+                                                    }
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         onDelete(tracker);
@@ -157,7 +183,9 @@ export default function SortableTrackerCard({
                                             </Menu.Dropdown>
                                         </Menu>
                                     </>
-                                ) : tracker.currentUserCanEditData && hasInputtableFields(tracker) && !isTemplates ? (
+                                ) : tracker.currentUserCanEditData &&
+                                  hasInputtableFields(tracker) &&
+                                  !isTemplates ? (
                                     <>
                                         <ActionIcon
                                             size="lg"
@@ -182,7 +210,12 @@ export default function SortableTrackerCard({
                             </Group>
                         )}
                     </Group>
-                    <Text c="dimmed" size="sm" className="wrapped-text" lineClamp={2}>
+                    <Text
+                        c="dimmed"
+                        size="sm"
+                        className="wrapped-text"
+                        lineClamp={2}
+                    >
                         {tracker.description || "No description"}
                     </Text>
                 </Stack>

@@ -11,12 +11,14 @@ import {
     TextInput,
     Title,
 } from "@mantine/core";
-import { useForm } from "@mantine/form";
 import { TimePicker } from "@mantine/dates";
-import { CiTrash } from "react-icons/ci";
+import { useForm } from "@mantine/form";
 import { FiPlus } from "react-icons/fi";
-import { operatorTypes } from "../../../shared/constants/DataTypesForSelect";
-import { calculatedFieldTypes } from "../../../shared/constants/DataTypesForSelect";
+import { MdDelete } from "react-icons/md";
+import {
+    calculatedFieldTypes,
+    operatorTypes,
+} from "../../../shared/constants/DataTypesForSelect";
 import { GetStringValue } from "../../entries/components/EntryFormDialog";
 import FieldValueInput from "../../fields/components/FieldValueInput";
 import { useFields } from "../../fields/context/FieldsContext";
@@ -38,22 +40,43 @@ interface ConstantFormDialogProps {
     initialValues?: TrackerConstantDto;
     onClose: () => void;
     onCreate: (values: CreateTrackerConstantDto) => Promise<void>;
-    onUpdate: (constantId: string, values: CreateTrackerConstantDto) => Promise<void>;
+    onUpdate: (
+        constantId: string,
+        values: CreateTrackerConstantDto,
+    ) => Promise<void>;
 }
 
 // Separate local form type so filter values can be typed (Date, number, etc.)
-type FilterRow = { fieldId: string; operator: string; value?: string | number | Date };
-type ConditionalValueRow = { priority: number; value: string; filters: FilterRow[] };
-type FormValues = { name: string; type: string; value: string; values: ConditionalValueRow[] };
+type FilterRow = {
+    fieldId: string;
+    operator: string;
+    value?: string | number | Date;
+};
+type ConditionalValueRow = {
+    priority: number;
+    value: string;
+    filters: FilterRow[];
+};
+type FormValues = {
+    name: string;
+    type: string;
+    value: string;
+    values: ConditionalValueRow[];
+};
 
 function validateValueForType(value: string, type: string): string | null {
     if (!value.trim()) return "Value is required";
-    if (type === "number" && isNaN(Number(value))) return "Value must be a valid number";
+    if (type === "number" && isNaN(Number(value)))
+        return "Value must be a valid number";
     if (type === "bool" && value !== "true" && value !== "false")
         return "Value must be 'true' or 'false'";
     if (type === "timespan") {
         const parts = value.split(":");
-        if (parts.length < 2 || parts.length > 3 || parts.some((p) => isNaN(Number(p))))
+        if (
+            parts.length < 2 ||
+            parts.length > 3 ||
+            parts.some((p) => isNaN(Number(p)))
+        )
             return "Value must be a valid timespan (e.g. 01:30:00)";
     }
     return null;
@@ -69,7 +92,15 @@ interface ConstantValueInputProps {
     [key: string]: unknown;
 }
 
-function ConstantValueInput({ type, label, description, value, error, onChange, ...rest }: ConstantValueInputProps) {
+function ConstantValueInput({
+    type,
+    label,
+    description,
+    value,
+    error,
+    onChange,
+    ...rest
+}: ConstantValueInputProps) {
     if (type === "number") {
         return (
             <NumberInput
@@ -113,13 +144,24 @@ function ConstantValueInput({ type, label, description, value, error, onChange, 
             />
         );
     }
-    return <TextInput label={label} description={description} value={value} error={error} onChange={(e) => onChange(e.currentTarget.value)} {...rest} />;
+    return (
+        <TextInput
+            label={label}
+            description={description}
+            value={value}
+            error={error}
+            onChange={(e) => onChange(e.currentTarget.value)}
+            {...rest}
+        />
+    );
 }
 
 export function ConstantFormDialog(props: ConstantFormDialogProps) {
     const { fields } = useFields();
 
-    const toFilterRow = (f: CreateTrackerConstantValueFilterDto): FilterRow => ({
+    const toFilterRow = (
+        f: CreateTrackerConstantValueFilterDto,
+    ): FilterRow => ({
         fieldId: f.fieldId,
         operator: f.operator,
         value: f.value ?? undefined,
@@ -131,11 +173,14 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                   name: props.initialValues.name,
                   type: props.initialValues.type,
                   value: props.initialValues.value,
-                  values: props.initialValues.values.slice().sort((a, b) => a.priority - b.priority).map((v) => ({
-                      priority: v.priority,
-                      value: v.value,
-                      filters: v.filters.map(toFilterRow),
-                  })),
+                  values: props.initialValues.values
+                      .slice()
+                      .sort((a, b) => a.priority - b.priority)
+                      .map((v) => ({
+                          priority: v.priority,
+                          value: v.value,
+                          filters: v.filters.map(toFilterRow),
+                      })),
               }
             : { name: "", type: "number", value: "", values: [] },
 
@@ -144,15 +189,16 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                 !value.trim()
                     ? "Name is required"
                     : value.length > 30
-                    ? "Name cannot exceed 30 characters"
-                    : null,
+                      ? "Name cannot exceed 30 characters"
+                      : null,
             type: (value) => (!value ? "Type is required" : null),
             value: (value, values) => validateValueForType(value, values.type),
         },
     });
 
     const fieldOptions = fields.map((f) => ({ value: f.id, label: f.name }));
-    const getFieldById = (id: string): FieldDto | undefined => fields.find((f) => f.id === id);
+    const getFieldById = (id: string): FieldDto | undefined =>
+        fields.find((f) => f.id === id);
 
     const addConditionalValue = () => {
         if (form.values.values.length >= MAX_CONDITIONAL_VALUES) return;
@@ -168,8 +214,13 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
     };
 
     const addFilter = (vi: number) => {
-        if (form.values.values[vi].filters.length >= MAX_FILTERS_PER_VALUE) return;
-        form.insertListItem(`values.${vi}.filters`, { fieldId: "", operator: "", value: undefined });
+        if (form.values.values[vi].filters.length >= MAX_FILTERS_PER_VALUE)
+            return;
+        form.insertListItem(`values.${vi}.filters`, {
+            fieldId: "",
+            operator: "",
+            value: undefined,
+        });
     };
 
     const removeFilter = (vi: number, fi: number) => {
@@ -185,16 +236,25 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                 valid = false;
             }
             if (cv.filters.length === 0) {
-                form.setFieldError(`values.${vi}`, "At least one filter is required");
+                form.setFieldError(
+                    `values.${vi}`,
+                    "At least one filter is required",
+                );
                 valid = false;
             }
             cv.filters.forEach((f, fi) => {
                 if (!f.fieldId) {
-                    form.setFieldError(`values.${vi}.filters.${fi}.fieldId`, "Field is required");
+                    form.setFieldError(
+                        `values.${vi}.filters.${fi}.fieldId`,
+                        "Field is required",
+                    );
                     valid = false;
                 }
                 if (!f.operator) {
-                    form.setFieldError(`values.${vi}.filters.${fi}.operator`, "Operator is required");
+                    form.setFieldError(
+                        `values.${vi}.filters.${fi}.operator`,
+                        "Operator is required",
+                    );
                     valid = false;
                 }
             });
@@ -209,17 +269,27 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
             name: values.name,
             type: values.type,
             value: values.value,
-            values: values.values.map((cv): CreateTrackerConstantValueDto => ({
-                priority: cv.priority,
-                value: cv.value,
-                filters: cv.filters.map((f): CreateTrackerConstantValueFilterDto => {
-                    const field = getFieldById(f.fieldId);
-                    const strValue = f.value !== undefined && field
-                        ? GetStringValue(field.type, f.value) || null
-                        : null;
-                    return { fieldId: f.fieldId, operator: f.operator, value: strValue };
+            values: values.values.map(
+                (cv): CreateTrackerConstantValueDto => ({
+                    priority: cv.priority,
+                    value: cv.value,
+                    filters: cv.filters.map(
+                        (f): CreateTrackerConstantValueFilterDto => {
+                            const field = getFieldById(f.fieldId);
+                            const strValue =
+                                f.value !== undefined && field
+                                    ? GetStringValue(field.type, f.value) ||
+                                      null
+                                    : null;
+                            return {
+                                fieldId: f.fieldId,
+                                operator: f.operator,
+                                value: strValue,
+                            };
+                        },
+                    ),
                 }),
-            })),
+            ),
         };
 
         if (props.constantId) {
@@ -261,7 +331,10 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                             form.setFieldValue("value", "");
                             form.setFieldValue(
                                 "values",
-                                form.values.values.map((cv) => ({ ...cv, value: "" }))
+                                form.values.values.map((cv) => ({
+                                    ...cv,
+                                    value: "",
+                                })),
                             );
                         }}
                     />
@@ -281,8 +354,15 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                             <Title order={5}>
                                 Conditional Values
                                 {form.values.values.length > 0 && (
-                                    <Text span c="dimmed" size="sm" ml="xs" fw={400}>
-                                        ({form.values.values.length}/{MAX_CONDITIONAL_VALUES})
+                                    <Text
+                                        span
+                                        c="dimmed"
+                                        size="sm"
+                                        ml="xs"
+                                        fw={400}
+                                    >
+                                        ({form.values.values.length}/
+                                        {MAX_CONDITIONAL_VALUES})
                                     </Text>
                                 )}
                             </Title>
@@ -292,7 +372,10 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                                 size="sm"
                                 leftSection={<FiPlus size={14} />}
                                 onClick={addConditionalValue}
-                                disabled={form.values.values.length >= MAX_CONDITIONAL_VALUES}
+                                disabled={
+                                    form.values.values.length >=
+                                    MAX_CONDITIONAL_VALUES
+                                }
                             >
                                 Add
                             </Button>
@@ -301,7 +384,8 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                         {form.values.values.length === 0 ? (
                             <Paper p="md" withBorder>
                                 <Text c="dimmed" ta="center" size="sm">
-                                    No conditional values. The base value is always used.
+                                    No conditional values. The base value is
+                                    always used.
                                 </Text>
                             </Paper>
                         ) : (
@@ -316,94 +400,173 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                                                     description="Lower = higher priority"
                                                     min={1}
                                                     w={100}
-                                                    {...form.getInputProps(`values.${vi}.priority`)}
+                                                    {...form.getInputProps(
+                                                        `values.${vi}.priority`,
+                                                    )}
                                                 />
                                                 <ConstantValueInput
                                                     type={form.values.type}
                                                     label="Value"
                                                     value={cv.value}
-                                                    error={form.errors[`values.${vi}.value`]}
-                                                    onChange={(v) => form.setFieldValue(`values.${vi}.value`, v)}
+                                                    error={
+                                                        form.errors[
+                                                            `values.${vi}.value`
+                                                        ]
+                                                    }
+                                                    onChange={(v) =>
+                                                        form.setFieldValue(
+                                                            `values.${vi}.value`,
+                                                            v,
+                                                        )
+                                                    }
                                                     style={{ flex: 1 }}
                                                 />
                                                 <ActionIcon
                                                     color="red"
                                                     variant="outline"
                                                     size="lg"
-                                                    onClick={() => removeConditionalValue(vi)}
+                                                    onClick={() =>
+                                                        removeConditionalValue(
+                                                            vi,
+                                                        )
+                                                    }
                                                     aria-label="Remove conditional value"
                                                 >
-                                                    <CiTrash size={16} />
+                                                    <MdDelete size={16} />
                                                 </ActionIcon>
                                             </Group>
 
                                             {/* Filters */}
                                             <Stack gap="xs">
-                                                <Group justify="space-between" align="center">
+                                                <Group
+                                                    justify="space-between"
+                                                    align="center"
+                                                >
                                                     <Text size="sm" fw={500}>
                                                         Filters
-                                                        <Text span c="dimmed" size="xs" ml={4}>
-                                                            ({cv.filters.length}/{MAX_FILTERS_PER_VALUE})
+                                                        <Text
+                                                            span
+                                                            c="dimmed"
+                                                            size="xs"
+                                                            ml={4}
+                                                        >
+                                                            ({cv.filters.length}
+                                                            /
+                                                            {
+                                                                MAX_FILTERS_PER_VALUE
+                                                            }
+                                                            )
                                                         </Text>
                                                     </Text>
                                                     <Button
                                                         variant="subtle"
                                                         size="xs"
-                                                        leftSection={<FiPlus size={12} />}
-                                                        onClick={() => addFilter(vi)}
-                                                        disabled={cv.filters.length >= MAX_FILTERS_PER_VALUE}
+                                                        leftSection={
+                                                            <FiPlus size={12} />
+                                                        }
+                                                        onClick={() =>
+                                                            addFilter(vi)
+                                                        }
+                                                        disabled={
+                                                            cv.filters.length >=
+                                                            MAX_FILTERS_PER_VALUE
+                                                        }
                                                     >
                                                         Add Filter
                                                     </Button>
                                                 </Group>
 
                                                 {cv.filters.map((f, fi) => {
-                                                    const selectedField = getFieldById(f.fieldId);
+                                                    const selectedField =
+                                                        getFieldById(f.fieldId);
                                                     return (
-                                                        <Paper key={fi} p="sm" withBorder>
+                                                        <Paper
+                                                            key={fi}
+                                                            p="sm"
+                                                            withBorder
+                                                        >
                                                             <Stack gap="sm">
                                                                 <Group gap="md">
                                                                     <Select
                                                                         flex={1}
-                                                                        allowDeselect={false}
+                                                                        allowDeselect={
+                                                                            false
+                                                                        }
                                                                         label="Field"
                                                                         placeholder="Select field"
-                                                                        data={fieldOptions}
-                                                                        {...form.getInputProps(`values.${vi}.filters.${fi}.fieldId`)}
-                                                                        onChange={(val) => {
-                                                                            form.setFieldValue(`values.${vi}.filters.${fi}`, {
-                                                                                fieldId: val ?? "",
-                                                                                operator: "",
-                                                                                value: undefined,
-                                                                            });
+                                                                        data={
+                                                                            fieldOptions
+                                                                        }
+                                                                        {...form.getInputProps(
+                                                                            `values.${vi}.filters.${fi}.fieldId`,
+                                                                        )}
+                                                                        onChange={(
+                                                                            val,
+                                                                        ) => {
+                                                                            form.setFieldValue(
+                                                                                `values.${vi}.filters.${fi}`,
+                                                                                {
+                                                                                    fieldId:
+                                                                                        val ??
+                                                                                        "",
+                                                                                    operator:
+                                                                                        "",
+                                                                                    value: undefined,
+                                                                                },
+                                                                            );
                                                                         }}
                                                                     />
                                                                     <Select
-                                                                        allowDeselect={false}
+                                                                        allowDeselect={
+                                                                            false
+                                                                        }
                                                                         flex={1}
                                                                         label="Operator"
                                                                         placeholder="Select operator"
-                                                                        data={operatorTypes}
-                                                                        {...form.getInputProps(`values.${vi}.filters.${fi}.operator`)}
+                                                                        data={
+                                                                            operatorTypes
+                                                                        }
+                                                                        {...form.getInputProps(
+                                                                            `values.${vi}.filters.${fi}.operator`,
+                                                                        )}
                                                                     />
                                                                 </Group>
-                                                                <Group gap="md" align="flex-end" justify="flex-end">
+                                                                <Group
+                                                                    gap="md"
+                                                                    align="flex-end"
+                                                                    justify="flex-end"
+                                                                >
                                                                     {selectedField && (
                                                                         <FieldValueInput
-                                                                            field={selectedField}
-                                                                            form={form as any}
+                                                                            field={
+                                                                                selectedField
+                                                                            }
+                                                                            form={
+                                                                                form as any
+                                                                            }
                                                                             fieldPath={`values.${vi}.filters.${fi}.value`}
-                                                                            styles={{ flex: 1 }}
+                                                                            styles={{
+                                                                                flex: 1,
+                                                                            }}
                                                                         />
                                                                     )}
                                                                     <ActionIcon
                                                                         color="red"
                                                                         variant="outline"
                                                                         size="lg"
-                                                                        onClick={() => removeFilter(vi, fi)}
+                                                                        onClick={() =>
+                                                                            removeFilter(
+                                                                                vi,
+                                                                                fi,
+                                                                            )
+                                                                        }
                                                                         aria-label="Remove filter"
                                                                     >
-                                                                        <CiTrash size={18} />
+                                                                        <MdDelete
+                                                                            size={
+                                                                                18
+                                                                            }
+                                                                        />
                                                                     </ActionIcon>
                                                                 </Group>
                                                             </Stack>

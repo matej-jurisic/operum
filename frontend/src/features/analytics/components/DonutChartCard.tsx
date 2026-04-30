@@ -1,8 +1,17 @@
 import { DonutChart } from "@mantine/charts";
-import { ActionIcon, Box, em, Group, Paper, Stack, Text, Tooltip } from "@mantine/core";
+import {
+    ActionIcon,
+    Box,
+    em,
+    Group,
+    Paper,
+    Stack,
+    Text,
+    Tooltip,
+} from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { useMemo } from "react";
-import { CiTrash } from "react-icons/ci";
+import { MdDelete } from "react-icons/md";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { DonutChartAnaylticDto } from "../types/AnalyticDto";
@@ -28,7 +37,8 @@ export function DonutChartCard({ analytic, isConfiguring }: Props) {
         const baseColor = tracker.color ?? "blue";
 
         return positivePoints.map((x, index) => {
-            const opacity = 0.2 + (index / Math.max(positivePoints.length, 1)) * 0.8;
+            const opacity =
+                0.2 + (index / Math.max(positivePoints.length, 1)) * 0.8;
 
             return {
                 name: x.name,
@@ -56,26 +66,45 @@ export function DonutChartCard({ analytic, isConfiguring }: Props) {
                             variant="outline"
                             onClick={() => removeAnalytic(analytic.id)}
                         >
-                            <CiTrash size={18} />
+                            <MdDelete size={18} />
                         </ActionIcon>
                     )}
                 </Group>
                 <Box
                     h={isMobile ? 210 : 300}
-                    style={{ display: "flex", flexDirection: "column", gap: "var(--mantine-spacing-xs)" }}
+                    style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "var(--mantine-spacing-xs)",
+                    }}
                 >
                     {excludedPoints.length > 0 && (
                         <Tooltip
-                            label={excludedPoints.map((p) => p.name ?? "Unknown").join(", ")}
+                            label={excludedPoints
+                                .map((p) => p.name ?? "Unknown")
+                                .join(", ")}
                             multiline
                             maw={260}
                         >
-                            <Text size="xs" c="dimmed" style={{ cursor: "default" }}>
-                                {excludedPoints.length} categor{excludedPoints.length === 1 ? "y" : "ies"} not shown (zero or negative value)
+                            <Text
+                                size="xs"
+                                c="dimmed"
+                                style={{ cursor: "default" }}
+                            >
+                                {excludedPoints.length} categor
+                                {excludedPoints.length === 1 ? "y" : "ies"} not
+                                shown (zero or negative value)
                             </Text>
                         </Tooltip>
                     )}
-                    <Box style={{ flex: 1, minHeight: 0, display: "flex", justifyContent: "center" }}>
+                    <Box
+                        style={{
+                            flex: 1,
+                            minHeight: 0,
+                            display: "flex",
+                            justifyContent: "center",
+                        }}
+                    >
                         <DonutChart
                             withLabelsLine
                             w={"100%"}

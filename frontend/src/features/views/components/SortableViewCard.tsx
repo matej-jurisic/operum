@@ -10,8 +10,8 @@ import {
     Title,
 } from "@mantine/core";
 import { CSSProperties } from "react";
-import { CiBoxList, CiEdit, CiTrash } from "react-icons/ci";
-import { MdDragHandle } from "react-icons/md";
+import { CiBoxList } from "react-icons/ci";
+import { MdDelete, MdDragHandle, MdEdit } from "react-icons/md";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { ViewDto } from "../types/ViewDto";
 
@@ -85,12 +85,16 @@ export default function SortableViewCard({
                         <Group wrap="wrap">
                             {view.filters.length > 0 && (
                                 <Badge variant="light" color="blue" size="sm">
-                                    {view.filters.length} {view.filters.length === 1 ? "filter" : "filters"}
+                                    {view.filters.length}{" "}
+                                    {view.filters.length === 1
+                                        ? "filter"
+                                        : "filters"}
                                 </Badge>
                             )}
                             {view.sorts.length > 0 && (
                                 <Badge variant="light" color="teal" size="sm">
-                                    {view.sorts.length} {view.sorts.length === 1 ? "sort" : "sorts"}
+                                    {view.sorts.length}{" "}
+                                    {view.sorts.length === 1 ? "sort" : "sorts"}
                                 </Badge>
                             )}
                         </Group>
@@ -115,7 +119,7 @@ export default function SortableViewCard({
                                 onClick={() => onEdit(view)}
                                 aria-label={`Edit view ${view.name}`}
                             >
-                                <CiEdit size={16} />
+                                <MdEdit size={16} />
                             </ActionIcon>
                             <ActionIcon
                                 variant="outline"
@@ -124,7 +128,7 @@ export default function SortableViewCard({
                                 onClick={() => onDelete(view)}
                                 aria-label={`Delete view ${view.name}`}
                             >
-                                <CiTrash size={16} />
+                                <MdDelete size={16} />
                             </ActionIcon>
                         </>
                     )}

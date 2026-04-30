@@ -10,8 +10,7 @@ import {
     Title,
 } from "@mantine/core";
 import { CSSProperties } from "react";
-import { CiEdit, CiTrash } from "react-icons/ci";
-import { MdDragHandle } from "react-icons/md";
+import { MdDelete, MdDragHandle, MdEdit } from "react-icons/md";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { FieldDto } from "../types/FieldDto";
 
@@ -109,7 +108,7 @@ export default function SortableFieldCard({
                             onClick={() => onEdit(field)}
                             aria-label={`Edit field ${field.name}`}
                         >
-                            <CiEdit size={16} />
+                            <MdEdit size={16} />
                         </ActionIcon>
                         <ActionIcon
                             variant="outline"
@@ -118,7 +117,7 @@ export default function SortableFieldCard({
                             onClick={() => onDelete(field)}
                             aria-label={`Delete field ${field.name}`}
                         >
-                            <CiTrash size={16} />
+                            <MdDelete size={16} />
                         </ActionIcon>
                     </Group>
                 )}

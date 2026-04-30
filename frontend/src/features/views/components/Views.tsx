@@ -25,21 +25,22 @@ import {
     Text,
 } from "@mantine/core";
 import { useEffect, useState } from "react";
+import { CiBoxList } from "react-icons/ci";
 import { FiPlus } from "react-icons/fi";
 import { IoChevronDownCircle } from "react-icons/io5";
-import { CiBoxList, CiCircleCheck } from "react-icons/ci";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import { useFields } from "../../fields/context/FieldsContext";
 import { useTracker } from "../../trackers/context/TrackerContext";
 
+import { MdCheck } from "react-icons/md";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { viewsController } from "../api/viewsController";
 import { useViews } from "../context/ViewsContext";
 import { ViewDto } from "../types/ViewDto";
+import SortableViewCard from "./SortableViewCard";
 import ViewDetailsDialog from "./ViewDetailsDialog";
 import ViewFormDialog from "./ViewFormDialog";
-import SortableViewCard from "./SortableViewCard";
 
 interface Props {
     tracker: TrackerDto;
@@ -64,7 +65,7 @@ export default function Views(props: Props) {
     const { deleteView, updateViewOrder } = useTrackerOperations();
 
     const [defaultViewIds, setDefaultViewIds] = useState<string[]>(
-        tracker.defaultViewIds ?? []
+        tracker.defaultViewIds ?? [],
     );
 
     const sensors = useSensors(
@@ -75,7 +76,7 @@ export default function Views(props: Props) {
         }),
         useSensor(KeyboardSensor, {
             coordinateGetter: sortableKeyboardCoordinates,
-        })
+        }),
     );
 
     useEffect(() => {
@@ -117,7 +118,9 @@ export default function Views(props: Props) {
                             onClick={() =>
                                 setOpenDialogType(OpenDialogType.CreateView)
                             }
-                            disabled={fields.length === 0 || views.length >= MAX_VIEWS}
+                            disabled={
+                                fields.length === 0 || views.length >= MAX_VIEWS
+                            }
                             variant="outline"
                             leftSection={<FiPlus size={18} />}
                         >
@@ -125,78 +128,132 @@ export default function Views(props: Props) {
                         </Button>
                         <Group>
                             {isOwner && (
-                            <ActionIcon
-                                size={"lg"}
-                                variant={isReordering ? "filled" : "outline"}
-                                onClick={() => setIsReordering((prev) => !prev)}
-                                color={props.tracker.color}
-                            >
-                                <CiBoxList size={18} />
-                            </ActionIcon>
+                                <ActionIcon
+                                    size={"lg"}
+                                    variant={
+                                        isReordering ? "filled" : "outline"
+                                    }
+                                    onClick={() =>
+                                        setIsReordering((prev) => !prev)
+                                    }
+                                    color={props.tracker.color}
+                                >
+                                    <CiBoxList size={18} />
+                                </ActionIcon>
                             )}
-                            {isOwner && <Menu position="bottom-end" width={280} styles={{ itemLabel: { minWidth: 0, overflow: "hidden" } }}>
-                                <Menu.Target>
-                                    <ActionIcon
-                                        variant="outline"
-                                        color={tracker.color}
-                                        size={"lg"}
-                                    >
-                                        <IoChevronDownCircle size={18} />
-                                    </ActionIcon>
-                                </Menu.Target>
-                                <Menu.Dropdown>
-                                    <Menu.Label>Default Views</Menu.Label>
-                                    <Menu.Divider />
-                                    <Menu.Item
-                                        onClick={async () => {
-                                            const prev = defaultViewIds;
-                                            setDefaultViewIds([]);
-                                            try {
-                                                await viewsController.setDefaultViews(tracker.id, []);
-                                                setTracker(t => ({ ...t, defaultViewIds: [] }));
-                                            } catch {
-                                                setDefaultViewIds(prev);
+                            {isOwner && (
+                                <Menu
+                                    position="bottom-end"
+                                    width={280}
+                                    styles={{
+                                        itemLabel: {
+                                            minWidth: 0,
+                                            overflow: "hidden",
+                                        },
+                                    }}
+                                >
+                                    <Menu.Target>
+                                        <ActionIcon
+                                            variant="outline"
+                                            color={tracker.color}
+                                            size={"lg"}
+                                        >
+                                            <IoChevronDownCircle size={18} />
+                                        </ActionIcon>
+                                    </Menu.Target>
+                                    <Menu.Dropdown>
+                                        <Menu.Label>Default Views</Menu.Label>
+                                        <Menu.Divider />
+                                        <Menu.Item
+                                            onClick={async () => {
+                                                const prev = defaultViewIds;
+                                                setDefaultViewIds([]);
+                                                try {
+                                                    await viewsController.setDefaultViews(
+                                                        tracker.id,
+                                                        [],
+                                                    );
+                                                    setTracker((t) => ({
+                                                        ...t,
+                                                        defaultViewIds: [],
+                                                    }));
+                                                } catch {
+                                                    setDefaultViewIds(prev);
+                                                }
+                                            }}
+                                            rightSection={
+                                                defaultViewIds.length === 0 ? (
+                                                    <MdCheck size={16} />
+                                                ) : null
                                             }
-                                        }}
-                                        rightSection={
-                                            defaultViewIds.length === 0 ? (
-                                                <CiCircleCheck size={16} />
-                                            ) : null
-                                        }
-                                        c="dimmed"
-                                        style={{ fontStyle: "italic" }}
-                                    >
-                                        None
-                                    </Menu.Item>
-                                    {sortedViews.map((v) => {
-                                        const isDefault = defaultViewIds.includes(v.id);
-                                        return (
-                                            <Menu.Item
-                                                closeMenuOnClick={false}
-                                                onClick={async () => {
-                                                    const prev = defaultViewIds;
-                                                    const next = isDefault
-                                                        ? defaultViewIds.filter((id) => id !== v.id)
-                                                        : [...defaultViewIds, v.id];
-                                                    setDefaultViewIds(next);
-                                                    try {
-                                                        await viewsController.setDefaultViews(tracker.id, next);
-                                                        setTracker(t => ({ ...t, defaultViewIds: next }));
-                                                    } catch {
-                                                        setDefaultViewIds(prev);
+                                            c="dimmed"
+                                            style={{ fontStyle: "italic" }}
+                                        >
+                                            None
+                                        </Menu.Item>
+                                        {sortedViews.map((v) => {
+                                            const isDefault =
+                                                defaultViewIds.includes(v.id);
+                                            return (
+                                                <Menu.Item
+                                                    closeMenuOnClick={false}
+                                                    onClick={async () => {
+                                                        const prev =
+                                                            defaultViewIds;
+                                                        const next = isDefault
+                                                            ? defaultViewIds.filter(
+                                                                  (id) =>
+                                                                      id !==
+                                                                      v.id,
+                                                              )
+                                                            : [
+                                                                  ...defaultViewIds,
+                                                                  v.id,
+                                                              ];
+                                                        setDefaultViewIds(next);
+                                                        try {
+                                                            await viewsController.setDefaultViews(
+                                                                tracker.id,
+                                                                next,
+                                                            );
+                                                            setTracker((t) => ({
+                                                                ...t,
+                                                                defaultViewIds:
+                                                                    next,
+                                                            }));
+                                                        } catch {
+                                                            setDefaultViewIds(
+                                                                prev,
+                                                            );
+                                                        }
+                                                    }}
+                                                    rightSection={
+                                                        isDefault ? (
+                                                            <MdCheck
+                                                                size={16}
+                                                            />
+                                                        ) : null
                                                     }
-                                                }}
-                                                rightSection={isDefault ? <CiCircleCheck size={16} /> : null}
-                                                key={v.id}
-                                            >
-                                                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
-                                                    {v.name}
-                                                </span>
-                                            </Menu.Item>
-                                        );
-                                    })}
-                                </Menu.Dropdown>
-                            </Menu>}
+                                                    key={v.id}
+                                                >
+                                                    <span
+                                                        style={{
+                                                            overflow: "hidden",
+                                                            textOverflow:
+                                                                "ellipsis",
+                                                            whiteSpace:
+                                                                "nowrap",
+                                                            display: "block",
+                                                        }}
+                                                    >
+                                                        {v.name}
+                                                    </span>
+                                                </Menu.Item>
+                                            );
+                                        })}
+                                    </Menu.Dropdown>
+                                </Menu>
+                            )}
                         </Group>
                     </Group>
                 )}
@@ -218,18 +275,26 @@ export default function Views(props: Props) {
                                             key={view.id}
                                             view={view}
                                             color={props.tracker.color}
-                                            isReordering={isReordering && isOwner}
+                                            isReordering={
+                                                isReordering && isOwner
+                                            }
                                             onDetails={(v) => {
                                                 setSelectedView(v);
-                                                setOpenDialogType(OpenDialogType.ViewDetails);
+                                                setOpenDialogType(
+                                                    OpenDialogType.ViewDetails,
+                                                );
                                             }}
                                             onEdit={(v) => {
                                                 setSelectedView(v);
-                                                setOpenDialogType(OpenDialogType.EditView);
+                                                setOpenDialogType(
+                                                    OpenDialogType.EditView,
+                                                );
                                             }}
                                             onDelete={(v) => {
                                                 setSelectedView(v);
-                                                setOpenDialogType(OpenDialogType.DeleteView);
+                                                setOpenDialogType(
+                                                    OpenDialogType.DeleteView,
+                                                );
                                             }}
                                         />
                                     ))}
@@ -243,8 +308,7 @@ export default function Views(props: Props) {
                                     No Views Available
                                 </Text>
                                 <Text ta="center" c="dimmed">
-                                    Views will appear here when you create
-                                    them.
+                                    Views will appear here when you create them.
                                 </Text>
                             </Stack>
                         </Paper>

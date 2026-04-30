@@ -11,8 +11,9 @@ import {
     Title,
 } from "@mantine/core";
 import { useEffect, useState } from "react";
-import { CiBoxList, CiEdit, CiTrash } from "react-icons/ci";
+import { CiBoxList } from "react-icons/ci";
 import { FiPlus } from "react-icons/fi";
+import { MdDelete, MdEdit } from "react-icons/md";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { useConstants } from "../context/ConstantsContext";
@@ -32,9 +33,15 @@ enum OpenDialogType {
 }
 
 export default function Constants(props: ConstantsProps) {
-    const { constants, refreshConstantsIfDirty, _createConstant, _updateConstant, _deleteConstant } =
-        useConstants();
-    const [selectedConstant, setSelectedConstant] = useState<TrackerConstantDto>();
+    const {
+        constants,
+        refreshConstantsIfDirty,
+        _createConstant,
+        _updateConstant,
+        _deleteConstant,
+    } = useConstants();
+    const [selectedConstant, setSelectedConstant] =
+        useState<TrackerConstantDto>();
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
 
     useEffect(() => {
@@ -59,10 +66,22 @@ export default function Constants(props: ConstantsProps) {
                     {constants.length > 0 ? (
                         <Stack gap="md">
                             {constants.map((constant) => (
-                                <Card key={constant.id} p="md" radius="md" withBorder>
+                                <Card
+                                    key={constant.id}
+                                    p="md"
+                                    radius="md"
+                                    withBorder
+                                >
                                     <Stack gap="xs">
-                                        <Group justify="space-between" wrap="nowrap">
-                                            <Title order={4} lineClamp={1} style={{ minWidth: 0 }}>
+                                        <Group
+                                            justify="space-between"
+                                            wrap="nowrap"
+                                        >
+                                            <Title
+                                                order={4}
+                                                lineClamp={1}
+                                                style={{ minWidth: 0 }}
+                                            >
                                                 {constant.name}
                                             </Title>
                                             <Group gap="xs" wrap="nowrap">
@@ -71,8 +90,12 @@ export default function Constants(props: ConstantsProps) {
                                                     color={props.tracker.color}
                                                     size="lg"
                                                     onClick={() => {
-                                                        setSelectedConstant(constant);
-                                                        setOpenDialogType(OpenDialogType.View);
+                                                        setSelectedConstant(
+                                                            constant,
+                                                        );
+                                                        setOpenDialogType(
+                                                            OpenDialogType.View,
+                                                        );
                                                     }}
                                                 >
                                                     <CiBoxList size={16} />
@@ -82,35 +105,56 @@ export default function Constants(props: ConstantsProps) {
                                                     color="green"
                                                     size="lg"
                                                     onClick={() => {
-                                                        setSelectedConstant(constant);
-                                                        setOpenDialogType(OpenDialogType.Edit);
+                                                        setSelectedConstant(
+                                                            constant,
+                                                        );
+                                                        setOpenDialogType(
+                                                            OpenDialogType.Edit,
+                                                        );
                                                     }}
                                                 >
-                                                    <CiEdit size={16} />
+                                                    <MdEdit size={16} />
                                                 </ActionIcon>
                                                 <ActionIcon
                                                     variant="outline"
                                                     color="red"
                                                     size="lg"
                                                     onClick={() => {
-                                                        setSelectedConstant(constant);
-                                                        setOpenDialogType(OpenDialogType.Delete);
+                                                        setSelectedConstant(
+                                                            constant,
+                                                        );
+                                                        setOpenDialogType(
+                                                            OpenDialogType.Delete,
+                                                        );
                                                     }}
                                                 >
-                                                    <CiTrash size={16} />
+                                                    <MdDelete size={16} />
                                                 </ActionIcon>
                                             </Group>
                                         </Group>
-                                        <Text size="sm" c="dimmed" lineClamp={1}>
+                                        <Text
+                                            size="sm"
+                                            c="dimmed"
+                                            lineClamp={1}
+                                        >
                                             Base value: {constant.value}
                                         </Text>
                                         <Group wrap="wrap">
-                                            <Badge variant="light" color="blue" size="sm">
+                                            <Badge
+                                                variant="light"
+                                                color="blue"
+                                                size="sm"
+                                            >
                                                 {constant.type}
                                             </Badge>
                                             {constant.values?.length > 0 && (
-                                                <Badge variant="light" color="grape" size="sm">
-                                                    {constant.values.length} conditional
+                                                <Badge
+                                                    variant="light"
+                                                    color="grape"
+                                                    size="sm"
+                                                >
+                                                    {constant.values.length}{" "}
+                                                    conditional
                                                 </Badge>
                                             )}
                                         </Group>
@@ -125,7 +169,8 @@ export default function Constants(props: ConstantsProps) {
                                     No Constants
                                 </Text>
                                 <Text ta="center" c="dimmed">
-                                    Create constants to use in calculated field formulas.
+                                    Create constants to use in calculated field
+                                    formulas.
                                 </Text>
                             </Stack>
                         </Paper>

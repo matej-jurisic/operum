@@ -1,7 +1,8 @@
 import { ActionIcon, Badge, Checkbox, Group, Table, Text } from "@mantine/core";
 import { useMemo } from "react";
-import { CiBoxList, CiEdit, CiTrash } from "react-icons/ci";
+import { CiBoxList } from "react-icons/ci";
 import { IoDuplicateOutline } from "react-icons/io5";
+import { MdDelete, MdEdit } from "react-icons/md";
 import { formatDateTimeFromDate } from "../../../shared/utils/formatters/TypeFormatter";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 import { useFields } from "../../fields/context/FieldsContext";
@@ -78,7 +79,7 @@ export function EntriesTable({
                       ]
                     : "auto",
                 width: "auto",
-            }))
+            })),
         );
 
         if (visibleColumns["createdAt"]) {
@@ -116,7 +117,7 @@ export function EntriesTable({
         return entries.map((entry) => {
             const fieldCells = visibleFields.map((field) => {
                 const fieldValue = entry.fieldValues.find(
-                    (fv) => fv.fieldId === field.id
+                    (fv) => fv.fieldId === field.id,
                 );
                 return renderValue(fieldValue?.fieldType, fieldValue?.value);
             });
@@ -145,7 +146,7 @@ export function EntriesTable({
                         <Table.Td>
                             <Text size="sm" c="dimmed">
                                 {formatDateTimeFromDate(
-                                    new Date(entry.createdAt)
+                                    new Date(entry.createdAt),
                                 )}
                             </Text>
                         </Table.Td>
@@ -160,29 +161,31 @@ export function EntriesTable({
                                 >
                                     <CiBoxList size={16} />
                                 </ActionIcon>
-                                {canEditData && <>
-                                <ActionIcon
-                                    variant="outline"
-                                    color="green"
-                                    onClick={() => onEdit(entry)}
-                                >
-                                    <CiEdit size={16} />
-                                </ActionIcon>
-                                <ActionIcon
-                                    variant="outline"
-                                    color="gray"
-                                    onClick={() => onDuplicate(entry)}
-                                >
-                                    <IoDuplicateOutline size={16} />
-                                </ActionIcon>
-                                <ActionIcon
-                                    variant="outline"
-                                    color="red"
-                                    onClick={() => onDelete(entry)}
-                                >
-                                    <CiTrash size={16} />
-                                </ActionIcon>
-                                </>}
+                                {canEditData && (
+                                    <>
+                                        <ActionIcon
+                                            variant="outline"
+                                            color="green"
+                                            onClick={() => onEdit(entry)}
+                                        >
+                                            <MdEdit size={16} />
+                                        </ActionIcon>
+                                        <ActionIcon
+                                            variant="outline"
+                                            color="gray"
+                                            onClick={() => onDuplicate(entry)}
+                                        >
+                                            <IoDuplicateOutline size={16} />
+                                        </ActionIcon>
+                                        <ActionIcon
+                                            variant="outline"
+                                            color="red"
+                                            onClick={() => onDelete(entry)}
+                                        >
+                                            <MdDelete size={16} />
+                                        </ActionIcon>
+                                    </>
+                                )}
                             </Group>
                         </Table.Td>
                     )}
@@ -203,7 +206,10 @@ export function EntriesTable({
     ]);
 
     return (
-        <Table.ScrollContainer minWidth={0} style={{ backgroundColor: "var(--mantine-color-body)" }}>
+        <Table.ScrollContainer
+            minWidth={0}
+            style={{ backgroundColor: "var(--mantine-color-body)" }}
+        >
             <Table
                 striped
                 highlightOnHover

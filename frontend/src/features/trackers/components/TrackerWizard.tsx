@@ -19,8 +19,8 @@ import {
     useMantineTheme,
 } from "@mantine/core";
 import { createElement, useState } from "react";
-import { CiCircleCheck, CiCirclePlus, CiTrash } from "react-icons/ci";
 import { FaCircle } from "react-icons/fa";
+import { MdAdd, MdCheck, MdDelete } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
 import { fieldsController } from "../../fields/api/fieldsController";
@@ -38,8 +38,18 @@ interface WizardField {
 }
 
 const COLOR_OPTIONS = [
-    "indigo", "blue", "cyan", "grape", "green", "lime",
-    "orange", "pink", "red", "teal", "yellow", "violet",
+    "indigo",
+    "blue",
+    "cyan",
+    "grape",
+    "green",
+    "lime",
+    "orange",
+    "pink",
+    "red",
+    "teal",
+    "yellow",
+    "violet",
 ];
 
 const QUICK_FIELDS: { label: string; type: string }[] = [
@@ -123,7 +133,7 @@ export default function TrackerWizard({ onClose }: Props) {
 
     const updateField = (id: string, patch: Partial<WizardField>) => {
         setFields((prev) =>
-            prev.map((f) => (f.id === id ? { ...f, ...patch } : f))
+            prev.map((f) => (f.id === id ? { ...f, ...patch } : f)),
         );
         if (patch.name !== undefined) {
             setFieldErrors((prev) => {
@@ -219,13 +229,17 @@ export default function TrackerWizard({ onClose }: Props) {
                             label="Description"
                             placeholder="What will you track? (optional)"
                             value={description}
-                            onChange={(e) => setDescription(e.currentTarget.value)}
+                            onChange={(e) =>
+                                setDescription(e.currentTarget.value)
+                            }
                             maxLength={500}
                             autosize
                             minRows={2}
                         />
                         <Stack gap="xs">
-                            <Text size="sm" fw={500}>Color</Text>
+                            <Text size="sm" fw={500}>
+                                Color
+                            </Text>
                             <Group gap="xs">
                                 {COLOR_OPTIONS.map((c) => (
                                     <UnstyledButton
@@ -234,9 +248,10 @@ export default function TrackerWizard({ onClose }: Props) {
                                         style={{
                                             borderRadius: "50%",
                                             padding: 2,
-                                            border: color === c
-                                                ? `2px solid ${theme.colors[c]?.[6]}`
-                                                : "2px solid transparent",
+                                            border:
+                                                color === c
+                                                    ? `2px solid ${theme.colors[c]?.[6]}`
+                                                    : "2px solid transparent",
                                             lineHeight: 0,
                                         }}
                                     >
@@ -259,7 +274,9 @@ export default function TrackerWizard({ onClose }: Props) {
                 {step === 1 && (
                     <Stack gap="md">
                         <Stack gap="xs">
-                            <Text size="sm" fw={500}>Quick add</Text>
+                            <Text size="sm" fw={500}>
+                                Quick add
+                            </Text>
                             <Text size="xs" c="dimmed">
                                 Click to add common fields to your tracker
                             </Text>
@@ -270,8 +287,10 @@ export default function TrackerWizard({ onClose }: Props) {
                                         variant="light"
                                         color={color}
                                         size="xs"
-                                        leftSection={<CiCirclePlus size={14} />}
-                                        onClick={() => addQuickField(qf.label, qf.type)}
+                                        leftSection={<MdAdd size={14} />}
+                                        onClick={() =>
+                                            addQuickField(qf.label, qf.type)
+                                        }
                                     >
                                         {qf.label}
                                     </Button>
@@ -283,23 +302,33 @@ export default function TrackerWizard({ onClose }: Props) {
                             <Text size="sm" fw={500}>
                                 Your fields{" "}
                                 {fields.length > 0 && (
-                                    <Text span c="dimmed" size="xs">({fields.length})</Text>
+                                    <Text span c="dimmed" size="xs">
+                                        ({fields.length})
+                                    </Text>
                                 )}
                             </Text>
 
                             {fields.length === 0 ? (
                                 <Text size="sm" c="dimmed" py="xs">
-                                    No fields yet. Use quick add above or add a custom field below.
+                                    No fields yet. Use quick add above or add a
+                                    custom field below.
                                 </Text>
                             ) : (
                                 <Stack gap="xs">
                                     {fields.map((f) => (
-                                        <Group key={f.id} gap="xs" wrap="nowrap">
+                                        <Group
+                                            key={f.id}
+                                            gap="xs"
+                                            wrap="nowrap"
+                                        >
                                             <TextInput
                                                 placeholder="Field name"
                                                 value={f.name}
                                                 onChange={(e) =>
-                                                    updateField(f.id, { name: e.currentTarget.value })
+                                                    updateField(f.id, {
+                                                        name: e.currentTarget
+                                                            .value,
+                                                    })
                                                 }
                                                 error={fieldErrors[f.id]}
                                                 maxLength={30}
@@ -309,7 +338,12 @@ export default function TrackerWizard({ onClose }: Props) {
                                             <Select
                                                 data={FIELD_TYPE_OPTIONS}
                                                 value={f.type}
-                                                onChange={(v) => v && updateField(f.id, { type: v })}
+                                                onChange={(v) =>
+                                                    v &&
+                                                    updateField(f.id, {
+                                                        type: v,
+                                                    })
+                                                }
                                                 allowDeselect={false}
                                                 w={130}
                                                 size="sm"
@@ -317,10 +351,12 @@ export default function TrackerWizard({ onClose }: Props) {
                                             <ActionIcon
                                                 variant="subtle"
                                                 color="red"
-                                                onClick={() => removeField(f.id)}
+                                                onClick={() =>
+                                                    removeField(f.id)
+                                                }
                                                 mt={fieldErrors[f.id] ? -20 : 0}
                                             >
-                                                <CiTrash size={16} />
+                                                <MdDelete size={16} />
                                             </ActionIcon>
                                         </Group>
                                     ))}
@@ -331,7 +367,7 @@ export default function TrackerWizard({ onClose }: Props) {
                                 variant="subtle"
                                 color={color}
                                 size="xs"
-                                leftSection={<CiCirclePlus size={14} />}
+                                leftSection={<MdAdd size={14} />}
                                 onClick={() =>
                                     setFields((prev) => [
                                         ...prev,
@@ -351,15 +387,30 @@ export default function TrackerWizard({ onClose }: Props) {
                         <Text size="sm" c="dimmed">
                             Review your tracker before creating it.
                         </Text>
-                        <Card withBorder radius="md" p="md" style={{ borderTop: `3px solid ${accentColor}` }}>
+                        <Card
+                            withBorder
+                            radius="md"
+                            p="md"
+                            style={{ borderTop: `3px solid ${accentColor}` }}
+                        >
                             <Group gap="md" align="flex-start">
-                                <ThemeIcon size={44} radius="md" variant="light" color={color} style={{ flexShrink: 0 }}>
-                                    {createElement(resolveTrackerIcon(icon), { size: 22 })}
+                                <ThemeIcon
+                                    size={44}
+                                    radius="md"
+                                    variant="light"
+                                    color={color}
+                                    style={{ flexShrink: 0 }}
+                                >
+                                    {createElement(resolveTrackerIcon(icon), {
+                                        size: 22,
+                                    })}
                                 </ThemeIcon>
                                 <Stack gap={4} flex={1}>
                                     <Title order={4}>{name}</Title>
                                     {description && (
-                                        <Text size="sm" c="dimmed">{description}</Text>
+                                        <Text size="sm" c="dimmed">
+                                            {description}
+                                        </Text>
                                     )}
                                     {fields.length > 0 ? (
                                         <Group gap="xs" mt={4} wrap="wrap">
@@ -370,12 +421,16 @@ export default function TrackerWizard({ onClose }: Props) {
                                                     variant="light"
                                                     color={color}
                                                 >
-                                                    {f.name} · {FIELD_TYPE_LABEL[f.type] ?? f.type}
+                                                    {f.name} ·{" "}
+                                                    {FIELD_TYPE_LABEL[f.type] ??
+                                                        f.type}
                                                 </Badge>
                                             ))}
                                         </Group>
                                     ) : (
-                                        <Text size="xs" c="dimmed" mt={4}>No fields — you can add them later</Text>
+                                        <Text size="xs" c="dimmed" mt={4}>
+                                            No fields — you can add them later
+                                        </Text>
                                     )}
                                 </Stack>
                             </Group>
@@ -401,7 +456,9 @@ export default function TrackerWizard({ onClose }: Props) {
                         color={color}
                         onClick={goNext}
                         loading={isCreating}
-                        rightSection={step === 2 ? <CiCircleCheck size={18} /> : undefined}
+                        rightSection={
+                            step === 2 ? <MdCheck size={18} /> : undefined
+                        }
                     >
                         {step === 2 ? "Create Tracker" : "Next"}
                     </Button>

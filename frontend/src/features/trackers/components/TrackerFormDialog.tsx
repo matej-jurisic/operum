@@ -13,8 +13,8 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useEffect, useMemo, useState } from "react";
-import { CiCircleCheck } from "react-icons/ci";
 import { FaCircle } from "react-icons/fa";
+import { MdCheck } from "react-icons/md";
 import { PublicityEnum } from "../../../shared/enums/PublicityEnum";
 import { trackersController } from "../api/trackersController";
 import { CreateTrackerDto } from "../types/requests/CreateTrackerDto";
@@ -38,8 +38,18 @@ interface TemplateItem {
 }
 
 const colorOptions = [
-    "indigo", "blue", "cyan", "grape", "green", "lime",
-    "orange", "pink", "red", "teal", "yellow", "violet",
+    "indigo",
+    "blue",
+    "cyan",
+    "grape",
+    "green",
+    "lime",
+    "orange",
+    "pink",
+    "red",
+    "teal",
+    "yellow",
+    "violet",
 ];
 
 const trackerTypeOptions = [
@@ -62,7 +72,7 @@ const renderTemplateOption: SelectProps["renderOption"] = ({
                     </Text>
                 )}
             </Stack>
-            {checked && <CiCircleCheck color="gray" />}
+            {checked && <MdCheck color="gray" />}
         </Group>
     );
 };
@@ -99,8 +109,8 @@ export default function TrackerFormDialog(props: TrackerFormDialogProps) {
                 value.trim().length === 0
                     ? `${entityName} name is required`
                     : value.length > 30
-                    ? `${entityName} name must be shorter than 30 characters`
-                    : null,
+                      ? `${entityName} name must be shorter than 30 characters`
+                      : null,
             description: (value) =>
                 value && value.length > 500
                     ? `${entityName} description must be at most 500 characters`
@@ -111,7 +121,7 @@ export default function TrackerFormDialog(props: TrackerFormDialogProps) {
     });
 
     const handleSubmit = async (
-        values: UpdateTrackerDto & CreateTrackerDto
+        values: UpdateTrackerDto & CreateTrackerDto,
     ) => {
         if (props.trackerId) {
             await trackersController.updateTracker(props.trackerId, values);
@@ -177,22 +187,30 @@ export default function TrackerFormDialog(props: TrackerFormDialogProps) {
                         {...form.getInputProps("description")}
                     />
                     <Stack gap="xs">
-                        <Text size="sm" fw={500}>{entityName} Color</Text>
+                        <Text size="sm" fw={500}>
+                            {entityName} Color
+                        </Text>
                         <Group gap="xs">
                             {colorOptions.map((c) => (
                                 <UnstyledButton
                                     key={c}
-                                    onClick={() => form.setFieldValue("color", c)}
+                                    onClick={() =>
+                                        form.setFieldValue("color", c)
+                                    }
                                     style={{
                                         borderRadius: "50%",
                                         padding: 2,
-                                        border: form.values.color === c
-                                            ? `2px solid ${theme.colors[c]?.[6]}`
-                                            : "2px solid transparent",
+                                        border:
+                                            form.values.color === c
+                                                ? `2px solid ${theme.colors[c]?.[6]}`
+                                                : "2px solid transparent",
                                         lineHeight: 0,
                                     }}
                                 >
-                                    <FaCircle size={22} color={theme.colors[c]?.[6]} />
+                                    <FaCircle
+                                        size={22}
+                                        color={theme.colors[c]?.[6]}
+                                    />
                                 </UnstyledButton>
                             ))}
                         </Group>
@@ -200,7 +218,9 @@ export default function TrackerFormDialog(props: TrackerFormDialogProps) {
                     {!props.asTemplate && (
                         <IconPicker
                             value={form.values.icon}
-                            onChange={(icon) => form.setFieldValue("icon", icon)}
+                            onChange={(icon) =>
+                                form.setFieldValue("icon", icon)
+                            }
                             color={form.values.color ?? "indigo"}
                         />
                     )}

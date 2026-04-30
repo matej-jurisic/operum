@@ -1,6 +1,6 @@
 import { ActionIcon, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { createElement } from "react";
-import { CiCircleRemove } from "react-icons/ci";
+import { MdClose } from "react-icons/md";
 import { CURATED_ICONS } from "../../../shared/constants/TrackerIcons";
 
 interface Props {
@@ -9,10 +9,19 @@ interface Props {
     color?: string;
 }
 
-export default function IconPicker({ value, onChange, color = "indigo" }: Props) {
+export default function IconPicker({
+    value,
+    onChange,
+    color = "indigo",
+}: Props) {
     return (
         <Stack gap="xs">
-            <Text size="sm" fw={500}>Icon <Text span size="xs" c="dimmed">(optional)</Text></Text>
+            <Text size="sm" fw={500}>
+                Icon{" "}
+                <Text span size="xs" c="dimmed">
+                    (optional)
+                </Text>
+            </Text>
             <Group gap={4} wrap="wrap">
                 <Tooltip label="No icon" withArrow>
                     <ActionIcon
@@ -22,7 +31,7 @@ export default function IconPicker({ value, onChange, color = "indigo" }: Props)
                         color={!value ? color : "gray"}
                         onClick={() => onChange(undefined)}
                     >
-                        <CiCircleRemove size={16} />
+                        <MdClose size={16} />
                     </ActionIcon>
                 </Tooltip>
                 {CURATED_ICONS.map((def) => (

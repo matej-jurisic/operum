@@ -1,6 +1,6 @@
 import { Button } from "@mantine/core";
-import { CiDatabase } from "react-icons/ci";
-import { MdDashboard } from "react-icons/md";
+import { LuLayoutDashboard } from "react-icons/lu";
+import { PiDatabaseBold } from "react-icons/pi";
 import { useLocation, useNavigate } from "react-router-dom";
 
 interface Props {
@@ -17,12 +17,14 @@ export default function BackButton(props: Props) {
         <Button
             variant="outline"
             color={props.color}
-            onClick={() => navigate(onTrackersList ? "/dashboard" : "/trackers")}
+            onClick={() =>
+                navigate(onTrackersList ? "/dashboard" : "/trackers")
+            }
         >
             {onTrackersList ? (
-                <MdDashboard size={16} />
+                <LuLayoutDashboard size={16} />
             ) : (
-                <CiDatabase size={16} />
+                <PiDatabaseBold size={16} />
             )}
         </Button>
     );

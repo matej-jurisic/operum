@@ -13,8 +13,8 @@ import {
     Title,
 } from "@mantine/core";
 import { useEffect, useState } from "react";
-import { CiEdit, CiTrash } from "react-icons/ci";
 import { FiPlus } from "react-icons/fi";
+import { MdDelete, MdEdit } from "react-icons/md";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
 import globalStore from "../../../shared/stores/GlobalStore";
 import { trackersController } from "../api/trackersController";
@@ -38,7 +38,9 @@ export default function TrackerUserList() {
     const [editCanEditSchema, setEditCanEditSchema] = useState(false);
 
     const getData = async () => {
-        const response = await trackersController.getTrackerUserList(tracker.id);
+        const response = await trackersController.getTrackerUserList(
+            tracker.id,
+        );
         setUserList(response.data);
     };
 
@@ -72,7 +74,9 @@ export default function TrackerUserList() {
                     <Group justify="space-between" w={"100%"}>
                         <Button
                             color={tracker.color}
-                            onClick={() => setOpenDialogType(OpenDialogType.AddUser)}
+                            onClick={() =>
+                                setOpenDialogType(OpenDialogType.AddUser)
+                            }
                             variant="outline"
                             leftSection={<FiPlus size={18} />}
                         >
@@ -84,24 +88,44 @@ export default function TrackerUserList() {
                     <Stack gap={"md"}>
                         {userList.length > 0 ? (
                             userList.map((user) => (
-                                <Card key={user.id} p={"md"} radius={"md"} withBorder>
-                                    <Group justify="space-between" wrap="nowrap">
+                                <Card
+                                    key={user.id}
+                                    p={"md"}
+                                    radius={"md"}
+                                    withBorder
+                                >
+                                    <Group
+                                        justify="space-between"
+                                        wrap="nowrap"
+                                    >
                                         <Stack gap={4}>
-                                            <Title order={4} lineClamp={1} className="wrapped-text">
+                                            <Title
+                                                order={4}
+                                                lineClamp={1}
+                                                className="wrapped-text"
+                                            >
                                                 {user.userName}
                                             </Title>
                                             <Group gap="xs">
                                                 <Badge
                                                     size="sm"
                                                     variant="light"
-                                                    color={user.canEditData ? "green" : "gray"}
+                                                    color={
+                                                        user.canEditData
+                                                            ? "green"
+                                                            : "gray"
+                                                    }
                                                 >
                                                     Edit data
                                                 </Badge>
                                                 <Badge
                                                     size="sm"
                                                     variant="light"
-                                                    color={user.canEditSchema ? "blue" : "gray"}
+                                                    color={
+                                                        user.canEditSchema
+                                                            ? "blue"
+                                                            : "gray"
+                                                    }
                                                 >
                                                     Edit schema
                                                 </Badge>
@@ -113,10 +137,14 @@ export default function TrackerUserList() {
                                                     variant="outline"
                                                     color="green"
                                                     size="lg"
-                                                    onClick={() => handleOpenEditPermissions(user)}
+                                                    onClick={() =>
+                                                        handleOpenEditPermissions(
+                                                            user,
+                                                        )
+                                                    }
                                                     aria-label={`Edit permissions for ${user.userName}`}
                                                 >
-                                                    <CiEdit size={16} />
+                                                    <MdEdit size={16} />
                                                 </ActionIcon>
                                                 <ActionIcon
                                                     variant="outline"
@@ -124,11 +152,13 @@ export default function TrackerUserList() {
                                                     size="lg"
                                                     onClick={() => {
                                                         setSelectedUser(user);
-                                                        setOpenDialogType(OpenDialogType.RemoveUser);
+                                                        setOpenDialogType(
+                                                            OpenDialogType.RemoveUser,
+                                                        );
                                                     }}
                                                     aria-label={`Remove user`}
                                                 >
-                                                    <CiTrash size={16} />
+                                                    <MdDelete size={16} />
                                                 </ActionIcon>
                                             </Group>
                                         )}
@@ -142,7 +172,8 @@ export default function TrackerUserList() {
                                         No Users Added
                                     </Text>
                                     <Text ta="center" c="dimmed">
-                                        Users will appear here when you add them to the tracker.
+                                        Users will appear here when you add them
+                                        to the tracker.
                                     </Text>
                                 </Stack>
                             </Paper>
@@ -168,9 +199,12 @@ export default function TrackerUserList() {
                         setOpenDialogType(undefined);
                     }}
                     onConfirm={async () => {
-                        await trackersController.removeUserFromTracker(tracker.id, {
-                            username: selectedUser.userName,
-                        });
+                        await trackersController.removeUserFromTracker(
+                            tracker.id,
+                            {
+                                username: selectedUser.userName,
+                            },
+                        );
                         await getData();
                         setOpenDialogType(undefined);
                         setSelectedUser(undefined);
@@ -180,33 +214,43 @@ export default function TrackerUserList() {
                 />
             )}
 
-            {openDialogType === OpenDialogType.EditPermissions && selectedUser && (
-                <Modal
-                    opened
-                    onClose={() => {
-                        setOpenDialogType(undefined);
-                        setSelectedUser(undefined);
-                    }}
-                    title={`Permissions — ${selectedUser.userName}`}
-                    centered
-                >
-                    <Stack>
-                        <Checkbox
-                            label="Can edit data (add, edit, delete entries)"
-                            checked={editCanEditData}
-                            onChange={(e) => setEditCanEditData(e.currentTarget.checked)}
-                        />
-                        <Checkbox
-                            label="Can edit schema (fields, views, analytics, constants)"
-                            checked={editCanEditSchema}
-                            onChange={(e) => setEditCanEditSchema(e.currentTarget.checked)}
-                        />
-                        <Button color={tracker.color} onClick={handleSavePermissions}>
-                            Save
-                        </Button>
-                    </Stack>
-                </Modal>
-            )}
+            {openDialogType === OpenDialogType.EditPermissions &&
+                selectedUser && (
+                    <Modal
+                        opened
+                        onClose={() => {
+                            setOpenDialogType(undefined);
+                            setSelectedUser(undefined);
+                        }}
+                        title={`Permissions — ${selectedUser.userName}`}
+                        centered
+                    >
+                        <Stack>
+                            <Checkbox
+                                label="Can edit data (add, edit, delete entries)"
+                                checked={editCanEditData}
+                                onChange={(e) =>
+                                    setEditCanEditData(e.currentTarget.checked)
+                                }
+                            />
+                            <Checkbox
+                                label="Can edit schema (fields, views, analytics, constants)"
+                                checked={editCanEditSchema}
+                                onChange={(e) =>
+                                    setEditCanEditSchema(
+                                        e.currentTarget.checked,
+                                    )
+                                }
+                            />
+                            <Button
+                                color={tracker.color}
+                                onClick={handleSavePermissions}
+                            >
+                                Save
+                            </Button>
+                        </Stack>
+                    </Modal>
+                )}
         </>
     );
 }

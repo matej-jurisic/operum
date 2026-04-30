@@ -7,8 +7,9 @@ import {
     Stack,
     Text,
 } from "@mantine/core";
-import { CiBoxList, CiEdit, CiTrash } from "react-icons/ci";
+import { CiBoxList } from "react-icons/ci";
 import { IoDuplicateOutline } from "react-icons/io5";
+import { MdDelete, MdEdit } from "react-icons/md";
 import { formatDateTimeFromDate } from "../../../shared/utils/formatters/TypeFormatter";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 import { useFields } from "../../fields/context/FieldsContext";
@@ -43,7 +44,7 @@ export function EntriesCards({
     const getDisplayFields = (entry: EntryDto) => {
         return visibleFields.map((f) => {
             const fieldValue = entry.fieldValues.find(
-                (fv) => fv.fieldId === f.id
+                (fv) => fv.fieldId === f.id,
             );
             return {
                 fieldId: f.id,
@@ -100,13 +101,13 @@ export function EntriesCards({
                                                 truncate
                                             >
                                                 {getFieldName(
-                                                    fieldValue.fieldId
+                                                    fieldValue.fieldId,
                                                 )}
                                             </Text>
                                             <Text w={"100%"} size="sm" truncate>
                                                 {renderValue(
                                                     fieldValue.fieldType,
-                                                    fieldValue.value
+                                                    fieldValue.value,
                                                 )}
                                             </Text>
                                         </Stack>
@@ -122,7 +123,7 @@ export function EntriesCards({
                                         <Text size="xs" c="dimmed">
                                             Created:{" "}
                                             {formatDateTimeFromDate(
-                                                new Date(entry.createdAt)
+                                                new Date(entry.createdAt),
                                             )}
                                         </Text>
                                     )}
@@ -139,32 +140,42 @@ export function EntriesCards({
                                             >
                                                 <CiBoxList size={16} />
                                             </ActionIcon>
-                                            {canEditData && <>
-                                            <ActionIcon
-                                                variant="outline"
-                                                color="green"
-                                                size="lg"
-                                                onClick={() => onEdit(entry)}
-                                            >
-                                                <CiEdit size={16} />
-                                            </ActionIcon>
-                                            <ActionIcon
-                                                variant="outline"
-                                                color="gray"
-                                                size="lg"
-                                                onClick={() => onDuplicate(entry)}
-                                            >
-                                                <IoDuplicateOutline size={16} />
-                                            </ActionIcon>
-                                            <ActionIcon
-                                                variant="outline"
-                                                color="red"
-                                                size="lg"
-                                                onClick={() => onDelete(entry)}
-                                            >
-                                                <CiTrash size={16} />
-                                            </ActionIcon>
-                                            </>}
+                                            {canEditData && (
+                                                <>
+                                                    <ActionIcon
+                                                        variant="outline"
+                                                        color="green"
+                                                        size="lg"
+                                                        onClick={() =>
+                                                            onEdit(entry)
+                                                        }
+                                                    >
+                                                        <MdEdit size={16} />
+                                                    </ActionIcon>
+                                                    <ActionIcon
+                                                        variant="outline"
+                                                        color="gray"
+                                                        size="lg"
+                                                        onClick={() =>
+                                                            onDuplicate(entry)
+                                                        }
+                                                    >
+                                                        <IoDuplicateOutline
+                                                            size={16}
+                                                        />
+                                                    </ActionIcon>
+                                                    <ActionIcon
+                                                        variant="outline"
+                                                        color="red"
+                                                        size="lg"
+                                                        onClick={() =>
+                                                            onDelete(entry)
+                                                        }
+                                                    >
+                                                        <MdDelete size={16} />
+                                                    </ActionIcon>
+                                                </>
+                                            )}
                                         </Group>
                                     )}
                                 </Group>

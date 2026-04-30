@@ -1,10 +1,18 @@
-import { Alert, Button, Center, Group, Loader, Stack, Textarea } from "@mantine/core";
+import {
+    Alert,
+    Button,
+    Center,
+    Group,
+    Loader,
+    Stack,
+    Textarea,
+} from "@mantine/core";
 import { useEffect, useState } from "react";
-import { CiWarning } from "react-icons/ci";
+import { MdWarning } from "react-icons/md";
 import { useFields } from "../../fields/context/FieldsContext";
 import { useTracker } from "../../trackers/context/TrackerContext";
-import { useEntries } from "../context/EntriesContext";
 import { entriesController } from "../api/entriesController";
+import { useEntries } from "../context/EntriesContext";
 
 const NOTE_CAP = 1000;
 const ID_PREFIX = "# id: ";
@@ -22,7 +30,9 @@ export function NoteView({ onClose }: Props) {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [loadedEntryIds, setLoadedEntryIds] = useState<Set<string>>(new Set());
+    const [loadedEntryIds, setLoadedEntryIds] = useState<Set<string>>(
+        new Set(),
+    );
     const isCapped = totalCount > NOTE_CAP;
 
     const editableFields = visibleFields.filter((f) => !f.isCalculated);
@@ -33,7 +43,7 @@ export function NoteView({ onClose }: Props) {
                 tracker.id,
                 selectedViewIds,
                 1,
-                NOTE_CAP
+                NOTE_CAP,
             );
             const fetched = response.data.items;
             setLoadedEntryIds(new Set(fetched.map((e) => e.id)));
@@ -44,8 +54,11 @@ export function NoteView({ onClose }: Props) {
                 const blocks = fetched.map((entry) => {
                     const fieldLines = editableFields
                         .map((field) => {
-                            const fv = entry.fieldValues.find((fv) => fv.fieldId === field.id);
-                            const raw = fv?.value != null ? String(fv.value) : "";
+                            const fv = entry.fieldValues.find(
+                                (fv) => fv.fieldId === field.id,
+                            );
+                            const raw =
+                                fv?.value != null ? String(fv.value) : "";
                             return `${field.name}: ${raw.replace(/\n/g, "\\n")}`;
                         })
                         .join("\n");
@@ -66,14 +79,18 @@ export function NoteView({ onClose }: Props) {
 
         for (const line of lines) {
             if (line.trim() === "---") {
-                if (current.length > 0) { blocks.push(current); current = []; }
+                if (current.length > 0) {
+                    blocks.push(current);
+                    current = [];
+                }
             } else {
                 current.push(line);
             }
         }
         if (current.length > 0) blocks.push(current);
 
-        const toUpdate: { id: string; fieldValues: Record<string, string> }[] = [];
+        const toUpdate: { id: string; fieldValues: Record<string, string> }[] =
+            [];
         const toCreate: Record<string, string>[] = [];
         const unknownIds: string[] = [];
 
@@ -84,11 +101,14 @@ export function NoteView({ onClose }: Props) {
                 if (line.startsWith("# ")) continue;
                 const colonIdx = line.indexOf(": ");
                 if (colonIdx === -1) continue;
-                fieldValues[line.slice(0, colonIdx)] = line.slice(colonIdx + 2).replace(/\\n/g, "\n");
+                fieldValues[line.slice(0, colonIdx)] = line
+                    .slice(colonIdx + 2)
+                    .replace(/\\n/g, "\n");
             }
 
             if (!idLine) {
-                if (Object.keys(fieldValues).length > 0) toCreate.push(fieldValues);
+                if (Object.keys(fieldValues).length > 0)
+                    toCreate.push(fieldValues);
             } else {
                 const id = idLine.slice(ID_PREFIX.length).trim();
                 if (!loadedEntryIds.has(id)) {
@@ -102,13 +122,15 @@ export function NoteView({ onClose }: Props) {
         if (unknownIds.length > 0) {
             setError(
                 `${unknownIds.length === 1 ? "1 block has an" : `${unknownIds.length} blocks have`} unknown ID${unknownIds.length > 1 ? "s" : ""}: ` +
-                unknownIds.join(", ")
+                    unknownIds.join(", "),
             );
             return;
         }
 
         const presentIds = new Set(toUpdate.map((u) => u.id));
-        const toDelete = [...loadedEntryIds].filter((id) => !presentIds.has(id));
+        const toDelete = [...loadedEntryIds].filter(
+            (id) => !presentIds.has(id),
+        );
 
         setIsSaving(true);
         setError(null);
@@ -116,7 +138,10 @@ export function NoteView({ onClose }: Props) {
         try {
             await entriesController.batchEntries(tracker.id, {
                 creates: toCreate,
-                updates: toUpdate.map(({ id, fieldValues }) => ({ entryId: id, fieldValues })),
+                updates: toUpdate.map(({ id, fieldValues }) => ({
+                    entryId: id,
+                    fieldValues,
+                })),
                 deletes: toDelete,
             });
             markEntriesDirty();
@@ -133,26 +158,45 @@ export function NoteView({ onClose }: Props) {
             <Group justify="flex-end">
                 {canEditData ? (
                     <>
-                        <Button variant="outline" color={tracker.color} onClick={onClose} disabled={isSaving}>
+                        <Button
+                            variant="outline"
+                            color={tracker.color}
+                            onClick={onClose}
+                            disabled={isSaving}
+                        >
                             Discard
                         </Button>
-                        <Button color={tracker.color} onClick={handleSave} loading={isSaving}>
+                        <Button
+                            color={tracker.color}
+                            onClick={handleSave}
+                            loading={isSaving}
+                        >
                             Save
                         </Button>
                     </>
                 ) : (
-                    <Button variant="outline" color={tracker.color} onClick={onClose}>
+                    <Button
+                        variant="outline"
+                        color={tracker.color}
+                        onClick={onClose}
+                    >
                         Close
                     </Button>
                 )}
             </Group>
             {isCapped && (
-                <Alert color="orange" icon={<CiWarning size={16} />}>
-                    Showing first {NOTE_CAP} of {totalCount} entries. Changes beyond entry {NOTE_CAP} will not be reflected here.
+                <Alert color="orange" icon={<MdWarning size={16} />}>
+                    Showing first {NOTE_CAP} of {totalCount} entries. Changes
+                    beyond entry {NOTE_CAP} will not be reflected here.
                 </Alert>
             )}
             {error && (
-                <Alert color="red" icon={<CiWarning size={16} />} onClose={() => setError(null)} withCloseButton>
+                <Alert
+                    color="red"
+                    icon={<MdWarning size={16} />}
+                    onClose={() => setError(null)}
+                    withCloseButton
+                >
                     {error}
                 </Alert>
             )}
@@ -164,10 +208,19 @@ export function NoteView({ onClose }: Props) {
                 <Textarea
                     value={text}
                     readOnly={!canEditData}
-                    onChange={(e) => { if (canEditData) { setText(e.currentTarget.value); setError(null); } }}
+                    onChange={(e) => {
+                        if (canEditData) {
+                            setText(e.currentTarget.value);
+                            setError(null);
+                        }
+                    }}
                     flex={1}
                     styles={{
-                        root: { display: "flex", flexDirection: "column", minHeight: 0 },
+                        root: {
+                            display: "flex",
+                            flexDirection: "column",
+                            minHeight: 0,
+                        },
                         wrapper: { flex: 1, minHeight: 0 },
                         input: {
                             height: "100%",

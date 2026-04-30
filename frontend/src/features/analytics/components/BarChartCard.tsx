@@ -1,11 +1,14 @@
 import { BarChart } from "@mantine/charts";
 import { ActionIcon, em, Group, Paper, Stack, Text } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { CiTrash } from "react-icons/ci";
+import { MdDelete } from "react-icons/md";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { BarChartAnalyticDto } from "../types/AnalyticDto";
-import { createBarChartTooltipContent, getAxisFormatter } from "./ChartFormatters";
+import {
+    createBarChartTooltipContent,
+    getAxisFormatter,
+} from "./ChartFormatters";
 
 interface Props {
     analytic: BarChartAnalyticDto;
@@ -35,7 +38,7 @@ export function BarChartCard({ analytic, isConfiguring }: Props) {
                             variant="outline"
                             onClick={() => removeAnalytic(analytic.id)}
                         >
-                            <CiTrash size={18} />
+                            <MdDelete size={18} />
                         </ActionIcon>
                     )}
                 </Group>
@@ -52,7 +55,9 @@ export function BarChartCard({ analytic, isConfiguring }: Props) {
                     ]}
                     tooltipAnimationDuration={200}
                     xAxisProps={{
-                        tickFormatter: getAxisFormatter(analytic.nameField.type),
+                        tickFormatter: getAxisFormatter(
+                            analytic.nameField.type,
+                        ),
                     }}
                     yAxisProps={{
                         tickFormatter: analytic.valueField
@@ -62,7 +67,7 @@ export function BarChartCard({ analytic, isConfiguring }: Props) {
                     tooltipProps={{
                         content: createBarChartTooltipContent(
                             analytic,
-                            tracker.color ?? "blue"
+                            tracker.color ?? "blue",
                         ),
                     }}
                 />
