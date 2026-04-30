@@ -81,6 +81,12 @@ namespace Operum.Model
                 .HasForeignKey(f => f.ConditionId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            builder.Entity<UserPushSubscription>()
+                .HasOne(s => s.User)
+                .WithMany()
+                .HasForeignKey(s => s.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
         }
 
         public override DbSet<User> Users { get; set; }
@@ -106,5 +112,6 @@ namespace Operum.Model
         public DbSet<TrackerNotification> TrackerNotifications { get; set; }
         public DbSet<NotificationCondition> NotificationConditions { get; set; }
         public DbSet<NotificationConditionField> NotificationConditionFields { get; set; }
+        public DbSet<UserPushSubscription> UserPushSubscriptions { get; set; }
     }
 }

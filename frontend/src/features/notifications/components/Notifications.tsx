@@ -5,13 +5,15 @@ import {
     ScrollArea,
     Stack,
     Text,
+    Tooltip,
 } from "@mantine/core";
 import { useEffect, useMemo, useState } from "react";
-import { FiPlus } from "react-icons/fi";
+import { FiBell, FiBellOff, FiPlus } from "react-icons/fi";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { useViews } from "../../views/context/ViewsContext";
 import { useNotifications } from "../context/NotificationsContext";
+import { usePushNotifications } from "../hooks/usePushNotifications";
 import { TrackerNotificationDto } from "../types/NotificationDto";
 import NotificationCard from "./NotificationCard";
 import NotificationFormDialog from "./NotificationFormDialog";
@@ -27,6 +29,7 @@ export default function Notifications() {
     const { notifications, refreshNotificationsIfDirty, _deleteNotification } =
         useNotifications();
     const { views, refreshViewsIfDirty } = useViews();
+    const { status: pushStatus, subscribe, unsubscribe } = usePushNotifications();
 
     const [selectedNotification, setSelectedNotification] =
         useState<TrackerNotificationDto>();
@@ -45,8 +48,8 @@ export default function Notifications() {
     return (
         <>
             <Stack gap="md" h="100%">
-                {canEditSchema && (
-                    <Group justify="flex-start">
+                <Group justify="space-between">
+                    {canEditSchema ? (
                         <Button
                             color={tracker.color}
                             onClick={() => setOpenDialogType(OpenDialogType.Create)}
@@ -55,8 +58,29 @@ export default function Notifications() {
                         >
                             Create
                         </Button>
-                    </Group>
-                )}
+                    ) : (
+                        <span />
+                    )}
+
+                    {pushStatus === "unsupported" ? null : pushStatus === "denied" ? (
+                        <Tooltip label="Push notifications are blocked. Enable them in your browser settings.">
+                            <Button variant="subtle" color="red" size="sm" leftSection={<FiBellOff size={16} />} disabled>
+                                Notifications blocked
+                            </Button>
+                        </Tooltip>
+                    ) : (
+                        <Button
+                            variant="subtle"
+                            color={pushStatus === "subscribed" ? tracker.color : "gray"}
+                            size="sm"
+                            loading={pushStatus === "loading"}
+                            leftSection={pushStatus === "subscribed" ? <FiBell size={16} /> : <FiBellOff size={16} />}
+                            onClick={pushStatus === "subscribed" ? unsubscribe : subscribe}
+                        >
+                            {pushStatus === "subscribed" ? "Push on" : "Push off"}
+                        </Button>
+                    )}
+                </Group>
 
                 <ScrollArea flex={1} mih={0}>
                     {notifications.length > 0 ? (

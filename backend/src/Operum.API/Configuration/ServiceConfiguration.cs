@@ -17,6 +17,7 @@ using Operum.Service.Services.Trackers;
 using Operum.Service.Services.Users;
 using Operum.Service.Services.Dashboards;
 using Operum.Service.Services.Notifications;
+using Operum.Service.Services.Push;
 using Operum.Service.Services.Views;
 
 namespace Operum.API.Configuration
@@ -54,6 +55,8 @@ namespace Operum.API.Configuration
             services.AddScoped<IFormulaEvaluationService, FormulaEvaluationService>();
             services.AddScoped<IDashboardService, DashboardService>();
             services.AddScoped<INotificationsService, NotificationsService>();
+            services.AddScoped<IWebPushService, WebPushService>();
+            services.AddHostedService<NotificationEvaluatorService>();
 
             return services;
         }
@@ -64,6 +67,7 @@ namespace Operum.API.Configuration
             services.AddSingleton<IAuthorizationMiddlewareResultHandler, AuthorizationResultHandlerMiddleware>();
 
             // Mail Service with MailGun Configuration
+            services.Configure<VapidSettings>(configuration.GetSection("Vapid"));
             services.Configure<MailGunConfigurationModel>(configuration.GetSection("MailGun"));
             services.AddSingleton<IMailSender, MailSender>();
 

@@ -8,6 +8,9 @@ export default defineConfig({
         react(),
         basicSsl(),
         VitePWA({
+            strategies: "injectManifest",
+            srcDir: "src",
+            filename: "sw.ts",
             registerType: "autoUpdate",
             manifest: {
                 name: "Operum",
