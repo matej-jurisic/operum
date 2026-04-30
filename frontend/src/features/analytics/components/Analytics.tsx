@@ -44,6 +44,10 @@ export default function Analytics() {
 
     const showEmptyState = !isLoadingData && !hasAnalytics && !isConfiguring;
 
+    if (!tracker) {
+        return <></>;
+    }
+
     return (
         <>
             <Stack gap="md" h="100%">
