@@ -67,6 +67,8 @@ namespace Operum.Service.Services.Fields
         {
             var user = currentUserService.GetCurrentUser();
             var field = await db.Fields
+                .Include(x => x.AnalyticFields)
+                    .ThenInclude(af => af.Analytic)
                 .Include(x => x.Tracker)
                     .ThenInclude(t => t.ApplicationUserTrackers)
                 .FirstOrDefaultAsync(x => x.Id == fieldId && x.TrackerId == trackerId);
@@ -77,6 +79,10 @@ namespace Operum.Service.Services.Fields
             {
                 return Result.Failure(ResultStatusCodes.NotFound);
             }
+
+            var fieldAnalytics = field.AnalyticFields.Select(x => x.AnalyticId);
+
+            db.Analytics.RemoveRange(field.AnalyticFields.Select(x => x.Analytic));
 
             db.Fields.Remove(field);
             await db.SaveChangesAsync();
