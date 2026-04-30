@@ -99,7 +99,7 @@ export default function DashboardListPage() {
         <Stack h="100%" gap="md">
             <Group w="100%" justify="space-between">
                 <Title order={2} c={PAGE_COLOR}>
-                    Dashboards
+                    Boards
                 </Title>
                 <Header color={PAGE_COLOR} />
             </Group>
@@ -159,7 +159,7 @@ export default function DashboardListPage() {
                                 <Card
                                     key={dashboard.id}
                                     shadow="sm"
-                                    padding="lg"
+                                    padding="md"
                                     radius="md"
                                     withBorder
                                     style={{
@@ -176,7 +176,7 @@ export default function DashboardListPage() {
                                         style={{ position: "relative" }}
                                     >
                                         <ActionIcon
-                                            size="lg"
+                                            size="md"
                                             variant="outline"
                                             color={"red"}
                                             style={{

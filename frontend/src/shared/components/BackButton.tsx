@@ -11,21 +11,19 @@ export default function BackButton(props: Props) {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const onTrackersList = location.pathname === "/trackers";
+    const onTrackers = location.pathname === "/trackers";
+    const onDashboard = location.pathname.startsWith("/dashboard/");
+
+    const targetRoute = onTrackers || onDashboard ? "/dashboard" : "/trackers";
+    const Icon = onTrackers || onDashboard ? LuLayoutDashboard : PiDatabaseBold;
 
     return (
         <Button
             variant="outline"
             color={props.color}
-            onClick={() =>
-                navigate(onTrackersList ? "/dashboard" : "/trackers")
-            }
+            onClick={() => navigate(targetRoute)}
         >
-            {onTrackersList ? (
-                <LuLayoutDashboard size={16} />
-            ) : (
-                <PiDatabaseBold size={16} />
-            )}
+            <Icon size={16} />
         </Button>
     );
 }

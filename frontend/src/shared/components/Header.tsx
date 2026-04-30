@@ -7,9 +7,9 @@ import {
 } from "@mantine/core";
 import { observer } from "mobx-react";
 import { JSX, useState } from "react";
-import { CiLogout, CiSettings, CiUser } from "react-icons/ci";
+import { CiHome, CiLogout, CiSettings, CiUser } from "react-icons/ci";
 import { GoSun } from "react-icons/go";
-import { IoHomeOutline, IoMoonOutline } from "react-icons/io5";
+import { IoMoonOutline } from "react-icons/io5";
 import { RxHamburgerMenu } from "react-icons/rx";
 import { useNavigate } from "react-router-dom";
 import AuthDialog from "../../features/auth/components/AuthDialog";
@@ -74,7 +74,7 @@ const Header = observer((props: Props) => {
                         )}
                         {globalStore.currentUser && (
                             <Menu.Item
-                                leftSection={<IoHomeOutline size={16} />}
+                                leftSection={<CiHome size={16} />}
                                 onClick={() => navigate("/home")}
                             >
                                 Home

@@ -7,9 +7,8 @@ import {
     useMantineTheme,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { CiBoxList, CiUser } from "react-icons/ci";
-import { IoHomeOutline } from "react-icons/io5";
-import { PiDatabaseBold } from "react-icons/pi";
+import { CiAlignBottom, CiBoxList, CiUser } from "react-icons/ci";
+import { PiDatabaseThin } from "react-icons/pi";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../../../shared/components/Header";
 import Trackers from "../../trackers/components/Trackers";
@@ -48,7 +47,7 @@ export default function AdminPanel() {
                                 value="overview"
                                 leftSection={
                                     isMobile ? (
-                                        <IoHomeOutline size={20} />
+                                        <CiAlignBottom size={20} />
                                     ) : undefined
                                 }
                             >
@@ -68,7 +67,7 @@ export default function AdminPanel() {
                                 value="trackers"
                                 leftSection={
                                     isMobile ? (
-                                        <PiDatabaseBold size={20} />
+                                        <PiDatabaseThin size={20} />
                                     ) : undefined
                                 }
                             >
