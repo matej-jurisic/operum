@@ -1,5 +1,5 @@
 import {
-    dynamicDateTokenLabels,
+    formatDynamicDateToken,
     isDynamicDateToken,
 } from "../../constants/dynamicDateTokens";
 import {
@@ -12,7 +12,7 @@ import {
 export const renderValue = (type: string | undefined, value: unknown) => {
     if (typeof value === "string") {
         if ((type === "date" || type === "datetime") && isDynamicDateToken(value)) {
-            return dynamicDateTokenLabels[value];
+            return formatDynamicDateToken(value);
         }
         if (type === "date") return formatDateOnly(value);
         if (type === "datetime") return formatDateTime(value);

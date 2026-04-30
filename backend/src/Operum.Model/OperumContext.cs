@@ -63,6 +63,24 @@ namespace Operum.Model
                 .HasForeignKey(i => i.DashboardId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            builder.Entity<TrackerNotification>()
+                .HasOne(n => n.Tracker)
+                .WithMany(t => t.Notifications)
+                .HasForeignKey(n => n.TrackerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<NotificationCondition>()
+                .HasOne(c => c.Notification)
+                .WithOne(n => n.Condition)
+                .HasForeignKey<NotificationCondition>(c => c.NotificationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<NotificationConditionField>()
+                .HasOne(f => f.Condition)
+                .WithMany(c => c.ConditionFields)
+                .HasForeignKey(f => f.ConditionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
         }
 
         public override DbSet<User> Users { get; set; }
@@ -85,5 +103,8 @@ namespace Operum.Model
         public DbSet<TrackerConstantValueFilter> TrackerConstantValueFilters { get; set; }
         public DbSet<Dashboard> Dashboards { get; set; }
         public DbSet<DashboardItem> DashboardItems { get; set; }
+        public DbSet<TrackerNotification> TrackerNotifications { get; set; }
+        public DbSet<NotificationCondition> NotificationConditions { get; set; }
+        public DbSet<NotificationConditionField> NotificationConditionFields { get; set; }
     }
 }

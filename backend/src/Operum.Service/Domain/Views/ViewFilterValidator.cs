@@ -19,7 +19,7 @@ namespace Operum.Service.Domain.Views
                     DataTypes.String => true,
                     DataTypes.Number => double.TryParse(value, out _),
                     DataTypes.Date or DataTypes.DateTime =>
-                        DynamicDateTokens.All.Contains(value) || DataFormatters.StringToDateTime(value) != null,
+                        DynamicDateTokens.IsValid(value) || DataFormatters.StringToDateTime(value) != null,
                     DataTypes.TimeSpan => TimeSpan.TryParse(value, out _),
                     DataTypes.Bool => bool.TryParse(value, out _),
                     _ => false,

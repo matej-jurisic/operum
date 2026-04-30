@@ -16,6 +16,7 @@ using Operum.Service.Services.Admin;
 using Operum.Service.Services.Trackers;
 using Operum.Service.Services.Users;
 using Operum.Service.Services.Dashboards;
+using Operum.Service.Services.Notifications;
 using Operum.Service.Services.Views;
 
 namespace Operum.API.Configuration
@@ -52,6 +53,7 @@ namespace Operum.API.Configuration
             services.AddScoped<ITrackerConstantsService, TrackerConstantsService>();
             services.AddScoped<IFormulaEvaluationService, FormulaEvaluationService>();
             services.AddScoped<IDashboardService, DashboardService>();
+            services.AddScoped<INotificationsService, NotificationsService>();
 
             return services;
         }

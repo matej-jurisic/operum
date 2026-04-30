@@ -28,5 +28,6 @@ namespace Operum.Model.Models
         public virtual List<UserTracker> ApplicationUserTrackers { get; set; } = [];
         public virtual List<Analytic> Analytics { get; set; } = [];
         public virtual List<TrackerConstant> TrackerConstants { get; set; } = [];
+        public virtual List<TrackerNotification> Notifications { get; set; } = [];
     }
 }

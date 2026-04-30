@@ -2,6 +2,7 @@ import { Badge, Container, Group, Stack, Tabs, ThemeIcon, Title } from "@mantine
 import { useMediaQuery } from "@mantine/hooks";
 import { createElement, useEffect, useState } from "react";
 import {
+    CiBellOn,
     CiFilter,
     CiGrid41,
     CiHashtag,
@@ -17,6 +18,7 @@ import AnalyiticsList from "../../analytics/components/Analytics";
 import Constants from "../../constants/components/Constants";
 import Entries from "../../entries/components/Entries";
 import Fields from "../../fields/components/Fields";
+import Notifications from "../../notifications/components/Notifications";
 import SelectView from "../../views/components/SelectView";
 import Views from "../../views/components/Views";
 import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
@@ -144,6 +146,18 @@ export default function Tracker() {
                                 {(!isMobile || activeTab === "analytics") &&
                                     "Analytics"}
                             </Tabs.Tab>
+                            <Tabs.Tab
+                                value="notifications"
+                                px={isMobile ? "xs" : undefined}
+                                leftSection={
+                                    isMobile ? (
+                                        <CiBellOn size={18} />
+                                    ) : undefined
+                                }
+                            >
+                                {(!isMobile || activeTab === "notifications") &&
+                                    "Notifications"}
+                            </Tabs.Tab>
                             {canEditSchema && (
                                 <Tabs.Tab
                                     value="constants"
@@ -193,6 +207,9 @@ export default function Tracker() {
                             </Tabs.Panel>
                             <Tabs.Panel value="analytics" h="100%">
                                 <AnalyiticsList />
+                            </Tabs.Panel>
+                            <Tabs.Panel value="notifications" h="100%">
+                                <Notifications />
                             </Tabs.Panel>
                             <Tabs.Panel value="constants" h="100%">
                                 <Constants tracker={tracker} />

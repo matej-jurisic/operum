@@ -1,6 +1,7 @@
 ﻿using Operum.Model.DTOs.Entries;
 using Operum.Model.DTOs.Fields;
 using Operum.Model.DTOs.Fields.Requests;
+using Operum.Model.DTOs.Notifications;
 using Operum.Model.DTOs.TrackerConstants;
 using Operum.Model.DTOs.TrackerConstants.Requests;
 using Operum.Model.DTOs.Trackers;
@@ -119,6 +120,25 @@ namespace Operum.Service.Mappings.Profiles
                         return sort;
                     })];
                 d.Filters = mapper.Map<List<CreateViewFilterDto>, List<ViewFilter>>(s.Filters);
+            });
+
+            mapper.Register<NotificationConditionField, NotificationConditionFieldDto>((s, d) =>
+            {
+                d.FieldId = s.FieldId;
+                d.Purpose = s.Purpose;
+            });
+
+            mapper.Register<NotificationCondition, NotificationConditionDto>((s, d) =>
+            {
+                d.ConditionFields = mapper.Map<List<NotificationConditionField>, List<NotificationConditionFieldDto>>(s.ConditionFields);
+            });
+
+            mapper.Register<TrackerNotification, TrackerNotificationDto>((s, d) =>
+            {
+                d.ViewIds = s.ViewIds != null
+                    ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(s.ViewIds) ?? []
+                    : [];
+                d.Condition = mapper.Map<NotificationCondition, NotificationConditionDto>(s.Condition);
             });
         }
     }
