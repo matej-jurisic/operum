@@ -21,4 +21,7 @@ export const profileController = {
     deleteAccount: async (): Promise<ApiResponse> => {
         return await api.delete("/users/me");
     },
+    updateTimezone: async (timeZone: string): Promise<ApiResponse> => {
+        return await api.patch("/users/me/timezone", { timeZone });
+    },
 };

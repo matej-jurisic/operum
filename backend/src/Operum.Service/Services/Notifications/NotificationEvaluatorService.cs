@@ -4,17 +4,16 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Operum.Model;
-using Operum.Model.DTOs.Analytics;
 using Operum.Model.Models;
-using Operum.Service.Domain.Analytics;
 using Operum.Service.Domain.Notifications;
-using Operum.Service.Domain.Views;
 using Operum.Service.Interfaces;
-using System.Text.Json;
 
 namespace Operum.Service.Services.Notifications
 {
-    public class NotificationEvaluatorService(IServiceProvider services, IConfiguration configuration, ILogger<NotificationEvaluatorService> logger) : BackgroundService
+    public class NotificationEvaluatorService(
+        IServiceProvider services,
+        IConfiguration configuration,
+        ILogger<NotificationEvaluatorService> logger) : BackgroundService
     {
         private TimeSpan Interval => TimeSpan.FromMinutes(
             configuration.GetValue<int>("Notifications:EvalIntervalMinutes", 10));
@@ -40,9 +39,15 @@ namespace Operum.Service.Services.Notifications
                 notifications = await db.TrackerNotifications
                     .Where(n => n.IsEnabled)
                     .Include(n => n.Tracker)
+                        .ThenInclude(t => t.Owner)
+                    .Include(n => n.Event)
                     .Include(n => n.Condition)
-                        .ThenInclude(c => c.ConditionFields)
-                            .ThenInclude(cf => cf.Field)
+                        .ThenInclude(c => c.Filters)
+                            .ThenInclude(f => f.Field)
+                    .Include(n => n.Condition)
+                        .ThenInclude(c => c.PurposeFields)
+                            .ThenInclude(pf => pf.Field)
+                    .Include(n => n.TriggeredEntries)
                     .ToListAsync(ct);
             }
             catch (Exception ex)
@@ -51,29 +56,14 @@ namespace Operum.Service.Services.Notifications
                 return;
             }
 
-            var toNotify = new List<TrackerNotification>();
+            var nowUtc = DateTime.UtcNow;
+            var pushQueue = new List<(TrackerNotification Notification, string Body)>();
 
             foreach (var notification in notifications)
             {
                 try
                 {
-                    var wasTriggered = notification.IsTriggered;
-                    var conditionMet = await ComputeConditionAsync(db, notification, ct);
-
-                    notification.IsTriggered = conditionMet;
-                    logger.LogDebug("Eval Result: Notification {Id} conditionMet = {Result}", notification.Id, conditionMet);
-                    if (conditionMet && !wasTriggered)
-                    {
-                        logger.LogInformation("Triggering Notification {Id}: Condition met (True) and was previously False. Adding to queue.", notification.Id);
-                        notification.LastTriggeredAt = DateTime.UtcNow;
-                        toNotify.Add(notification);
-                    }
-                    else if (conditionMet && wasTriggered)
-                    {
-                        logger.LogDebug("Notification {Id} still meeting condition, but was already triggered. Skipping.", notification.Id);
-                    }
-
-                    db.TrackerNotifications.Update(notification);
+                    await EvaluateNotificationAsync(db, notification, nowUtc, pushQueue, ct);
                 }
                 catch (Exception ex)
                 {
@@ -83,27 +73,21 @@ namespace Operum.Service.Services.Notifications
 
             try
             {
-                int entriesSaved = await db.SaveChangesAsync(ct);
-                logger.LogInformation("Database sync complete. {Count} changes written to database.", entriesSaved);
-
-                if (entriesSaved == 0)
-                {
-                    logger.LogWarning("SaveChangesAsync reported 0 changes. The database was NOT updated.");
-                }
+                await db.SaveChangesAsync(ct);
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Failed to save notification states");
+                return;
             }
 
-            foreach (var notification in toNotify)
+            foreach (var (notification, body) in pushQueue)
             {
                 try
                 {
-                    var targetUrl = $"/trackers/{notification.TrackerId}";
-                    var title = notification.Tracker.Name + " - " + notification.Name;
-                    var body = $"{string.Join(", ", notification.Condition.ConditionFields.Select(x => x.Field.Name))} - {notification.Condition.Code} {notification.Condition.Operator} {notification.Condition.Value}";
-                    await pushService.SendToTrackerUsersAsync(notification.TrackerId, title, body, targetUrl, ct);
+                    var title = $"{notification.Tracker.Name} — {notification.Name}";
+                    var url = $"/trackers/{notification.TrackerId}";
+                    await pushService.SendToTrackerUsersAsync(notification.TrackerId, title, body, url, ct);
                 }
                 catch (Exception ex)
                 {
@@ -112,44 +96,117 @@ namespace Operum.Service.Services.Notifications
             }
         }
 
-        private async Task<bool> ComputeConditionAsync(OperumContext db, TrackerNotification notification, CancellationToken ct)
+        private async Task EvaluateNotificationAsync(
+            OperumContext db,
+            TrackerNotification notification,
+            DateTime nowUtc,
+            List<(TrackerNotification, string)> pushQueue,
+            CancellationToken ct)
         {
-            var condition = notification.Condition;
+            var userTz = ResolveUserTz(notification);
 
-            var viewIds = string.IsNullOrEmpty(notification.ViewIds)
-                ? []
-                : JsonSerializer.Deserialize<List<string>>(notification.ViewIds) ?? [];
+            var isDue = NotificationScheduleResolver.IsDue(
+                notification.Event, nowUtc, notification.LastEvaluatedAt, userTz);
 
-            var views = viewIds.Count > 0
-                ? await db.Views
-                    .Include(v => v.Filters).ThenInclude(f => f.Field)
-                    .Where(v => viewIds.Contains(v.Id))
-                    .ToListAsync(ct)
-                : [];
+            if (!isDue)
+                return;
 
-            var entriesQuery = db.Entries
-                .Include(e => e.FieldValues).ThenInclude(fv => fv.Field)
-                .Where(e => e.TrackerId == notification.TrackerId);
+            notification.LastEvaluatedAt = nowUtc;
+            db.TrackerNotifications.Update(notification);
 
-            if (views.Count > 0)
-                entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, ViewQueryBuilder.MergeViewFilters(views));
-
-            var entries = await entriesQuery.ToListAsync(ct);
-
-            var fieldMap = condition.ConditionFields.ToDictionary(cf => cf.Purpose, cf => cf.Field);
-
-            var analytic = new Analytic { Code = condition.Code, ResultType = condition.ResultType };
-            var result = AnalyticResultBuilder.GetAnalyticResult(new AnalyticResultBuilderRequest
+            if (notification.Condition.ValueMode == NotificationValueMode.Entry)
             {
-                Analytic = analytic,
-                Entries = entries,
-                FieldMap = fieldMap
-            });
+                await EvaluateEntryModeAsync(db, notification, nowUtc, pushQueue, ct);
+            }
+            else
+            {
+                await EvaluateAnalyticModeAsync(db, notification, nowUtc, pushQueue, ct);
+            }
+        }
 
-            if (!result.IsSuccess || result.Data is not SingleValueAnalyticDto svDto)
-                return false;
+        private static async Task EvaluateEntryModeAsync(
+            OperumContext db,
+            TrackerNotification notification,
+            DateTime nowUtc,
+            List<(TrackerNotification, string)> pushQueue,
+            CancellationToken ct)
+        {
+            var currentMatchIds = await ConditionEntryEvaluator.GetMatchingEntryIdsAsync(db, notification, ct);
+            var currentMatchSet = currentMatchIds.ToHashSet();
 
-            return NotificationConditionEvaluator.Evaluate(svDto.Value, condition.Operator, condition.Value);
+            var existingTriggered = notification.TriggeredEntries
+                .Select(t => t.EntryId)
+                .ToHashSet();
+
+            var newlyMatched = currentMatchSet.Except(existingTriggered).ToList();
+            var dropped = existingTriggered.Except(currentMatchSet).ToList();
+
+            // Add triggered entries for newly matched
+            foreach (var entryId in newlyMatched)
+            {
+                db.NotificationTriggeredEntries.Add(new NotificationTriggeredEntry
+                {
+                    NotificationId = notification.Id,
+                    EntryId = entryId,
+                    TriggeredAt = nowUtc
+                });
+            }
+
+            // Remove triggered entries that no longer match (re-fireable on next entry)
+            if (dropped.Count > 0)
+            {
+                await db.NotificationTriggeredEntries
+                    .Where(t => t.NotificationId == notification.Id && dropped.Contains(t.EntryId))
+                    .ExecuteDeleteAsync(ct);
+            }
+
+            if (newlyMatched.Count > 0)
+            {
+                notification.LastFiredAt = nowUtc;
+                db.TrackerNotifications.Update(notification);
+
+                var body = newlyMatched.Count == 1
+                    ? "1 new entry matches"
+                    : $"{newlyMatched.Count} new entries match";
+                pushQueue.Add((notification, body));
+            }
+        }
+
+        private static async Task EvaluateAnalyticModeAsync(
+            OperumContext db,
+            TrackerNotification notification,
+            DateTime nowUtc,
+            List<(TrackerNotification, string)> pushQueue,
+            CancellationToken ct)
+        {
+            var conditionMet = await ConditionAnalyticEvaluator.EvaluateAsync(db, notification, ct);
+            var wasTriggered = notification.IsTriggered;
+
+            notification.IsTriggered = conditionMet;
+            db.TrackerNotifications.Update(notification);
+
+            var isFrequency = notification.Event.EventType != NotificationEventType.Triggered;
+
+            // Frequency: fire whenever condition is true on a due tick
+            // Triggered: fire only on false→true edge
+            var shouldFire = isFrequency ? conditionMet : (conditionMet && !wasTriggered);
+
+            if (shouldFire)
+            {
+                notification.LastFiredAt = nowUtc;
+                db.TrackerNotifications.Update(notification);
+                pushQueue.Add((notification, "Condition met"));
+            }
+        }
+
+        private static TimeZoneInfo ResolveUserTz(TrackerNotification notification)
+        {
+            var tzId = notification.Tracker?.Owner?.TimeZone;
+            if (string.IsNullOrEmpty(tzId))
+                return TimeZoneInfo.Utc;
+
+            try { return TimeZoneInfo.FindSystemTimeZoneById(tzId); }
+            catch { return TimeZoneInfo.Utc; }
         }
     }
 }

@@ -1,6 +1,7 @@
 import globalStore from "../../../shared/stores/GlobalStore";
 import { authController } from "../api/authenticationController";
 import { AuthResponseDto } from "../types/AuthResponseDto";
+import { profileController } from "../../profile/api/profileController";
 
 const USERNAME_KEY = "username";
 const ID_KEY = "id";
@@ -42,6 +43,7 @@ const useAuth = () => {
             userName: user.userName,
             id: user.id,
             roles: user.roles,
+            timeZone: user.timeZone,
         });
         localStorage.setItem(USERNAME_KEY, user.userName);
         localStorage.setItem(ID_KEY, user.id);
@@ -67,6 +69,11 @@ const useAuth = () => {
         const user = await authController.me();
         if (user.isSuccess) {
             setUserData(user.data);
+            if (!user.data.timeZone) {
+                globalStore.ensureTimezoneCaptured((tz) =>
+                    profileController.updateTimezone(tz).then(() => {})
+                );
+            }
         } else clearUserData();
     };
 

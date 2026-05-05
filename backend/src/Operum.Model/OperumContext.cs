@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -69,24 +69,57 @@ namespace Operum.Model
                 .HasForeignKey(n => n.TrackerId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            builder.Entity<NotificationEvent>()
+                .HasOne(e => e.Notification)
+                .WithOne(n => n.Event)
+                .HasForeignKey<NotificationEvent>(e => e.NotificationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             builder.Entity<NotificationCondition>()
                 .HasOne(c => c.Notification)
                 .WithOne(n => n.Condition)
                 .HasForeignKey<NotificationCondition>(c => c.NotificationId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            builder.Entity<NotificationConditionField>()
+            builder.Entity<NotificationConditionFilter>()
                 .HasOne(f => f.Condition)
-                .WithMany(c => c.ConditionFields)
+                .WithMany(c => c.Filters)
                 .HasForeignKey(f => f.ConditionId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<NotificationConditionFilter>()
+                .HasOne(f => f.Field)
+                .WithMany()
+                .HasForeignKey(f => f.FieldId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<NotificationConditionPurposeField>()
+                .HasOne(f => f.Condition)
+                .WithMany(c => c.PurposeFields)
+                .HasForeignKey(f => f.ConditionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<NotificationTriggeredEntry>()
+                .HasOne(t => t.Notification)
+                .WithMany(n => n.TriggeredEntries)
+                .HasForeignKey(t => t.NotificationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<NotificationTriggeredEntry>()
+                .HasOne(t => t.Entry)
+                .WithMany()
+                .HasForeignKey(t => t.EntryId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<NotificationTriggeredEntry>()
+                .HasIndex(t => new { t.NotificationId, t.EntryId })
+                .IsUnique();
 
             builder.Entity<UserPushSubscription>()
                 .HasOne(s => s.User)
                 .WithMany()
                 .HasForeignKey(s => s.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
-
         }
 
         public override DbSet<User> Users { get; set; }
@@ -110,8 +143,11 @@ namespace Operum.Model
         public DbSet<Dashboard> Dashboards { get; set; }
         public DbSet<DashboardItem> DashboardItems { get; set; }
         public DbSet<TrackerNotification> TrackerNotifications { get; set; }
+        public DbSet<NotificationEvent> NotificationEvents { get; set; }
         public DbSet<NotificationCondition> NotificationConditions { get; set; }
-        public DbSet<NotificationConditionField> NotificationConditionFields { get; set; }
+        public DbSet<NotificationConditionFilter> NotificationConditionFilters { get; set; }
+        public DbSet<NotificationConditionPurposeField> NotificationConditionPurposeFields { get; set; }
+        public DbSet<NotificationTriggeredEntry> NotificationTriggeredEntries { get; set; }
         public DbSet<UserPushSubscription> UserPushSubscriptions { get; set; }
     }
 }

@@ -10,7 +10,41 @@ import {
 } from "@mantine/core";
 import { MdDelete, MdEdit } from "react-icons/md";
 import { useNotifications } from "../context/NotificationsContext";
-import { TrackerNotificationDto } from "../types/NotificationDto";
+import { NotificationEventDto, TrackerNotificationDto } from "../types/NotificationDto";
+
+function formatEvent(event: NotificationEventDto): string {
+    if (!event) return "On change";
+    switch (event.eventType) {
+        case "Triggered":
+            return "On change";
+        case "Day": {
+            const interval = event.intervalDays ?? 1;
+            const skip = event.skipWeekendsDay ? ", weekdays only" : "";
+            const time = event.timeOfDay ?? "00:00";
+            return interval === 1
+                ? `Daily at ${time}${skip}`
+                : `Every ${interval} days at ${time}${skip}`;
+        }
+        case "Week": {
+            const interval = event.intervalWeeks ?? 1;
+            const days = (event.daysOfWeek ?? []).join(", ");
+            const time = event.timeOfDay ?? "00:00";
+            return interval === 1
+                ? `Weekly on ${days} at ${time}`
+                : `Every ${interval} weeks on ${days} at ${time}`;
+        }
+        case "Month": {
+            const time = event.timeOfDay ?? "00:00";
+            const day = event.lastDayOfMonth
+                ? "last day"
+                : `day ${event.dayOfMonth ?? 1}`;
+            const skip = event.skipWeekendsMonth ? ", weekdays only" : "";
+            return `Monthly on ${day} at ${time}${skip}`;
+        }
+        default:
+            return event.eventType;
+    }
+}
 
 interface Props {
     notification: TrackerNotificationDto;
@@ -43,7 +77,7 @@ export default function NotificationCard({
                         {notification.name}
                     </Title>
                     <Text c="dimmed" size="sm" lineClamp={2} className="wrapped-text">
-                        {notification.condition.code} {notification.condition.operator} {notification.condition.value}
+                        {formatEvent(notification.event)} · {notification.condition.valueMode}
                     </Text>
                     <Group wrap="wrap">
                         {notification.isTriggered && (
@@ -63,9 +97,9 @@ export default function NotificationCard({
                             </Badge>
                         )}
                     </Group>
-                    {notification.lastTriggeredAt && (
+                    {notification.lastFiredAt && (
                         <Text size="xs" c="dimmed">
-                            Last triggered: {new Date(notification.lastTriggeredAt).toLocaleString()}
+                            Last fired: {new Date(notification.lastFiredAt).toLocaleString()}
                         </Text>
                     )}
                 </Stack>

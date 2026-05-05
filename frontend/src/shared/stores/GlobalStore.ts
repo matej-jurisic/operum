@@ -1,4 +1,4 @@
-import { makeAutoObservable } from "mobx";
+import { makeAutoObservable, runInAction } from "mobx";
 import { AuthResponseDto } from "../../features/auth/types/AuthResponseDto";
 
 class GlobalStore {
@@ -28,6 +28,21 @@ class GlobalStore {
                 (x) => x.toLowerCase() === role.toLowerCase()
             ) !== undefined
         );
+    }
+
+    async ensureTimezoneCaptured(patchFn: (tz: string) => Promise<void>) {
+        if (!this.currentUser || this.currentUser.timeZone) return;
+        try {
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            await patchFn(tz);
+            runInAction(() => {
+                if (this.currentUser) {
+                    this.currentUser = { ...this.currentUser, timeZone: tz };
+                }
+            });
+        } catch {
+            // non-critical
+        }
     }
 }
 

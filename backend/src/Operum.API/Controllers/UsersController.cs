@@ -80,5 +80,11 @@ namespace Operum.API.Controllers
         {
             return GetApiResponse(await usersService.DeleteAccount());
         }
+
+        [HttpPatch("me/timezone")]
+        public async Task<IActionResult> UpdateTimeZone([FromBody] UpdateTimeZoneDto dto)
+        {
+            return GetApiResponse(await usersService.UpdateTimeZone(dto));
+        }
     }
 }

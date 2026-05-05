@@ -11,6 +11,7 @@ namespace Operum.Model.Models
             UserName = userName;
         }
 
+        public string? TimeZone { get; set; }
         public virtual List<RefreshToken> RefreshTokens { get; set; } = [];
     }
 }

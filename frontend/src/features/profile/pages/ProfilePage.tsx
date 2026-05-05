@@ -1,4 +1,5 @@
 import {
+    Autocomplete,
     Avatar,
     Badge,
     Button,
@@ -35,6 +36,10 @@ export default function ProfilePage() {
 
     const [stats, setStats] = useState<UserProfileStatsDto | null>(null);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+    const timezoneForm = useForm({
+        initialValues: { timeZone: user.timeZone ?? "" },
+    });
 
     const usernameForm = useForm({
         initialValues: { userName: user.userName },
@@ -81,6 +86,13 @@ export default function ProfilePage() {
                 userName: res.data.userName ?? values.userName,
                 roles: user.roles,
             });
+        }
+    };
+
+    const handleTimezoneSubmit = async (values: { timeZone: string }) => {
+        const res = await profileController.updateTimezone(values.timeZone);
+        if (res.isSuccess) {
+            globalStore.setCurrentUser({ ...user, timeZone: values.timeZone });
         }
     };
 
@@ -228,6 +240,33 @@ export default function ProfilePage() {
                                                 variant="outline"
                                             >
                                                 Save Username
+                                            </Button>
+                                        </Group>
+                                    </Stack>
+                                </form>
+                            </Card>
+
+                            {/* Timezone */}
+                            <Card withBorder radius="md" p="lg">
+                                <form
+                                    onSubmit={timezoneForm.onSubmit(
+                                        handleTimezoneSubmit,
+                                    )}
+                                >
+                                    <Stack gap="md">
+                                        <Text fw={600}>Timezone</Text>
+                                        <Autocomplete
+                                            label="Timezone"
+                                            placeholder="e.g. Europe/Zagreb"
+                                            data={Intl.supportedValuesOf("timeZone")}
+                                            {...timezoneForm.getInputProps("timeZone")}
+                                        />
+                                        <Group justify="flex-end">
+                                            <Button
+                                                type="submit"
+                                                variant="outline"
+                                            >
+                                                Save Timezone
                                             </Button>
                                         </Group>
                                     </Stack>

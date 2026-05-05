@@ -3,19 +3,23 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Operum.Model.Models
 {
+    public enum NotificationValueMode { Entry, Analytic }
+
     public class NotificationCondition
     {
         [Key]
         public string Id { get; set; } = Guid.NewGuid().ToString();
-        public string Code { get; set; } = string.Empty;
-        public string ResultType { get; set; } = "Single Value";
-        public string Operator { get; set; } = string.Empty;
-        public string Value { get; set; } = string.Empty;
+        public NotificationValueMode ValueMode { get; set; }
+
+        // Analytic mode only
+        public string? AnalyticCode { get; set; }
+        public string? AnalyticResultType { get; set; }
 
         public string NotificationId { get; set; } = string.Empty;
         [ForeignKey(nameof(NotificationId))]
         public virtual TrackerNotification Notification { get; set; } = null!;
 
-        public virtual List<NotificationConditionField> ConditionFields { get; set; } = [];
+        public virtual List<NotificationConditionFilter> Filters { get; set; } = [];
+        public virtual List<NotificationConditionPurposeField> PurposeFields { get; set; } = [];
     }
 }

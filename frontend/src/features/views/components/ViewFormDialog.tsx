@@ -1,9 +1,7 @@
 import {
     ActionIcon,
     Button,
-    Card,
     Group,
-    Menu,
     Modal,
     Paper,
     SegmentedControl,
@@ -14,20 +12,17 @@ import {
     TextInput,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { useState } from "react";
-import { FiPlus, FiPlusSquare } from "react-icons/fi";
+import { FiPlus } from "react-icons/fi";
 import { MdDelete } from "react-icons/md";
-import { operatorTypes } from "../../../shared/constants/DataTypesForSelect";
 import { isDynamicDateToken } from "../../../shared/constants/dynamicDateTokens";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
-import DynamicDateValueInput from "../../../shared/components/DynamicDateValueInput";
 import { GetStringValue } from "../../entries/components/EntryFormDialog";
 import { useFields } from "../../fields/context/FieldsContext";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { CreateViewDto } from "../types/requests/CreateViewDto";
 import { UpdateViewDto } from "../types/requests/UpdateViewDto";
 import { ViewDto } from "../types/ViewDto";
-import { FilterTemplate, filterTemplates } from "./ViewFilterTemplates";
+import EntryFilterListEditor from "./EntryFilterListEditor";
 
 interface ViewFormValues {
     name: string;
@@ -63,10 +58,6 @@ function getFormValue(type: string, storedValue: string | undefined) {
     }
 }
 
-enum OpenDialogTypes {
-    AddFilterFromTemplate,
-}
-
 const MAX_SORTS = 3;
 const MAX_FILTERS = 6;
 
@@ -79,9 +70,6 @@ export default function ViewFormDialog({
     const { fields } = useFields();
     const { createView, updateView } = useTrackerOperations();
 
-    const [openDialogType, setOpenDialogType] = useState<OpenDialogTypes>();
-    const [selectedFieldForTemplate, setSelectedFieldForTemplate] =
-        useState<string>("");
 
     const form = useForm<ViewFormValues>({
         initialValues: initialView
@@ -153,7 +141,6 @@ export default function ViewFormDialog({
     }));
 
     const canAddSort = form.values.sorts.length < MAX_SORTS;
-    const canAddFilter = form.values.filters.length < MAX_FILTERS;
 
     const addSort = () => {
         if (!canAddSort) return;
@@ -164,66 +151,12 @@ export default function ViewFormDialog({
         });
     };
 
-    const addFilter = () => {
-        if (!canAddFilter) return;
-
-        form.insertListItem("filters", {
-            fieldId: "",
-            operator: "",
-        });
-    };
-
     const removeSort = (index: number) => {
         form.removeListItem("sorts", index);
     };
 
-    const removeFilter = (index: number) => {
-        form.removeListItem("filters", index);
-    };
-
     const getFieldById = (fieldId: string) =>
         fields.find((f) => f.id === fieldId);
-
-    const applyTemplate = (template: FilterTemplate) => {
-        if (!selectedFieldForTemplate) return;
-
-        const remainingSlots = MAX_FILTERS - form.values.filters.length;
-        const filtersToAdd = template.filters.slice(0, remainingSlots);
-
-        filtersToAdd.forEach((templateFilter) => {
-            // Generate the value
-            let value = templateFilter.value;
-            if (templateFilter.valueGenerator) {
-                value = templateFilter.valueGenerator();
-            }
-
-            form.insertListItem("filters", {
-                fieldId: selectedFieldForTemplate,
-                operator: templateFilter.operator,
-                value: value,
-            });
-        });
-
-        setOpenDialogType(undefined);
-        setSelectedFieldForTemplate("");
-    };
-
-    const getAvailableTemplatesForField = (fieldId: string) => {
-        const field = getFieldById(fieldId);
-        if (!field) return [];
-
-        return filterTemplates.filter((template) => {
-            const wouldExceedLimit =
-                form.values.filters.length + template.filters.length >
-                MAX_FILTERS;
-            if (wouldExceedLimit) return false;
-
-            return (
-                field.type !== undefined &&
-                template.fieldTypes.includes(field.type)
-            );
-        });
-    };
 
     const handleSubmit = async (values: ViewFormValues) => {
         const valuesToSend = {
@@ -367,157 +300,12 @@ export default function ViewFormDialog({
                         )}
                     </Stack>
 
-                    {/* Filters Section */}
-                    <Stack gap="md">
-                        <Group justify="space-between" align="center">
-                            <Text fw={500} size="md">
-                                Filtering Rules
-                                {form.values.filters.length > 0 && (
-                                    <Text span c="dimmed" size="sm" ml="xs">
-                                        ({form.values.filters.length}/
-                                        {MAX_FILTERS})
-                                    </Text>
-                                )}
-                            </Text>
-                            <Group>
-                                <Menu position="bottom-end">
-                                    <Menu.Target>
-                                        <Button
-                                            color={tracker.color}
-                                            variant="outline"
-                                            leftSection={<FiPlus size={14} />}
-                                            size="sm"
-                                            disabled={!canAddFilter}
-                                        >
-                                            Add
-                                        </Button>
-                                    </Menu.Target>
-                                    <Menu.Dropdown>
-                                        <Menu.Item
-                                            leftSection={<FiPlus size={16} />}
-                                            onClick={addFilter}
-                                        >
-                                            Add Manually
-                                        </Menu.Item>
-                                        <Menu.Item
-                                            leftSection={
-                                                <FiPlusSquare size={14} />
-                                            }
-                                            onClick={() => {
-                                                setSelectedFieldForTemplate("");
-                                                setOpenDialogType(
-                                                    OpenDialogTypes.AddFilterFromTemplate,
-                                                );
-                                            }}
-                                        >
-                                            Add From Template
-                                        </Menu.Item>
-                                    </Menu.Dropdown>
-                                </Menu>
-                            </Group>
-                        </Group>
-
-                        {form.values.filters.length === 0 ? (
-                            <Paper p="md" withBorder>
-                                <Text c="dimmed" ta="center" size="sm">
-                                    No filtering rules added yet
-                                </Text>
-                            </Paper>
-                        ) : (
-                            <Stack gap="sm">
-                                {form.values.filters.map((filter, index) => {
-                                    const selectedField = getFieldById(
-                                        filter.fieldId,
-                                    );
-
-                                    return (
-                                        <Paper key={index} p="md" withBorder>
-                                            <Stack gap="md">
-                                                {/* First row: Field and Operator */}
-                                                <Group gap="md">
-                                                    <Select
-                                                        flex={1}
-                                                        allowDeselect={false}
-                                                        label="Field"
-                                                        placeholder="Select field"
-                                                        data={fieldOptions}
-                                                        {...form.getInputProps(
-                                                            `filters.${index}.fieldId`,
-                                                        )}
-                                                        onChange={(
-                                                            newFieldId,
-                                                        ) => {
-                                                            form.setFieldValue(
-                                                                `filters.${index}`,
-                                                                {
-                                                                    fieldId:
-                                                                        newFieldId ||
-                                                                        "",
-                                                                    operator:
-                                                                        "",
-                                                                    value: undefined,
-                                                                },
-                                                            );
-                                                        }}
-                                                    />
-
-                                                    <Select
-                                                        allowDeselect={false}
-                                                        flex={1}
-                                                        label="Operator"
-                                                        placeholder="Select operator"
-                                                        data={operatorTypes}
-                                                        {...form.getInputProps(
-                                                            `filters.${index}.operator`,
-                                                        )}
-                                                    />
-                                                </Group>
-
-                                                {/* Second row: Value and Delete button */}
-                                                <Group
-                                                    gap="md"
-                                                    align="flex-end"
-                                                    justify="flex-end"
-                                                >
-                                                    {selectedField && (
-                                                        <DynamicDateValueInput
-                                                            isDateType={
-                                                                selectedField.type === "date" ||
-                                                                selectedField.type === "datetime"
-                                                            }
-                                                            value={filter.value}
-                                                            onChange={(v) =>
-                                                                form.setFieldValue(
-                                                                    `filters.${index}.value`,
-                                                                    v,
-                                                                )
-                                                            }
-                                                            field={selectedField}
-                                                            form={form}
-                                                            fieldPath={`filters.${index}.value`}
-                                                            label={selectedField.name}
-                                                        />
-                                                    )}
-
-                                                    <ActionIcon
-                                                        color="red"
-                                                        variant="outline"
-                                                        onClick={() =>
-                                                            removeFilter(index)
-                                                        }
-                                                        aria-label="Remove filter"
-                                                        size="lg"
-                                                    >
-                                                        <MdDelete size={18} />
-                                                    </ActionIcon>
-                                                </Group>
-                                            </Stack>
-                                        </Paper>
-                                    );
-                                })}
-                            </Stack>
-                        )}
-                    </Stack>
+                    <EntryFilterListEditor
+                        fields={fields}
+                        form={form}
+                        color={tracker.color}
+                        maxFilters={MAX_FILTERS}
+                    />
 
                     {/* Submit Section */}
                     <Stack>
@@ -538,118 +326,6 @@ export default function ViewFormDialog({
                 </Stack>
             </form>
 
-            {/* Template Selection Modal */}
-            {openDialogType === OpenDialogTypes.AddFilterFromTemplate && (
-                <Modal
-                    opened
-                    onClose={() => {
-                        setOpenDialogType(undefined);
-                        setSelectedFieldForTemplate("");
-                    }}
-                    centered
-                    title="Choose Filter Template"
-                    size="md"
-                >
-                    <Stack gap="md">
-                        <Text size="sm" c="dimmed">
-                            First select a field, then choose from available
-                            templates for that field type
-                        </Text>
-
-                        {/* Field Selection */}
-                        <Select
-                            label="Select Field"
-                            placeholder="Choose a field to filter on"
-                            allowDeselect={false}
-                            data={fieldOptions}
-                            value={selectedFieldForTemplate}
-                            onChange={(value) =>
-                                setSelectedFieldForTemplate(value || "")
-                            }
-                            clearable
-                        />
-
-                        {/* Templates for Selected Field */}
-                        {selectedFieldForTemplate && (
-                            <>
-                                <Text size="sm" fw={500}>
-                                    Available Templates for "
-                                    {
-                                        getFieldById(selectedFieldForTemplate)
-                                            ?.name
-                                    }
-                                    "
-                                </Text>
-
-                                {getAvailableTemplatesForField(
-                                    selectedFieldForTemplate,
-                                ).length === 0 ? (
-                                    <Paper p="md" withBorder>
-                                        <Text c="dimmed" ta="center" size="sm">
-                                            No templates available for this
-                                            field type or you've reached the
-                                            filter limit.
-                                        </Text>
-                                    </Paper>
-                                ) : (
-                                    <Stack gap="sm">
-                                        {getAvailableTemplatesForField(
-                                            selectedFieldForTemplate,
-                                        ).map((template) => (
-                                            <Card
-                                                key={template.id}
-                                                withBorder
-                                                p="md"
-                                                style={{ cursor: "pointer" }}
-                                                onClick={() =>
-                                                    applyTemplate(template)
-                                                }
-                                            >
-                                                <Group
-                                                    justify="space-between"
-                                                    align="flex-start"
-                                                >
-                                                    <Group gap="sm">
-                                                        {template.icon}
-                                                        <div>
-                                                            <Text
-                                                                fw={500}
-                                                                size="sm"
-                                                            >
-                                                                {template.name}
-                                                            </Text>
-                                                            <Text
-                                                                c="dimmed"
-                                                                size="xs"
-                                                            >
-                                                                {
-                                                                    template.description
-                                                                }
-                                                            </Text>
-                                                        </div>
-                                                    </Group>
-                                                    <Text c="dimmed" size="xs">
-                                                        +
-                                                        {
-                                                            template.filters
-                                                                .length
-                                                        }{" "}
-                                                        filter
-                                                        {template.filters
-                                                            .length > 1
-                                                            ? "s"
-                                                            : ""}
-                                                    </Text>
-                                                </Group>
-                                            </Card>
-                                        ))}
-                                    </Stack>
-                                )}
-                            </>
-                        )}
-                    </Stack>
-                </Modal>
-            )}
         </Modal>
     );
 }

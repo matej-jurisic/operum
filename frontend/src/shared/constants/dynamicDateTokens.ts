@@ -74,7 +74,7 @@ export function parseParameterizedToken(
     if (
         !(Object.values(ParameterizedDateTokenPrefixes) as string[]).includes(prefix) ||
         isNaN(n) ||
-        n <= 0
+        n === 0
     )
         return null;
     return { prefix, n };

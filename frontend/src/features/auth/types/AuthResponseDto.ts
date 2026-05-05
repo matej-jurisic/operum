@@ -4,4 +4,5 @@ export interface AuthResponseDto {
     email?: string;
     tokenExpiry?: Date;
     roles: string[];
+    timeZone?: string | null;
 }

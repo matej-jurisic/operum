@@ -1,8 +1,8 @@
-import { Group, NumberInput, SegmentedControl, Select } from "@mantine/core";
+import { Group, NumberInput, SegmentedControl, Select, Stack } from "@mantine/core";
 import FieldValueInput from "../../features/fields/components/FieldValueInput";
 import {
     DynamicDateTokens,
-    dynamicDateTokenOptions,
+    fixedDynamicDateTokenOptions,
     isDynamicDateToken,
     isParameterizedDateToken,
     parseParameterizedToken,
@@ -20,6 +20,15 @@ interface Props {
     label?: string;
 }
 
+const UNIT_OPTIONS = [
+    { value: ParameterizedDateTokenPrefixes.LastNHours, label: "Hours" },
+    { value: ParameterizedDateTokenPrefixes.LastNDays, label: "Days" },
+    { value: ParameterizedDateTokenPrefixes.LastNWeeks, label: "Weeks" },
+    { value: ParameterizedDateTokenPrefixes.LastNMonths, label: "Months" },
+];
+
+type DateMode = "date" | "named" | "relative";
+
 export default function DynamicDateValueInput({
     isDateType,
     value,
@@ -29,64 +38,37 @@ export default function DynamicDateValueInput({
     fieldPath,
     label,
 }: Props) {
-    const isDynamic = isDynamicDateToken(value);
-    const isParam = typeof value === "string" && isParameterizedDateToken(value);
-    const parsed = isParam && typeof value === "string" ? parseParameterizedToken(value) : null;
+    const isRelative = typeof value === "string" && isParameterizedDateToken(value);
+    const isNamed = isDynamicDateToken(value) && !isRelative;
+    const parsed = isRelative ? parseParameterizedToken(value as string) : null;
 
-    const handleTokenTypeChange = (v: string | null) => {
-        if (!v) return;
-        const isParamPrefix = (Object.values(ParameterizedDateTokenPrefixes) as string[]).includes(v);
-        if (isParamPrefix) {
-            onChange(serializeParameterizedToken(v as any, parsed?.n ?? 7));
-        } else {
-            onChange(v);
-        }
-    };
+    const dateMode: DateMode = isRelative ? "relative" : isNamed ? "named" : "date";
+    const relativeUnit = parsed?.prefix ?? ParameterizedDateTokenPrefixes.LastNDays;
+    const relativeAmount = parsed?.n ?? 7;
 
-    const handleNChange = (v: number | string) => {
-        if (typeof v === "number" && v > 0 && parsed) {
-            onChange(serializeParameterizedToken(parsed.prefix, v));
-        }
+    const handleModeChange = (v: string) => {
+        if (v === dateMode) return;
+        if (v === "named") onChange(DynamicDateTokens.Today);
+        else if (v === "relative") onChange(serializeParameterizedToken(ParameterizedDateTokenPrefixes.LastNDays, 7));
+        else onChange(undefined);
     };
 
     return (
-        <Group flex={1} align="flex-end" gap="xs">
+        <Stack flex={1} gap={4}>
             {isDateType && (
                 <SegmentedControl
                     size="xs"
                     data={[
-                        { value: "fixed", label: "Fixed" },
-                        { value: "dynamic", label: "Dynamic" },
+                        { value: "date", label: "Date" },
+                        { value: "named", label: "Named" },
+                        { value: "relative", label: "Relative" },
                     ]}
-                    value={isDynamic ? "dynamic" : "fixed"}
-                    onChange={(v) =>
-                        onChange(v === "dynamic" ? DynamicDateTokens.Today : undefined)
-                    }
+                    value={dateMode}
+                    onChange={handleModeChange}
                 />
             )}
 
-            {isDateType && isDynamic ? (
-                <>
-                    <Select
-                        flex={1}
-                        label={label ?? "Value"}
-                        placeholder="Select dynamic value"
-                        data={dynamicDateTokenOptions}
-                        value={isParam ? (parsed?.prefix ?? null) : (typeof value === "string" ? value : null)}
-                        onChange={handleTokenTypeChange}
-                        allowDeselect={false}
-                    />
-                    {isParam && (
-                        <NumberInput
-                            w={80}
-                            label="N"
-                            min={1}
-                            value={parsed?.n ?? 1}
-                            onChange={handleNChange}
-                        />
-                    )}
-                </>
-            ) : (
+            {(!isDateType || dateMode === "date") && (
                 <FieldValueInput
                     field={field}
                     form={form}
@@ -94,6 +76,42 @@ export default function DynamicDateValueInput({
                     styles={{ flex: 1 }}
                 />
             )}
-        </Group>
+
+            {isDateType && dateMode === "named" && (
+                <Select
+                    label={label ?? "Value"}
+                    placeholder="Select named date"
+                    data={fixedDynamicDateTokenOptions}
+                    value={typeof value === "string" ? value : null}
+                    onChange={(v) => onChange(v ?? DynamicDateTokens.Today)}
+                    allowDeselect={false}
+                />
+            )}
+
+            {isDateType && dateMode === "relative" && (
+                <Group gap="xs" align="flex-end">
+                    <NumberInput
+                        label="Amount"
+                        value={relativeAmount}
+                        onChange={(v) => {
+                            if (typeof v === "number" && v !== 0) {
+                                onChange(serializeParameterizedToken(relativeUnit, v));
+                            }
+                        }}
+                        style={{ flex: 1 }}
+                    />
+                    <Select
+                        label="Unit"
+                        allowDeselect={false}
+                        data={UNIT_OPTIONS}
+                        value={relativeUnit}
+                        onChange={(v) => {
+                            if (v) onChange(serializeParameterizedToken(v as any, relativeAmount));
+                        }}
+                        style={{ flex: 1 }}
+                    />
+                </Group>
+            )}
+        </Stack>
     );
 }

@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Operum.Model.Models
 {
-    public class NotificationConditionField
+    public class NotificationConditionPurposeField
     {
         [Key]
         public string Id { get; set; } = Guid.NewGuid().ToString();

@@ -1,4 +1,5 @@
-﻿using Operum.Model.DTOs.Entries;
+﻿using Operum.Model.Constants;
+using Operum.Model.DTOs.Entries;
 using Operum.Model.DTOs.Fields;
 using Operum.Model.DTOs.Fields.Requests;
 using Operum.Model.DTOs.Notifications;
@@ -122,15 +123,23 @@ namespace Operum.Service.Mappings.Profiles
                 d.Filters = mapper.Map<List<CreateViewFilterDto>, List<ViewFilter>>(s.Filters);
             });
 
-            mapper.Register<NotificationConditionField, NotificationConditionFieldDto>((s, d) =>
+            mapper.Register<NotificationConditionFilter, NotificationConditionFilterDto>();
+            mapper.Register<NotificationConditionPurposeField, NotificationConditionPurposeFieldDto>();
+
+            mapper.Register<NotificationEvent, NotificationEventDto>((s, d) =>
             {
-                d.FieldId = s.FieldId;
-                d.Purpose = s.Purpose;
+                d.EventType = s.EventType.ToString();
+                d.TimeOfDay = s.TimeOfDay?.ToString("HH:mm");
+                d.DaysOfWeek = s.DaysOfWeekMask.HasValue
+                    ? DaysOfWeekMaskHelper.ToStringList(s.DaysOfWeekMask.Value)
+                    : null;
             });
 
             mapper.Register<NotificationCondition, NotificationConditionDto>((s, d) =>
             {
-                d.ConditionFields = mapper.Map<List<NotificationConditionField>, List<NotificationConditionFieldDto>>(s.ConditionFields);
+                d.ValueMode = s.ValueMode.ToString();
+                d.Filters = mapper.Map<List<NotificationConditionFilter>, List<NotificationConditionFilterDto>>(s.Filters);
+                d.PurposeFields = mapper.Map<List<NotificationConditionPurposeField>, List<NotificationConditionPurposeFieldDto>>(s.PurposeFields);
             });
 
             mapper.Register<TrackerNotification, TrackerNotificationDto>((s, d) =>
@@ -138,6 +147,7 @@ namespace Operum.Service.Mappings.Profiles
                 d.ViewIds = s.ViewIds != null
                     ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(s.ViewIds) ?? []
                     : [];
+                d.Event = mapper.Map<NotificationEvent, NotificationEventDto>(s.Event);
                 d.Condition = mapper.Map<NotificationCondition, NotificationConditionDto>(s.Condition);
             });
         }

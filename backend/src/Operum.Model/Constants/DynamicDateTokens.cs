@@ -64,7 +64,7 @@ namespace Operum.Model.Constants
             prefix = token[..colon];
             return ParameterizedPrefixes.Contains(prefix)
                 && int.TryParse(token[(colon + 1)..], out n)
-                && n > 0;
+                && n != 0;
         }
     }
 }

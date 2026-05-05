@@ -1,22 +1,42 @@
-export interface NotificationConditionFieldDto {
-    fieldId: string;
+export interface NotificationEventDto {
+    eventType: string;
+    timeOfDay?: string | null;
+    intervalDays?: number | null;
+    skipWeekendsDay?: boolean | null;
+    intervalWeeks?: number | null;
+    daysOfWeek?: string[] | null;
+    dayOfMonth?: number | null;
+    lastDayOfMonth?: boolean | null;
+    skipWeekendsMonth?: boolean | null;
+}
+
+export interface NotificationConditionFilterDto {
+    fieldId?: string | null;
+    operator: string;
+    value?: string | null;
+}
+
+export interface NotificationConditionPurposeFieldDto {
     purpose: string;
+    fieldId: string;
 }
 
 export interface NotificationConditionDto {
-    code: string;
-    resultType: string;
-    operator: string;
-    value: string;
-    conditionFields: NotificationConditionFieldDto[];
+    valueMode: string;
+    analyticCode?: string | null;
+    analyticResultType?: string | null;
+    purposeFields: NotificationConditionPurposeFieldDto[];
+    filters: NotificationConditionFilterDto[];
 }
 
 export interface TrackerNotificationDto {
     id: string;
     name: string;
     isEnabled: boolean;
-    lastTriggeredAt?: string;
     isTriggered: boolean;
+    lastEvaluatedAt?: string | null;
+    lastFiredAt?: string | null;
     viewIds: string[];
+    event: NotificationEventDto;
     condition: NotificationConditionDto;
 }

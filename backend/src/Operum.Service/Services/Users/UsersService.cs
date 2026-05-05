@@ -6,6 +6,7 @@ using Operum.Model.Enums;
 using Operum.Model.Constants;
 using Operum.Model.DTOs.Users;
 using Operum.Model.DTOs.Users.Requests;
+using System.Text.Json;
 using Operum.Model.Models;
 using Operum.Service.Interfaces;
 using Operum.Service.Mappings.Mapper;
@@ -129,6 +130,23 @@ namespace Operum.Service.Services.Users
             if (user == null) return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("user"));
 
             var result = await userManager.DeleteAsync(user);
+            if (!result.Succeeded)
+                return Result.Failure(ResultStatusCodes.Error, result.Errors.Select(e => e.Description));
+
+            return Result.Success(Messages.Success);
+        }
+
+        public async Task<Result> UpdateTimeZone(UpdateTimeZoneDto dto)
+        {
+            var userId = currentUserService.GetCurrentUser().Id;
+            var user = await userManager.FindByIdAsync(userId);
+            if (user == null) return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("user"));
+
+            try { TimeZoneInfo.FindSystemTimeZoneById(dto.TimeZone); }
+            catch { return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("timezone")); }
+
+            user.TimeZone = dto.TimeZone;
+            var result = await userManager.UpdateAsync(user);
             if (!result.Succeeded)
                 return Result.Failure(ResultStatusCodes.Error, result.Errors.Select(e => e.Description));
 
