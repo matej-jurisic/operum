@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Operum.API.Controllers.Base;
+using Operum.API.Filters;
 using Operum.Model.DTOs.Notifications.Requests;
 using Operum.Service.Interfaces;
 
 namespace Operum.API.Controllers
 {
     [ApiController]
+    [RequiresNotifications]
     [Route("api/trackers/{trackerId}/[controller]")]
     public class NotificationsController(INotificationsService notificationsService) : BaseController
     {

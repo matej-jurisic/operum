@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Operum.API.Controllers.Base;
+using Operum.API.Filters;
 using Operum.Model.Common;
 using Operum.Model.DTOs.Push;
 using Operum.Service.Interfaces;
@@ -8,6 +9,7 @@ using Operum.Service.Interfaces;
 namespace Operum.API.Controllers
 {
     [ApiController]
+    [RequiresNotifications]
     [Route("api/[controller]")]
     [Authorize]
     public class PushController(IWebPushService pushService, ICurrentUserService currentUserService) : BaseController

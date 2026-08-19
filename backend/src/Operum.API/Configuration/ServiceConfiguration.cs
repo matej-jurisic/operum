@@ -26,14 +26,14 @@ namespace Operum.API.Configuration
     {
         public static IServiceCollection Configure(this IServiceCollection services, IConfiguration configuration)
         {
-            services.RegisterBusinessServices();
+            services.RegisterBusinessServices(configuration);
             services.RegisterInfrastructureServices(configuration);
             services.RegisterMappingServices();
 
             return services;
         }
 
-        private static IServiceCollection RegisterBusinessServices(this IServiceCollection services)
+        private static IServiceCollection RegisterBusinessServices(this IServiceCollection services, IConfiguration configuration)
         {
             // Authentication & Authorization Services
             services.AddScoped<IAuthenticationService, AuthenticationService>();
@@ -56,7 +56,13 @@ namespace Operum.API.Configuration
             services.AddScoped<IDashboardService, DashboardService>();
             services.AddScoped<INotificationsService, NotificationsService>();
             services.AddScoped<IWebPushService, WebPushService>();
-            services.AddHostedService<NotificationEvaluatorService>();
+
+            // Notifications are opt-in while the feature is unfinished: without the flag the
+            // evaluator never runs and the endpoints answer 404 (see RequiresNotificationsAttribute).
+            if (configuration.GetValue("Features:Notifications", false))
+            {
+                services.AddHostedService<NotificationEvaluatorService>();
+            }
 
             return services;
         }
@@ -65,6 +71,9 @@ namespace Operum.API.Configuration
         {
             // Authorization result middleware
             services.AddSingleton<IAuthorizationMiddlewareResultHandler, AuthorizationResultHandlerMiddleware>();
+
+            // Feature switches
+            services.Configure<FeatureSettings>(configuration.GetSection("Features"));
 
             // Mail Service with MailGun Configuration
             services.Configure<VapidSettings>(configuration.GetSection("Vapid"));

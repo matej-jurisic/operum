@@ -12,10 +12,9 @@ export default function BackButton(props: Props) {
     const location = useLocation();
 
     const onTrackers = location.pathname === "/trackers";
-    const onDashboard = location.pathname.startsWith("/dashboard/");
 
-    const targetRoute = onTrackers || onDashboard ? "/dashboard" : "/trackers";
-    const Icon = onTrackers || onDashboard ? LuLayoutDashboard : PiDatabaseBold;
+    const targetRoute = onTrackers ? "/dashboard" : "/trackers";
+    const Icon = onTrackers ? LuLayoutDashboard : PiDatabaseBold;
 
     return (
         <Button

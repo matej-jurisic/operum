@@ -19,6 +19,7 @@ import Constants from "../../constants/components/Constants";
 import Entries from "../../entries/components/Entries";
 import Fields from "../../fields/components/Fields";
 import Notifications from "../../notifications/components/Notifications";
+import { areNotificationsEnabled } from "../../notifications/config/notificationsFeature";
 import SelectView from "../../views/components/SelectView";
 import Views from "../../views/components/Views";
 import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
@@ -32,7 +33,12 @@ export default function Tracker() {
     const [tracker, setTracker] = useState<TrackerDto>();
 
     const urlParts = (splat ?? "").split("/").filter(Boolean);
-    const activeTab = urlParts[0] || "entries";
+    const requestedTab = urlParts[0] || "entries";
+    // A bookmarked /notifications url must not land on a tab that no longer exists.
+    const activeTab =
+        requestedTab === "notifications" && !areNotificationsEnabled
+            ? "entries"
+            : requestedTab;
     const action = urlParts[1];
 
     useEffect(() => {
@@ -146,18 +152,21 @@ export default function Tracker() {
                                 {(!isMobile || activeTab === "analytics") &&
                                     "Analytics"}
                             </Tabs.Tab>
-                            <Tabs.Tab
-                                value="notifications"
-                                px={isMobile ? "xs" : undefined}
-                                leftSection={
-                                    isMobile ? (
-                                        <CiBellOn size={18} />
-                                    ) : undefined
-                                }
-                            >
-                                {(!isMobile || activeTab === "notifications") &&
-                                    "Notifications"}
-                            </Tabs.Tab>
+                            {areNotificationsEnabled && (
+                                <Tabs.Tab
+                                    value="notifications"
+                                    px={isMobile ? "xs" : undefined}
+                                    leftSection={
+                                        isMobile ? (
+                                            <CiBellOn size={18} />
+                                        ) : undefined
+                                    }
+                                >
+                                    {(!isMobile ||
+                                        activeTab === "notifications") &&
+                                        "Notifications"}
+                                </Tabs.Tab>
+                            )}
                             {canEditSchema && (
                                 <Tabs.Tab
                                     value="constants"
@@ -208,9 +217,11 @@ export default function Tracker() {
                             <Tabs.Panel value="analytics" h="100%">
                                 <AnalyiticsList />
                             </Tabs.Panel>
-                            <Tabs.Panel value="notifications" h="100%">
-                                <Notifications />
-                            </Tabs.Panel>
+                            {areNotificationsEnabled && (
+                                <Tabs.Panel value="notifications" h="100%">
+                                    <Notifications />
+                                </Tabs.Panel>
+                            )}
                             <Tabs.Panel value="constants" h="100%">
                                 <Constants tracker={tracker} />
                             </Tabs.Panel>

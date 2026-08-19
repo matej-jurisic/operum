@@ -22,6 +22,12 @@ export interface CreateDashboardDto {
     icon?: string;
 }
 
+export interface UpdateDashboardDto {
+    name: string;
+    color?: string;
+    icon?: string;
+}
+
 export interface AddDashboardItemDto {
     analyticId: string;
     trackerId: string;

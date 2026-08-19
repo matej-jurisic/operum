@@ -119,6 +119,21 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(MapToDto(dashboard));
         }
 
+        public async Task<Result<DashboardDto>> UpdateDashboard(string dashboardId, UpdateDashboardDto dto)
+        {
+            var dashboard = await GetUserDashboard(dashboardId);
+            if (dashboard == null)
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
+
+            dashboard.Name = dto.Name;
+            dashboard.Color = dto.Color;
+            dashboard.Icon = dto.Icon;
+
+            await db.SaveChangesAsync();
+
+            return Result.Success(MapToDto(dashboard));
+        }
+
         public async Task<Result> DeleteDashboard(string dashboardId)
         {
             var dashboard = await GetUserDashboard(dashboardId);

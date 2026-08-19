@@ -36,7 +36,6 @@ function AppShellLayout({ children }: { children: React.ReactNode }) {
 }
 
 const AdminPanel = lazy(() => import("./features/admin/pages/AdminPanel"));
-const DashboardListPage = lazy(() => import("./features/dashboard/pages/DashboardListPage"));
 const DashboardPage = lazy(() => import("./features/dashboard/pages/DashboardPage"));
 const Home = lazy(() => import("./features/home/pages/Home"));
 const PrivacyPolicy = lazy(() => import("./features/legal/pages/PrivacyPolicy"));
@@ -105,8 +104,8 @@ const App = observer(() => {
                             />
                             <Route
                                 path="dashboard"
-                                element={<PrivateRoute page={<DashboardListPage />} />}
-                            />
+                                element={<PrivateRoute page={<DashboardPage />} />}
+                                />
                             <Route
                                 path="dashboard/:dashboardId"
                                 element={<PrivateRoute page={<DashboardPage />} />}

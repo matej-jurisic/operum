@@ -6,6 +6,7 @@ import {
     CreateDashboardDto,
     DashboardDto,
     DashboardItemDto,
+    UpdateDashboardDto,
 } from "../types/DashboardDto";
 
 export const dashboardController = {
@@ -23,6 +24,13 @@ export const dashboardController = {
 
     createDashboard: async (dto: CreateDashboardDto): Promise<ApiResponse<DashboardDto>> => {
         return await api.post("/dashboard", dto);
+    },
+
+    updateDashboard: async (
+        dashboardId: string,
+        dto: UpdateDashboardDto
+    ): Promise<ApiResponse<DashboardDto>> => {
+        return await api.put(`/dashboard/${dashboardId}`, dto);
     },
 
     deleteDashboard: async (dashboardId: string): Promise<ApiResponse> => {

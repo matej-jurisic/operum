@@ -29,6 +29,12 @@ namespace Operum.API.Controllers
             return GetApiResponse(await dashboardService.GetDashboard(dashboardId));
         }
 
+        [HttpPut("{dashboardId}")]
+        public async Task<IActionResult> UpdateDashboard([FromRoute] string dashboardId, [FromBody] UpdateDashboardDto dto)
+        {
+            return GetApiResponse(await dashboardService.UpdateDashboard(dashboardId, dto));
+        }
+
         [HttpDelete("{dashboardId}")]
         public async Task<IActionResult> DeleteDashboard([FromRoute] string dashboardId)
         {

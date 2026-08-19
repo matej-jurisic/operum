@@ -8,6 +8,9 @@
   "ConnectionStrings": {
     "Operum": ""
   },
+  "Features": {
+    "Notifications": false
+  },
   "Notifications": {
     "EvalIntervalMinutes": 10
   },
