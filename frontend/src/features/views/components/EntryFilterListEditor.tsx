@@ -60,11 +60,10 @@ export default function EntryFilterListEditor({
         if (!selectedFieldForTemplate) return;
         const remainingSlots = maxFilters - filters.length;
         template.filters.slice(0, remainingSlots).forEach((tf) => {
-            const value = tf.valueGenerator ? tf.valueGenerator() : tf.value;
             form.insertListItem(filtersPath, {
                 fieldId: selectedFieldForTemplate,
                 operator: tf.operator,
-                value,
+                value: tf.value,
             });
         });
         setShowTemplateModal(false);

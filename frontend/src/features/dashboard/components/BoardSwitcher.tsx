@@ -47,7 +47,7 @@ export default function BoardSwitcher({
                             size="sm"
                             radius="xl"
                             color={color}
-                            variant={isActive ? "filled" : "light"}
+                            variant={isActive ? "filled" : "outline"}
                             onClick={() => onSelect(board.id)}
                             leftSection={createElement(
                                 resolveTrackerIcon(board.icon),
@@ -63,7 +63,7 @@ export default function BoardSwitcher({
                     <Button
                         size="sm"
                         radius="xl"
-                        variant="subtle"
+                        variant="outline"
                         color="gray"
                         onClick={onCreate}
                         px="sm"

@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Operum.Model;
+using Operum.Model.Extensions;
 using Operum.Model.Models;
 using Operum.Service.Domain.Notifications;
 using Operum.Service.Interfaces;
@@ -131,7 +132,7 @@ namespace Operum.Service.Services.Notifications
             List<(TrackerNotification, string)> pushQueue,
             CancellationToken ct)
         {
-            var currentMatchIds = await ConditionEntryEvaluator.GetMatchingEntryIdsAsync(db, notification, ct);
+            var currentMatchIds = await ConditionEntryEvaluator.GetMatchingEntryIdsAsync(db, notification, ResolveUserTz(notification), ct);
             var currentMatchSet = currentMatchIds.ToHashSet();
 
             var existingTriggered = notification.TriggeredEntries
@@ -179,7 +180,7 @@ namespace Operum.Service.Services.Notifications
             List<(TrackerNotification, string)> pushQueue,
             CancellationToken ct)
         {
-            var conditionMet = await ConditionAnalyticEvaluator.EvaluateAsync(db, notification, ct);
+            var conditionMet = await ConditionAnalyticEvaluator.EvaluateAsync(db, notification, ResolveUserTz(notification), ct);
             var wasTriggered = notification.IsTriggered;
 
             notification.IsTriggered = conditionMet;
@@ -201,12 +202,7 @@ namespace Operum.Service.Services.Notifications
 
         private static TimeZoneInfo ResolveUserTz(TrackerNotification notification)
         {
-            var tzId = notification.Tracker?.Owner?.TimeZone;
-            if (string.IsNullOrEmpty(tzId))
-                return TimeZoneInfo.Utc;
-
-            try { return TimeZoneInfo.FindSystemTimeZoneById(tzId); }
-            catch { return TimeZoneInfo.Utc; }
+            return TimeZoneResolver.FromId(notification.Tracker?.Owner?.TimeZone);
         }
     }
 }

@@ -1,14 +1,21 @@
-import { Group, NumberInput, SegmentedControl, Select, Stack } from "@mantine/core";
+import { Group, NumberInput, SegmentedControl, Select, Stack, Text } from "@mantine/core";
 import FieldValueInput from "../../features/fields/components/FieldValueInput";
 import {
-    DynamicDateTokens,
-    fixedDynamicDateTokenOptions,
+    anchorOptions,
+    DateAnchor,
+    DateAnchors,
+    describeOffset,
     isDynamicDateToken,
-    isParameterizedDateToken,
-    parseParameterizedToken,
-    ParameterizedDateTokenPrefixes,
-    serializeParameterizedToken,
+    isLookbackToken,
+    LookbackPrefix,
+    LookbackPrefixes,
+    parseAnchorToken,
+    parseLookbackToken,
+    resolveDynamicDateToken,
+    serializeAnchorToken,
+    serializeLookbackToken,
 } from "../constants/dynamicDateTokens";
+import { formatDateTimeFromDate } from "../utils/formatters/TypeFormatter";
 
 interface Props {
     isDateType: boolean;
@@ -21,11 +28,14 @@ interface Props {
 }
 
 const UNIT_OPTIONS = [
-    { value: ParameterizedDateTokenPrefixes.LastNHours, label: "Hours" },
-    { value: ParameterizedDateTokenPrefixes.LastNDays, label: "Days" },
-    { value: ParameterizedDateTokenPrefixes.LastNWeeks, label: "Weeks" },
-    { value: ParameterizedDateTokenPrefixes.LastNMonths, label: "Months" },
+    { value: LookbackPrefixes.LastNHours, label: "Hours" },
+    { value: LookbackPrefixes.LastNDays, label: "Days" },
+    { value: LookbackPrefixes.LastNWeeks, label: "Weeks" },
+    { value: LookbackPrefixes.LastNMonths, label: "Months" },
 ];
+
+/** Offsets a filter realistically needs; anything further out is a fixed date in practice. */
+const OFFSET_OPTIONS = [-3, -2, -1, 0, 1];
 
 type DateMode = "date" | "named" | "relative";
 
@@ -38,18 +48,30 @@ export default function DynamicDateValueInput({
     fieldPath,
     label,
 }: Props) {
-    const isRelative = typeof value === "string" && isParameterizedDateToken(value);
+    const isRelative = isLookbackToken(value);
     const isNamed = isDynamicDateToken(value) && !isRelative;
-    const parsed = isRelative ? parseParameterizedToken(value as string) : null;
+
+    const anchorToken = isNamed ? parseAnchorToken(value as string) : null;
+    const lookback = isRelative ? parseLookbackToken(value as string) : null;
 
     const dateMode: DateMode = isRelative ? "relative" : isNamed ? "named" : "date";
-    const relativeUnit = parsed?.prefix ?? ParameterizedDateTokenPrefixes.LastNDays;
-    const relativeAmount = parsed?.n ?? 7;
+
+    const anchor = anchorToken?.anchor ?? DateAnchors.Today;
+    const offset = anchorToken?.offset ?? 0;
+    const relativeUnit = lookback?.prefix ?? LookbackPrefixes.LastNDays;
+    const relativeAmount = lookback?.n ?? 7;
+
+    // The token itself says nothing about what it currently points at, so show the resolved date.
+    const preview =
+        typeof value === "string" && isDynamicDateToken(value)
+            ? resolveDynamicDateToken(value)
+            : null;
 
     const handleModeChange = (v: string) => {
         if (v === dateMode) return;
-        if (v === "named") onChange(DynamicDateTokens.Today);
-        else if (v === "relative") onChange(serializeParameterizedToken(ParameterizedDateTokenPrefixes.LastNDays, 7));
+        if (v === "named") onChange(DateAnchors.Today);
+        else if (v === "relative")
+            onChange(serializeLookbackToken(LookbackPrefixes.LastNDays, 7));
         else onChange(undefined);
     };
 
@@ -78,14 +100,30 @@ export default function DynamicDateValueInput({
             )}
 
             {isDateType && dateMode === "named" && (
-                <Select
-                    label={label ?? "Value"}
-                    placeholder="Select named date"
-                    data={fixedDynamicDateTokenOptions}
-                    value={typeof value === "string" ? value : null}
-                    onChange={(v) => onChange(v ?? DynamicDateTokens.Today)}
-                    allowDeselect={false}
-                />
+                <Group gap="xs" align="flex-end" grow>
+                    <Select
+                        label={label ?? "Value"}
+                        placeholder="Select named date"
+                        data={anchorOptions}
+                        value={anchor}
+                        onChange={(v) =>
+                            onChange(serializeAnchorToken((v as DateAnchor) ?? anchor, offset))
+                        }
+                        allowDeselect={false}
+                    />
+                    <Select
+                        label="Period"
+                        data={OFFSET_OPTIONS.map((o) => ({
+                            value: String(o),
+                            label: capitalize(describeOffset(anchor, o)),
+                        }))}
+                        value={String(offset)}
+                        onChange={(v) =>
+                            onChange(serializeAnchorToken(anchor, v ? parseInt(v, 10) : 0))
+                        }
+                        allowDeselect={false}
+                    />
+                </Group>
             )}
 
             {isDateType && dateMode === "relative" && (
@@ -95,7 +133,7 @@ export default function DynamicDateValueInput({
                         value={relativeAmount}
                         onChange={(v) => {
                             if (typeof v === "number" && v !== 0) {
-                                onChange(serializeParameterizedToken(relativeUnit, v));
+                                onChange(serializeLookbackToken(relativeUnit, v));
                             }
                         }}
                         style={{ flex: 1 }}
@@ -106,12 +144,25 @@ export default function DynamicDateValueInput({
                         data={UNIT_OPTIONS}
                         value={relativeUnit}
                         onChange={(v) => {
-                            if (v) onChange(serializeParameterizedToken(v as any, relativeAmount));
+                            if (v)
+                                onChange(
+                                    serializeLookbackToken(v as LookbackPrefix, relativeAmount),
+                                );
                         }}
                         style={{ flex: 1 }}
                     />
                 </Group>
             )}
+
+            {preview && (
+                <Text size="xs" c="dimmed">
+                    Right now: {formatDateTimeFromDate(preview)}
+                </Text>
+            )}
         </Stack>
     );
+}
+
+function capitalize(text: string): string {
+    return text.charAt(0).toUpperCase() + text.slice(1);
 }

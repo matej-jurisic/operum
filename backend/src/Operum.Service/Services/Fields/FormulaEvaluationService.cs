@@ -11,7 +11,7 @@ using System.Text.RegularExpressions;
 
 namespace Operum.Service.Services.Fields
 {
-    public class FormulaEvaluationService(OperumContext db, ILogger<FormulaEvaluationService> logger) : IFormulaEvaluationService
+    public class FormulaEvaluationService(OperumContext db, ICurrentUserService currentUserService, ILogger<FormulaEvaluationService> logger) : IFormulaEvaluationService
     {
         private static readonly Regex TokenPattern = new(@"\{([^}]+)\}", RegexOptions.Compiled);
 
@@ -48,6 +48,7 @@ namespace Operum.Service.Services.Fields
                 .Where(f => !f.IsCalculated)
                 .ToDictionary(f => f.Id, f => f);
 
+            var tz = currentUserService.GetCurrentUserTimeZone();
             var newFieldValues = new List<FieldValue>();
 
             // Build a lookup from the already-tracked currentFieldValues so we never
@@ -63,7 +64,7 @@ namespace Operum.Service.Services.Fields
 
                 foreach (var token in tokens)
                 {
-                    var resolved = TryResolveTokenValue(token, manualFieldsByName, fieldValuesByFieldId, constantsByName, fieldsByIdForMatcher);
+                    var resolved = TryResolveTokenValue(token, manualFieldsByName, fieldValuesByFieldId, constantsByName, fieldsByIdForMatcher, tz);
                     if (resolved == null)
                     {
                         anyMissing = true;
@@ -164,7 +165,8 @@ namespace Operum.Service.Services.Fields
             Dictionary<string, Field> manualFieldsByName,
             Dictionary<string, FieldValue> fieldValuesByFieldId,
             Dictionary<string, TrackerConstant> constantsByName,
-            Dictionary<string, Field> fieldsByIdForMatcher)
+            Dictionary<string, Field> fieldsByIdForMatcher,
+            TimeZoneInfo tz)
         {
             var (name, property) = ParseToken(tokenName);
 
@@ -208,7 +210,7 @@ namespace Operum.Service.Services.Fields
                 {
                     var match = constant.Values
                         .OrderBy(v => v.Priority)
-                        .FirstOrDefault(v => EntryFilterMatcher.Matches(v.Filters, fieldValuesByFieldId, fieldsByIdForMatcher));
+                        .FirstOrDefault(v => EntryFilterMatcher.Matches(v.Filters, fieldValuesByFieldId, fieldsByIdForMatcher, tz));
                     if (match != null)
                         rawValue = match.Value;
                 }

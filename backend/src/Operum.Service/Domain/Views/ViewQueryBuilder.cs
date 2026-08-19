@@ -1,5 +1,6 @@
 ﻿using Operum.Model.Constants;
 using Operum.Model.Constants.Fields;
+using Operum.Model.Extensions;
 using Operum.Model.Models;
 
 
@@ -112,7 +113,7 @@ namespace Operum.Service.Domain.Views
             return orderedQuery ?? query.OrderByDescending(x => x.CreatedAt);
         }
 
-        public static IQueryable<Entry> ApplyViewFilters(IQueryable<Entry> query, List<ViewFilter> filters)
+        public static IQueryable<Entry> ApplyViewFilters(IQueryable<Entry> query, List<ViewFilter> filters, TimeZoneInfo tz)
         {
             if (filters.Count == 0)
                 return query;
@@ -128,7 +129,7 @@ namespace Operum.Service.Domain.Views
                 {
                     DataTypes.Number => ApplyNumberFilter(query, fieldId, operatorType, value),
                     DataTypes.String => ApplyStringFilter(query, fieldId, operatorType, value),
-                    DataTypes.Date or DataTypes.DateTime => ApplyDateTimeFilter(query, fieldId, operatorType, value),
+                    DataTypes.Date or DataTypes.DateTime => ApplyDateTimeFilter(query, fieldId, operatorType, value, tz),
                     DataTypes.TimeSpan => ApplyTimeSpanFilter(query, fieldId, operatorType, value),
                     DataTypes.Bool => ApplyBooleanFilter(query, fieldId, operatorType, value),
                     _ => query
@@ -192,12 +193,12 @@ namespace Operum.Service.Domain.Views
             }
         }
 
-        private static IQueryable<Entry> ApplyDateTimeFilter(IQueryable<Entry> query, string fieldId, string operatorType, string? value)
+        private static IQueryable<Entry> ApplyDateTimeFilter(IQueryable<Entry> query, string fieldId, string operatorType, string? value, TimeZoneInfo tz)
         {
             if (value != null)
             {
-                // Resolve dynamic tokens (e.g. "today", "start_of_month") to concrete UTC DateTimes
-                var resolved = DynamicDateTokens.Resolve(value);
+                // Resolve dynamic tokens (e.g. "today", "start_of_month:-1") to concrete UTC DateTimes
+                var resolved = DynamicDateTokens.Resolve(value, tz);
                 DateTime utcDateValue;
                 if (resolved.HasValue)
                 {
@@ -212,10 +213,14 @@ namespace Operum.Service.Domain.Views
                         : dateValue.ToUniversalTime();
                 }
 
+                // Equality on a date means "the same day the user sees on a calendar", which is a
+                // window in UTC terms rather than a single instant.
+                var (dayStart, dayEnd) = TimeZoneResolver.LocalDayWindow(utcDateValue, tz);
+
                 return operatorType switch
                 {
-                    OperatorTypes.EqualsOperator => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue != null && fv.DateTimeValue.Value.Date == utcDateValue.Date)),
-                    OperatorTypes.NotEquals => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && (fv.DateTimeValue == null || fv.DateTimeValue.Value.Date != utcDateValue.Date))),
+                    OperatorTypes.EqualsOperator => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue >= dayStart && fv.DateTimeValue < dayEnd)),
+                    OperatorTypes.NotEquals => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && (fv.DateTimeValue == null || fv.DateTimeValue < dayStart || fv.DateTimeValue >= dayEnd))),
                     OperatorTypes.GreaterThan => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue > utcDateValue)),
                     OperatorTypes.GreaterThanOrEqual => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue >= utcDateValue)),
                     OperatorTypes.LessThan => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue < utcDateValue)),

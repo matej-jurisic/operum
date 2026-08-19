@@ -119,7 +119,7 @@ namespace Operum.Service.Services.Entries
 
             if (views.Count > 0)
             {
-                entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, ViewQueryBuilder.MergeViewFilters(views));
+                entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, ViewQueryBuilder.MergeViewFilters(views), currentUserService.GetCurrentUserTimeZone());
                 entriesQuery = ViewQueryBuilder.ApplyViewSorting(entriesQuery, ViewQueryBuilder.MergeViewSorts(views));
             }
 
@@ -485,7 +485,7 @@ namespace Operum.Service.Services.Entries
 
             if (views.Count > 0)
             {
-                entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, ViewQueryBuilder.MergeViewFilters(views));
+                entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, ViewQueryBuilder.MergeViewFilters(views), currentUserService.GetCurrentUserTimeZone());
                 entriesQuery = ViewQueryBuilder.ApplyViewSorting(entriesQuery, ViewQueryBuilder.MergeViewSorts(views));
             }
 

@@ -6,6 +6,7 @@ using Operum.Model.Enums;
 using Operum.Model.Constants;
 using Operum.Model.DTOs.Users;
 using Operum.Model.DTOs.Users.Requests;
+using Operum.Model.Extensions;
 using System.Text.Json;
 using Operum.Model.Models;
 using Operum.Service.Interfaces;
@@ -142,8 +143,8 @@ namespace Operum.Service.Services.Users
             var user = await userManager.FindByIdAsync(userId);
             if (user == null) return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("user"));
 
-            try { TimeZoneInfo.FindSystemTimeZoneById(dto.TimeZone); }
-            catch { return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("timezone")); }
+            if (!TimeZoneResolver.IsValid(dto.TimeZone))
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("timezone"));
 
             user.TimeZone = dto.TimeZone;
             var result = await userManager.UpdateAsync(user);

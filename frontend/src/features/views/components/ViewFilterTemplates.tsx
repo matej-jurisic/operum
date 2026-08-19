@@ -1,6 +1,14 @@
 import { CiClock2 } from "react-icons/ci";
 import { FiCalendar, FiPlus, FiTrendingUp } from "react-icons/fi";
 import { FieldTypes, OperatorTypes } from "../../../shared/constants/DataTypes";
+import {
+    DateAnchor,
+    DateAnchors,
+    LookbackPrefix,
+    LookbackPrefixes,
+    serializeAnchorToken,
+    serializeLookbackToken,
+} from "../../../shared/constants/dynamicDateTokens";
 
 // Filter template definitions
 export interface FilterTemplate {
@@ -12,102 +20,160 @@ export interface FilterTemplate {
     filters: Array<{
         operator: string;
         value?: any;
-        valueGenerator?: () => any; // Function to generate dynamic values
     }>;
 }
 
-export const filterTemplates: FilterTemplate[] = [
-    {
-        id: "current_month",
-        name: "Current Month",
-        description: "Show entries from the current month",
+const DATE_FIELD_TYPES = [FieldTypes.Date, FieldTypes.DateTime];
+
+/**
+ * Date templates emit dynamic date tokens rather than concrete dates: a template is applied once
+ * but the view it builds is read forever, so "Current Month" has to mean whichever month it is
+ * when the view runs, not the month it was created in.
+ *
+ * A bounded period takes two filters, a lower and an upper bound, which the caller ANDs together.
+ */
+function periodTemplate(
+    id: string,
+    name: string,
+    description: string,
+    startAnchor: DateAnchor,
+    endAnchor: DateAnchor,
+    offset: number,
+): FilterTemplate {
+    return {
+        id,
+        name,
+        description,
         icon: <FiCalendar size={16} />,
-        fieldTypes: [FieldTypes.Date, FieldTypes.DateTime],
+        fieldTypes: DATE_FIELD_TYPES,
         filters: [
             {
                 operator: OperatorTypes.GreaterThanOrEqual,
-                valueGenerator: () => {
-                    const now = new Date();
-                    return new Date(now.getFullYear(), now.getMonth(), 1);
-                },
+                value: serializeAnchorToken(startAnchor, offset),
             },
             {
                 operator: OperatorTypes.LessThanOrEqual,
-                valueGenerator: () => {
-                    const now = new Date();
-                    return new Date(now.getFullYear(), now.getMonth() + 1, 0);
-                },
+                value: serializeAnchorToken(endAnchor, offset),
             },
         ],
-    },
-    {
-        id: "last_7_days",
-        name: "Last 7 Days",
-        description: "Show entries from the past week",
+    };
+}
+
+function lookbackTemplate(
+    id: string,
+    name: string,
+    description: string,
+    prefix: LookbackPrefix,
+    n: number,
+): FilterTemplate {
+    return {
+        id,
+        name,
+        description,
         icon: <CiClock2 size={16} />,
-        fieldTypes: [FieldTypes.Date, FieldTypes.DateTime],
+        fieldTypes: DATE_FIELD_TYPES,
         filters: [
             {
                 operator: OperatorTypes.GreaterThanOrEqual,
-                valueGenerator: () => {
-                    const date = new Date();
-                    date.setDate(date.getDate() - 7);
-                    return date;
-                },
+                value: serializeLookbackToken(prefix, n),
             },
         ],
-    },
-    {
-        id: "last_30_days",
-        name: "Last 30 Days",
-        description: "Show entries from the past month",
-        icon: <CiClock2 size={16} />,
-        fieldTypes: [FieldTypes.Date, FieldTypes.DateTime],
-        filters: [
-            {
-                operator: OperatorTypes.GreaterThanOrEqual,
-                valueGenerator: () => {
-                    const date = new Date();
-                    date.setDate(date.getDate() - 30);
-                    return date;
-                },
-            },
-        ],
-    },
+    };
+}
+
+export const filterTemplates: FilterTemplate[] = [
     {
         id: "today",
         name: "Today",
         description: "Show entries from today",
         icon: <FiCalendar size={16} />,
-        fieldTypes: [FieldTypes.Date, FieldTypes.DateTime],
+        fieldTypes: DATE_FIELD_TYPES,
         filters: [
             {
                 operator: OperatorTypes.Equals,
-                valueGenerator: () => {
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    return today;
-                },
+                value: DateAnchors.Today,
             },
         ],
     },
     {
-        id: "high_values",
-        name: "High Values",
-        description: "Show entries with values above threshold",
-        icon: <FiTrendingUp size={16} />,
-        fieldTypes: [FieldTypes.Number],
+        id: "yesterday",
+        name: "Yesterday",
+        description: "Show entries from yesterday",
+        icon: <FiCalendar size={16} />,
+        fieldTypes: DATE_FIELD_TYPES,
         filters: [
             {
-                operator: OperatorTypes.GreaterThan,
-                value: 0,
+                operator: OperatorTypes.Equals,
+                value: serializeAnchorToken(DateAnchors.Today, -1),
             },
         ],
     },
+    lookbackTemplate(
+        "last_7_days",
+        "Last 7 Days",
+        "Show entries from the past week",
+        LookbackPrefixes.LastNDays,
+        7,
+    ),
+    lookbackTemplate(
+        "last_30_days",
+        "Last 30 Days",
+        "Show entries from the past 30 days",
+        LookbackPrefixes.LastNDays,
+        30,
+    ),
+    periodTemplate(
+        "current_week",
+        "Current Week",
+        "Show entries from the current week",
+        DateAnchors.StartOfWeek,
+        DateAnchors.EndOfWeek,
+        0,
+    ),
+    periodTemplate(
+        "last_week",
+        "Last Week",
+        "Show entries from the previous week only",
+        DateAnchors.StartOfWeek,
+        DateAnchors.EndOfWeek,
+        -1,
+    ),
+    periodTemplate(
+        "current_month",
+        "Current Month",
+        "Show entries from the current month",
+        DateAnchors.StartOfMonth,
+        DateAnchors.EndOfMonth,
+        0,
+    ),
+    periodTemplate(
+        "last_month",
+        "Last Month",
+        "Show entries from the previous month only",
+        DateAnchors.StartOfMonth,
+        DateAnchors.EndOfMonth,
+        -1,
+    ),
+    periodTemplate(
+        "current_year",
+        "Current Year",
+        "Show entries from the current year",
+        DateAnchors.StartOfYear,
+        DateAnchors.EndOfYear,
+        0,
+    ),
+    periodTemplate(
+        "last_year",
+        "Last Year",
+        "Show entries from the previous year only",
+        DateAnchors.StartOfYear,
+        DateAnchors.EndOfYear,
+        -1,
+    ),
     {
         id: "positive_values",
         name: "Positive Values",
-        description: "Show entries with positive values",
+        description: "Show entries with values above zero",
         icon: <FiTrendingUp size={16} />,
         fieldTypes: [FieldTypes.Number],
         filters: [
@@ -120,7 +186,7 @@ export const filterTemplates: FilterTemplate[] = [
     {
         id: "negative_values",
         name: "Negative Values",
-        description: "Show entries with negative values",
+        description: "Show entries with values below zero",
         icon: <FiTrendingUp size={16} />,
         fieldTypes: [FieldTypes.Number],
         filters: [

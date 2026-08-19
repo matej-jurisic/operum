@@ -7,7 +7,7 @@ namespace Operum.Service.Domain.Notifications
 {
     public static class NotificationConditionEvaluator
     {
-        public static bool Evaluate(string? actualStr, string op, string thresholdStr)
+        public static bool Evaluate(string? actualStr, string op, string thresholdStr, TimeZoneInfo tz)
         {
             if (actualStr is null) return false;
 
@@ -29,7 +29,7 @@ namespace Operum.Service.Domain.Notifications
 
             // Date comparison (threshold may be a dynamic token)
             var thresholdDate = DynamicDateTokens.IsValid(thresholdStr)
-                ? DynamicDateTokens.Resolve(thresholdStr)
+                ? DynamicDateTokens.Resolve(thresholdStr, tz)
                 : DataFormatters.StringToDateTime(thresholdStr);
             var actualDate = DataFormatters.StringToDateTime(actualStr);
 

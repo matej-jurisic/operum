@@ -1,12 +1,16 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Operum.Model;
+using Operum.Model.Extensions;
 using Operum.Model.Models;
 using Operum.Service.Interfaces;
 using System.Security.Claims;
 
 namespace Operum.Service.Services.Authorization
 {
-    public class CurrentUserService(IHttpContextAccessor httpContextAccessor) : ICurrentUserService
+    public class CurrentUserService(IHttpContextAccessor httpContextAccessor, OperumContext db) : ICurrentUserService
     {
+        private TimeZoneInfo? cachedTimeZone;
+
         public User GetCurrentUser()
         {
             var applicationUser = GetCurrentUserOptional();
@@ -33,6 +37,23 @@ namespace Operum.Service.Services.Authorization
                 UserName = userNameClaim.Value,
                 Id = idClaim.Value
             };
+        }
+
+        public TimeZoneInfo GetCurrentUserTimeZone()
+        {
+            if (cachedTimeZone != null) return cachedTimeZone;
+
+            var user = GetCurrentUserOptional();
+            if (user == null) return cachedTimeZone = TimeZoneInfo.Utc;
+
+            // Not carried on the token: the zone can be changed at any time and a stale claim
+            // would silently shift every dynamic date filter until the user signed in again.
+            var timeZoneId = db.Users
+                .Where(x => x.Id == user.Id)
+                .Select(x => x.TimeZone)
+                .FirstOrDefault();
+
+            return cachedTimeZone = TimeZoneResolver.FromId(timeZoneId);
         }
 
         public List<string> GetCurrentUserRoles()

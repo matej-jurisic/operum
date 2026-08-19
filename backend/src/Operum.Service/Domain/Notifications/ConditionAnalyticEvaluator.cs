@@ -13,6 +13,7 @@ namespace Operum.Service.Domain.Notifications
         public static async Task<bool> EvaluateAsync(
             OperumContext db,
             TrackerNotification notification,
+            TimeZoneInfo tz,
             CancellationToken ct = default)
         {
             var condition = notification.Condition;
@@ -34,7 +35,7 @@ namespace Operum.Service.Domain.Notifications
                 .Where(e => e.TrackerId == notification.TrackerId);
 
             if (views.Count > 0)
-                entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, ViewQueryBuilder.MergeViewFilters(views));
+                entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, ViewQueryBuilder.MergeViewFilters(views), tz);
 
             var entries = await entriesQuery.ToListAsync(ct);
 
@@ -57,7 +58,7 @@ namespace Operum.Service.Domain.Notifications
 
             // All condition filters must match (AND semantics)
             return condition.Filters.All(f =>
-                NotificationConditionEvaluator.Evaluate(svDto.Value, f.Operator, f.Value ?? string.Empty));
+                NotificationConditionEvaluator.Evaluate(svDto.Value, f.Operator, f.Value ?? string.Empty, tz));
         }
     }
 }

@@ -1,4 +1,5 @@
 using Operum.Model.Constants;
+using Operum.Model.Extensions;
 using Operum.Model.Models;
 
 namespace Operum.Service.Domain.Notifications
@@ -118,8 +119,7 @@ namespace Operum.Service.Domain.Notifications
 
         private static DateTime ToUtcInstant(DateOnly date, TimeOnly time, TimeZoneInfo tz)
         {
-            var local = date.ToDateTime(time);
-            return TimeZoneInfo.ConvertTimeToUtc(local, tz);
+            return TimeZoneResolver.ToUtc(date.ToDateTime(time), tz);
         }
 
         private static bool IsWeekend(DayOfWeek d) =>

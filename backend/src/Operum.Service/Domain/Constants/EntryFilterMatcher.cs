@@ -1,5 +1,6 @@
 using Operum.Model.Constants;
 using Operum.Model.Constants.Fields;
+using Operum.Model.Extensions;
 using Operum.Model.Models;
 using System.Globalization;
 
@@ -15,7 +16,8 @@ namespace Operum.Service.Domain.Constants
         public static bool Matches(
             IEnumerable<TrackerConstantValueFilter> filters,
             Dictionary<string, FieldValue> fieldValues,
-            Dictionary<string, Field> fieldsById)
+            Dictionary<string, Field> fieldsById,
+            TimeZoneInfo tz)
         {
             foreach (var filter in filters)
             {
@@ -23,19 +25,19 @@ namespace Operum.Service.Domain.Constants
                     return false;
                 if (!fieldsById.TryGetValue(filter.FieldId, out var field))
                     return false;
-                if (!MatchesFilter(field.Type.ToLowerInvariant(), fv, filter.Operator, filter.Value))
+                if (!MatchesFilter(field.Type.ToLowerInvariant(), fv, filter.Operator, filter.Value, tz))
                     return false;
             }
             return true;
         }
 
-        private static bool MatchesFilter(string fieldType, FieldValue fv, string operatorType, string? filterValue)
+        private static bool MatchesFilter(string fieldType, FieldValue fv, string operatorType, string? filterValue, TimeZoneInfo tz)
         {
             return fieldType switch
             {
                 DataTypes.String => MatchesString(fv.StringValue, operatorType, filterValue),
                 DataTypes.Number => MatchesNumber(fv.NumberValue, operatorType, filterValue),
-                DataTypes.Date or DataTypes.DateTime => MatchesDateTime(fv.DateTimeValue, operatorType, filterValue),
+                DataTypes.Date or DataTypes.DateTime => MatchesDateTime(fv.DateTimeValue, operatorType, filterValue, tz),
                 DataTypes.TimeSpan => MatchesTimeSpan(fv.TimeSpanValue, operatorType, filterValue),
                 DataTypes.Bool => MatchesBool(fv.BooleanValue, operatorType, filterValue),
                 _ => false
@@ -97,11 +99,11 @@ namespace Operum.Service.Domain.Constants
             }
         }
 
-        private static bool MatchesDateTime(DateTime? fieldValue, string operatorType, string? filterValue)
+        private static bool MatchesDateTime(DateTime? fieldValue, string operatorType, string? filterValue, TimeZoneInfo tz)
         {
             if (filterValue != null)
             {
-                var resolved = DynamicDateTokens.Resolve(filterValue);
+                var resolved = DynamicDateTokens.Resolve(filterValue, tz);
                 DateTime utcFilter;
                 if (resolved.HasValue)
                 {
@@ -123,10 +125,14 @@ namespace Operum.Service.Domain.Constants
                     ? DateTime.SpecifyKind(fieldValue.Value, DateTimeKind.Utc)
                     : fieldValue.Value.ToUniversalTime();
 
+                // Equality on a date means "the same day the user sees on a calendar", which is a
+                // window in UTC terms rather than a single instant.
+                var (dayStart, dayEnd) = TimeZoneResolver.LocalDayWindow(utcFilter, tz);
+
                 return operatorType switch
                 {
-                    OperatorTypes.EqualsOperator => utcField.Date == utcFilter.Date,
-                    OperatorTypes.NotEquals => utcField.Date != utcFilter.Date,
+                    OperatorTypes.EqualsOperator => utcField >= dayStart && utcField < dayEnd,
+                    OperatorTypes.NotEquals => utcField < dayStart || utcField >= dayEnd,
                     OperatorTypes.GreaterThan => utcField > utcFilter,
                     OperatorTypes.GreaterThanOrEqual => utcField >= utcFilter,
                     OperatorTypes.LessThan => utcField < utcFilter,

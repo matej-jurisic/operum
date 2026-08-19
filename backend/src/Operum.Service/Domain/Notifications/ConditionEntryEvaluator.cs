@@ -11,6 +11,7 @@ namespace Operum.Service.Domain.Notifications
         public static async Task<List<string>> GetMatchingEntryIdsAsync(
             OperumContext db,
             TrackerNotification notification,
+            TimeZoneInfo tz,
             CancellationToken ct = default)
         {
             var condition = notification.Condition;
@@ -31,7 +32,7 @@ namespace Operum.Service.Domain.Notifications
                 .Where(e => e.TrackerId == notification.TrackerId);
 
             if (views.Count > 0)
-                entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, ViewQueryBuilder.MergeViewFilters(views));
+                entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, ViewQueryBuilder.MergeViewFilters(views), tz);
 
             // Project condition filters to ViewFilter instances for reuse
             var conditionFilters = condition.Filters
@@ -46,7 +47,7 @@ namespace Operum.Service.Domain.Notifications
                 .ToList();
 
             if (conditionFilters.Count > 0)
-                entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, conditionFilters);
+                entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, conditionFilters, tz);
 
             return await entriesQuery.Select(e => e.Id).ToListAsync(ct);
         }

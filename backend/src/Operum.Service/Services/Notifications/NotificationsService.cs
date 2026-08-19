@@ -73,6 +73,7 @@ namespace Operum.Service.Services.Notifications
                 var existingIds = await ConditionEntryEvaluator.GetMatchingEntryIdsAsync(
                     db,
                     await LoadFullNotification(notification.Id),
+                    currentUserService.GetCurrentUserTimeZone(),
                     CancellationToken.None);
 
                 foreach (var entryId in existingIds)
