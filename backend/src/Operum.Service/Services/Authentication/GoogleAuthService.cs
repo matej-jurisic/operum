@@ -7,10 +7,15 @@ namespace Operum.Service.Services.Authentication
 {
     public class GoogleAuthService(IConfiguration configuration) : IGoogleAuthService
     {
-        private readonly string _clientId = configuration["Authentication:Google:ClientId"] ?? throw new ArgumentNullException("Authentication:Google:ClientId");
+        private readonly string? _clientId = configuration["Authentication:Google:ClientId"];
+
+        public bool IsEnabled => !string.IsNullOrWhiteSpace(_clientId);
 
         public async Task<GoogleUserInfo?> GetUserInfoAsync(string idToken)
         {
+            if (!IsEnabled)
+                return null;
+
             try
             {
                 var payload = await GoogleJsonWebSignature.ValidateAsync(idToken, new GoogleJsonWebSignature.ValidationSettings

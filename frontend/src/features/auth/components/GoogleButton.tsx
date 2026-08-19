@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import { authController } from "../api/authenticationController";
 import useAuth from "../hooks/useAuth";
 import { GoogleLoginDto } from "../types/requests/GoogleLoginDto";
+import { googleClientId, isGoogleAuthEnabled } from "../config/googleAuth";
 
 interface Props {
     onSuccess: () => void;
@@ -14,13 +15,16 @@ export const GoogleButton = (props: Props) => {
     const scheme = useMantineColorScheme();
 
     useEffect(() => {
+        // Google sign-in is disabled: never load the GSI script.
+        if (!isGoogleAuthEnabled) return;
+
         const script = document.createElement("script");
         script.src = "https://accounts.google.com/gsi/client";
         script.async = true;
         script.defer = true;
         script.onload = () => {
             window.google?.accounts.id.initialize({
-                client_id: import.meta.env.VITE_REACT_GOOGLE_CLIENT,
+                client_id: googleClientId,
                 ux_mode: "popup", // Use popup mode
                 callback: async (response) => {
                     if (response.credential) {
@@ -51,6 +55,8 @@ export const GoogleButton = (props: Props) => {
             document.body.removeChild(script);
         };
     }, []);
+
+    if (!isGoogleAuthEnabled) return null;
 
     const handleGoogleLogin = () => {
         const googleButton = googleButtonRef.current?.querySelector(

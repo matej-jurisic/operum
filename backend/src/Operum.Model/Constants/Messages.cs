@@ -20,7 +20,9 @@ namespace Operum.Model.Constants
         public const string EmailTaken = "User with email {0} already exists!";
         public const string ConfirmationMailError = "Error sending confirmation mail.";
         public const string ConfirmationMailSent = "A confirmation mail has been sent to your inbox!";
+        public const string RegistrationCompleted = "Registration successful, you can now log in!";
         public const string InvalidGoogleToken = "Invalid Google token.";
+        public const string GoogleLoginUnavailable = "Google sign-in is not available.";
         public const string SomethingWentWrong = "Something went wrong.";
         public const string EmailAlreadyConfirmed = "Email already confirmed.";
         public const string FielIsEmpty = "File is empty.";

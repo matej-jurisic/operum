@@ -18,8 +18,8 @@ import { TbLayoutDashboard } from "react-icons/tb";
 import { useParams } from "react-router-dom";
 import Header from "../../../shared/components/Header";
 import { resolveTrackerIcon as resolveIcon } from "../../../shared/constants/TrackerIcons";
+import { AnalyticsGrid } from "../../analytics/components/AnalyticsGrid";
 import { AddDashboardItemModal } from "../components/AddDashboardItemModal";
-import { DashboardGrid } from "../components/DashboardGrid";
 import { DashboardProvider, useDashboard } from "../context/DashboardContext";
 
 function DashboardContent() {
@@ -138,12 +138,12 @@ function DashboardContent() {
                     <Loader />
                 </Center>
             ) : (
-                <DashboardGrid
+                <AnalyticsGrid
                     analytics={analytics}
                     color={color}
                     isConfiguring={isConfiguring}
                     onReorder={reorderItems}
-                    onRemove={isConfiguring ? removeItem : undefined}
+                    onRemove={removeItem}
                 />
             )}
 

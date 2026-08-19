@@ -1,23 +1,23 @@
 import { ActionIcon, Group, Paper, Stack, Text } from "@mantine/core";
 import { MdDelete, MdLink } from "react-icons/md";
-import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
-import { useTracker } from "../../trackers/context/TrackerContext";
 import { SingleValueAnalyticDto } from "../types/AnalyticDto";
 
 interface Props {
     analytic: SingleValueAnalyticDto;
-    onEntryClick: (entryId: string) => void;
+    color: string | undefined;
     isConfiguring: boolean;
+    onRemove?: (analyticId: string) => void;
+    onEntryClick?: (entryId: string) => void;
 }
 
 export function SingleValueCard({
     analytic,
-    onEntryClick,
+    color,
     isConfiguring,
+    onRemove,
+    onEntryClick,
 }: Props) {
-    const { tracker } = useTracker();
-    const { removeAnalytic } = useTrackerOperations();
     return (
         <Paper withBorder p="md" radius="md" w={"100%"}>
             <Stack gap="xs">
@@ -35,20 +35,20 @@ export function SingleValueCard({
                         </Text>
                     </Group>
                     <Group>
-                        {analytic.entryId && (
+                        {analytic.entryId && onEntryClick && (
                             <ActionIcon
-                                color={tracker.color}
+                                color={color}
                                 onClick={() => onEntryClick(analytic.entryId!)}
                             >
                                 <MdLink size={18} />
                             </ActionIcon>
                         )}
-                        {isConfiguring && (
+                        {isConfiguring && onRemove && (
                             <ActionIcon
                                 size="md"
-                                color={tracker.color}
+                                color={color}
                                 variant="outline"
-                                onClick={() => removeAnalytic(analytic.id)}
+                                onClick={() => onRemove(analytic.id)}
                             >
                                 <MdDelete size={18} />
                             </ActionIcon>

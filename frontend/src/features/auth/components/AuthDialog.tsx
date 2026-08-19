@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { authController } from "../api/authenticationController";
 import { AuthForm } from "../components/AuthForm";
 import { GoogleButton } from "../components/GoogleButton";
+import { isGoogleAuthEnabled } from "../config/googleAuth";
 import useAuth from "../hooks/useAuth";
 import { LoginRequestDto } from "../types/requests/LoginDto";
 import { RegisterDto } from "../types/requests/RegisterDto";
@@ -166,14 +167,16 @@ export default function AuthDialog(props: Props) {
                             />
                         </AuthForm>
                     )}
-                    <Group justify="center">
-                        <GoogleButton
-                            onSuccess={() => {
-                                props.onClose();
-                                onSuccess();
-                            }}
-                        />
-                    </Group>
+                    {isGoogleAuthEnabled && (
+                        <Group justify="center">
+                            <GoogleButton
+                                onSuccess={() => {
+                                    props.onClose();
+                                    onSuccess();
+                                }}
+                            />
+                        </Group>
+                    )}
                 </Stack>
             </Modal>
         </>

@@ -12,19 +12,22 @@ import {
 import { useMediaQuery } from "@mantine/hooks";
 import { useMemo } from "react";
 import { MdDelete } from "react-icons/md";
-import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
-import { useTracker } from "../../trackers/context/TrackerContext";
 import { DonutChartAnaylticDto } from "../types/AnalyticDto";
 import { createDonutTooltipContent } from "./ChartFormatters";
 
 interface Props {
     analytic: DonutChartAnaylticDto;
+    color: string | undefined;
     isConfiguring: boolean;
+    onRemove?: (analyticId: string) => void;
 }
 
-export function DonutChartCard({ analytic, isConfiguring }: Props) {
-    const { tracker } = useTracker();
-    const { removeAnalytic } = useTrackerOperations();
+export function DonutChartCard({
+    analytic,
+    color,
+    isConfiguring,
+    onRemove,
+}: Props) {
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
 
     const { positivePoints, excludedPoints } = useMemo(() => {
@@ -34,7 +37,7 @@ export function DonutChartCard({ analytic, isConfiguring }: Props) {
     }, [analytic.points]);
 
     const coloredPoints = useMemo(() => {
-        const baseColor = tracker.color ?? "blue";
+        const baseColor = color ?? "blue";
 
         return positivePoints.map((x, index) => {
             const opacity =
@@ -48,7 +51,7 @@ export function DonutChartCard({ analytic, isConfiguring }: Props) {
                 }%, white)`,
             };
         });
-    }, [positivePoints, tracker.color]);
+    }, [positivePoints, color]);
 
     return (
         <Paper withBorder p="md" radius="md">
@@ -59,12 +62,12 @@ export function DonutChartCard({ analytic, isConfiguring }: Props) {
                             {`${analytic.name}: ${analytic.nameField.name} - ${analytic.valueField.name}`}
                         </Text>
                     </Group>
-                    {isConfiguring && (
+                    {isConfiguring && onRemove && (
                         <ActionIcon
                             size="md"
-                            color={tracker.color}
+                            color={color}
                             variant="outline"
-                            onClick={() => removeAnalytic(analytic.id)}
+                            onClick={() => onRemove(analytic.id)}
                         >
                             <MdDelete size={18} />
                         </ActionIcon>

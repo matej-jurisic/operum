@@ -100,7 +100,14 @@ namespace Operum.Service.Services.Authentication
                 return Result.Failure(ResultStatusCodes.Conflict, string.Format(Messages.EmailTaken, registerRequest.Email));
             }
 
-            var newUser = new User(registerRequest.Email, registerRequest.UserName);
+            // Without a configured mail sender there is no way to deliver a confirmation
+            // link, so the address is trusted as-is and the user can log in immediately.
+            var confirmationRequired = mailSender.IsEnabled;
+
+            var newUser = new User(registerRequest.Email, registerRequest.UserName)
+            {
+                EmailConfirmed = !confirmationRequired
+            };
             IdentityResult registerResult = await userManager.CreateAsync(newUser, registerRequest.Password);
 
             if (!registerResult.Succeeded)
@@ -116,29 +123,37 @@ namespace Operum.Service.Services.Authentication
                 return Result.Failure(ResultStatusCodes.Error, roleResult.Errors.Select(x => x.Description));
             }
 
-            var token = await userManager.GenerateEmailConfirmationTokenAsync(newUser);
-
-            var baseUrl = configuration.GetValue<string?>("ServerUrl");
-            if (baseUrl == null)
+            if (confirmationRequired)
             {
-                await transaction.RollbackAsync();
-                return Result.Failure(ResultStatusCodes.Error);
-            }
-            var confirmationLink = $"?userId={newUser.Id}&token={token}";
+                var baseUrl = configuration.GetValue<string?>("ServerUrl");
+                if (baseUrl == null)
+                {
+                    await transaction.RollbackAsync();
+                    return Result.Failure(ResultStatusCodes.Error);
+                }
 
-            RestResponse mailSenderResult = await mailSender.SendMailConfirmationMail(registerRequest.UserName, registerRequest.Email, confirmationLink);
-            if (!mailSenderResult.IsSuccessStatusCode)
-            {
-                await transaction.RollbackAsync();
-                var responseContent = mailSenderResult.Content;
-                logger.LogError("Failed to send confirmation mail. StatusCode: {StatusCode}, Response: {ResponseContent}",
-                                mailSenderResult.StatusCode,
-                                responseContent);
-                return Result.Failure(ResultStatusCodes.Error, Messages.ConfirmationMailError);
+                var token = await userManager.GenerateEmailConfirmationTokenAsync(newUser);
+                var confirmationLink = $"?userId={newUser.Id}&token={token}";
+
+                RestResponse mailSenderResult = await mailSender.SendMailConfirmationMail(registerRequest.UserName, registerRequest.Email, confirmationLink);
+                if (!mailSenderResult.IsSuccessStatusCode)
+                {
+                    await transaction.RollbackAsync();
+                    var responseContent = mailSenderResult.Content;
+                    logger.LogError("Failed to send confirmation mail. StatusCode: {StatusCode}, Response: {ResponseContent}",
+                                    mailSenderResult.StatusCode,
+                                    responseContent);
+                    return Result.Failure(ResultStatusCodes.Error, Messages.ConfirmationMailError);
+                }
+
+                await transaction.CommitAsync();
+                return Result.Success(Messages.ConfirmationMailSent);
             }
+
+            logger.LogInformation("Mail sending is not configured; registered user {userId} with a pre-confirmed email address.", newUser.Id);
 
             await transaction.CommitAsync();
-            return Result.Success(Messages.ConfirmationMailSent);
+            return Result.Success(Messages.RegistrationCompleted);
         }
 
         public async Task<Result<UserDto>> GetCurrentApplicationUser()
@@ -218,11 +233,17 @@ namespace Operum.Service.Services.Authentication
 
         public async Task<Result<AuthResponseDto>> LoginWithGoogle(GoogleLoginDto request)
         {
+            if (!googleAuthService.IsEnabled)
+            {
+                logger.LogWarning("Google login attempted while no Google client id is configured.");
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.GoogleLoginUnavailable);
+            }
+
             var googleUser = await googleAuthService.GetUserInfoAsync(request.IdToken);
 
             if (googleUser == null)
             {
-                return Result.Failure(ResultStatusCodes.BadRequest, "Invalid Google token.");
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.InvalidGoogleToken);
             }
 
             if (!googleUser.EmailVerified)

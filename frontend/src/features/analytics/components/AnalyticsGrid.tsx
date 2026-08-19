@@ -18,8 +18,6 @@ import { CSSProperties, useEffect, useState } from "react";
 import { restrictToFirstScrollableAncestor } from "@dnd-kit/modifiers";
 import React from "react";
 import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
-import { useTracker } from "../../trackers/context/TrackerContext";
-import { analyticsController } from "../api/analyticsController";
 import { AnalyticResultTypeEnum } from "../enums/AnalyticResultTypeEnum";
 import {
     AnalyticDto,
@@ -47,8 +45,11 @@ export const BarChartCardMemo = React.memo(BarChartCard);
 
 interface AnalyticsGridProps {
     analytics: AnalyticDto[];
+    color: string | undefined;
     isConfiguring: boolean;
-    onEntryClick: (entryId: string) => void;
+    onReorder: (orderedIds: string[]) => void;
+    onRemove?: (analyticId: string) => void;
+    onEntryClick?: (entryId: string) => void;
 }
 
 interface SortableCardWrapperProps {
@@ -100,11 +101,12 @@ function SortableCardWrapper({
 
 export function AnalyticsGrid({
     analytics,
+    color,
     isConfiguring,
+    onReorder,
+    onRemove,
     onEntryClick,
 }: AnalyticsGridProps) {
-    const { tracker } = useTracker();
-
     // Local state to reflect current order
     const [orderedAnalytics, setOrderedAnalytics] = useState(analytics);
 
@@ -127,11 +129,7 @@ export function AnalyticsGrid({
         const newOrder = arrayMove(orderedAnalytics, oldIndex, newIndex);
         setOrderedAnalytics(newOrder); // update UI immediately
 
-        // Fire-and-forget backend update
-        analyticsController.updateAnalyticsOrder(
-            tracker.id,
-            newOrder.map((x) => x.id)
-        );
+        onReorder(newOrder.map((x) => x.id));
     };
 
     const renderCard = (analytic: AnalyticDto) => {
@@ -140,7 +138,9 @@ export function AnalyticsGrid({
                 return (
                     <SingleValueCardMemo
                         analytic={analytic as SingleValueAnalyticDto}
+                        color={color}
                         isConfiguring={isConfiguring}
+                        onRemove={onRemove}
                         onEntryClick={onEntryClick}
                     />
                 );
@@ -148,21 +148,27 @@ export function AnalyticsGrid({
                 return (
                     <LineChartCardMemo
                         analytic={analytic as LineChartAnalyticDto}
+                        color={color}
                         isConfiguring={isConfiguring}
+                        onRemove={onRemove}
                     />
                 );
             case AnalyticResultTypeEnum.ScatterChart:
                 return (
                     <ScatterChartCardMemo
                         analytic={analytic as ScatterChartAnalyticDto}
+                        color={color}
                         isConfiguring={isConfiguring}
+                        onRemove={onRemove}
                     />
                 );
             case AnalyticResultTypeEnum.Calendar:
                 return (
                     <CalendarChartCardMemo
                         analytic={analytic as CalendarAnalyticDto}
+                        color={color}
                         isConfiguring={isConfiguring}
+                        onRemove={onRemove}
                         onEntryClick={onEntryClick}
                     />
                 );
@@ -170,14 +176,18 @@ export function AnalyticsGrid({
                 return (
                     <DonutChartCardMemo
                         analytic={analytic as DonutChartAnaylticDto}
+                        color={color}
                         isConfiguring={isConfiguring}
+                        onRemove={onRemove}
                     />
                 );
             case AnalyticResultTypeEnum.BarChart:
                 return (
                     <BarChartCardMemo
                         analytic={analytic as BarChartAnalyticDto}
+                        color={color}
                         isConfiguring={isConfiguring}
+                        onRemove={onRemove}
                     />
                 );
             default:
@@ -212,7 +222,7 @@ export function AnalyticsGrid({
                                     id={analytic.id}
                                     isReordering={isConfiguring}
                                     index={index}
-                                    color={tracker.color}
+                                    color={color}
                                 >
                                     {renderCard(analytic)}
                                 </SortableCardWrapper>

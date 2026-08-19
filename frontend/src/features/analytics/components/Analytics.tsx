@@ -10,11 +10,13 @@ import {
     Text,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CiSettings } from "react-icons/ci";
 import { MdAdd } from "react-icons/md";
+import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import EntryDetailsDialog from "../../entries/components/EntryDetailsDialog";
 import { useTracker } from "../../trackers/context/TrackerContext";
+import { analyticsController } from "../api/analyticsController";
 import { useAnalytics } from "../context/AnalyticsContext";
 import AnalyticSelectionDialog from "./analyticSelection/AnalyticSelectionDialog";
 import { AnalyticsGrid } from "./AnalyticsGrid";
@@ -22,6 +24,7 @@ import { AnalyticsGrid } from "./AnalyticsGrid";
 export default function Analytics() {
     const { tracker, canEditSchema } = useTracker();
     const { refreshAnalytics, analytics, analyticsDirty } = useAnalytics();
+    const { removeAnalytic } = useTrackerOperations();
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
     const [isLoadingData, setIsLoadingData] = useState(analyticsDirty);
     const [openDialogType, setOpenDialogType] = useState<
@@ -39,6 +42,14 @@ export default function Analytics() {
         };
         loadData();
     }, [analyticsDirty]);
+
+    // Fire-and-forget backend update
+    const handleReorder = useCallback(
+        (orderedIds: string[]) => {
+            analyticsController.updateAnalyticsOrder(tracker.id, orderedIds);
+        },
+        [tracker],
+    );
 
     const hasAnalytics = analytics.length > 0;
 
@@ -100,7 +111,10 @@ export default function Analytics() {
                             {analytics && (
                                 <AnalyticsGrid
                                     analytics={analytics}
+                                    color={tracker.color}
                                     isConfiguring={isConfiguring}
+                                    onReorder={handleReorder}
+                                    onRemove={removeAnalytic}
                                     onEntryClick={setSelectedEntryId}
                                 />
                             )}

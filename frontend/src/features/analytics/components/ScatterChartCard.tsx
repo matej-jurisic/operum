@@ -2,8 +2,6 @@ import { ScatterChart } from "@mantine/charts";
 import { ActionIcon, em, Group, Paper, Stack, Text } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { MdDelete } from "react-icons/md";
-import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
-import { useTracker } from "../../trackers/context/TrackerContext";
 import { ScatterChartAnalyticDto } from "../types/AnalyticDto";
 import {
     createScatterTooltipContent,
@@ -12,15 +10,17 @@ import {
 
 interface ScatterChartCardProps {
     analytic: ScatterChartAnalyticDto;
+    color: string | undefined;
     isConfiguring: boolean;
+    onRemove?: (analyticId: string) => void;
 }
 
 export function ScatterChartCard({
     analytic,
+    color,
     isConfiguring,
+    onRemove,
 }: ScatterChartCardProps) {
-    const { tracker } = useTracker();
-    const { removeAnalytic } = useTrackerOperations();
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
 
     return (
@@ -32,12 +32,12 @@ export function ScatterChartCard({
                             {`${analytic.name}: ${analytic.xField.name} - ${analytic.yField.name}`}
                         </Text>
                     </Group>
-                    {isConfiguring && (
+                    {isConfiguring && onRemove && (
                         <ActionIcon
                             size="md"
-                            color={tracker.color}
+                            color={color}
                             variant="outline"
-                            onClick={() => removeAnalytic(analytic.id)}
+                            onClick={() => onRemove(analytic.id)}
                         >
                             <MdDelete size={18} />
                         </ActionIcon>
@@ -49,7 +49,7 @@ export function ScatterChartCard({
                     data={[
                         {
                             name: analytic.yField.name,
-                            color: tracker.color ?? "blue",
+                            color: color ?? "blue",
                             data: analytic.points,
                         },
                     ]}
@@ -63,7 +63,7 @@ export function ScatterChartCard({
                     tooltipProps={{
                         content: createScatterTooltipContent(
                             analytic,
-                            tracker.color ?? "blue",
+                            color ?? "blue",
                         ),
                     }}
                     dataKey={{ x: "x", y: "y" }}

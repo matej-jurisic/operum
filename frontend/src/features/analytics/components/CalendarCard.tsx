@@ -10,15 +10,15 @@ import {
 import { Calendar } from "@mantine/dates";
 import { useMemo, useState } from "react";
 import { MdArrowBack, MdDelete, MdLink } from "react-icons/md";
-import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
-import { useTracker } from "../../trackers/context/TrackerContext";
 import { CalendarAnalyticDto } from "../types/AnalyticDto";
 
 interface CalendarCardProps {
     analytic: CalendarAnalyticDto;
+    color: string | undefined;
     isConfiguring: boolean;
-    onEntryClick: (entryId: string) => void;
+    onRemove?: (analyticId: string) => void;
+    onEntryClick?: (entryId: string) => void;
 }
 
 const getDateKey = (date: Date): string => {
@@ -30,11 +30,11 @@ const getDateKey = (date: Date): string => {
 
 export function CalendarCard({
     analytic,
+    color,
     isConfiguring,
+    onRemove,
     onEntryClick,
 }: CalendarCardProps) {
-    const { tracker } = useTracker();
-    const { removeAnalytic } = useTrackerOperations();
     const [selectedDate, setSelectedDate] = useState<Date | undefined>();
     const [viewDate, setViewDate] = useState<Date>(new Date());
 
@@ -69,12 +69,12 @@ export function CalendarCard({
                             {`${analytic.name}: ${analytic.whenField.name} - ${analytic.whatField.name}`}
                         </Text>
                     </Group>
-                    {isConfiguring && (
+                    {isConfiguring && onRemove && (
                         <ActionIcon
                             size="md"
-                            color={tracker.color}
+                            color={color}
                             variant="outline"
-                            onClick={() => removeAnalytic(analytic.id)}
+                            onClick={() => onRemove(analytic.id)}
                         >
                             <MdDelete size={18} />
                         </ActionIcon>
@@ -102,7 +102,7 @@ export function CalendarCard({
                                 return (
                                     <Indicator
                                         size={9}
-                                        color={tracker.color || "blue"}
+                                        color={color || "blue"}
                                         offset={-2}
                                         disabled={!hasEvents}
                                     >
@@ -118,7 +118,7 @@ export function CalendarCard({
                             <ActionIcon
                                 size="sm"
                                 variant="subtle"
-                                color={tracker.color || "blue"}
+                                color={color || "blue"}
                                 onClick={() => setSelectedDate(undefined)}
                             >
                                 <MdArrowBack size={16} />
@@ -141,7 +141,7 @@ export function CalendarCard({
                                                 style={{
                                                     borderRadius: "6px",
                                                     borderLeft: `3px solid var(--mantine-color-${
-                                                        tracker.color || "blue"
+                                                        color || "blue"
                                                     }-6)`,
                                                 }}
                                             >
@@ -168,16 +168,18 @@ export function CalendarCard({
                                                             )}
                                                         </Text>
                                                     </Stack>
-                                                    <ActionIcon
-                                                        color={tracker.color}
-                                                        onClick={() =>
-                                                            onEntryClick(
-                                                                event.entryId,
-                                                            )
-                                                        }
-                                                    >
-                                                        <MdLink size={18} />
-                                                    </ActionIcon>
+                                                    {onEntryClick && (
+                                                        <ActionIcon
+                                                            color={color}
+                                                            onClick={() =>
+                                                                onEntryClick(
+                                                                    event.entryId,
+                                                                )
+                                                            }
+                                                        >
+                                                            <MdLink size={18} />
+                                                        </ActionIcon>
+                                                    )}
                                                 </Group>
                                             </Paper>
                                         ),

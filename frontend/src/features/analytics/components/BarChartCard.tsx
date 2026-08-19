@@ -2,8 +2,6 @@ import { BarChart } from "@mantine/charts";
 import { ActionIcon, em, Group, Paper, Stack, Text } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { MdDelete } from "react-icons/md";
-import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
-import { useTracker } from "../../trackers/context/TrackerContext";
 import { BarChartAnalyticDto } from "../types/AnalyticDto";
 import {
     createBarChartTooltipContent,
@@ -12,12 +10,17 @@ import {
 
 interface Props {
     analytic: BarChartAnalyticDto;
+    color: string | undefined;
     isConfiguring: boolean;
+    onRemove?: (analyticId: string) => void;
 }
 
-export function BarChartCard({ analytic, isConfiguring }: Props) {
-    const { tracker } = useTracker();
-    const { removeAnalytic } = useTrackerOperations();
+export function BarChartCard({
+    analytic,
+    color,
+    isConfiguring,
+    onRemove,
+}: Props) {
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
 
     const subtitle = analytic.valueField
@@ -31,12 +34,12 @@ export function BarChartCard({ analytic, isConfiguring }: Props) {
                     <Text size="sm" mb="sm">
                         {`${analytic.name}: ${subtitle}`}
                     </Text>
-                    {isConfiguring && (
+                    {isConfiguring && onRemove && (
                         <ActionIcon
                             size="md"
-                            color={tracker.color}
+                            color={color}
                             variant="outline"
-                            onClick={() => removeAnalytic(analytic.id)}
+                            onClick={() => onRemove(analytic.id)}
                         >
                             <MdDelete size={18} />
                         </ActionIcon>
@@ -49,7 +52,7 @@ export function BarChartCard({ analytic, isConfiguring }: Props) {
                     series={[
                         {
                             name: "value",
-                            color: tracker.color ?? "blue",
+                            color: color ?? "blue",
                             label: analytic.valueField?.name ?? "Count",
                         },
                     ]}
@@ -67,7 +70,7 @@ export function BarChartCard({ analytic, isConfiguring }: Props) {
                     tooltipProps={{
                         content: createBarChartTooltipContent(
                             analytic,
-                            tracker.color ?? "blue",
+                            color ?? "blue",
                         ),
                     }}
                 />

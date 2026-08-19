@@ -11,6 +11,8 @@ namespace Operum.Service.Integrations.MailSender
     {
         private readonly MailGunConfigurationModel _settings = settings.Value;
 
+        public bool IsEnabled => !string.IsNullOrWhiteSpace(_settings.ApiKey);
+
         public async Task<RestResponse> SendMailConfirmationMail(string userName, string email, string callbackUrl)
         {
             var options = new RestClientOptions(_settings.ApiBase)

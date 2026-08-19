@@ -2,19 +2,22 @@ import { LineChart } from "@mantine/charts";
 import { ActionIcon, em, Group, Paper, Stack, Text } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { MdDelete } from "react-icons/md";
-import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
-import { useTracker } from "../../trackers/context/TrackerContext";
 import { LineChartAnalyticDto } from "../types/AnalyticDto";
 import { createTooltipContent, getAxisFormatter } from "./ChartFormatters";
 
 interface LineChartCardProps {
     analytic: LineChartAnalyticDto;
+    color: string | undefined;
     isConfiguring: boolean;
+    onRemove?: (analyticId: string) => void;
 }
 
-export function LineChartCard({ analytic, isConfiguring }: LineChartCardProps) {
-    const { tracker } = useTracker();
-    const { removeAnalytic } = useTrackerOperations();
+export function LineChartCard({
+    analytic,
+    color,
+    isConfiguring,
+    onRemove,
+}: LineChartCardProps) {
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
 
     return (
@@ -26,12 +29,12 @@ export function LineChartCard({ analytic, isConfiguring }: LineChartCardProps) {
                             {`${analytic.name}: ${analytic.xField.name} - ${analytic.yField.name}`}
                         </Text>
                     </Group>
-                    {isConfiguring && (
+                    {isConfiguring && onRemove && (
                         <ActionIcon
                             size="md"
-                            color={tracker.color}
+                            color={color}
                             variant="outline"
-                            onClick={() => removeAnalytic(analytic.id)}
+                            onClick={() => onRemove(analytic.id)}
                         >
                             <MdDelete size={18} />
                         </ActionIcon>
@@ -46,7 +49,7 @@ export function LineChartCard({ analytic, isConfiguring }: LineChartCardProps) {
                     series={[
                         {
                             name: "y",
-                            color: tracker.color,
+                            color: color,
                             label: analytic.yField.name,
                         },
                     ]}
@@ -57,10 +60,7 @@ export function LineChartCard({ analytic, isConfiguring }: LineChartCardProps) {
                         tickFormatter: getAxisFormatter(analytic.yField.type),
                     }}
                     tooltipProps={{
-                        content: createTooltipContent(
-                            analytic,
-                            tracker.color ?? "blue",
-                        ),
+                        content: createTooltipContent(analytic, color ?? "blue"),
                     }}
                 />
             </Stack>
