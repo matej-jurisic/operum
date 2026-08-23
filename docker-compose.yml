@@ -3,15 +3,15 @@ services:
     image: postgres:15-alpine
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: secret
-      POSTGRES_DB: operumdb
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-operumdb}
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
       - "127.0.0.1:5433:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -22,6 +22,10 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env
+    environment:
+      # Built from POSTGRES_USER/PASSWORD/DB above so the DB credentials
+      # only need to be set in one place.
+      ConnectionStrings__Operum: User ID=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-postgres};Host=postgres;Port=5432;Database=${POSTGRES_DB:-operumdb};
     depends_on:
       postgres:
         condition: service_healthy
@@ -43,18 +47,22 @@ services:
     ports:
       - "3000:80"
 
+  # Monitoring stack - off by default (see COMPOSE_PROFILES in .env.example).
+  # Not needed for local dev/testing; the production host enables it.
   prometheus:
     image: prom/prometheus
+    profiles: ["monitoring"]
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
 
   grafana:
     image: grafana/grafana
+    profiles: ["monitoring"]
     ports:
       - "3001:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
       - GF_SERVER_ROOT_URL=https://operum.app/grafana/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
     volumes:
@@ -62,11 +70,13 @@ services:
 
   node_exporter:
     image: prom/node-exporter
+    profiles: ["monitoring"]
 
   postgres_exporter:
     image: prometheuscommunity/postgres-exporter
+    profiles: ["monitoring"]
     environment:
-      DATA_SOURCE_NAME: "postgresql://postgres:secret@postgres:5432/operumdb?sslmode=disable"
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-operumdb}?sslmode=disable"
 
 volumes:
   pgdata:

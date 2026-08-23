@@ -57,10 +57,15 @@ project.lock.json
 project.fragment.lock.json
 Generated\ Files/
 
-# Ignore ASP.NET Core specific files
+# Ignore ASP.NET Core specific files (these hold real secrets locally)
 appsettings*.json
 secrets.json
 ScaffoldingReadMe.txt
+# ...except appsettings.Production.json, which only holds non-secret static
+# defaults (issuer strings, timeouts, etc.) and is meant to be tracked so a
+# fresh deploy doesn't need it hand-created on the server.
+!appsettings.Production.json
+!**/appsettings.Production.json
 
 # Ignore Azure and deployment-related files
 PublishScripts/
@@ -102,6 +107,8 @@ dist-ssr/
 # Ignore environment variables
 .env
 .env.*
+!.env.example
+!**/.env.example
 
 # Ignore local history and IDE configs
 .localhistory/

@@ -5,6 +5,7 @@ import {
     Tooltip,
     useMantineTheme,
 } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { createElement } from "react";
 import { FiPlus } from "react-icons/fi";
 import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
@@ -24,10 +25,11 @@ export default function BoardSwitcher({
     onCreate,
 }: Props) {
     const theme = useMantineTheme();
+    const isMobile = useMediaQuery("(max-width: 48em)");
 
     return (
         <ScrollArea
-            type="hover"
+            type="auto"
             scrollbarSize={6}
             offsetScrollbars="x"
             style={{ minWidth: 0 }}
@@ -40,23 +42,36 @@ export default function BoardSwitcher({
                             ? board.color
                             : "indigo";
                     const isActive = board.id === activeBoardId;
+                    // On mobile, only the active board keeps its label so more
+                    // pills fit on screen at once; the rest collapse to icons.
+                    const showLabel = !isMobile || isActive;
 
                     return (
-                        <Button
+                        <Tooltip
                             key={board.id}
-                            size="sm"
-                            radius="xl"
-                            color={color}
-                            variant={isActive ? "filled" : "outline"}
-                            onClick={() => onSelect(board.id)}
-                            leftSection={createElement(
-                                resolveTrackerIcon(board.icon),
-                                { size: 16 },
-                            )}
-                            style={{ flexShrink: 0 }}
+                            label={board.name}
+                            withArrow
+                            disabled={showLabel}
                         >
-                            {board.name}
-                        </Button>
+                            <Button
+                                size="sm"
+                                radius="xl"
+                                color={color}
+                                variant={isActive ? "filled" : "outline"}
+                                onClick={() => onSelect(board.id)}
+                                px={showLabel ? undefined : "xs"}
+                                leftSection={createElement(
+                                    resolveTrackerIcon(board.icon),
+                                    { size: 16 },
+                                )}
+                                style={{ flexShrink: 0 }}
+                                aria-label={
+                                    showLabel ? undefined : board.name
+                                }
+                            >
+                                {showLabel && board.name}
+                            </Button>
+                        </Tooltip>
                     );
                 })}
                 <Tooltip label="New board" withArrow>

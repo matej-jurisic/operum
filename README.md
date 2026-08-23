@@ -58,23 +58,38 @@ Admins can publish tracker templates that any user can clone as a starting point
 
 ## Setup & Installation
 
-Requires Docker and Docker Compose.
+Requires Docker and Docker Compose. Everything the containers need lives in one root `.env` file.
 
 ```bash
-cp backend/src/Operum.API/appsettings.Example.txt backend/src/Operum.API/appsettings.json
-cp frontend/.env.example frontend/.env
-# Fill in both files, then:
+cp .env.example .env
+./setup.ps1        # Windows — fills in .env.example's __GENERATE__ placeholders
+./setup.sh          # macOS/Linux — same, run instead of setup.ps1
 docker-compose up -d
 ```
+
+`setup.ps1`/`setup.sh` generate a JWT signing key, DB password, admin login password, Grafana password, and (if Node is available) a VAPID keypair for web push, and write them into `.env`. Re-running is safe — it only fills in placeholders it finds, and prints the generated admin login at the end. You can skip the script and fill in `.env` by hand instead; see the comments in `.env.example` for what each value does.
 
 | Service | URL |
 |---|---|
 | App | http://localhost:3000 |
 | API | http://localhost:5000/api |
 | Swagger | http://localhost:5000/api/swagger/index.html |
-| Grafana | http://localhost:3001 |
+| Grafana | http://localhost:3001 (only with `COMPOSE_PROFILES=monitoring` in `.env`) |
 
-Key settings: `ConnectionStrings.Operum`, `JwtSettings.Key`, `MailGun.ApiKey`, `Google.ClientId`, `VITE_REACT_API_URL`.
+A default admin (`admin@example.com`) and test user (`test@example.com`) are seeded automatically on first run; the setup script prints their passwords.
+
+Key settings in `.env`: `ConnectionStrings__Operum` (built from `POSTGRES_*`), `JwtSettings__Key`, `MailGun__ApiKey`, `AUTHENTICATION__GOOGLE__CLIENTID`, `VITE_REACT_API_URL`.
+
+### Running natively (without Docker)
+
+For backend hot-reload during development:
+
+```bash
+docker-compose up -d postgres          # DB only
+./setup.ps1 -Dev    # or ./setup.sh --dev - also writes appsettings.Development.json
+cd backend/src/Operum.API && dotnet run
+cd frontend && npm install && npm run dev
+```
 
 ---
 

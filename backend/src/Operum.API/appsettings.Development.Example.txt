@@ -1,0 +1,53 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "ConnectionStrings": {
+    "Operum": "User ID=postgres;Password=postgres;Host=localhost;Port=5433;Database=operumdb"
+  },
+  "AdminUserPassword": "",
+  "AllowedHosts": "*",
+  "ClientUrl": "https://localhost:3000",
+  "ServerUrl": "https://localhost:7129",
+  "JwtSettings": {
+    "Key": "",
+    "Issuer": "Operum backend",
+    "Audience": "Operum client",
+    "JwtExpiryMinutes": 20,
+    "RefreshExpiryHours": 24
+  },
+  "Authentication": {
+    "Google": {
+      "ClientId": "",
+      "ClientSecret": ""
+    }
+  },
+  "MailGun": {
+    "ApiKey": "",
+    "ApiBase": "https://api.eu.mailgun.net",
+    "ApiRoute": "/v3/operum.app/messages"
+  },
+  "Features": {
+    "Notifications": false
+  },
+  "Notifications": {
+    "EvalIntervalMinutes": 10
+  },
+  "Vapid": {
+    "Subject": "mailto:you@example.com",
+    "PublicKey": "",
+    "PrivateKey": ""
+  },
+  "RateLimiting": {
+    "WindowMinutes": 1,
+    "PermitLimit": 120,
+    "QueueLimit": 10
+  },
+  "Lockout": {
+    "DurationMinutes": 30,
+    "MaxFailedAttempts": 5
+  }
+}

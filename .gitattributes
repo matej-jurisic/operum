@@ -4,6 +4,13 @@
 * text=auto
 
 ###############################################################################
+# Shell scripts must keep LF endings even on a Windows checkout, or they
+# fail with "$'\r': command not found" when run in bash (e.g. on the
+# Linux deploy host).
+###############################################################################
+*.sh text eol=lf
+
+###############################################################################
 # Set default behavior for command prompt diff.
 #
 # This is need for earlier builds of msysgit that does not have it on by
