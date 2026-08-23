@@ -1,13 +1,14 @@
 import {
     Button,
     Group,
+    Menu,
     ScrollArea,
     Tooltip,
     useMantineTheme,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { createElement } from "react";
-import { FiPlus } from "react-icons/fi";
+import { FiCheck, FiChevronDown, FiPlus } from "react-icons/fi";
 import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
 import { DashboardDto } from "../types/DashboardDto";
 
@@ -27,6 +28,78 @@ export default function BoardSwitcher({
     const theme = useMantineTheme();
     const isMobile = useMediaQuery("(max-width: 48em)");
 
+    const resolveColor = (board: DashboardDto) =>
+        board.color && board.color in theme.colors ? board.color : "indigo";
+
+    if (isMobile) {
+        const activeBoard = boards.find((b) => b.id === activeBoardId);
+        const color = activeBoard ? resolveColor(activeBoard) : "indigo";
+
+        return (
+            <Menu shadow="md" position="bottom-start" withinPortal>
+                <Menu.Target>
+                    <Button
+                        size="sm"
+                        radius="xl"
+                        color={color}
+                        variant="outline"
+                        leftSection={
+                            activeBoard &&
+                            createElement(
+                                resolveTrackerIcon(activeBoard.icon),
+                                { size: 16 },
+                            )
+                        }
+                        rightSection={<FiChevronDown size={14} />}
+                        style={{ minWidth: 0, flex: 1 }}
+                        styles={{
+                            label: {
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                            },
+                            inner: { justifyContent: "space-between" },
+                        }}
+                        fullWidth
+                    >
+                        {activeBoard?.name}
+                    </Button>
+                </Menu.Target>
+                <Menu.Dropdown miw={220}>
+                    {boards.map((board) => {
+                        const isActive = board.id === activeBoardId;
+                        return (
+                            <Menu.Item
+                                key={board.id}
+                                leftSection={createElement(
+                                    resolveTrackerIcon(board.icon),
+                                    { size: 16 },
+                                )}
+                                rightSection={
+                                    isActive && <FiCheck size={16} />
+                                }
+                                onClick={() => onSelect(board.id)}
+                                fw={isActive ? 600 : undefined}
+                                color={
+                                    isActive ? resolveColor(board) : undefined
+                                }
+                            >
+                                {board.name}
+                            </Menu.Item>
+                        );
+                    })}
+                    <Menu.Divider />
+                    <Menu.Item
+                        leftSection={<FiPlus size={16} />}
+                        onClick={onCreate}
+                    >
+                        New board
+                    </Menu.Item>
+                </Menu.Dropdown>
+            </Menu>
+        );
+    }
+
     return (
         <ScrollArea
             type="auto"
@@ -37,41 +110,25 @@ export default function BoardSwitcher({
         >
             <Group gap="xs" wrap="nowrap">
                 {boards.map((board) => {
-                    const color =
-                        board.color && board.color in theme.colors
-                            ? board.color
-                            : "indigo";
+                    const color = resolveColor(board);
                     const isActive = board.id === activeBoardId;
-                    // On mobile, only the active board keeps its label so more
-                    // pills fit on screen at once; the rest collapse to icons.
-                    const showLabel = !isMobile || isActive;
 
                     return (
-                        <Tooltip
+                        <Button
                             key={board.id}
-                            label={board.name}
-                            withArrow
-                            disabled={showLabel}
+                            size="sm"
+                            radius="xl"
+                            color={color}
+                            variant={isActive ? "filled" : "outline"}
+                            onClick={() => onSelect(board.id)}
+                            leftSection={createElement(
+                                resolveTrackerIcon(board.icon),
+                                { size: 16 },
+                            )}
+                            style={{ flexShrink: 0 }}
                         >
-                            <Button
-                                size="sm"
-                                radius="xl"
-                                color={color}
-                                variant={isActive ? "filled" : "outline"}
-                                onClick={() => onSelect(board.id)}
-                                px={showLabel ? undefined : "xs"}
-                                leftSection={createElement(
-                                    resolveTrackerIcon(board.icon),
-                                    { size: 16 },
-                                )}
-                                style={{ flexShrink: 0 }}
-                                aria-label={
-                                    showLabel ? undefined : board.name
-                                }
-                            >
-                                {showLabel && board.name}
-                            </Button>
-                        </Tooltip>
+                            {board.name}
+                        </Button>
                     );
                 })}
                 <Tooltip label="New board" withArrow>

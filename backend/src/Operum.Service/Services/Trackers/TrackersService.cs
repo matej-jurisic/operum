@@ -598,17 +598,15 @@ namespace Operum.Service.Services.Trackers
                 .OrderBy(a => a.Order)
                 .ToListAsync();
 
-            var summaries = analytics.Select(a =>
+            var summaries = analytics.Select(a => new AnalyticSummaryDto
             {
-                var label = AnalyticDefinitionList.GetLabel(a.ResultType, a.Code);
-                var fieldNames = a.AnalyticFields
-                    .Where(af => af.Field != null)
-                    .Select(af => af.Field.Name)
-                    .ToList();
-                var name = fieldNames.Count > 0
-                    ? $"{label}: {string.Join(", ", fieldNames)}"
-                    : label;
-                return new AnalyticSummaryDto { Id = a.Id, Name = name, ResultType = a.ResultType };
+                Id = a.Id,
+                Name = AnalyticDefinitionList.GetDisplayName(
+                    a.ResultType,
+                    a.Code,
+                    a.AnalyticFields.Where(af => af.Field != null).Select(af => af.Field.Name)),
+                ResultType = a.ResultType,
+                Code = a.Code
             }).ToList();
 
             return Result.Success(summaries);

@@ -44,3 +44,17 @@ export interface BarChartAnalyticDto extends AnalyticDto {
     valueField?: FieldDto;
     points: { name: string; value: number }[];
 }
+
+export interface ComposedChartSeriesDto {
+    key: string;
+    label: string;
+    renderType: "line" | "bar";
+    xField: FieldDto;
+    valueField: FieldDto;
+    points: { x: string; y: number }[];
+}
+
+export interface ComposedChartAnalyticDto extends AnalyticDto {
+    series: ComposedChartSeriesDto[];
+    warnings: string[];
+}

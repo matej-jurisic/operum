@@ -9,6 +9,7 @@ import {
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 import {
     BarChartAnalyticDto,
+    ComposedChartAnalyticDto,
     DonutChartAnaylticDto,
     LineChartAnalyticDto,
     ScatterChartAnalyticDto,
@@ -112,6 +113,47 @@ export const createBarChartTooltipContent = (
                         {f(value)}
                     </Text>
                 </Group>
+            </Paper>
+        );
+    };
+};
+
+export const createComposedTooltipContent = (analytic: ComposedChartAnalyticDto) => {
+    return ({ payload, label }: any) => {
+        if (!payload?.length) return null;
+
+        // Sources may bucket by different x semantics (dates vs. category names), so this
+        // shared axis label is only formatted using the first series' field type — see the
+        // `warnings` surfaced on the card for when that's not accurate for every series.
+        const xField = analytic.series[0]?.xField;
+
+        return (
+            <Paper p="sm" shadow="sm" withBorder>
+                <Text size="sm" c="dimmed" mb="xs">
+                    {xField ? renderValue(xField.type, label) : label}
+                </Text>
+                <Stack gap={4}>
+                    {payload.map((entry: any) => {
+                        const series = analytic.series.find((s) => s.key === entry.dataKey);
+                        if (!series || entry.value == null) return null;
+                        const f = getAxisFormatter(series.valueField.type);
+
+                        return (
+                            <Group key={entry.dataKey} gap="xs" wrap="nowrap" maw={300}>
+                                <Box
+                                    w={10}
+                                    h={10}
+                                    style={{ borderRadius: "50%" }}
+                                    bg={entry.color}
+                                />
+                                <Text size="sm">{series.label}</Text>
+                                <Text size="sm" ml="auto">
+                                    {f ? f(entry.value) : entry.value}
+                                </Text>
+                            </Group>
+                        );
+                    })}
+                </Stack>
             </Paper>
         );
     };

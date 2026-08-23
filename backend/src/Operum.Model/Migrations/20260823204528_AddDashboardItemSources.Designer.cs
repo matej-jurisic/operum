@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Operum.Model;
@@ -11,9 +12,11 @@ using Operum.Model;
 namespace Operum.Model.Migrations
 {
     [DbContext(typeof(OperumContext))]
-    partial class OperumContextModelSnapshot : ModelSnapshot
+    [Migration("20260823204528_AddDashboardItemSources")]
+    partial class AddDashboardItemSources
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -266,9 +269,7 @@ namespace Operum.Model.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("AnalyticId")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Code")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("DashboardItemId")
@@ -280,9 +281,6 @@ namespace Operum.Model.Migrations
 
                     b.Property<int>("Order")
                         .HasColumnType("integer");
-
-                    b.Property<string>("ResultType")
-                        .HasColumnType("text");
 
                     b.Property<string>("TrackerId")
                         .IsRequired()
@@ -300,32 +298,6 @@ namespace Operum.Model.Migrations
                     b.HasIndex("TrackerId");
 
                     b.ToTable("DashboardItemSources");
-                });
-
-            modelBuilder.Entity("Operum.Model.Models.DashboardItemSourceField", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
-
-                    b.Property<string>("DashboardItemSourceId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("FieldId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Purpose")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DashboardItemSourceId");
-
-                    b.HasIndex("FieldId");
-
-                    b.ToTable("DashboardItemSourceFields");
                 });
 
             modelBuilder.Entity("Operum.Model.Models.Entry", b =>
@@ -1145,7 +1117,8 @@ namespace Operum.Model.Migrations
                     b.HasOne("Operum.Model.Models.Analytic", "Analytic")
                         .WithMany()
                         .HasForeignKey("AnalyticId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("Operum.Model.Models.DashboardItem", "DashboardItem")
                         .WithMany("Sources")
@@ -1164,25 +1137,6 @@ namespace Operum.Model.Migrations
                     b.Navigation("DashboardItem");
 
                     b.Navigation("Tracker");
-                });
-
-            modelBuilder.Entity("Operum.Model.Models.DashboardItemSourceField", b =>
-                {
-                    b.HasOne("Operum.Model.Models.DashboardItemSource", "DashboardItemSource")
-                        .WithMany("Fields")
-                        .HasForeignKey("DashboardItemSourceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Operum.Model.Models.Field", "Field")
-                        .WithMany()
-                        .HasForeignKey("FieldId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("DashboardItemSource");
-
-                    b.Navigation("Field");
                 });
 
             modelBuilder.Entity("Operum.Model.Models.Entry", b =>
@@ -1490,11 +1444,6 @@ namespace Operum.Model.Migrations
             modelBuilder.Entity("Operum.Model.Models.DashboardItem", b =>
                 {
                     b.Navigation("Sources");
-                });
-
-            modelBuilder.Entity("Operum.Model.Models.DashboardItemSource", b =>
-                {
-                    b.Navigation("Fields");
                 });
 
             modelBuilder.Entity("Operum.Model.Models.Entry", b =>

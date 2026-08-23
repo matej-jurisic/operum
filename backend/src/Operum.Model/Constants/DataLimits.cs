@@ -14,5 +14,6 @@
         public const int MaxRecalculateCount = 40;
         public const int MaxDashboardCount = 20;
         public const int MaxDashboardItemCount = 10;
+        public const int MaxDashboardItemSourceCount = 5;
     }
 }

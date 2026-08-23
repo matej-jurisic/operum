@@ -281,6 +281,25 @@ namespace Operum.Model.Constants.Analytics.Definitions
             codeDef.AllowedDataTypes.TryGetValue(purpose, out var allowed) &&
             allowed.Contains(dataType);
 
+        // The purposes a given code needs mapped to a field. AllowedDataTypes is keyed by
+        // purpose and only lists the ones that code actually uses, so its keys are exactly
+        // the required set (e.g. "Count per Category" needs Name but not Value).
+        public static IReadOnlyCollection<string> GetRequiredPurposes(string resultType, string code) =>
+            ByResultType.TryGetValue(resultType, out var def) &&
+            def.Codes.TryGetValue(code, out var codeDef)
+                ? codeDef.AllowedDataTypes.Keys
+                : [];
+
+        // The human-readable name for an analytic, e.g. "Monthly Totals: Day, Amount".
+        // Shared by tracker analytic summaries and dashboard sources so a saved and an
+        // ad hoc analytic with the same definition read identically.
+        public static string GetDisplayName(string resultType, string code, IEnumerable<string> fieldNames)
+        {
+            var label = GetLabel(resultType, code);
+            var names = fieldNames.Where(n => !string.IsNullOrEmpty(n)).ToList();
+            return names.Count > 0 ? $"{label}: {string.Join(", ", names)}" : label;
+        }
+
         public static string GetLabel(string resultType, string code) =>
             ByResultType.TryGetValue(resultType, out var def) &&
             def.Codes.TryGetValue(code, out var codeDef) &&

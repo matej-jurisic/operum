@@ -23,6 +23,7 @@ import {
     AnalyticDto,
     BarChartAnalyticDto,
     CalendarAnalyticDto,
+    ComposedChartAnalyticDto,
     DonutChartAnaylticDto,
     LineChartAnalyticDto,
     ScatterChartAnalyticDto,
@@ -30,6 +31,7 @@ import {
 } from "../types/AnalyticDto";
 import { BarChartCard } from "./BarChartCard";
 import { CalendarCard } from "./CalendarCard";
+import { ComposedChartCard } from "./ComposedChartCard";
 import { DonutChartCard } from "./DonutChartCard";
 import { LineChartCard } from "./LineChartCard";
 import { closestToPointer } from "./MasonryCollision";
@@ -42,6 +44,7 @@ export const ScatterChartCardMemo = React.memo(ScatterChartCard);
 export const CalendarChartCardMemo = React.memo(CalendarCard);
 export const DonutChartCardMemo = React.memo(DonutChartCard);
 export const BarChartCardMemo = React.memo(BarChartCard);
+export const ComposedChartCardMemo = React.memo(ComposedChartCard);
 
 interface AnalyticsGridProps {
     analytics: AnalyticDto[];
@@ -185,6 +188,15 @@ export function AnalyticsGrid({
                 return (
                     <BarChartCardMemo
                         analytic={analytic as BarChartAnalyticDto}
+                        color={color}
+                        isConfiguring={isConfiguring}
+                        onRemove={onRemove}
+                    />
+                );
+            case AnalyticResultTypeEnum.Composed:
+                return (
+                    <ComposedChartCardMemo
+                        analytic={analytic as ComposedChartAnalyticDto}
                         color={color}
                         isConfiguring={isConfiguring}
                         onRemove={onRemove}

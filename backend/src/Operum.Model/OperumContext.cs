@@ -63,6 +63,34 @@ namespace Operum.Model
                 .HasForeignKey(i => i.DashboardId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            builder.Entity<DashboardItemSource>()
+                .HasOne(s => s.DashboardItem)
+                .WithMany(i => i.Sources)
+                .HasForeignKey(s => s.DashboardItemId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // AnalyticId is optional (null for ad hoc sources that carry their own
+            // definition), but when it is set, deleting that analytic still takes the
+            // source with it — a source pointing at a deleted analytic can't render.
+            builder.Entity<DashboardItemSource>()
+                .HasOne(s => s.Analytic)
+                .WithMany()
+                .HasForeignKey(s => s.AnalyticId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<DashboardItemSourceField>()
+                .HasOne(f => f.DashboardItemSource)
+                .WithMany(s => s.Fields)
+                .HasForeignKey(f => f.DashboardItemSourceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<DashboardItemSourceField>()
+                .HasOne(f => f.Field)
+                .WithMany()
+                .HasForeignKey(f => f.FieldId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             builder.Entity<TrackerNotification>()
                 .HasOne(n => n.Tracker)
                 .WithMany(t => t.Notifications)
@@ -142,6 +170,8 @@ namespace Operum.Model
         public DbSet<TrackerConstantValueFilter> TrackerConstantValueFilters { get; set; }
         public DbSet<Dashboard> Dashboards { get; set; }
         public DbSet<DashboardItem> DashboardItems { get; set; }
+        public DbSet<DashboardItemSource> DashboardItemSources { get; set; }
+        public DbSet<DashboardItemSourceField> DashboardItemSourceFields { get; set; }
         public DbSet<TrackerNotification> TrackerNotifications { get; set; }
         public DbSet<NotificationEvent> NotificationEvents { get; set; }
         public DbSet<NotificationCondition> NotificationConditions { get; set; }
