@@ -32,6 +32,8 @@ export interface DashboardItemDto {
     /** The single analytic definition every source below is calculated with. */
     resultType: string;
     code: string;
+    /** Combined charts only: whether the chart is restricted to x-axis values shared by every source. */
+    matchedValuesOnly: boolean;
     sources: DashboardItemSourceDto[];
 }
 
@@ -61,5 +63,7 @@ export interface AddDashboardItemSourceDto {
 export interface AddDashboardItemDto {
     resultType: string;
     code: string;
+    /** Combined charts only: keep just the x-axis values every source has a point for. */
+    matchedValuesOnly?: boolean;
     sources: AddDashboardItemSourceDto[];
 }

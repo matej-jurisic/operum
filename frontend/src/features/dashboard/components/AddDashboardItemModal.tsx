@@ -1,7 +1,7 @@
 import {
     ActionIcon,
-    Box,
     Button,
+    Checkbox,
     Group,
     Modal,
     MultiSelect,
@@ -11,12 +11,13 @@ import {
     Text,
 } from "@mantine/core";
 import { useEffect, useMemo, useState } from "react";
-import { MdAdd, MdDelete, MdWarningAmber } from "react-icons/md";
+import { MdAdd, MdDelete } from "react-icons/md";
 import { analyticsController } from "../../analytics/api/analyticsController";
 import { AnalyticResultTypeEnum } from "../../analytics/enums/AnalyticResultTypeEnum";
 import {
     AnalyticConfigDto,
     CodeDto,
+    PurposeDto,
     ResultTypeDto,
 } from "../../analytics/types/AnalyticConfigDto";
 import { fieldsController } from "../../fields/api/fieldsController";
@@ -74,6 +75,7 @@ export function AddDashboardItemModal({ onClose, onAdd }: Props) {
     const [resultType, setResultType] = useState<string | null>(null);
     const [code, setCode] = useState<string | null>(null);
     const [rows, setRows] = useState<TrackerRow[]>([makeEmptyRow()]);
+    const [matchedValuesOnly, setMatchedValuesOnly] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
@@ -117,8 +119,10 @@ export function AddDashboardItemModal({ onClose, onAdd }: Props) {
         clearFieldMappings();
         // Extra trackers only exist to be merged into one chart, which the new type may
         // not support.
-        if (!value || !COMBINABLE_TYPES.includes(value))
+        if (!value || !COMBINABLE_TYPES.includes(value)) {
             setRows((prev) => prev.slice(0, 1));
+            setMatchedValuesOnly(false);
+        }
     };
 
     const handleCodeChange = (value: string | null) => {
@@ -156,26 +160,33 @@ export function AddDashboardItemModal({ onClose, onAdd }: Props) {
         !!selectedCode &&
         selectedCode.purposes.every((p) => !!row.fieldMappings[p.name]);
 
-    // Mirrors DashboardService.BuildComposedResult's warning, so the user sees this before
-    // adding the item rather than only after, on the dashboard. Sharing one definition
-    // leaves the x-axis field type as the last thing rows can disagree on.
-    const xAxisWarning = useMemo(() => {
-        if (rows.length < 2 || !resultType) return null;
+    // The purpose that lands on the shared x-axis, for the type currently selected.
+    const xAxisPurpose = resultType ? X_AXIS_PURPOSE[resultType] : undefined;
 
-        const purpose = X_AXIS_PURPOSE[resultType];
-        // Rows that have not picked their x-axis field yet say nothing about alignment.
-        const types = new Set(
-            rows
-                .map(
-                    (row) =>
-                        row.fields.find((f) => f.id === row.fieldMappings[purpose])?.type
-                )
-                .filter((type): type is string => !!type)
-        );
-        return types.size > 1
-            ? "These trackers plot different kinds of value on the x-axis, alignment may be misleading."
-            : null;
-    }, [rows, resultType]);
+    // Sharing one definition leaves the x-axis field type as the last thing rows can
+    // disagree on, and a combined chart draws them all on a single axis formatted from the
+    // first series. Rather than let a mismatch through and warn about it afterwards
+    // (DashboardService.BuildComposedResult still does, defensively), the first row's choice
+    // narrows what the later rows are offered.
+    const xAxisType = useMemo(() => {
+        if (!xAxisPurpose) return undefined;
+        const first = rows[0];
+        return first?.fields.find((f) => f.id === first.fieldMappings[xAxisPurpose])?.type;
+    }, [rows, xAxisPurpose]);
+
+    // Fields of `row` that may fill `purpose`: the data types the analytic allows for it,
+    // narrowed to the first row's x-axis type once that is what is being picked.
+    const fieldOptionsFor = (row: TrackerRow, purpose: PurposeDto, index: number) =>
+        row.fields
+            .filter((f) => purpose.allowedDataTypes.includes(f.type))
+            .filter(
+                (f) =>
+                    index === 0 ||
+                    purpose.name !== xAxisPurpose ||
+                    !xAxisType ||
+                    f.type === xAxisType
+            )
+            .map((f) => ({ value: f.id, label: f.name }));
 
     const handleSubmit = async () => {
         if (!canSubmit) return;
@@ -183,6 +194,7 @@ export function AddDashboardItemModal({ onClose, onAdd }: Props) {
         await onAdd({
             resultType: resultType!,
             code: code!,
+            matchedValuesOnly: rows.length > 1 && matchedValuesOnly,
             sources: rows.map((row) => ({
                 trackerId: row.trackerId!,
                 analyticFields: Object.entries(row.fieldMappings)
@@ -266,14 +278,7 @@ export function AddDashboardItemModal({ onClose, onAdd }: Props) {
                                         placeholder={`Select field (${purpose.allowedDataTypes.join(
                                             ", "
                                         )})`}
-                                        data={row.fields
-                                            .filter((f) =>
-                                                purpose.allowedDataTypes.includes(f.type)
-                                            )
-                                            .map((f) => ({
-                                                value: f.id,
-                                                label: f.name,
-                                            }))}
+                                        data={fieldOptionsFor(row, purpose, index)}
                                         value={row.fieldMappings[purpose.name] || null}
                                         onChange={(value) =>
                                             updateRow(index, {
@@ -285,6 +290,13 @@ export function AddDashboardItemModal({ onClose, onAdd }: Props) {
                                         }
                                         disabled={!row.trackerId}
                                         clearable
+                                        description={
+                                            index > 0 &&
+                                            purpose.name === xAxisPurpose &&
+                                            xAxisType
+                                                ? `Limited to ${xAxisType} fields so both trackers share one axis.`
+                                                : undefined
+                                        }
                                     />
                                 ))}
 
@@ -301,18 +313,15 @@ export function AddDashboardItemModal({ onClose, onAdd }: Props) {
                     );
                 })}
 
-                {xAxisWarning && (
-                    <Group gap="xs" wrap="nowrap">
-                        <Box style={{ display: "flex" }}>
-                            <MdWarningAmber
-                                size={16}
-                                color="var(--mantine-color-yellow-6)"
-                            />
-                        </Box>
-                        <Text size="xs" c="dimmed">
-                            {xAxisWarning}
-                        </Text>
-                    </Group>
+                {rows.length > 1 && (
+                    <Checkbox
+                        label="Show only matched values"
+                        description="Plot only the x-axis values every tracker has data for, so the series cover the same range."
+                        checked={matchedValuesOnly}
+                        onChange={(event) =>
+                            setMatchedValuesOnly(event.currentTarget.checked)
+                        }
+                    />
                 )}
 
                 {canAddAnotherTracker && (

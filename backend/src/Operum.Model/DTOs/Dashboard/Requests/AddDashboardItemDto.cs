@@ -30,6 +30,10 @@ namespace Operum.Model.DTOs.Dashboard.Requests
         [Required]
         public string Code { get; set; } = string.Empty;
 
+        // Combined charts only: keep just the x-axis values every source has a point for,
+        // so the series line up over the same range. A single-source item ignores it.
+        public bool MatchedValuesOnly { get; set; }
+
         [Required, MinLength(1)]
         public List<DashboardItemSourceRequestDto> Sources { get; set; } = [];
     }

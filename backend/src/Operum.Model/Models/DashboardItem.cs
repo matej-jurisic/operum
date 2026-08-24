@@ -15,6 +15,11 @@ namespace Operum.Model.Models
         public string ResultType { get; set; } = string.Empty;
         public string Code { get; set; } = string.Empty;
 
+        // Combined charts only: restricts the chart to the x-axis values every source has a
+        // point for, so the series are compared over the same range instead of each source
+        // trailing off wherever its own data stops. Ignored by a single-source item.
+        public bool MatchedValuesOnly { get; set; }
+
         public string DashboardId { get; set; } = string.Empty;
         [ForeignKey(nameof(DashboardId))]
         public virtual Dashboard Dashboard { get; set; } = null!;

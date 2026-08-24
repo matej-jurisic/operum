@@ -114,7 +114,7 @@ namespace Operum.Service.Services.Dashboards
                 // once there's more than one source to merge into a shared chart.
                 var itemResult = resolvedSources.Count == 1
                     ? resolvedSources[0].Result
-                    : BuildComposedResult(resolvedSources);
+                    : BuildComposedResult(resolvedSources, item.MatchedValuesOnly);
 
                 // Use dashboard item ID so frontend can reference it for reorder/remove
                 itemResult.Id = item.Id;
@@ -243,6 +243,7 @@ namespace Operum.Service.Services.Dashboards
                 Order = nextOrder,
                 ResultType = dto.ResultType,
                 Code = dto.Code,
+                MatchedValuesOnly = dto.MatchedValuesOnly,
                 Sources = sources
             };
 
@@ -263,6 +264,7 @@ namespace Operum.Service.Services.Dashboards
                 Order = item.Order,
                 ResultType = item.ResultType,
                 Code = item.Code,
+                MatchedValuesOnly = item.MatchedValuesOnly,
                 Sources = sources.Select((s, i) => new DashboardItemSourceDto
                 {
                     Id = s.Id,
@@ -388,7 +390,7 @@ namespace Operum.Service.Services.Dashboards
         // the item's result type and code, so the series are always produced the same way;
         // what they can still differ in is the kind of value on the x-axis, which is surfaced
         // as a warning rather than rejected.
-        private static ComposedChartAnalyticDto BuildComposedResult(List<ResolvedSource> resolvedSources)
+        private static ComposedChartAnalyticDto BuildComposedResult(List<ResolvedSource> resolvedSources, bool matchedValuesOnly)
         {
             var composed = new ComposedChartAnalyticDto
             {
@@ -430,7 +432,28 @@ namespace Operum.Service.Services.Dashboards
             if (hasMismatchedXTypes)
                 composed.Warnings.Add("Sources plot different kinds of value on the x-axis, alignment may be misleading.");
 
+            if (matchedValuesOnly && composed.Series.Count > 1)
+                KeepOnlyMatchedXValues(composed);
+
             return composed;
+        }
+
+        // Narrows every series to the x-axis values all of them have a point for, so the
+        // chart compares the sources over the same range instead of letting each one run on
+        // wherever the others have no data. Series whose x-axis buckets never line up (a
+        // different field type, or simply no overlapping period) end up empty, which is worth
+        // saying out loud rather than rendering as a blank chart.
+        private static void KeepOnlyMatchedXValues(ComposedChartAnalyticDto composed)
+        {
+            var shared = composed.Series
+                .Select(s => s.Points.Select(p => p.X ?? string.Empty).ToHashSet())
+                .Aggregate((a, b) => { a.IntersectWith(b); return a; });
+
+            foreach (var series in composed.Series)
+                series.Points = series.Points.Where(p => shared.Contains(p.X ?? string.Empty)).ToList();
+
+            if (shared.Count == 0)
+                composed.Warnings.Add("No x-axis value appears in every source, so nothing is left to show with matched values only.");
         }
 
         private static DashboardDto MapToDto(Dashboard d) => new()
@@ -445,6 +468,7 @@ namespace Operum.Service.Services.Dashboards
                 Order = i.Order,
                 ResultType = i.ResultType,
                 Code = i.Code,
+                MatchedValuesOnly = i.MatchedValuesOnly,
                 Sources = i.Sources.OrderBy(s => s.Order).Select(s => MapSourceToDto(i, s)).ToList()
             }).ToList()
         };
