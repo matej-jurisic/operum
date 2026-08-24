@@ -11,7 +11,6 @@
         public const int MaxViewCount = 25;
         public const int MaxSorts = 3;
         public const int MaxFilters = 6;
-        public const int MaxRecalculateCount = 40;
         public const int MaxDashboardCount = 20;
         public const int MaxDashboardItemCount = 10;
         public const int MaxDashboardItemSourceCount = 5;

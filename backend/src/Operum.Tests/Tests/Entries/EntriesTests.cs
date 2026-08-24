@@ -440,20 +440,6 @@ namespace Operum.Tests.Tests.Entries
         }
 
         [Fact]
-        public async Task RecalculateEntries_MoreIdsThanTheLimit_ReturnsBadRequest()
-        {
-            var client = await OwnerClient();
-            var trackerId = await TestApi.CreateTracker(client, "Recalculate limit");
-
-            var tooMany = Enumerable.Range(0, DataLimits.MaxRecalculateCount + 1)
-                .Select(_ => Guid.NewGuid().ToString()).ToList();
-            var response = await client.PostAsJsonAsync($"trackers/{trackerId}/entries/recalculate",
-                new RecalculateEntriesDto { EntryIds = tooMany });
-
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        }
-
-        [Fact]
         public async Task RecalculateEntries_OnATrackerOwnedBySomeoneElse_ReturnsForbidden()
         {
             var owner = await OwnerClient();

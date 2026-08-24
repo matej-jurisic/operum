@@ -96,21 +96,11 @@ namespace Operum.Service.Services.Entries
                 return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
-            var views = new List<View>();
-            foreach (var viewId in viewIds)
-            {
-                var view = await db.Views
-                    .Include(v => v.Filters)
-                    .ThenInclude(s => s.Field)
-                    .Include(v => v.Sorts)
-                    .ThenInclude(s => s.Field)
-                    .FirstOrDefaultAsync(v => v.Id == viewId && v.TrackerId == trackerId);
+            var viewsResult = await LoadViews(trackerId, viewIds);
+            if (viewsResult.IsFailure)
+                return Result.Failure(viewsResult.StatusCode, viewsResult.Messages);
 
-                if (view == null)
-                    return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("view"));
-
-                views.Add(view);
-            }
+            var views = viewsResult.Data;
 
             var entriesQuery = db.Entries
                 .Include(x => x.FieldValues)
@@ -262,14 +252,24 @@ namespace Operum.Service.Services.Entries
             return Result.Success();
         }
 
-        public async Task<Result> DeleteEntries(string trackerId, List<string> entryIdList)
+        public async Task<Result> DeleteEntries(string trackerId, EntrySelectionDto selection)
         {
-            var user = currentUserService.GetCurrentUser();
-            var entries = await db.Entries
-                .Include(x => x.Tracker)
-                    .ThenInclude(x => x.ApplicationUserTrackers)
-                .Where(x => entryIdList.Contains(x.Id) && x.TrackerId == trackerId && (x.Tracker.OwnerId == user.Id || x.Tracker.ApplicationUserTrackers.Any(a => a.ApplicationUserId == user.Id && a.CanEditData)))
-                .ExecuteDeleteAsync();
+            if (!selection.SelectAllMatching)
+            {
+                var user = currentUserService.GetCurrentUser();
+                var entryIdList = selection.EntryIds;
+                await db.Entries
+                    .Where(x => entryIdList.Contains(x.Id) && x.TrackerId == trackerId && (x.Tracker.OwnerId == user.Id || x.Tracker.ApplicationUserTrackers.Any(a => a.ApplicationUserId == user.Id && a.CanEditData)))
+                    .ExecuteDeleteAsync();
+
+                return Result.Success();
+            }
+
+            var selectionResult = await ResolveSelectedEntries(trackerId, selection);
+            if (selectionResult.IsFailure)
+                return Result.Failure(selectionResult.StatusCode, selectionResult.Messages);
+
+            await selectionResult.Data.ExecuteDeleteAsync();
 
             return Result.Success();
         }
@@ -460,21 +460,11 @@ namespace Operum.Service.Services.Entries
                 return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
-            var views = new List<View>();
-            foreach (var viewId in viewIds)
-            {
-                var view = await db.Views
-                    .Include(v => v.Filters)
-                    .ThenInclude(f => f.Field)
-                    .Include(v => v.Sorts)
-                    .ThenInclude(s => s.Field)
-                    .FirstOrDefaultAsync(v => v.Id == viewId && v.TrackerId == trackerId);
+            var viewsResult = await LoadViews(trackerId, viewIds);
+            if (viewsResult.IsFailure)
+                return Result.Failure(viewsResult.StatusCode, viewsResult.Messages);
 
-                if (view == null)
-                    return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("view"));
-
-                views.Add(view);
-            }
+            var views = viewsResult.Data;
 
             var fields = await db.Fields
                 .Where(f => f.TrackerId == trackerId)
@@ -545,28 +535,18 @@ namespace Operum.Service.Services.Entries
             }
         }
 
-        public async Task<Result> RecalculateEntries(string trackerId, List<string> entryIds)
+        public async Task<Result> RecalculateEntries(string trackerId, EntrySelectionDto selection)
         {
-            if (entryIds.Count > DataLimits.MaxRecalculateCount)
-                return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("entries to recalculate at once", DataLimits.MaxRecalculateCount));
-
-            var user = currentUserService.GetCurrentUser();
-            var tracker = await db.Trackers
-                .Include(x => x.ApplicationUserTrackers)
-                .FirstOrDefaultAsync(x => x.Id == trackerId);
-
-            var canWrite = tracker != null && (tracker.OwnerId == user.Id || tracker.ApplicationUserTrackers.Any(x => x.ApplicationUserId == user.Id && x.CanEditData));
-
-            if (tracker == null || !canWrite)
-                return Result.Failure(ResultStatusCodes.Forbidden);
+            var selectionResult = await ResolveSelectedEntries(trackerId, selection);
+            if (selectionResult.IsFailure)
+                return Result.Failure(selectionResult.StatusCode, selectionResult.Messages);
 
             var allFields = await db.Fields.Where(f => f.TrackerId == trackerId).ToListAsync();
             var hasCalculatedFields = allFields.Any(f => f.IsCalculated);
             if (!hasCalculatedFields)
                 return Result.Success();
 
-            var validEntryIds = await db.Entries
-                .Where(e => entryIds.Contains(e.Id) && e.TrackerId == trackerId)
+            var validEntryIds = await selectionResult.Data
                 .Select(e => e.Id)
                 .ToListAsync();
 
@@ -705,6 +685,67 @@ namespace Operum.Service.Services.Entries
                 await transaction.RollbackAsync();
                 return Result.Failure(ResultStatusCodes.Error, "Batch save failed. No changes were applied.");
             }
+        }
+
+        private async Task<Result<List<View>>> LoadViews(string trackerId, List<string> viewIds)
+        {
+            var views = new List<View>();
+            foreach (var viewId in viewIds)
+            {
+                var view = await db.Views
+                    .Include(v => v.Filters)
+                    .ThenInclude(f => f.Field)
+                    .Include(v => v.Sorts)
+                    .ThenInclude(s => s.Field)
+                    .FirstOrDefaultAsync(v => v.Id == viewId && v.TrackerId == trackerId);
+
+                if (view == null)
+                    return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("view"));
+
+                views.Add(view);
+            }
+
+            return Result.Success(views);
+        }
+
+        /// <summary>
+        /// Turns a selection into the query of entries it stands for: either the listed ids, or
+        /// every entry matching the given views minus the exclusions. Requires edit rights.
+        /// </summary>
+        private async Task<Result<IQueryable<Entry>>> ResolveSelectedEntries(string trackerId, EntrySelectionDto selection)
+        {
+            var user = currentUserService.GetCurrentUser();
+            var tracker = await db.Trackers
+                .Include(x => x.ApplicationUserTrackers)
+                .FirstOrDefaultAsync(x => x.Id == trackerId);
+
+            var canWrite = tracker != null && (tracker.OwnerId == user.Id || tracker.ApplicationUserTrackers.Any(x => x.ApplicationUserId == user.Id && x.CanEditData));
+
+            if (tracker == null || !canWrite)
+                return Result.Failure(ResultStatusCodes.Forbidden);
+
+            var query = db.Entries.Where(e => e.TrackerId == trackerId);
+
+            if (!selection.SelectAllMatching)
+            {
+                var entryIds = selection.EntryIds;
+                return Result.Success(query.Where(e => entryIds.Contains(e.Id)));
+            }
+
+            var viewsResult = await LoadViews(trackerId, selection.ViewIds);
+            if (viewsResult.IsFailure)
+                return Result.Failure(viewsResult.StatusCode, viewsResult.Messages);
+
+            if (viewsResult.Data.Count > 0)
+                query = ViewQueryBuilder.ApplyViewFilters(query, ViewQueryBuilder.MergeViewFilters(viewsResult.Data), currentUserService.GetCurrentUserTimeZone());
+
+            if (selection.ExcludedEntryIds.Count > 0)
+            {
+                var excludedIds = selection.ExcludedEntryIds;
+                query = query.Where(e => !excludedIds.Contains(e.Id));
+            }
+
+            return Result.Success(query);
         }
     }
 }

@@ -39,7 +39,8 @@ export function EntriesTable({
         allEntriesSelected,
         someEntriesSelected,
         toggleSelectAll,
-        selectedEntryIds,
+        selectedCount,
+        isEntrySelected,
         toggleEntrySelection,
     } = useEntries();
     const { tracker, canEditData } = useTracker();
@@ -60,7 +61,7 @@ export function EntriesTable({
                             onChange={toggleSelectAll}
                         />
                         <Badge color={tracker.color} variant="filled">
-                            {selectedEntryIds.size}
+                            {selectedCount}
                         </Badge>
                     </Group>
                 ),
@@ -107,7 +108,7 @@ export function EntriesTable({
         isSelectMode,
         allEntriesSelected,
         someEntriesSelected,
-        selectedEntryIds.size,
+        selectedCount,
         tracker.color,
         toggleSelectAll,
     ]);
@@ -128,7 +129,7 @@ export function EntriesTable({
                     {isSelectMode && (
                         <Table.Td>
                             <Checkbox
-                                checked={selectedEntryIds.has(entry.id)}
+                                checked={isEntrySelected(entry.id)}
                                 onChange={() => toggleEntrySelection(entry.id)}
                                 size="sm"
                             />
@@ -197,7 +198,8 @@ export function EntriesTable({
         visibleFields,
         visibleColumns,
         isSelectMode,
-        selectedEntryIds,
+        selectedCount,
+        isEntrySelected,
         tracker.color,
         toggleEntrySelection,
         onViewDetails,

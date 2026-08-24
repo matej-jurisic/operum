@@ -1,7 +1,6 @@
-﻿namespace Operum.Model.DTOs.Entries.Requests
+namespace Operum.Model.DTOs.Entries.Requests
 {
-    public class DeleteEntriesDto
+    public class DeleteEntriesDto : EntrySelectionDto
     {
-        public required List<string> EntryIds { get; set; } = [];
     }
 }

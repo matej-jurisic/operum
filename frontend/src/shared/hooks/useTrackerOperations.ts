@@ -1,6 +1,7 @@
 import { useAnalytics } from "../../features/analytics/context/AnalyticsContext";
 import { CreateAnalyticDto } from "../../features/analytics/types/requests/CreateAnalyticDto";
 import { useEntries } from "../../features/entries/context/EntriesContext";
+import { EntrySelection } from "../../features/entries/types/EntrySelection";
 import { useFields } from "../../features/fields/context/FieldsContext";
 import { CreateFieldDto } from "../../features/fields/types/CreateFieldDto";
 import { UpdateFieldDto } from "../../features/fields/types/UpdateFieldDto";
@@ -28,7 +29,7 @@ export const useTrackerOperations = () => {
 
     const { _createView, _updateView, _deleteView, _updateViewOrder } = useViews();
 
-    const { _setSelectedViewIds, selectedViewIds } = useTracker();
+    const { _setSelectedViewIds } = useTracker();
 
     // ========================================
     // Field Operations
@@ -78,8 +79,8 @@ export const useTrackerOperations = () => {
         markAnalyticsDirty();
     };
 
-    const deleteEntries = async (entryIds: string[]) => {
-        await _deleteEntries(entryIds);
+    const deleteEntries = async (selection: EntrySelection) => {
+        await _deleteEntries(selection);
         markAnalyticsDirty();
     };
 
@@ -88,8 +89,8 @@ export const useTrackerOperations = () => {
         markAnalyticsDirty();
     };
 
-    const recalculateEntries = async (entryIds: string[]) => {
-        await _recalculateEntries(entryIds);
+    const recalculateEntries = async (selection: EntrySelection) => {
+        await _recalculateEntries(selection);
         markAnalyticsDirty();
     };
 
@@ -131,17 +132,8 @@ export const useTrackerOperations = () => {
     // Tracker Operations
     // ========================================
 
-    const toggleSelectedView = async (viewId: string) => {
-        const next = selectedViewIds.includes(viewId)
-            ? selectedViewIds.filter((id) => id !== viewId)
-            : [...selectedViewIds, viewId];
-        _setSelectedViewIds(next);
-        markEntriesDirty();
-        markAnalyticsDirty();
-    };
-
-    const clearSelectedViews = async () => {
-        _setSelectedViewIds([]);
+    const setSelectedViews = async (viewIds: string[]) => {
+        _setSelectedViewIds(viewIds);
         markEntriesDirty();
         markAnalyticsDirty();
     };
@@ -172,7 +164,6 @@ export const useTrackerOperations = () => {
         updateViewOrder,
 
         // Tracker operations
-        toggleSelectedView,
-        clearSelectedViews,
+        setSelectedViews,
     };
 };

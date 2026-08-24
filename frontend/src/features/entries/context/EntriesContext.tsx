@@ -1,7 +1,14 @@
-import React, { createContext, useCallback, useContext, useState } from "react";
+import React, {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useState,
+} from "react";
 import { EntryDto } from "../../entries/types/EntryDto";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { entriesController } from "../api/entriesController";
+import { EntrySelection } from "../types/EntrySelection";
 
 const PAGE_SIZE = 50;
 
@@ -10,6 +17,8 @@ type EntriesContextType = {
     entriesDirty: boolean;
     selectedEntryIds: Set<string>;
     isSelectMode: boolean;
+    selectAllMatching: boolean;
+    selectedCount: number;
     allEntriesSelected: boolean;
     someEntriesSelected: boolean;
     page: number;
@@ -18,9 +27,13 @@ type EntriesContextType = {
     refreshEntries: (viewIds?: string[], pageOverride?: number) => Promise<void>;
     refreshEntriesIfDirty: (viewIds?: string[]) => Promise<void>;
     goToPage: (page: number) => Promise<void>;
+    isEntrySelected: (entryId: string) => boolean;
     toggleEntrySelection: (entryId: string) => void;
     toggleSelectAll: () => void;
+    selectAllMatchingEntries: () => void;
+    deselectAll: () => void;
     clearSelection: () => void;
+    getSelection: () => EntrySelection;
     setIsSelectMode: React.Dispatch<React.SetStateAction<boolean>>;
     markEntriesDirty: () => void;
     // API methods - internal use only
@@ -30,9 +43,9 @@ type EntriesContextType = {
         fieldValues: Record<string, string>
     ) => Promise<void>;
     _deleteEntry: (entryId: string) => Promise<void>;
-    _deleteEntries: (entryIds: string[]) => Promise<void>;
+    _deleteEntries: (selection: EntrySelection) => Promise<void>;
     _importEntries: (file: File | null) => Promise<void>;
-    _recalculateEntries: (entryIds: string[]) => Promise<void>;
+    _recalculateEntries: (selection: EntrySelection) => Promise<void>;
 };
 
 const EntriesContext = createContext<EntriesContextType | undefined>(undefined);
@@ -43,17 +56,32 @@ export const EntriesProvider: React.FC<{ children: React.ReactNode }> = ({
     const { tracker, selectedViewIds } = useTracker();
     const [entries, setEntries] = useState<EntryDto[]>([]);
     const [entriesDirty, setEntriesDirty] = useState(true);
+    // In "select all matching" mode these hold the exclusions instead of the picks: the
+    // selection is then everything the current views match, minus whatever was ticked off.
     const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(
         new Set()
     );
+    const [selectAllMatching, setSelectAllMatching] = useState(false);
     const [isSelectMode, setIsSelectMode] = useState(false);
     const [page, setPage] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
 
+    const isEntrySelected = useCallback(
+        (entryId: string) =>
+            selectAllMatching
+                ? !selectedEntryIds.has(entryId)
+                : selectedEntryIds.has(entryId),
+        [selectAllMatching, selectedEntryIds]
+    );
+
+    const selectedCount = selectAllMatching
+        ? Math.max(totalCount - selectedEntryIds.size, 0)
+        : selectedEntryIds.size;
+
     const allEntriesSelected =
-        entries.length > 0 && entries.every((e) => selectedEntryIds.has(e.id));
+        entries.length > 0 && entries.every((e) => isEntrySelected(e.id));
     const someEntriesSelected =
-        !allEntriesSelected && entries.some((e) => selectedEntryIds.has(e.id));
+        !allEntriesSelected && entries.some((e) => isEntrySelected(e.id));
 
     const refreshEntries = useCallback(
         async (implicitViewIds?: string[], pageOverride?: number) => {
@@ -101,22 +129,63 @@ export const EntriesProvider: React.FC<{ children: React.ReactNode }> = ({
     }, []);
 
     const toggleSelectAll = useCallback(() => {
-        const allPageSelected = entries.every((e) => selectedEntryIds.has(e.id));
+        const allPageSelected = entries.every((e) => isEntrySelected(e.id));
         setSelectedEntryIds((prev) => {
             const newSet = new Set(prev);
-            if (allPageSelected) {
-                entries.forEach((e) => newSet.delete(e.id));
-            } else {
-                entries.forEach((e) => newSet.add(e.id));
-            }
+            // Ticking every entry on the page means adding them in normal mode and dropping
+            // them from the exclusions in "select all matching" mode.
+            const select = selectAllMatching
+                ? (id: string) => newSet.delete(id)
+                : (id: string) => newSet.add(id);
+            const deselect = selectAllMatching
+                ? (id: string) => newSet.add(id)
+                : (id: string) => newSet.delete(id);
+
+            entries.forEach((e) => (allPageSelected ? deselect : select)(e.id));
             return newSet;
         });
-    }, [entries, selectedEntryIds]);
+    }, [entries, isEntrySelected, selectAllMatching]);
+
+    const selectAllMatchingEntries = useCallback(() => {
+        setSelectAllMatching(true);
+        setSelectedEntryIds(new Set());
+    }, []);
+
+    // Empties the selection but stays in select mode, so the user can start picking again.
+    const deselectAll = useCallback(() => {
+        setSelectedEntryIds(new Set());
+        setSelectAllMatching(false);
+    }, []);
 
     const clearSelection = useCallback(() => {
-        setSelectedEntryIds(new Set());
+        deselectAll();
         setIsSelectMode(false);
-    }, []);
+    }, [deselectAll]);
+
+    // A selection stated as "everything matching" means something different once the views
+    // change, and explicit picks can drop out of the result set, so start over either way.
+    useEffect(() => {
+        setSelectedEntryIds(new Set());
+        setSelectAllMatching(false);
+    }, [selectedViewIds]);
+
+    const getSelection = useCallback(
+        (): EntrySelection =>
+            selectAllMatching
+                ? {
+                      entryIds: [],
+                      selectAllMatching: true,
+                      viewIds: selectedViewIds,
+                      excludedEntryIds: Array.from(selectedEntryIds),
+                  }
+                : {
+                      entryIds: Array.from(selectedEntryIds),
+                      selectAllMatching: false,
+                      viewIds: [],
+                      excludedEntryIds: [],
+                  },
+        [selectAllMatching, selectedEntryIds, selectedViewIds]
+    );
 
     const _createEntry = async (fieldValues: Record<string, string>) => {
         await entriesController.createEntry(tracker.id, fieldValues);
@@ -142,8 +211,8 @@ export const EntriesProvider: React.FC<{ children: React.ReactNode }> = ({
         await refreshEntries(undefined, targetPage);
     };
 
-    const _deleteEntries = async (entryIds: string[]) => {
-        await entriesController.deleteEntries(tracker.id, entryIds);
+    const _deleteEntries = async (selection: EntrySelection) => {
+        await entriesController.deleteEntries(tracker.id, selection);
         clearSelection();
         await refreshEntries(undefined, 1);
     };
@@ -156,8 +225,8 @@ export const EntriesProvider: React.FC<{ children: React.ReactNode }> = ({
         await refreshEntries(undefined, 1);
     };
 
-    const _recalculateEntries = async (entryIds: string[]) => {
-        await entriesController.recalculateEntries(tracker.id, entryIds);
+    const _recalculateEntries = async (selection: EntrySelection) => {
+        await entriesController.recalculateEntries(tracker.id, selection);
         await refreshEntries();
     };
 
@@ -168,6 +237,8 @@ export const EntriesProvider: React.FC<{ children: React.ReactNode }> = ({
                 entriesDirty,
                 selectedEntryIds,
                 isSelectMode,
+                selectAllMatching,
+                selectedCount,
                 allEntriesSelected,
                 someEntriesSelected,
                 page,
@@ -176,9 +247,13 @@ export const EntriesProvider: React.FC<{ children: React.ReactNode }> = ({
                 refreshEntries,
                 refreshEntriesIfDirty,
                 goToPage,
+                isEntrySelected,
                 toggleEntrySelection,
                 toggleSelectAll,
+                selectAllMatchingEntries,
+                deselectAll,
                 clearSelection,
+                getSelection,
                 setIsSelectMode,
                 markEntriesDirty,
                 _createEntry,

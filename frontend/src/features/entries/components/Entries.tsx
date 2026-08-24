@@ -79,7 +79,11 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
         entriesDirty,
         refreshEntries,
         isSelectMode,
-        selectedEntryIds,
+        selectedCount,
+        selectAllMatching,
+        selectAllMatchingEntries,
+        deselectAll,
+        getSelection,
         setIsSelectMode,
         allEntriesSelected,
         toggleSelectAll,
@@ -204,14 +208,10 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                                             size="lg"
                                             onClick={() =>
                                                 recalculateEntries(
-                                                    Array.from(
-                                                        selectedEntryIds,
-                                                    ),
+                                                    getSelection(),
                                                 )
                                             }
-                                            disabled={
-                                                selectedEntryIds.size === 0
-                                            }
+                                            disabled={selectedCount === 0}
                                         >
                                             <TbRefresh size={18} />
                                         </ActionIcon>
@@ -228,7 +228,7 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                                             OpenDialogType.BulkDelete,
                                         )
                                     }
-                                    disabled={selectedEntryIds.size === 0}
+                                    disabled={selectedCount === 0}
                                 >
                                     <MdDelete size={18} />
                                 </ActionIcon>
@@ -284,7 +284,7 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                                             color={tracker.color}
                                             variant="filled"
                                         >
-                                            {selectedEntryIds.size} selected
+                                            {selectedCount} selected
                                         </Badge>
                                     )}
                                 </Group>
@@ -318,14 +318,11 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                                                     size="lg"
                                                     onClick={() =>
                                                         recalculateEntries(
-                                                            Array.from(
-                                                                selectedEntryIds,
-                                                            ),
+                                                            getSelection(),
                                                         )
                                                     }
                                                     disabled={
-                                                        selectedEntryIds.size ===
-                                                        0
+                                                        selectedCount === 0
                                                     }
                                                 >
                                                     <TbRefresh size={18} />
@@ -341,9 +338,7 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                                                         OpenDialogType.BulkDelete,
                                                     )
                                                 }
-                                                disabled={
-                                                    selectedEntryIds.size === 0
-                                                }
+                                                disabled={selectedCount === 0}
                                             >
                                                 <MdDelete size={18} />
                                             </ActionIcon>
@@ -352,6 +347,43 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                                 )}
                             </Group>
                         )}
+
+                        {/* Selecting every checkbox only reaches the current page, so offer
+                            the rest of the matching entries once the page is fully ticked. */}
+                        {isSelectMode &&
+                            (selectAllMatching ||
+                                (allEntriesSelected &&
+                                    totalCount > entries.length)) && (
+                                <Group justify="center" gap="xs" w="100%">
+                                    <Text size="sm" c="dimmed">
+                                        {selectAllMatching
+                                            ? `All ${selectedCount} ${
+                                                  selectedCount === 1
+                                                      ? "entry"
+                                                      : "entries"
+                                              }${
+                                                  viewName
+                                                      ? ` in ${viewName}`
+                                                      : ""
+                                              } are selected.`
+                                            : `All ${entries.length} entries on this page are selected.`}
+                                    </Text>
+                                    <Button
+                                        variant="subtle"
+                                        size="compact-sm"
+                                        color={tracker.color}
+                                        onClick={
+                                            selectAllMatching
+                                                ? deselectAll
+                                                : selectAllMatchingEntries
+                                        }
+                                    >
+                                        {selectAllMatching
+                                            ? "Clear selection"
+                                            : `Select all ${totalCount}`}
+                                    </Button>
+                                </Group>
+                            )}
 
                         <ScrollArea flex={1}>
                             {entries.length > 0 && !isLoadingData ? (
@@ -464,15 +496,13 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                     isOpen={true}
                     onClose={() => setOpenDialogType(undefined)}
                     onConfirm={async () => {
-                        await deleteEntries(Array.from(selectedEntryIds));
+                        await deleteEntries(getSelection());
                         clearSelection();
                         setOpenDialogType(undefined);
                     }}
                     severity="warning"
-                    message={`Are you sure you want to delete ${
-                        selectedEntryIds.size
-                    } selected ${
-                        selectedEntryIds.size === 1 ? "entry" : "entries"
+                    message={`Are you sure you want to delete ${selectedCount} selected ${
+                        selectedCount === 1 ? "entry" : "entries"
                     }?`}
                 />
             )}

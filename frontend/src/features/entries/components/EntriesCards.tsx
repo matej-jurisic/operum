@@ -34,7 +34,7 @@ export function EntriesCards({
 }: EntriesCardsProps) {
     const { tracker, canEditData } = useTracker();
     const { fields, visibleFields, visibleColumns } = useFields();
-    const { selectedEntryIds, isSelectMode, toggleEntrySelection } =
+    const { isEntrySelected, isSelectMode, toggleEntrySelection } =
         useEntries();
 
     const getFieldName = (fieldId: string) => {
@@ -58,7 +58,7 @@ export function EntriesCards({
         <Stack gap="md">
             {entries.map((entry) => {
                 const displayFields = getDisplayFields(entry);
-                const isSelected = selectedEntryIds.has(entry.id);
+                const isSelected = isEntrySelected(entry.id);
 
                 return (
                     <Card

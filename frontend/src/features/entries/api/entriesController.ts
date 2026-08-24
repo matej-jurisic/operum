@@ -3,6 +3,7 @@ import api from "../../../shared/api/api";
 import { ApiResponse } from "../../../shared/types/ApiResponse";
 import { PagedResult } from "../../../shared/types/PagedResult";
 import { EntryDto } from "../types/EntryDto";
+import { EntrySelection } from "../types/EntrySelection";
 
 export const entriesController = {
     exportCsv: async (
@@ -60,19 +61,20 @@ export const entriesController = {
     },
     deleteEntries: async (
         trackerId: string,
-        entryIds: string[]
+        selection: EntrySelection
     ): Promise<ApiResponse> => {
         return await api.delete(`/trackers/${trackerId}/entries`, {
-            data: { entryIds },
+            data: selection,
         });
     },
     recalculateEntries: async (
         trackerId: string,
-        entryIds: string[]
+        selection: EntrySelection
     ): Promise<ApiResponse> => {
-        return await api.post(`/trackers/${trackerId}/entries/recalculate`, {
-            entryIds,
-        });
+        return await api.post(
+            `/trackers/${trackerId}/entries/recalculate`,
+            selection
+        );
     },
     batchEntries: async (
         trackerId: string,
