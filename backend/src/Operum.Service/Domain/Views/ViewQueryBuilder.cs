@@ -2,6 +2,7 @@
 using Operum.Model.Constants.Fields;
 using Operum.Model.Extensions;
 using Operum.Model.Models;
+using System.Globalization;
 
 
 namespace Operum.Service.Domain.Views
@@ -168,7 +169,7 @@ namespace Operum.Service.Domain.Views
         {
             if (value != null)
             {
-                if (!double.TryParse(value, out var numericValue))
+                if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var numericValue))
                     return query;
 
                 return operatorType switch
@@ -243,7 +244,7 @@ namespace Operum.Service.Domain.Views
         {
             if (value != null)
             {
-                if (!TimeSpan.TryParse(value, out var timeSpanValue))
+                if (!TimeSpan.TryParse(value, CultureInfo.InvariantCulture, out var timeSpanValue))
                     return query;
 
                 return operatorType switch

@@ -1,6 +1,7 @@
 ﻿using FluentValidation;
 using Operum.Model.Constants;
 using Operum.Model.Constants.Fields;
+using System.Globalization;
 
 namespace Operum.Model.DTOs.Fields.Requests
 {
@@ -55,7 +56,7 @@ namespace Operum.Model.DTOs.Fields.Requests
                 .When(x => x.SelectOptions != null);
 
             RuleForEach(x => x.SelectOptions)
-                .Must(opt => double.TryParse(opt, out _)).WithMessage("Select options for number fields must be valid numbers.")
+                .Must(opt => double.TryParse(opt, NumberStyles.Float, CultureInfo.InvariantCulture, out _)).WithMessage("Select options for number fields must be valid numbers.")
                 .When(x => x.SelectOptions != null && x.Type == DataTypes.Number);
         }
     }

@@ -1,5 +1,7 @@
 using Operum.Model.Constants;
+using Operum.Model.Constants.Analytics;
 using Operum.Model.Constants.Fields;
+using Operum.Model.DTOs.Analytics.Requests;
 using Operum.Model.DTOs.Fields.Requests;
 using Operum.Tests.Util;
 using System.Net;
@@ -298,6 +300,32 @@ namespace Operum.Tests.Tests.Fields
             await client.DeleteAsync($"trackers/{trackerId}/fields/{secondId}");
 
             Assert.Equal(["First", "Third"], await FieldNames(client, trackerId));
+        }
+
+        [Fact]
+        public async Task DeleteField_UsedForTwoPurposesOfOneAnalytic_StillDeletesIt()
+        {
+            var client = await OwnerClient();
+            var trackerId = await TestApi.CreateTracker(client, "Delete field of an analytic");
+            var amountId = await TestApi.CreateField(client, trackerId, "Amount", DataTypes.Number);
+            await client.PostAsJsonAsync($"trackers/{trackerId}/analytics", new CreateAnalyticDto
+            {
+                Code = AnalyticCodes.AggregatedSumLineChart,
+                Type = AnalyticTypes.LineChart,
+                AnalyticFields =
+                [
+                    new CreateAnalyticFieldDto { FieldId = amountId, Purpose = AnalyticPurposes.Xaxis },
+                    new CreateAnalyticFieldDto { FieldId = amountId, Purpose = AnalyticPurposes.Yaxis }
+                ]
+            });
+
+            var response = await client.DeleteAsync($"trackers/{trackerId}/fields/{amountId}");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Empty(await FieldNames(client, trackerId));
+            // The analytic the field carried goes with it.
+            var analytics = await TestApi.Data(await client.GetAsync($"trackers/{trackerId}/analytics"));
+            Assert.Equal(0, analytics.GetArrayLength());
         }
 
         [Fact]

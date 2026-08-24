@@ -1,4 +1,4 @@
-using Operum.Model.Constants;
+﻿using Operum.Model.Constants;
 using Operum.Model.Constants.Fields;
 using Operum.Model.Extensions;
 using Operum.Model.Models;
@@ -155,7 +155,7 @@ namespace Operum.Service.Domain.Constants
         {
             if (filterValue != null)
             {
-                if (!TimeSpan.TryParse(filterValue, out var filterTs))
+                if (!TimeSpan.TryParse(filterValue, CultureInfo.InvariantCulture, out var filterTs))
                     return false;
                 if (fieldValue == null)
                     return operatorType == OperatorTypes.NotEquals;

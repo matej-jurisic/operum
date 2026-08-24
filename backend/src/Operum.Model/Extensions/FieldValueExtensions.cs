@@ -1,6 +1,7 @@
 ﻿using Operum.Model.Constants.Fields;
 using Operum.Model.Converters;
 using Operum.Model.Models;
+using System.Globalization;
 
 namespace Operum.Model.Extensions
 {
@@ -34,7 +35,7 @@ namespace Operum.Model.Extensions
                         fieldValue.StringValue = !string.IsNullOrWhiteSpace(value) ? value : null;
                         break;
                     case DataTypes.Number:
-                        fieldValue.NumberValue = value != null ? Convert.ToDouble(value) : null;
+                        fieldValue.NumberValue = value != null ? double.Parse(value, CultureInfo.InvariantCulture) : null;
                         break;
                     case DataTypes.Date:
                     case DataTypes.DateTime:
@@ -50,7 +51,7 @@ namespace Operum.Model.Extensions
                     case DataTypes.TimeSpan:
                         if (!string.IsNullOrWhiteSpace(value))
                         {
-                            fieldValue.TimeSpanValue = TimeSpan.Parse(value);
+                            fieldValue.TimeSpanValue = TimeSpan.Parse(value, CultureInfo.InvariantCulture);
                         }
                         else
                         {

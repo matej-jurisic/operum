@@ -1,5 +1,6 @@
-using FluentValidation;
+﻿using FluentValidation;
 using Operum.Model.Constants.Fields;
+using System.Globalization;
 
 namespace Operum.Model.DTOs.TrackerConstants.Requests
 {
@@ -38,7 +39,7 @@ namespace Operum.Model.DTOs.TrackerConstants.Requests
                 .When(x => x.Type == DataTypes.Bool);
 
             RuleFor(x => x.Value)
-                .Must(v => TimeSpan.TryParse(v, out _))
+                .Must(v => TimeSpan.TryParse(v, CultureInfo.InvariantCulture, out _))
                 .WithMessage("Value must be a valid timespan (e.g. 01:30:00).")
                 .When(x => x.Type == DataTypes.TimeSpan);
         }

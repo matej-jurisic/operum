@@ -38,7 +38,9 @@ namespace Operum.Tests.Util
             builder.ConfigureServices(services =>
             {
                 services.RemoveAll<IDbContextOptionsConfiguration<OperumContext>>();
-                services.AddDbContext<OperumContext>(options => options.UseSqlite(_connection));
+                services.AddDbContext<OperumContext>(options => options
+                    .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)
+                    .UseSqlite(_connection));
                 services.AddScoped<IMailSender, MockMailSender>();
             });
         }

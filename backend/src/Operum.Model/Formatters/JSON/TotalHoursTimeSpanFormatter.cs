@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Globalization;
 
 namespace Operum.Model.Converters.JSON
 {
@@ -11,7 +12,7 @@ namespace Operum.Model.Converters.JSON
                 return null;
 
             var str = reader.GetString();
-            if (TimeSpan.TryParse(str, out var ts))
+            if (TimeSpan.TryParse(str, CultureInfo.InvariantCulture, out var ts))
                 return ts;
 
             return null;

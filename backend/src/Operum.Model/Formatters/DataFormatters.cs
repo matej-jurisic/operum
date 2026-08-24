@@ -57,10 +57,10 @@ namespace Operum.Model.Converters
             int hours = (int)(totalSeconds / 3600);
             int minutes = (int)(totalSeconds % 3600 / 60);
             double seconds = totalSeconds % 60;
-            return $"{hours:D2}:{minutes:D2}:{seconds:00.##}";
+            return string.Create(CultureInfo.InvariantCulture, $"{hours:D2}:{minutes:D2}:{seconds:00.##}");
         }
 
-        public static string NumberToString(double value) => value.ToString("F2");
+        public static string NumberToString(double value) => value.ToString("F2", CultureInfo.InvariantCulture);
 
         public static double FieldValueToDouble(FieldValue? fv)
         {

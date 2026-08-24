@@ -28,7 +28,7 @@ namespace Operum.Service.Services.Fields
             var userTracker = tracker?.ApplicationUserTrackers.FirstOrDefault(ut => ut.ApplicationUserId == user.Id);
             if (tracker == null || (!isOwner && userTracker?.CanEditSchema != true))
             {
-                return Result.Failure(ResultStatusCodes.NotFound);
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("tracker"));
             }
 
             var fieldCount = await db.Fields.Where(x => x.TrackerId == trackerId).CountAsync();
@@ -77,15 +77,20 @@ namespace Operum.Service.Services.Fields
             var userTracker = field?.Tracker.ApplicationUserTrackers.FirstOrDefault(ut => ut.ApplicationUserId == user.Id);
             if (field == null || (!isOwner && userTracker?.CanEditSchema != true))
             {
-                return Result.Failure(ResultStatusCodes.NotFound);
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("field"));
             }
 
-            var fieldAnalytics = field.AnalyticFields.Select(x => x.AnalyticId);
+            // Queries run no-tracking, so a field serving two purposes of the same analytic
+            // materialises that analytic once per purpose. Handing both instances to the change
+            // tracker is an identity conflict, so delete by id and leave the dependent rows
+            // (analytic fields, field values, view filters and sorts) to the database cascade.
+            var analyticIds = field.AnalyticFields.Select(x => x.AnalyticId).Distinct().ToList();
+            if (analyticIds.Count > 0)
+            {
+                await db.Analytics.Where(x => analyticIds.Contains(x.Id)).ExecuteDeleteAsync();
+            }
 
-            db.Analytics.RemoveRange(field.AnalyticFields.Select(x => x.Analytic));
-
-            db.Fields.Remove(field);
-            await db.SaveChangesAsync();
+            await db.Fields.Where(x => x.Id == fieldId).ExecuteDeleteAsync();
 
             await ReorderFieldsAfterDeletion(trackerId, field.Order);
 
@@ -104,7 +109,7 @@ namespace Operum.Service.Services.Fields
 
             if (field == null || !hasAccess)
             {
-                return Result.Failure(ResultStatusCodes.Forbidden);
+                return Result.Failure(ResultStatusCodes.Forbidden, Messages.ItemNotFound("field"));
             }
 
             return Result.Success(mapper.Map<Field, FieldDto>(field));
@@ -121,7 +126,7 @@ namespace Operum.Service.Services.Fields
 
             if (tracker == null || !hasAccess)
             {
-                return Result.Failure(ResultStatusCodes.Forbidden);
+                return Result.Failure(ResultStatusCodes.Forbidden, Messages.ItemNotFound("tracker"));
             }
 
             var fields = await db.Fields
@@ -143,7 +148,7 @@ namespace Operum.Service.Services.Fields
 
             if (tracker == null || (!isOwner && userTracker?.CanEditSchema != true))
             {
-                return Result.Failure(ResultStatusCodes.NotFound);
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("tracker"));
             }
 
             var existingFields = await db.Fields
@@ -200,7 +205,7 @@ namespace Operum.Service.Services.Fields
             var userTrackerField = originalField?.Tracker.ApplicationUserTrackers.FirstOrDefault(ut => ut.ApplicationUserId == user.Id);
             if (originalField == null || (!isOwnerField && userTrackerField?.CanEditSchema != true))
             {
-                return Result.Failure(ResultStatusCodes.NotFound);
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("field"));
             }
 
             if (!DataTypes.IsValid(field.Type)) return Result.Failure(ResultStatusCodes.BadRequest, Messages.NotAllowed("field type"));

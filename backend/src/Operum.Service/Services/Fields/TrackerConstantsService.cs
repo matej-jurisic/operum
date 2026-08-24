@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Operum.Model;
 using Operum.Model.Common;
 using Operum.Model.Constants;
@@ -9,6 +9,7 @@ using Operum.Model.Enums;
 using Operum.Model.Models;
 using Operum.Service.Interfaces;
 using Operum.Service.Mappings.Mapper;
+using System.Globalization;
 
 namespace Operum.Service.Services.Fields
 {
@@ -210,7 +211,7 @@ namespace Operum.Service.Services.Fields
                 {
                     DataTypes.Number => double.TryParse(v.Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out _),
                     DataTypes.Bool => bool.TryParse(v.Value, out _),
-                    DataTypes.TimeSpan => TimeSpan.TryParse(v.Value, out _),
+                    DataTypes.TimeSpan => TimeSpan.TryParse(v.Value, CultureInfo.InvariantCulture, out _),
                     _ => false
                 };
                 if (!valueIsValid)

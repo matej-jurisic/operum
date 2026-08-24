@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NCalc2;
 using Operum.Model;
@@ -305,7 +305,7 @@ namespace Operum.Service.Services.Fields
                 {
                     DataTypes.Number => double.TryParse(rawValue, NumberStyles.Any, CultureInfo.InvariantCulture, out var n) ? n : null,
                     DataTypes.Bool => bool.TryParse(rawValue, out var b) ? (b ? 1.0 : 0.0) : null,
-                    DataTypes.TimeSpan => TimeSpan.TryParse(rawValue, out var ts) ? ts.TotalSeconds : null,
+                    DataTypes.TimeSpan => TimeSpan.TryParse(rawValue, CultureInfo.InvariantCulture, out var ts) ? ts.TotalSeconds : null,
                     _ => null
                 };
             }

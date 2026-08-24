@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -38,6 +38,12 @@ namespace Operum.Service.Services.Notifications
             try
             {
                 notifications = await db.TrackerNotifications
+                    // The context runs no-tracking, which also skips identity resolution: two
+                    // notifications on one tracker, or two filters over one field, would each
+                    // materialise that row twice and conflict the moment the graph is attached.
+                    // Tracking resolves them to a single instance and picks up the state
+                    // changes below without an explicit Update.
+                    .AsTracking()
                     .Where(n => n.IsEnabled)
                     .Include(n => n.Tracker)
                         .ThenInclude(t => t.Owner)
@@ -86,7 +92,7 @@ namespace Operum.Service.Services.Notifications
             {
                 try
                 {
-                    var title = $"{notification.Tracker.Name} — {notification.Name}";
+                    var title = $"{notification.Tracker.Name} - {notification.Name}";
                     var url = $"/trackers/{notification.TrackerId}";
                     await pushService.SendToTrackerUsersAsync(notification.TrackerId, title, body, url, ct);
                 }
@@ -113,7 +119,6 @@ namespace Operum.Service.Services.Notifications
                 return;
 
             notification.LastEvaluatedAt = nowUtc;
-            db.TrackerNotifications.Update(notification);
 
             if (notification.Condition.ValueMode == NotificationValueMode.Entry)
             {
@@ -164,7 +169,6 @@ namespace Operum.Service.Services.Notifications
             if (newlyMatched.Count > 0)
             {
                 notification.LastFiredAt = nowUtc;
-                db.TrackerNotifications.Update(notification);
 
                 var body = newlyMatched.Count == 1
                     ? "1 new entry matches"
@@ -184,7 +188,6 @@ namespace Operum.Service.Services.Notifications
             var wasTriggered = notification.IsTriggered;
 
             notification.IsTriggered = conditionMet;
-            db.TrackerNotifications.Update(notification);
 
             var isFrequency = notification.Event.EventType != NotificationEventType.Triggered;
 
@@ -195,7 +198,6 @@ namespace Operum.Service.Services.Notifications
             if (shouldFire)
             {
                 notification.LastFiredAt = nowUtc;
-                db.TrackerNotifications.Update(notification);
                 pushQueue.Add((notification, "Condition met"));
             }
         }

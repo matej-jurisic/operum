@@ -1,6 +1,7 @@
 ﻿using Operum.Model.Constants;
 using Operum.Model.Constants.Fields;
 using Operum.Model.Converters;
+using System.Globalization;
 
 
 namespace Operum.Service.Domain.Views
@@ -17,10 +18,10 @@ namespace Operum.Service.Domain.Views
                 return fieldType.ToLowerInvariant() switch
                 {
                     DataTypes.String => true,
-                    DataTypes.Number => double.TryParse(value, out _),
+                    DataTypes.Number => double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out _),
                     DataTypes.Date or DataTypes.DateTime =>
                         DynamicDateTokens.IsValid(value) || DataFormatters.StringToDateTime(value) != null,
-                    DataTypes.TimeSpan => TimeSpan.TryParse(value, out _),
+                    DataTypes.TimeSpan => TimeSpan.TryParse(value, CultureInfo.InvariantCulture, out _),
                     DataTypes.Bool => bool.TryParse(value, out _),
                     _ => false,
                 };
