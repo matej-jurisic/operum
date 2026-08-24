@@ -20,7 +20,9 @@ function AppShellLayout({ children }: { children: React.ReactNode }) {
         : "radial-gradient(circle, rgba(0,0,0,0.08) 1px, transparent 1px)";
 
     return (
-        <AppShell h={"100vh"} w={"100vw"} transitionDuration={0}>
+        // 100% rather than 100vw: 100vw counts the vertical scrollbar, so any page tall
+        // enough to scroll would also overflow sideways by the scrollbar's width.
+        <AppShell h={"100vh"} w={"100%"} transitionDuration={0}>
             <AppShell.Main
                 h="100%"
                 p={isHome ? 0 : "md"}

@@ -1,30 +1,24 @@
 import {
-    ActionIcon,
     Button,
     Center,
-    Divider,
     Group,
     Loader,
-    Menu,
     Stack,
     Text,
     ThemeIcon,
-    Tooltip,
     useMantineTheme,
 } from "@mantine/core";
 import { useCallback, useEffect, useState } from "react";
-import { CiSettings } from "react-icons/ci";
-import { FiMoreVertical, FiPlus } from "react-icons/fi";
-import { MdDelete, MdEdit } from "react-icons/md";
+import { FiCheck, FiPlus } from "react-icons/fi";
 import { TbLayoutDashboard } from "react-icons/tb";
 import { useNavigate, useParams } from "react-router-dom";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
 import Header from "../../../shared/components/Header";
-import { AnalyticsGrid } from "../../analytics/components/AnalyticsGrid";
 import { dashboardController } from "../api/dashboardController";
-import { AddDashboardItemModal } from "../components/AddDashboardItemModal";
+import { AddWidgetModal } from "../components/AddWidgetModal";
 import BoardFormModal from "../components/BoardFormModal";
 import BoardSwitcher from "../components/BoardSwitcher";
+import { DashboardGrid } from "../components/DashboardGrid";
 import { DashboardProvider, useDashboard } from "../context/DashboardContext";
 import { DashboardDto } from "../types/DashboardDto";
 
@@ -48,20 +42,21 @@ function DashboardContent({
     onDeleteBoard,
 }: ContentProps) {
     const {
-        analytics,
+        widgets,
         isLoading,
-        refreshAnalytics,
+        refreshWidgets,
         addItem,
+        addItemFromAnalytic,
         removeItem,
-        reorderItems,
+        saveLayout,
     } = useDashboard();
     const theme = useMantineTheme();
     const [isConfiguring, setIsConfiguring] = useState(false);
     const [isAddOpen, setIsAddOpen] = useState(false);
 
     useEffect(() => {
-        refreshAnalytics();
-    }, [refreshAnalytics]);
+        refreshWidgets();
+    }, [refreshWidgets]);
 
     const color =
         activeBoard.color && activeBoard.color in theme.colors
@@ -70,75 +65,43 @@ function DashboardContent({
 
     return (
         <Stack h="100%" gap="md">
-            <Group w="100%" justify="flex-end">
+            <Group
+                w="100%"
+                justify="space-between"
+                wrap="nowrap"
+                align="center"
+            >
+                <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
+                    <BoardSwitcher
+                        boards={boards}
+                        activeBoardId={activeBoard.id}
+                        isConfiguring={isConfiguring}
+                        onSelect={onSelectBoard}
+                        onCreate={onCreateBoard}
+                        onEdit={onEditBoard}
+                        onDelete={onDeleteBoard}
+                        onAddItem={() => setIsAddOpen(true)}
+                        onToggleArrange={() => setIsConfiguring((v) => !v)}
+                    />
+                    {/* The only way out of arrange mode that does not cost a
+                        row of chrome while the board is just being read. */}
+                    {isConfiguring && (
+                        <Button
+                            size="sm"
+                            radius="xl"
+                            color={color}
+                            leftSection={<FiCheck size={16} />}
+                            onClick={() => setIsConfiguring(false)}
+                            style={{ flexShrink: 0 }}
+                        >
+                            Done
+                        </Button>
+                    )}
+                </Group>
                 <Header color={color} />
             </Group>
 
-            <Group gap="xs" wrap="nowrap" align="center">
-                <BoardSwitcher
-                    boards={boards}
-                    activeBoardId={activeBoard.id}
-                    onSelect={onSelectBoard}
-                    onCreate={onCreateBoard}
-                />
-                <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
-                    <Menu shadow="md" position="bottom-end" withinPortal>
-                        <Menu.Target>
-                            <ActionIcon
-                                size="lg"
-                                variant="outline"
-                                color="gray"
-                                aria-label="Board settings"
-                            >
-                                <FiMoreVertical size={18} />
-                            </ActionIcon>
-                        </Menu.Target>
-                        <Menu.Dropdown>
-                            <Menu.Item
-                                leftSection={<MdEdit size={16} />}
-                                onClick={onEditBoard}
-                            >
-                                Edit board
-                            </Menu.Item>
-                            <Menu.Item
-                                color="red"
-                                leftSection={<MdDelete size={16} />}
-                                onClick={onDeleteBoard}
-                            >
-                                Delete board
-                            </Menu.Item>
-                        </Menu.Dropdown>
-                    </Menu>
-                    <Tooltip label="Arrange analytics" withArrow>
-                        <ActionIcon
-                            size="lg"
-                            color={color}
-                            variant={isConfiguring ? "filled" : "outline"}
-                            onClick={() => setIsConfiguring((v) => !v)}
-                            aria-label="Arrange analytics"
-                        >
-                            <CiSettings size={18} />
-                        </ActionIcon>
-                    </Tooltip>
-                </Group>
-            </Group>
-
-            <Divider />
-
-            {isConfiguring && (
-                <Group justify="flex-end">
-                    <Button
-                        variant="outline"
-                        color={color}
-                        leftSection={<FiPlus size={18} />}
-                        onClick={() => setIsAddOpen(true)}
-                    >
-                        Add analytic
-                    </Button>
-                </Group>
-            )}
-
-            {analytics.length === 0 && !isLoading ? (
+            {widgets.length === 0 && !isLoading ? (
                 <Stack align="center" gap="md" py={80}>
                     <ThemeIcon
                         size={72}
@@ -150,20 +113,17 @@ function DashboardContent({
                     </ThemeIcon>
                     <Stack align="center" gap={4}>
                         <Text fw={700} size="xl">
-                            No analytics added yet
+                            Nothing on this board yet
                         </Text>
                         <Text size="sm" c="dimmed">
-                            Add analytics from your trackers to display them
+                            Add a widget to show analytics from your trackers
                             here
                         </Text>
                     </Stack>
                     <Button
                         color={color}
                         leftSection={<FiPlus size={16} />}
-                        onClick={() => {
-                            setIsConfiguring(true);
-                            setIsAddOpen(true);
-                        }}
+                        onClick={() => setIsAddOpen(true)}
                     >
                         Get Started
                     </Button>
@@ -173,19 +133,21 @@ function DashboardContent({
                     <Loader color={color} />
                 </Center>
             ) : (
-                <AnalyticsGrid
-                    analytics={analytics}
+                <DashboardGrid
+                    widgets={widgets}
                     color={color}
                     isConfiguring={isConfiguring}
-                    onReorder={reorderItems}
+                    onLayoutSave={saveLayout}
                     onRemove={removeItem}
                 />
             )}
 
             {isAddOpen && (
-                <AddDashboardItemModal
+                <AddWidgetModal
+                    color={color}
                     onClose={() => setIsAddOpen(false)}
                     onAdd={addItem}
+                    onAddFromAnalytic={addItemFromAnalytic}
                 />
             )}
         </Stack>

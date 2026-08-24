@@ -7,12 +7,15 @@ import {
     createBarChartTooltipContent,
     getAxisFormatter,
 } from "./ChartFormatters";
+import { cardBodyProps, cardShellProps, chartHeight } from "./cardSizing";
 
 interface Props {
     analytic: BarChartAnalyticDto;
     color: string | undefined;
     isConfiguring: boolean;
     onRemove?: (analyticId: string) => void;
+    /** Stretch to fill the height of the container instead of using a fixed one. */
+    fillHeight?: boolean;
 }
 
 export function BarChartCard({
@@ -20,6 +23,7 @@ export function BarChartCard({
     color,
     isConfiguring,
     onRemove,
+    fillHeight,
 }: Props) {
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
 
@@ -28,8 +32,8 @@ export function BarChartCard({
         : analytic.nameField.name;
 
     return (
-        <Paper withBorder p="md" radius="md">
-            <Stack gap="xs">
+        <Paper withBorder p="md" radius="md" {...cardShellProps(fillHeight)}>
+            <Stack gap="xs" {...cardBodyProps(fillHeight)}>
                 <Group justify="space-between" wrap="nowrap" align="flex-start">
                     <Text size="sm" mb="sm">
                         {`${analytic.name}: ${subtitle}`}
@@ -46,7 +50,8 @@ export function BarChartCard({
                     )}
                 </Group>
                 <BarChart
-                    h={isMobile ? 210 : 300}
+                    h={chartHeight(fillHeight, isMobile)}
+                    {...cardBodyProps(fillHeight)}
                     data={analytic.points}
                     dataKey="name"
                     series={[

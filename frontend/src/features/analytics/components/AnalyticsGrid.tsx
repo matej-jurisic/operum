@@ -18,33 +18,9 @@ import { CSSProperties, useEffect, useState } from "react";
 import { restrictToFirstScrollableAncestor } from "@dnd-kit/modifiers";
 import React from "react";
 import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
-import { AnalyticResultTypeEnum } from "../enums/AnalyticResultTypeEnum";
-import {
-    AnalyticDto,
-    BarChartAnalyticDto,
-    CalendarAnalyticDto,
-    ComposedChartAnalyticDto,
-    DonutChartAnaylticDto,
-    LineChartAnalyticDto,
-    ScatterChartAnalyticDto,
-    SingleValueAnalyticDto,
-} from "../types/AnalyticDto";
-import { BarChartCard } from "./BarChartCard";
-import { CalendarCard } from "./CalendarCard";
-import { ComposedChartCard } from "./ComposedChartCard";
-import { DonutChartCard } from "./DonutChartCard";
-import { LineChartCard } from "./LineChartCard";
+import { AnalyticDto } from "../types/AnalyticDto";
+import { AnalyticCard } from "./AnalyticCard";
 import { closestToPointer } from "./MasonryCollision";
-import { ScatterChartCard } from "./ScatterChartCard";
-import { SingleValueCard } from "./SingleValueCard";
-
-export const SingleValueCardMemo = React.memo(SingleValueCard);
-export const LineChartCardMemo = React.memo(LineChartCard);
-export const ScatterChartCardMemo = React.memo(ScatterChartCard);
-export const CalendarChartCardMemo = React.memo(CalendarCard);
-export const DonutChartCardMemo = React.memo(DonutChartCard);
-export const BarChartCardMemo = React.memo(BarChartCard);
-export const ComposedChartCardMemo = React.memo(ComposedChartCard);
 
 interface AnalyticsGridProps {
     analytics: AnalyticDto[];
@@ -135,78 +111,6 @@ export function AnalyticsGrid({
         onReorder(newOrder.map((x) => x.id));
     };
 
-    const renderCard = (analytic: AnalyticDto) => {
-        switch (analytic.resultType) {
-            case AnalyticResultTypeEnum.SingleValue:
-                return (
-                    <SingleValueCardMemo
-                        analytic={analytic as SingleValueAnalyticDto}
-                        color={color}
-                        isConfiguring={isConfiguring}
-                        onRemove={onRemove}
-                        onEntryClick={onEntryClick}
-                    />
-                );
-            case AnalyticResultTypeEnum.LineChart:
-                return (
-                    <LineChartCardMemo
-                        analytic={analytic as LineChartAnalyticDto}
-                        color={color}
-                        isConfiguring={isConfiguring}
-                        onRemove={onRemove}
-                    />
-                );
-            case AnalyticResultTypeEnum.ScatterChart:
-                return (
-                    <ScatterChartCardMemo
-                        analytic={analytic as ScatterChartAnalyticDto}
-                        color={color}
-                        isConfiguring={isConfiguring}
-                        onRemove={onRemove}
-                    />
-                );
-            case AnalyticResultTypeEnum.Calendar:
-                return (
-                    <CalendarChartCardMemo
-                        analytic={analytic as CalendarAnalyticDto}
-                        color={color}
-                        isConfiguring={isConfiguring}
-                        onRemove={onRemove}
-                        onEntryClick={onEntryClick}
-                    />
-                );
-            case AnalyticResultTypeEnum.Donut:
-                return (
-                    <DonutChartCardMemo
-                        analytic={analytic as DonutChartAnaylticDto}
-                        color={color}
-                        isConfiguring={isConfiguring}
-                        onRemove={onRemove}
-                    />
-                );
-            case AnalyticResultTypeEnum.BarChart:
-                return (
-                    <BarChartCardMemo
-                        analytic={analytic as BarChartAnalyticDto}
-                        color={color}
-                        isConfiguring={isConfiguring}
-                        onRemove={onRemove}
-                    />
-                );
-            case AnalyticResultTypeEnum.Composed:
-                return (
-                    <ComposedChartCardMemo
-                        analytic={analytic as ComposedChartAnalyticDto}
-                        color={color}
-                        isConfiguring={isConfiguring}
-                        onRemove={onRemove}
-                    />
-                );
-            default:
-                return null;
-        }
-    };
-
     return (
         <Stack>
             <DndContext
@@ -236,7 +140,13 @@ export function AnalyticsGrid({
                                     index={index}
                                     color={color}
                                 >
-                                    {renderCard(analytic)}
+                                    <AnalyticCard
+                                        analytic={analytic}
+                                        color={color}
+                                        isConfiguring={isConfiguring}
+                                        onRemove={onRemove}
+                                        onEntryClick={onEntryClick}
+                                    />
                                 </SortableCardWrapper>
                             ))}
                         </Masonry>

@@ -1,6 +1,7 @@
 import { ActionIcon, Group, Paper, Stack, Text } from "@mantine/core";
 import { MdDelete, MdLink } from "react-icons/md";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
+import { cardBodyProps, cardShellProps } from "./cardSizing";
 import { SingleValueAnalyticDto } from "../types/AnalyticDto";
 
 interface Props {
@@ -9,6 +10,8 @@ interface Props {
     isConfiguring: boolean;
     onRemove?: (analyticId: string) => void;
     onEntryClick?: (entryId: string) => void;
+    /** Stretch to fill the height of the container instead of using a fixed one. */
+    fillHeight?: boolean;
 }
 
 export function SingleValueCard({
@@ -17,10 +20,17 @@ export function SingleValueCard({
     isConfiguring,
     onRemove,
     onEntryClick,
+    fillHeight,
 }: Props) {
     return (
-        <Paper withBorder p="md" radius="md" w={"100%"}>
-            <Stack gap="xs">
+        <Paper
+            withBorder
+            p="md"
+            radius="md"
+            w={"100%"}
+            {...cardShellProps(fillHeight)}
+        >
+            <Stack gap="xs" {...cardBodyProps(fillHeight)}>
                 <Group
                     justify="space-between"
                     align="center"

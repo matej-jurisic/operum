@@ -6,6 +6,7 @@ using Operum.Model.Constants.Analytics;
 using Operum.Model.Constants.Analytics.Definitions;
 using Operum.Model.Constants.Fields;
 using Operum.Model.DTOs.Analytics;
+using Operum.Model.DTOs.Analytics.Requests;
 using Operum.Model.DTOs.Dashboard;
 using Operum.Model.DTOs.Dashboard.Requests;
 using Operum.Model.DTOs.Fields;
@@ -45,17 +46,25 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(MapToDto(dashboard));
         }
 
-        public async Task<Result<List<AnalyticDto>>> GetDashboardAnalytics(string dashboardId)
+        public async Task<Result<List<DashboardWidgetDto>>> GetDashboardWidgets(string dashboardId)
         {
             var dashboard = await GetUserDashboard(dashboardId);
             if (dashboard == null)
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
 
             var items = dashboard.Items.OrderBy(i => i.Order).ToList();
-            var results = new List<AnalyticDto>();
+            var results = new List<DashboardWidgetDto>();
 
             foreach (var item in items)
             {
+                // A widget that isn't an analytic renders from its own Config alone, so it
+                // never reaches the calculation below.
+                if (item.Type != DashboardWidgetTypes.Analytic)
+                {
+                    results.Add(MapToWidgetDto(item, null));
+                    continue;
+                }
+
                 if (string.IsNullOrEmpty(item.ResultType) || string.IsNullOrEmpty(item.Code))
                     continue;
 
@@ -116,10 +125,18 @@ namespace Operum.Service.Services.Dashboards
                     ? resolvedSources[0].Result
                     : BuildComposedResult(resolvedSources, item.MatchedValuesOnly);
 
-                // Use dashboard item ID so frontend can reference it for reorder/remove
+                // A single source that was copied from a tracker's analytic carries that
+                // analytic's name as its label, so the widget reads on the board the way it
+                // did on the tracker instead of falling back to the definition's label.
+                // Combined charts name themselves from their series.
+                var singleSourceLabel = resolvedSources.Count == 1 ? resolvedSources[0].Source.Label : null;
+                if (!string.IsNullOrWhiteSpace(singleSourceLabel))
+                    itemResult.Name = singleSourceLabel;
+
+                // Use dashboard item ID so frontend can reference it for layout/remove
                 itemResult.Id = item.Id;
                 itemResult.Order = item.Order;
-                results.Add(itemResult);
+                results.Add(MapToWidgetDto(item, itemResult));
             }
 
             return Result.Success(results);
@@ -237,10 +254,20 @@ namespace Operum.Service.Services.Dashboards
 
             var nextOrder = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.Order) + 1 : 0;
 
+            // A new widget starts on its own row under everything already on the board, at
+            // the size its chart type reads well at. The user moves it from there.
+            var (width, height) = DashboardGrid.DefaultSizeFor(dto.ResultType);
+            var nextRow = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.Y + i.H) : 0;
+
             var item = new DashboardItem
             {
                 DashboardId = dashboardId,
                 Order = nextOrder,
+                Type = DashboardWidgetTypes.Analytic,
+                X = 0,
+                Y = nextRow,
+                W = width,
+                H = height,
                 ResultType = dto.ResultType,
                 Code = dto.Code,
                 MatchedValuesOnly = dto.MatchedValuesOnly,
@@ -262,6 +289,9 @@ namespace Operum.Service.Services.Dashboards
             {
                 Id = item.Id,
                 Order = item.Order,
+                Type = item.Type,
+                Layout = MapToLayoutDto(item),
+                Config = item.Config,
                 ResultType = item.ResultType,
                 Code = item.Code,
                 MatchedValuesOnly = item.MatchedValuesOnly,
@@ -284,6 +314,41 @@ namespace Operum.Service.Services.Dashboards
             });
         }
 
+        // Copies a tracker's own analytic onto the board. The definition is duplicated rather
+        // than referenced, so the widget keeps working (and keeps looking the way it did when
+        // it was added) after the tracker's analytic is edited or deleted.
+        public async Task<Result<DashboardItemDto>> AddDashboardItemFromAnalytic(string dashboardId, AddDashboardItemFromAnalyticDto dto)
+        {
+            var analytic = await db.Analytics
+                .Include(a => a.AnalyticFields)
+                .FirstOrDefaultAsync(a => a.Id == dto.AnalyticId);
+
+            if (analytic == null)
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("analytic"));
+
+            // Everything else — access to the tracker, the field mapping, the board's item
+            // limit — is settled by the normal add path, which this is only a shortcut into.
+            return await AddDashboardItem(dashboardId, new AddDashboardItemDto
+            {
+                ResultType = analytic.ResultType,
+                Code = analytic.Code,
+                Sources =
+                [
+                    new DashboardItemSourceRequestDto
+                    {
+                        TrackerId = analytic.TrackerId,
+                        // Left unset when the analytic was never named, so the widget falls
+                        // back to the definition's own label the way any other item does.
+                        Label = string.IsNullOrWhiteSpace(analytic.Name) ? null : analytic.Name,
+                        ViewIds = dto.ViewIds,
+                        AnalyticFields = analytic.AnalyticFields
+                            .Select(f => new CreateAnalyticFieldDto { Purpose = f.Purpose, FieldId = f.FieldId })
+                            .ToList()
+                    }
+                ]
+            });
+        }
+
         public async Task<Result> RemoveDashboardItem(string dashboardId, string itemId)
         {
             var dashboard = await GetUserDashboard(dashboardId);
@@ -299,20 +364,40 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success();
         }
 
-        public async Task<Result> ReorderDashboardItems(string dashboardId, List<string> orderedItemIds)
+        public async Task<Result> UpdateDashboardLayout(string dashboardId, UpdateDashboardLayoutDto dto)
         {
             var dashboard = await GetUserDashboard(dashboardId);
             if (dashboard == null)
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
 
-            for (int i = 0; i < orderedItemIds.Count; i++)
+            foreach (var placement in dto.Items)
             {
-                var item = dashboard.Items.FirstOrDefault(x => x.Id == orderedItemIds[i]);
-                if (item != null) item.Order = i;
+                var item = dashboard.Items.FirstOrDefault(x => x.Id == placement.ItemId);
+                if (item == null) continue;
+
+                ApplyPlacement(item, placement.X, placement.Y, placement.W, placement.H);
             }
+
+            // Order no longer decides where an item sits, but it still decides which widget
+            // a client without the grid reads first, so keep it as the board's reading
+            // order instead of letting it drift away from what the user arranged.
+            var order = 0;
+            foreach (var item in dashboard.Items.OrderBy(i => i.Y).ThenBy(i => i.X))
+                item.Order = order++;
 
             await db.SaveChangesAsync();
             return Result.Success();
+        }
+
+        // Clamps a placement to the grid the client is told to render. Out-of-bounds values
+        // are pulled back in rather than rejected: refusing would throw away the rest of
+        // the board's arrangement over one widget the client placed badly.
+        private static void ApplyPlacement(DashboardItem item, int x, int y, int w, int h)
+        {
+            item.W = Math.Clamp(w, DashboardGrid.MinWidth, DashboardGrid.Columns);
+            item.H = Math.Clamp(h, DashboardGrid.MinHeight, DashboardGrid.MaxHeight);
+            item.X = Math.Clamp(x, 0, DashboardGrid.Columns - item.W);
+            item.Y = Math.Max(y, 0);
         }
 
         // Validates the field mapping a source supplies for the item's definition and, if it
@@ -466,11 +551,31 @@ namespace Operum.Service.Services.Dashboards
             {
                 Id = i.Id,
                 Order = i.Order,
+                Type = i.Type,
+                Layout = MapToLayoutDto(i),
+                Config = i.Config,
                 ResultType = i.ResultType,
                 Code = i.Code,
                 MatchedValuesOnly = i.MatchedValuesOnly,
                 Sources = i.Sources.OrderBy(s => s.Order).Select(s => MapSourceToDto(i, s)).ToList()
             }).ToList()
+        };
+
+        private static DashboardWidgetLayoutDto MapToLayoutDto(DashboardItem i) => new()
+        {
+            X = i.X,
+            Y = i.Y,
+            W = i.W,
+            H = i.H
+        };
+
+        private static DashboardWidgetDto MapToWidgetDto(DashboardItem item, AnalyticDto? analytic) => new()
+        {
+            Id = item.Id,
+            Type = item.Type,
+            Layout = MapToLayoutDto(item),
+            Config = item.Config,
+            Analytic = analytic
         };
 
         private static DashboardItemSourceDto MapSourceToDto(DashboardItem item, DashboardItemSource s)

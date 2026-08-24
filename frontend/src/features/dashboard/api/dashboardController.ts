@@ -1,12 +1,14 @@
 import api from "../../../shared/api/api";
 import { ApiResponse } from "../../../shared/types/ApiResponse";
-import { AnalyticDto } from "../../analytics/types/AnalyticDto";
 import {
     AddDashboardItemDto,
+    AddDashboardItemFromAnalyticDto,
     CreateDashboardDto,
     DashboardDto,
     DashboardItemDto,
+    DashboardWidgetDto,
     UpdateDashboardDto,
+    UpdateDashboardLayoutDto,
 } from "../types/DashboardDto";
 
 export const dashboardController = {
@@ -18,8 +20,10 @@ export const dashboardController = {
         return await api.get(`/dashboard/${dashboardId}`);
     },
 
-    getDashboardAnalytics: async (dashboardId: string): Promise<ApiResponse<AnalyticDto[]>> => {
-        return await api.get(`/dashboard/${dashboardId}/analytics`);
+    getDashboardWidgets: async (
+        dashboardId: string
+    ): Promise<ApiResponse<DashboardWidgetDto[]>> => {
+        return await api.get(`/dashboard/${dashboardId}/widgets`);
     },
 
     createDashboard: async (dto: CreateDashboardDto): Promise<ApiResponse<DashboardDto>> => {
@@ -44,6 +48,13 @@ export const dashboardController = {
         return await api.post(`/dashboard/${dashboardId}/items`, dto);
     },
 
+    addDashboardItemFromAnalytic: async (
+        dashboardId: string,
+        dto: AddDashboardItemFromAnalyticDto
+    ): Promise<ApiResponse<DashboardItemDto>> => {
+        return await api.post(`/dashboard/${dashboardId}/items/from-analytic`, dto);
+    },
+
     removeDashboardItem: async (
         dashboardId: string,
         itemId: string
@@ -51,10 +62,10 @@ export const dashboardController = {
         return await api.delete(`/dashboard/${dashboardId}/items/${itemId}`);
     },
 
-    reorderDashboardItems: async (
+    updateDashboardLayout: async (
         dashboardId: string,
-        orderedItemIds: string[]
+        dto: UpdateDashboardLayoutDto
     ): Promise<ApiResponse> => {
-        return await api.put(`/dashboard/${dashboardId}/items/reorder`, orderedItemIds);
+        return await api.put(`/dashboard/${dashboardId}/layout`, dto);
     },
 };

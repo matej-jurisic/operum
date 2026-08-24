@@ -6,6 +6,7 @@ using Operum.Model.DTOs.Dashboard.Requests;
 using Operum.Model.DTOs.Entries.Requests;
 using Operum.Model.DTOs.Fields.Requests;
 using Operum.Model.DTOs.Trackers.Requests;
+using Operum.Model.DTOs.Views.Requests;
 using Operum.Tests.Extensions;
 using Operum.Tests.Util;
 using System.Net;
@@ -89,6 +90,48 @@ namespace Operum.Tests.Tests.Dashboards
             return dashboard.GetProperty("id").GetString()!;
         }
 
+        // The board as the client renders it: a placement per widget wrapped around the
+        // chart calculated for it, which is what these tests are usually after.
+        private static async Task<JsonElement> Widgets(HttpClient client, string dashboardId)
+            => await Data(await client.GetAsync($"dashboard/{dashboardId}/widgets"));
+
+        private static JsonElement Analytic(JsonElement widget) => widget.GetProperty("analytic");
+
+        private static JsonElement Layout(JsonElement widget) => widget.GetProperty("layout");
+
+        // Adds the "Raw Values" line chart of a tracker and hands back the item's id.
+        private static async Task<string> AddLineItem(HttpClient client, string dashboardId, CapableTracker tracker)
+        {
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+            {
+                ResultType = AnalyticTypes.LineChart,
+                Code = AnalyticCodes.LineChart,
+                Sources = [LineSource(tracker)]
+            });
+            Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
+            return (await Data(addResponse)).GetProperty("id").GetString()!;
+        }
+
+        // Creates a "Raw Values" line chart on the tracker itself and hands back its id, so
+        // a test can add it to a board the way the widget picker does.
+        private static async Task<string> CreateTrackerAnalytic(HttpClient client, CapableTracker tracker)
+        {
+            var createResponse = await client.PostAsJsonAsync($"trackers/{tracker.Id}/analytics", new CreateAnalyticDto
+            {
+                Type = AnalyticTypes.LineChart,
+                Code = AnalyticCodes.LineChart,
+                AnalyticFields =
+                [
+                    new CreateAnalyticFieldDto { FieldId = tracker.DayFieldId, Purpose = AnalyticPurposes.Xaxis },
+                    new CreateAnalyticFieldDto { FieldId = tracker.AmountFieldId, Purpose = AnalyticPurposes.Yaxis }
+                ]
+            });
+            Assert.Equal(HttpStatusCode.OK, createResponse.StatusCode);
+
+            var analytics = await Data(await client.GetAsync($"trackers/{tracker.Id}/analytics"));
+            return analytics[analytics.GetArrayLength() - 1].GetProperty("id").GetString()!;
+        }
+
         [Fact]
         public async Task AddDashboardItem_SingleSource_ReturnsNativeChartTypeUnchanged()
         {
@@ -107,10 +150,10 @@ namespace Operum.Tests.Tests.Dashboards
             });
             Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
 
-            var results = await Data(await client.GetAsync($"dashboard/{dashboardId}/analytics"));
+            var results = await Widgets(client, dashboardId);
 
             Assert.Equal(1, results.GetArrayLength());
-            Assert.Equal(AnalyticTypes.BarChart, results[0].GetProperty("resultType").GetString());
+            Assert.Equal(AnalyticTypes.BarChart, Analytic(results[0]).GetProperty("resultType").GetString());
         }
 
         [Fact]
@@ -132,10 +175,10 @@ namespace Operum.Tests.Tests.Dashboards
             });
             Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
 
-            var results = await Data(await client.GetAsync($"dashboard/{dashboardId}/analytics"));
+            var results = await Widgets(client, dashboardId);
 
             Assert.Equal(1, results.GetArrayLength());
-            var combined = results[0];
+            var combined = Analytic(results[0]);
             Assert.Equal(AnalyticTypes.Composed, combined.GetProperty("resultType").GetString());
             Assert.Equal(2, combined.GetProperty("series").GetArrayLength());
             // One definition for both sources, and both plot a date on the x-axis, so there
@@ -164,7 +207,7 @@ namespace Operum.Tests.Tests.Dashboards
             });
             Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
 
-            var combined = (await Data(await client.GetAsync($"dashboard/{dashboardId}/analytics")))[0];
+            var combined = Analytic((await Widgets(client, dashboardId))[0]);
             Assert.Equal(2, combined.GetProperty("series").GetArrayLength());
             Assert.True(combined.GetProperty("warnings").GetArrayLength() > 0);
         }
@@ -294,9 +337,9 @@ namespace Operum.Tests.Tests.Dashboards
             });
             Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
 
-            var results = await Data(await client.GetAsync($"dashboard/{dashboardId}/analytics"));
+            var results = await Widgets(client, dashboardId);
             Assert.Equal(1, results.GetArrayLength());
-            Assert.Equal(AnalyticTypes.LineChart, results[0].GetProperty("resultType").GetString());
+            Assert.Equal(AnalyticTypes.LineChart, Analytic(results[0]).GetProperty("resultType").GetString());
 
             // The whole point: the definition stays on the dashboard and never shows up
             // among the tracker's own analytics.
@@ -368,6 +411,109 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(HttpStatusCode.NotFound, addResponse.StatusCode);
         }
 
+
+        // Adding an existing analytic copies its definition onto the board: the widget keeps
+        // rendering after the tracker's own analytic is deleted, which is what makes the item
+        // a copy rather than a reference.
+        [Fact]
+        public async Task AddDashboardItemFromAnalytic_CopiesTheDefinitionInsteadOfReferencingIt()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("analyticcopy");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var analyticId = await CreateTrackerAnalytic(client, tracker);
+            var dashboardId = await CreateDashboard(client);
+
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/from-analytic",
+                new AddDashboardItemFromAnalyticDto { AnalyticId = analyticId });
+            Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
+
+            var item = await Data(addResponse);
+            Assert.Equal(AnalyticTypes.LineChart, item.GetProperty("resultType").GetString());
+            Assert.Equal(AnalyticCodes.LineChart, item.GetProperty("code").GetString());
+            Assert.Equal(1, item.GetProperty("sources").GetArrayLength());
+            Assert.Equal(2, item.GetProperty("sources")[0].GetProperty("fields").GetArrayLength());
+
+            var removeResponse = await client.DeleteAsync($"trackers/{tracker.Id}/analytics/{analyticId}");
+            Assert.Equal(HttpStatusCode.OK, removeResponse.StatusCode);
+
+            var widgets = await Widgets(client, dashboardId);
+            Assert.Equal(1, widgets.GetArrayLength());
+            Assert.Equal(AnalyticTypes.LineChart, Analytic(widgets[0]).GetProperty("resultType").GetString());
+        }
+
+        [Fact]
+        public async Task AddDashboardItemFromAnalytic_ViewIdsNarrowTheWidget()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("analyticview");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var analyticId = await CreateTrackerAnalytic(client, tracker);
+            var dashboardId = await CreateDashboard(client);
+
+            // Nothing has a category of "Strength", so the view filters the single entry out.
+            var view = await Data(await client.PostAsJsonAsync($"trackers/{tracker.Id}/views", new CreateViewDto
+            {
+                Name = "Strength only",
+                Filters =
+                [
+                    new CreateViewFilterDto
+                    {
+                        FieldId = tracker.CategoryFieldId,
+                        Operator = OperatorTypes.EqualsOperator,
+                        Value = "Strength"
+                    }
+                ]
+            }));
+
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/from-analytic",
+                new AddDashboardItemFromAnalyticDto
+                {
+                    AnalyticId = analyticId,
+                    ViewIds = [view.GetProperty("id").GetString()!]
+                });
+            Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
+
+            var widgets = await Widgets(client, dashboardId);
+            Assert.Equal(0, Analytic(widgets[0]).GetProperty("points").GetArrayLength());
+        }
+
+        [Fact]
+        public async Task AddDashboardItemFromAnalytic_UnknownAnalytic_ReturnsNotFound()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("analyticmissing");
+
+            var dashboardId = await CreateDashboard(client);
+
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/from-analytic",
+                new AddDashboardItemFromAnalyticDto { AnalyticId = Guid.NewGuid().ToString() });
+
+            Assert.Equal(HttpStatusCode.NotFound, addResponse.StatusCode);
+        }
+
+        // The shortcut must not become a way around tracker access: an analytic id is enough
+        // to name a tracker, so the normal add path still has to answer for it.
+        [Fact]
+        public async Task AddDashboardItemFromAnalytic_AnalyticOfAnotherUsersTracker_ReturnsForbidden()
+        {
+            await _factory.SeedDatabaseAsync();
+
+            var owner = await _factory.NewUserClient("analyticowner");
+            var tracker = await CreateCapableTracker(owner, "Weight");
+            var analyticId = await CreateTrackerAnalytic(owner, tracker);
+
+            var stranger = await _factory.NewUserClient("analyticstranger");
+            var dashboardId = await CreateDashboard(stranger);
+
+            var addResponse = await stranger.PostAsJsonAsync($"dashboard/{dashboardId}/items/from-analytic",
+                new AddDashboardItemFromAnalyticDto { AnalyticId = analyticId });
+
+            Assert.Equal(HttpStatusCode.Forbidden, addResponse.StatusCode);
+        }
+
         // Removing the dashboard item is the only lifecycle a source definition has — it must
         // take its source and field mappings with it rather than leaving orphans.
         [Fact]
@@ -393,6 +539,129 @@ namespace Operum.Tests.Tests.Dashboards
 
             var fetched = await Data(await client.GetAsync($"dashboard/{dashboardId}"));
             Assert.Equal(0, fetched.GetProperty("items").GetArrayLength());
+        }
+
+        // A widget the user has not placed yet still has to land somewhere sensible, which
+        // means below what is already on the board rather than on top of it.
+        [Fact]
+        public async Task AddDashboardItem_PlacesTheWidgetUnderTheOnesAlreadyOnTheBoard()
+        {
+            var client = _factory.CreateClientWithCookies();
+            await _factory.SeedDatabaseAsync();
+            await client.Authenticate(DefaultUsers.TestUserData);
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+
+            await AddLineItem(client, dashboardId, tracker);
+            await AddLineItem(client, dashboardId, tracker);
+
+            var widgets = await Widgets(client, dashboardId);
+            Assert.Equal(2, widgets.GetArrayLength());
+
+            var first = Layout(widgets[0]);
+            var second = Layout(widgets[1]);
+
+            Assert.Equal(0, first.GetProperty("y").GetInt32());
+            Assert.True(first.GetProperty("w").GetInt32() > 0);
+            Assert.True(first.GetProperty("h").GetInt32() > 0);
+            Assert.Equal(first.GetProperty("y").GetInt32() + first.GetProperty("h").GetInt32(), second.GetProperty("y").GetInt32());
+        }
+
+        [Fact]
+        public async Task UpdateDashboardLayout_PersistsThePlacement()
+        {
+            var client = _factory.CreateClientWithCookies();
+            await _factory.SeedDatabaseAsync();
+            await client.Authenticate(DefaultUsers.TestUserData);
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+
+            var layoutResponse = await client.PutAsJsonAsync($"dashboard/{dashboardId}/layout", new UpdateDashboardLayoutDto
+            {
+                Items = [new DashboardLayoutItemDto { ItemId = itemId, X = 4, Y = 2, W = 5, H = 7 }]
+            });
+            Assert.Equal(HttpStatusCode.OK, layoutResponse.StatusCode);
+
+            var layout = Layout((await Widgets(client, dashboardId))[0]);
+            Assert.Equal(4, layout.GetProperty("x").GetInt32());
+            Assert.Equal(2, layout.GetProperty("y").GetInt32());
+            Assert.Equal(5, layout.GetProperty("w").GetInt32());
+            Assert.Equal(7, layout.GetProperty("h").GetInt32());
+        }
+
+        // A client that lays out more columns than the grid has would otherwise push widgets
+        // off the right edge, where they cannot be dragged back.
+        [Fact]
+        public async Task UpdateDashboardLayout_PlacementOutsideTheGrid_IsClampedNotRejected()
+        {
+            var client = _factory.CreateClientWithCookies();
+            await _factory.SeedDatabaseAsync();
+            await client.Authenticate(DefaultUsers.TestUserData);
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+
+            var layoutResponse = await client.PutAsJsonAsync($"dashboard/{dashboardId}/layout", new UpdateDashboardLayoutDto
+            {
+                Items = [new DashboardLayoutItemDto { ItemId = itemId, X = DashboardGrid.Columns - 1, Y = 0, W = 8, H = DashboardGrid.MaxHeight + 10 }]
+            });
+            Assert.Equal(HttpStatusCode.OK, layoutResponse.StatusCode);
+
+            var layout = Layout((await Widgets(client, dashboardId))[0]);
+            Assert.Equal(8, layout.GetProperty("w").GetInt32());
+            Assert.Equal(DashboardGrid.Columns - 8, layout.GetProperty("x").GetInt32());
+            Assert.Equal(DashboardGrid.MaxHeight, layout.GetProperty("h").GetInt32());
+        }
+
+        // The grid sends the whole board at once, so an item that was removed in another tab
+        // must not fail the save for everything else.
+        [Fact]
+        public async Task UpdateDashboardLayout_UnknownItem_IsIgnored()
+        {
+            var client = _factory.CreateClientWithCookies();
+            await _factory.SeedDatabaseAsync();
+            await client.Authenticate(DefaultUsers.TestUserData);
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+
+            var layoutResponse = await client.PutAsJsonAsync($"dashboard/{dashboardId}/layout", new UpdateDashboardLayoutDto
+            {
+                Items =
+                [
+                    new DashboardLayoutItemDto { ItemId = itemId, X = 0, Y = 0, W = 4, H = 4 },
+                    new DashboardLayoutItemDto { ItemId = Guid.NewGuid().ToString(), X = 4, Y = 0, W = 4, H = 4 }
+                ]
+            });
+            Assert.Equal(HttpStatusCode.OK, layoutResponse.StatusCode);
+
+            var widgets = await Widgets(client, dashboardId);
+            Assert.Equal(1, widgets.GetArrayLength());
+            Assert.Equal(4, Layout(widgets[0]).GetProperty("w").GetInt32());
+        }
+
+        [Fact]
+        public async Task UpdateDashboardLayout_DashboardOfAnotherUser_ReturnsNotFound()
+        {
+            await _factory.SeedDatabaseAsync();
+
+            var owner = await _factory.NewUserClient("layoutowner");
+            var tracker = await CreateCapableTracker(owner, "Weight");
+            var dashboardId = await CreateDashboard(owner);
+            var itemId = await AddLineItem(owner, dashboardId, tracker);
+
+            var stranger = await _factory.NewUserClient("layoutstranger");
+            var layoutResponse = await stranger.PutAsJsonAsync($"dashboard/{dashboardId}/layout", new UpdateDashboardLayoutDto
+            {
+                Items = [new DashboardLayoutItemDto { ItemId = itemId, X = 0, Y = 0, W = 4, H = 4 }]
+            });
+
+            Assert.Equal(HttpStatusCode.NotFound, layoutResponse.StatusCode);
         }
 
         // Regression test: GetUserDashboard's query must be tracked, otherwise mutating the

@@ -1,4 +1,39 @@
+import { AnalyticDto } from "../../analytics/types/AnalyticDto";
 import { CreateAnalyticFieldDto } from "../../analytics/types/requests/CreateAnalyticDto";
+
+/** The kinds of widget a dashboard item can be. */
+export const WidgetTypes = {
+    Analytic: "analytic",
+} as const;
+
+/** Placement on the dashboard grid, in DASHBOARD_GRID_COLUMNS columns. */
+export interface WidgetLayoutDto {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+}
+
+/**
+ * One item of a dashboard as it is rendered: where it sits on the grid, what kind of
+ * widget it is, and the payload that kind needs. An analytic widget carries the chart
+ * calculated for it; a future kind carries its own config instead.
+ */
+export interface DashboardWidgetDto {
+    id: string;
+    type: string;
+    layout: WidgetLayoutDto;
+    config?: string;
+    analytic?: AnalyticDto;
+}
+
+export interface DashboardLayoutItemDto extends WidgetLayoutDto {
+    itemId: string;
+}
+
+export interface UpdateDashboardLayoutDto {
+    items: DashboardLayoutItemDto[];
+}
 
 export interface DashboardDto {
     id: string;
@@ -29,6 +64,9 @@ export interface DashboardItemSourceDto {
 export interface DashboardItemDto {
     id: string;
     order: number;
+    type: string;
+    layout: WidgetLayoutDto;
+    config?: string;
     /** The single analytic definition every source below is calculated with. */
     resultType: string;
     code: string;
@@ -58,6 +96,17 @@ export interface AddDashboardItemSourceDto {
     analyticFields: CreateAnalyticFieldDto[];
     viewIds: string[];
     label?: string;
+}
+
+/**
+ * Adds a widget by copying a tracker's own analytic instead of defining one inline. The
+ * copy is taken at add time, so editing the tracker's analytic afterwards leaves the
+ * board as it was.
+ */
+export interface AddDashboardItemFromAnalyticDto {
+    analyticId: string;
+    /** Optional: a tracker analytic carries no views of its own, so the board picks them. */
+    viewIds?: string[];
 }
 
 export interface AddDashboardItemDto {

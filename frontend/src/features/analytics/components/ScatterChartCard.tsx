@@ -7,12 +7,15 @@ import {
     createScatterTooltipContent,
     getAxisFormatter,
 } from "./ChartFormatters";
+import { cardBodyProps, cardShellProps, chartHeight } from "./cardSizing";
 
 interface ScatterChartCardProps {
     analytic: ScatterChartAnalyticDto;
     color: string | undefined;
     isConfiguring: boolean;
     onRemove?: (analyticId: string) => void;
+    /** Stretch to fill the height of the container instead of using a fixed one. */
+    fillHeight?: boolean;
 }
 
 export function ScatterChartCard({
@@ -20,12 +23,13 @@ export function ScatterChartCard({
     color,
     isConfiguring,
     onRemove,
+    fillHeight,
 }: ScatterChartCardProps) {
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
 
     return (
-        <Paper withBorder p="md" radius="md">
-            <Stack gap="xs">
+        <Paper withBorder p="md" radius="md" {...cardShellProps(fillHeight)}>
+            <Stack gap="xs" {...cardBodyProps(fillHeight)}>
                 <Group justify="space-between" wrap="nowrap" align="flex-start">
                     <Group align="flex-start">
                         <Text size="sm" mb="sm">
@@ -53,7 +57,8 @@ export function ScatterChartCard({
                             data: analytic.points,
                         },
                     ]}
-                    h={isMobile ? 210 : 300}
+                    h={chartHeight(fillHeight, isMobile)}
+                    {...cardBodyProps(fillHeight)}
                     xAxisProps={{
                         tickFormatter: getAxisFormatter(analytic.xField.type),
                     }}

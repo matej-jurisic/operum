@@ -1,0 +1,136 @@
+import {
+    Group,
+    Modal,
+    Stack,
+    Text,
+    ThemeIcon,
+    UnstyledButton,
+    useMantineTheme,
+} from "@mantine/core";
+import { IconType } from "react-icons";
+import { FiChevronRight } from "react-icons/fi";
+import { TbChartHistogram, TbLayoutGrid } from "react-icons/tb";
+import { useState } from "react";
+import {
+    AddDashboardItemDto,
+    AddDashboardItemFromAnalyticDto,
+} from "../types/DashboardDto";
+import { CustomAnalyticForm } from "./CustomAnalyticForm";
+import { ExistingAnalyticForm } from "./ExistingAnalyticForm";
+
+interface Props {
+    color: string;
+    onClose: () => void;
+    onAdd: (dto: AddDashboardItemDto) => Promise<void>;
+    onAddFromAnalytic: (dto: AddDashboardItemFromAnalyticDto) => Promise<void>;
+}
+
+type WidgetKind = "existing" | "custom";
+
+interface WidgetKindOption {
+    kind: WidgetKind;
+    title: string;
+    description: string;
+    icon: IconType;
+    /** Modal title once this kind is being configured. */
+    formTitle: string;
+}
+
+// The board's menu of widget kinds. Everything a dashboard can hold is listed here, so a
+// kind that isn't a chart (a button, a saved view, a note) is added by appending to this
+// list and rendering its own form below.
+const WIDGET_KINDS: WidgetKindOption[] = [
+    {
+        kind: "existing",
+        title: "Existing analytic",
+        description: "Put a chart you already built on a tracker onto the board",
+        icon: TbLayoutGrid,
+        formTitle: "Add an existing analytic",
+    },
+    {
+        kind: "custom",
+        title: "New chart",
+        description: "Build a chart here, from one tracker or several combined",
+        icon: TbChartHistogram,
+        formTitle: "Build a chart",
+    },
+];
+
+export function AddWidgetModal({
+    color,
+    onClose,
+    onAdd,
+    onAddFromAnalytic,
+}: Props) {
+    const theme = useMantineTheme();
+    const [kind, setKind] = useState<WidgetKind | null>(null);
+
+    const selected = WIDGET_KINDS.find((option) => option.kind === kind);
+
+    // Both forms leave the modal open on failure: the api layer has already said what went
+    // wrong, and closing would throw away everything the user filled in.
+    const submit =
+        <T,>(handler: (dto: T) => Promise<void>) =>
+        async (dto: T) => {
+            await handler(dto);
+            onClose();
+        };
+
+    return (
+        <Modal
+            opened
+            onClose={onClose}
+            title={selected?.formTitle ?? "Add a widget"}
+            size="md"
+            centered
+        >
+            {!selected && (
+                <Stack gap="sm">
+                    {WIDGET_KINDS.map((option) => (
+                        <UnstyledButton
+                            key={option.kind}
+                            onClick={() => setKind(option.kind)}
+                            p="md"
+                            style={{
+                                borderRadius: theme.radius.md,
+                                border: `1px solid ${theme.colors.gray[6]}33`,
+                            }}
+                        >
+                            <Group wrap="nowrap">
+                                <ThemeIcon
+                                    size={40}
+                                    radius="md"
+                                    variant="light"
+                                    color={color}
+                                >
+                                    <option.icon size={22} />
+                                </ThemeIcon>
+                                <Stack gap={2} style={{ flex: 1 }}>
+                                    <Text fw={600}>{option.title}</Text>
+                                    <Text size="sm" c="dimmed">
+                                        {option.description}
+                                    </Text>
+                                </Stack>
+                                <FiChevronRight size={18} />
+                            </Group>
+                        </UnstyledButton>
+                    ))}
+                </Stack>
+            )}
+
+            {kind === "existing" && (
+                <ExistingAnalyticForm
+                    onBack={() => setKind(null)}
+                    onAdd={submit(onAddFromAnalytic)}
+                />
+            )}
+
+            {kind === "custom" && (
+                <CustomAnalyticForm
+                    onBack={() => setKind(null)}
+                    onAdd={submit(onAdd)}
+                />
+            )}
+        </Modal>
+    );
+}

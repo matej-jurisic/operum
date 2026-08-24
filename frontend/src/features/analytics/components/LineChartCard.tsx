@@ -3,6 +3,7 @@ import { ActionIcon, em, Group, Paper, Stack, Text } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { MdDelete } from "react-icons/md";
 import { LineChartAnalyticDto } from "../types/AnalyticDto";
+import { cardBodyProps, cardShellProps, chartHeight } from "./cardSizing";
 import { createTooltipContent, getAxisFormatter } from "./ChartFormatters";
 
 interface LineChartCardProps {
@@ -10,6 +11,8 @@ interface LineChartCardProps {
     color: string | undefined;
     isConfiguring: boolean;
     onRemove?: (analyticId: string) => void;
+    /** Stretch to fill the height of the container instead of using a fixed one. */
+    fillHeight?: boolean;
 }
 
 export function LineChartCard({
@@ -17,12 +20,13 @@ export function LineChartCard({
     color,
     isConfiguring,
     onRemove,
+    fillHeight,
 }: LineChartCardProps) {
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
 
     return (
-        <Paper withBorder p="md" radius="md">
-            <Stack gap="xs">
+        <Paper withBorder p="md" radius="md" {...cardShellProps(fillHeight)}>
+            <Stack gap="xs" {...cardBodyProps(fillHeight)}>
                 <Group justify="space-between" wrap="nowrap" align="flex-start">
                     <Group align="flex-start">
                         <Text size="sm" mb="sm">
@@ -45,7 +49,8 @@ export function LineChartCard({
                     gridAxis="x"
                     data={analytic.points}
                     dataKey="x"
-                    h={isMobile ? 210 : 300}
+                    h={chartHeight(fillHeight, isMobile)}
+                    {...cardBodyProps(fillHeight)}
                     series={[
                         {
                             name: "y",

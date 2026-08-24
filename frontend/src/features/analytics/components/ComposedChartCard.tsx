@@ -13,6 +13,7 @@ import { useMediaQuery } from "@mantine/hooks";
 import { useMemo } from "react";
 import { MdDelete, MdWarningAmber } from "react-icons/md";
 import { ComposedChartAnalyticDto } from "../types/AnalyticDto";
+import { cardBodyProps, cardShellProps, chartHeight } from "./cardSizing";
 import { createComposedTooltipContent, getAxisFormatter } from "./ChartFormatters";
 
 interface Props {
@@ -20,6 +21,8 @@ interface Props {
     color: string | undefined;
     isConfiguring: boolean;
     onRemove?: (analyticId: string) => void;
+    /** Stretch to fill the height of the container instead of using a fixed one. */
+    fillHeight?: boolean;
 }
 
 // Cycled per series; the board color is reserved for the first series so a combined
@@ -31,6 +34,7 @@ export function ComposedChartCard({
     color,
     isConfiguring,
     onRemove,
+    fillHeight,
 }: Props) {
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
 
@@ -68,8 +72,8 @@ export function ComposedChartCard({
         : undefined;
 
     return (
-        <Paper withBorder p="md" radius="md">
-            <Stack gap="xs">
+        <Paper withBorder p="md" radius="md" {...cardShellProps(fillHeight)}>
+            <Stack gap="xs" {...cardBodyProps(fillHeight)}>
                 <Group justify="space-between" wrap="nowrap" align="flex-start">
                     <Group align="flex-start" gap="xs" wrap="nowrap">
                         <Text size="sm" mb="sm">
@@ -99,7 +103,8 @@ export function ComposedChartCard({
                     gridAxis="x"
                     data={data}
                     dataKey="x"
-                    h={isMobile ? 210 : 300}
+                    h={chartHeight(fillHeight, isMobile)}
+                    {...cardBodyProps(fillHeight)}
                     series={chartSeries}
                     xAxisProps={{ tickFormatter: xAxisFormatter }}
                     tooltipProps={{

@@ -3,7 +3,6 @@ import {
     Button,
     Checkbox,
     Group,
-    Modal,
     MultiSelect,
     Paper,
     Select,
@@ -29,7 +28,8 @@ import { ViewDto } from "../../views/types/ViewDto";
 import { AddDashboardItemDto } from "../types/DashboardDto";
 
 interface Props {
-    onClose: () => void;
+    /** Steps back to the widget type picker. */
+    onBack: () => void;
     onAdd: (dto: AddDashboardItemDto) => Promise<void>;
 }
 
@@ -69,7 +69,11 @@ const makeEmptyRow = (): TrackerRow => ({
     views: [],
 });
 
-export function AddDashboardItemModal({ onClose, onAdd }: Props) {
+/**
+ * Builds a chart from scratch over one or more trackers. The definition it produces is
+ * owned by the dashboard item, not by any tracker.
+ */
+export function CustomAnalyticForm({ onBack, onAdd }: Props) {
     const [trackers, setTrackers] = useState<TrackerDto[]>([]);
     const [config, setConfig] = useState<AnalyticConfigDto>();
     const [resultType, setResultType] = useState<string | null>(null);
@@ -204,7 +208,6 @@ export function AddDashboardItemModal({ onClose, onAdd }: Props) {
             })),
         });
         setIsSubmitting(false);
-        onClose();
     };
 
     const trackerOptions = trackers.map((t) => ({ value: t.id, label: t.name }));
@@ -220,133 +223,131 @@ export function AddDashboardItemModal({ onClose, onAdd }: Props) {
     const canSubmit = !!selectedCode && rows.every(isRowComplete);
 
     return (
-        <Modal opened onClose={onClose} title="Add analytic to dashboard" size="md" centered>
-            <Stack gap="md">
-                <Select
-                    label="Chart type"
-                    placeholder="Select a chart type"
-                    data={resultTypeOptions}
-                    value={resultType}
-                    onChange={handleResultTypeChange}
-                />
-                <Select
-                    label="Calculation"
-                    placeholder="Select a calculation"
-                    data={codeOptions}
-                    value={code}
-                    onChange={handleCodeChange}
-                    disabled={!resultType}
-                />
+        <Stack gap="md">
+            <Select
+                label="Chart type"
+                placeholder="Select a chart type"
+                data={resultTypeOptions}
+                value={resultType}
+                onChange={handleResultTypeChange}
+            />
+            <Select
+                label="Calculation"
+                placeholder="Select a calculation"
+                data={codeOptions}
+                value={code}
+                onChange={handleCodeChange}
+                disabled={!resultType}
+            />
 
-                {rows.map((row, index) => {
-                    const viewOptions = row.views.map((v) => ({
-                        value: v.id,
-                        label: v.name,
-                    }));
+            {rows.map((row, index) => {
+                const viewOptions = row.views.map((v) => ({
+                    value: v.id,
+                    label: v.name,
+                }));
 
-                    return (
-                        <Paper key={index} withBorder p="sm" radius="md">
-                            <Stack gap="sm">
-                                {index > 0 && (
-                                    <Group justify="space-between">
-                                        <Text size="xs" c="dimmed">
-                                            Combined with the tracker above
-                                        </Text>
-                                        <ActionIcon
-                                            size="sm"
-                                            variant="subtle"
-                                            color="red"
-                                            onClick={() => removeRow(index)}
-                                        >
-                                            <MdDelete size={14} />
-                                        </ActionIcon>
-                                    </Group>
-                                )}
+                return (
+                    <Paper key={index} withBorder p="sm" radius="md">
+                        <Stack gap="sm">
+                            {index > 0 && (
+                                <Group justify="space-between">
+                                    <Text size="xs" c="dimmed">
+                                        Combined with the tracker above
+                                    </Text>
+                                    <ActionIcon
+                                        size="sm"
+                                        variant="subtle"
+                                        color="red"
+                                        onClick={() => removeRow(index)}
+                                    >
+                                        <MdDelete size={14} />
+                                    </ActionIcon>
+                                </Group>
+                            )}
+                            <Select
+                                label="Tracker"
+                                placeholder="Select a tracker"
+                                data={trackerOptions}
+                                value={row.trackerId}
+                                onChange={(value) => handleTrackerChange(index, value)}
+                                searchable
+                            />
+
+                            {selectedCode?.purposes.map((purpose) => (
                                 <Select
-                                    label="Tracker"
-                                    placeholder="Select a tracker"
-                                    data={trackerOptions}
-                                    value={row.trackerId}
-                                    onChange={(value) => handleTrackerChange(index, value)}
-                                    searchable
-                                />
-
-                                {selectedCode?.purposes.map((purpose) => (
-                                    <Select
-                                        key={purpose.name}
-                                        label={purpose.name}
-                                        placeholder={`Select field (${purpose.allowedDataTypes.join(
-                                            ", "
-                                        )})`}
-                                        data={fieldOptionsFor(row, purpose, index)}
-                                        value={row.fieldMappings[purpose.name] || null}
-                                        onChange={(value) =>
-                                            updateRow(index, {
-                                                fieldMappings: {
-                                                    ...row.fieldMappings,
-                                                    [purpose.name]: value ?? "",
-                                                },
-                                            })
-                                        }
-                                        disabled={!row.trackerId}
-                                        clearable
-                                        description={
-                                            index > 0 &&
-                                            purpose.name === xAxisPurpose &&
-                                            xAxisType
-                                                ? `Limited to ${xAxisType} fields so both trackers share one axis.`
-                                                : undefined
-                                        }
-                                    />
-                                ))}
-
-                                <MultiSelect
-                                    label="Filter by views (optional)"
-                                    placeholder="All entries"
-                                    data={viewOptions}
-                                    value={row.viewIds}
-                                    onChange={(value) => updateRow(index, { viewIds: value })}
+                                    key={purpose.name}
+                                    label={purpose.name}
+                                    placeholder={`Select field (${purpose.allowedDataTypes.join(
+                                        ", "
+                                    )})`}
+                                    data={fieldOptionsFor(row, purpose, index)}
+                                    value={row.fieldMappings[purpose.name] || null}
+                                    onChange={(value) =>
+                                        updateRow(index, {
+                                            fieldMappings: {
+                                                ...row.fieldMappings,
+                                                [purpose.name]: value ?? "",
+                                            },
+                                        })
+                                    }
                                     disabled={!row.trackerId}
+                                    clearable
+                                    description={
+                                        index > 0 &&
+                                        purpose.name === xAxisPurpose &&
+                                        xAxisType
+                                            ? `Limited to ${xAxisType} fields so both trackers share one axis.`
+                                            : undefined
+                                    }
                                 />
-                            </Stack>
-                        </Paper>
-                    );
-                })}
+                            ))}
 
-                {rows.length > 1 && (
-                    <Checkbox
-                        label="Show only matched values"
-                        description="Plot only the x-axis values every tracker has data for, so the series cover the same range."
-                        checked={matchedValuesOnly}
-                        onChange={(event) =>
-                            setMatchedValuesOnly(event.currentTarget.checked)
-                        }
-                    />
-                )}
+                            <MultiSelect
+                                label="Filter by views (optional)"
+                                placeholder="All entries"
+                                data={viewOptions}
+                                value={row.viewIds}
+                                onChange={(value) => updateRow(index, { viewIds: value })}
+                                disabled={!row.trackerId}
+                            />
+                        </Stack>
+                    </Paper>
+                );
+            })}
 
-                {canAddAnotherTracker && (
-                    <Button
-                        variant="light"
-                        leftSection={<MdAdd size={16} />}
-                        onClick={addRow}
-                    >
-                        Add another tracker
-                    </Button>
-                )}
+            {rows.length > 1 && (
+                <Checkbox
+                    label="Show only matched values"
+                    description="Plot only the x-axis values every tracker has data for, so the series cover the same range."
+                    checked={matchedValuesOnly}
+                    onChange={(event) =>
+                        setMatchedValuesOnly(event.currentTarget.checked)
+                    }
+                />
+            )}
 
-                <Group justify="flex-end" mt="sm">
-                    <Button variant="default" onClick={onClose}>
-                        Cancel
-                    </Button>
-                    <Button
-                        disabled={!canSubmit}
-                        loading={isSubmitting}
-                        onClick={handleSubmit}
-                    >
-                        Add
-                    </Button>
-                </Group>
-            </Stack>
-        </Modal>
+            {canAddAnotherTracker && (
+                <Button
+                    variant="light"
+                    leftSection={<MdAdd size={16} />}
+                    onClick={addRow}
+                >
+                    Add another tracker
+                </Button>
+            )}
+
+            <Group justify="flex-end" mt="sm">
+                <Button variant="default" onClick={onBack}>
+                    Back
+                </Button>
+                <Button
+                    disabled={!canSubmit}
+                    loading={isSubmitting}
+                    onClick={handleSubmit}
+                >
+                    Add
+                </Button>
+            </Group>
+        </Stack>
     );
 }

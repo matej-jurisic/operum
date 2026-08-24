@@ -1,0 +1,40 @@
+/* The dashboard's own layer over react-grid-layout's stylesheet: theme-aware colors for
+   the placeholder and the resize handles, and the affordances that only make sense while
+   the board is being arranged. */
+
+.dashboard-grid .dashboard-widget {
+    height: 100%;
+    overflow: hidden;
+}
+
+/* A cell has a fixed pixel height, so the card inside it takes all of it and any chart
+   that fills its card scales with the widget rather than overflowing it. */
+.dashboard-grid .react-grid-item > * {
+    height: 100%;
+}
+
+.dashboard-grid .react-grid-item.react-grid-placeholder {
+    background: var(--mantine-primary-color-filled);
+    border-radius: var(--mantine-radius-md);
+    opacity: 0.15;
+}
+
+.dashboard-grid.is-editing .react-grid-item:not(.react-grid-placeholder) {
+    cursor: grab;
+}
+
+.dashboard-grid.is-editing .react-grid-item.react-draggable-dragging {
+    cursor: grabbing;
+}
+
+/* Above the card, or the resize corner would sit under it and never be grabbed. */
+.dashboard-grid .react-grid-item > .react-resizable-handle {
+    z-index: 2;
+}
+
+.dashboard-grid .react-grid-item > .react-resizable-handle::after {
+    border-right-color: var(--mantine-color-dimmed);
+    border-bottom-color: var(--mantine-color-dimmed);
+    width: 8px;
+    height: 8px;
+}

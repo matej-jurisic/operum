@@ -13,6 +13,7 @@ import { useMediaQuery } from "@mantine/hooks";
 import { useMemo } from "react";
 import { MdDelete } from "react-icons/md";
 import { DonutChartAnaylticDto } from "../types/AnalyticDto";
+import { cardBodyProps, cardShellProps, chartHeight } from "./cardSizing";
 import { createDonutTooltipContent } from "./ChartFormatters";
 
 interface Props {
@@ -20,6 +21,8 @@ interface Props {
     color: string | undefined;
     isConfiguring: boolean;
     onRemove?: (analyticId: string) => void;
+    /** Stretch to fill the height of the container instead of using a fixed one. */
+    fillHeight?: boolean;
 }
 
 export function DonutChartCard({
@@ -27,6 +30,7 @@ export function DonutChartCard({
     color,
     isConfiguring,
     onRemove,
+    fillHeight,
 }: Props) {
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
 
@@ -54,8 +58,8 @@ export function DonutChartCard({
     }, [positivePoints, color]);
 
     return (
-        <Paper withBorder p="md" radius="md">
-            <Stack gap="xs">
+        <Paper withBorder p="md" radius="md" {...cardShellProps(fillHeight)}>
+            <Stack gap="xs" {...cardBodyProps(fillHeight)}>
                 <Group justify="space-between" wrap="nowrap" align="flex-start">
                     <Group align="flex-start">
                         <Text size="sm" mb="sm">
@@ -74,11 +78,12 @@ export function DonutChartCard({
                     )}
                 </Group>
                 <Box
-                    h={isMobile ? 210 : 300}
+                    h={chartHeight(fillHeight, isMobile)}
                     style={{
                         display: "flex",
                         flexDirection: "column",
                         gap: "var(--mantine-spacing-xs)",
+                        ...(fillHeight ? { flex: 1, minHeight: 0 } : {}),
                     }}
                 >
                     {excludedPoints.length > 0 && (

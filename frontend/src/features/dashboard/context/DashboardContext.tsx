@@ -1,15 +1,25 @@
-import React, { createContext, useCallback, useContext, useState } from "react";
-import { AnalyticDto } from "../../analytics/types/AnalyticDto";
+import React, {
+    createContext,
+    useCallback,
+    useContext,
+    useState,
+} from "react";
 import { dashboardController } from "../api/dashboardController";
-import { AddDashboardItemDto } from "../types/DashboardDto";
+import {
+    AddDashboardItemDto,
+    AddDashboardItemFromAnalyticDto,
+    DashboardLayoutItemDto,
+    DashboardWidgetDto,
+} from "../types/DashboardDto";
 
 type DashboardContextType = {
-    analytics: AnalyticDto[];
+    widgets: DashboardWidgetDto[];
     isLoading: boolean;
-    refreshAnalytics: () => Promise<void>;
+    refreshWidgets: () => Promise<void>;
     addItem: (dto: AddDashboardItemDto) => Promise<void>;
+    addItemFromAnalytic: (dto: AddDashboardItemFromAnalyticDto) => Promise<void>;
     removeItem: (itemId: string) => Promise<void>;
-    reorderItems: (orderedIds: string[]) => Promise<void>;
+    saveLayout: (layout: DashboardLayoutItemDto[]) => Promise<void>;
 };
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -18,39 +28,67 @@ export const DashboardProvider: React.FC<{
     dashboardId: string;
     children: React.ReactNode;
 }> = ({ dashboardId, children }) => {
-    const [analytics, setAnalytics] = useState<AnalyticDto[]>([]);
+    const [widgets, setWidgets] = useState<DashboardWidgetDto[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
-    const refreshAnalytics = useCallback(async () => {
+    const refreshWidgets = useCallback(async () => {
         setIsLoading(true);
-        const res = await dashboardController.getDashboardAnalytics(dashboardId);
-        setAnalytics(res.data ?? []);
+        const res = await dashboardController.getDashboardWidgets(dashboardId);
+        setWidgets(res.data ?? []);
         setIsLoading(false);
     }, [dashboardId]);
 
     const addItem = async (dto: AddDashboardItemDto) => {
         await dashboardController.addDashboardItem(dashboardId, dto);
-        await refreshAnalytics();
+        await refreshWidgets();
+    };
+
+    const addItemFromAnalytic = async (dto: AddDashboardItemFromAnalyticDto) => {
+        await dashboardController.addDashboardItemFromAnalytic(dashboardId, dto);
+        await refreshWidgets();
     };
 
     const removeItem = async (itemId: string) => {
         await dashboardController.removeDashboardItem(dashboardId, itemId);
-        await refreshAnalytics();
+        await refreshWidgets();
     };
 
-    const reorderItems = async (orderedIds: string[]) => {
-        await dashboardController.reorderDashboardItems(dashboardId, orderedIds);
+    // The grid has already moved the cards on screen by the time this runs, so the new
+    // placement is kept locally rather than re-fetched: re-reading the board would
+    // recalculate every chart just to redraw them where they already are.
+    const saveLayout = async (layout: DashboardLayoutItemDto[]) => {
+        setWidgets((current) =>
+            current.map((widget) => {
+                const placement = layout.find((l) => l.itemId === widget.id);
+                return placement
+                    ? {
+                          ...widget,
+                          layout: {
+                              x: placement.x,
+                              y: placement.y,
+                              w: placement.w,
+                              h: placement.h,
+                          },
+                      }
+                    : widget;
+            })
+        );
+
+        await dashboardController.updateDashboardLayout(dashboardId, {
+            items: layout,
+        });
     };
 
     return (
         <DashboardContext.Provider
             value={{
-                analytics,
+                widgets,
                 isLoading,
-                refreshAnalytics,
+                refreshWidgets,
                 addItem,
+                addItemFromAnalytic,
                 removeItem,
-                reorderItems,
+                saveLayout,
             }}
         >
             {children}

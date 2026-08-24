@@ -9,12 +9,13 @@ namespace Operum.Service.Interfaces
     {
         Task<Result<List<DashboardDto>>> GetDashboards();
         Task<Result<DashboardDto>> GetDashboard(string dashboardId);
-        Task<Result<List<AnalyticDto>>> GetDashboardAnalytics(string dashboardId);
+        Task<Result<List<DashboardWidgetDto>>> GetDashboardWidgets(string dashboardId);
         Task<Result<DashboardDto>> CreateDashboard(CreateDashboardDto dto);
         Task<Result<DashboardDto>> UpdateDashboard(string dashboardId, UpdateDashboardDto dto);
         Task<Result> DeleteDashboard(string dashboardId);
         Task<Result<DashboardItemDto>> AddDashboardItem(string dashboardId, AddDashboardItemDto dto);
+        Task<Result<DashboardItemDto>> AddDashboardItemFromAnalytic(string dashboardId, AddDashboardItemFromAnalyticDto dto);
         Task<Result> RemoveDashboardItem(string dashboardId, string itemId);
-        Task<Result> ReorderDashboardItems(string dashboardId, List<string> orderedItemIds);
+        Task<Result> UpdateDashboardLayout(string dashboardId, UpdateDashboardLayoutDto dto);
     }
 }

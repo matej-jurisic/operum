@@ -41,10 +41,10 @@ namespace Operum.API.Controllers
             return GetApiResponse(await dashboardService.DeleteDashboard(dashboardId));
         }
 
-        [HttpGet("{dashboardId}/analytics")]
-        public async Task<IActionResult> GetDashboardAnalytics([FromRoute] string dashboardId)
+        [HttpGet("{dashboardId}/widgets")]
+        public async Task<IActionResult> GetDashboardWidgets([FromRoute] string dashboardId)
         {
-            return GetApiResponse(await dashboardService.GetDashboardAnalytics(dashboardId));
+            return GetApiResponse(await dashboardService.GetDashboardWidgets(dashboardId));
         }
 
         [HttpPost("{dashboardId}/items")]
@@ -53,16 +53,22 @@ namespace Operum.API.Controllers
             return GetApiResponse(await dashboardService.AddDashboardItem(dashboardId, dto));
         }
 
+        [HttpPost("{dashboardId}/items/from-analytic")]
+        public async Task<IActionResult> AddDashboardItemFromAnalytic([FromRoute] string dashboardId, [FromBody] AddDashboardItemFromAnalyticDto dto)
+        {
+            return GetApiResponse(await dashboardService.AddDashboardItemFromAnalytic(dashboardId, dto));
+        }
+
         [HttpDelete("{dashboardId}/items/{itemId}")]
         public async Task<IActionResult> RemoveDashboardItem([FromRoute] string dashboardId, [FromRoute] string itemId)
         {
             return GetApiResponse(await dashboardService.RemoveDashboardItem(dashboardId, itemId));
         }
 
-        [HttpPut("{dashboardId}/items/reorder")]
-        public async Task<IActionResult> ReorderDashboardItems([FromRoute] string dashboardId, [FromBody] List<string> orderedItemIds)
+        [HttpPut("{dashboardId}/layout")]
+        public async Task<IActionResult> UpdateDashboardLayout([FromRoute] string dashboardId, [FromBody] UpdateDashboardLayoutDto dto)
         {
-            return GetApiResponse(await dashboardService.ReorderDashboardItems(dashboardId, orderedItemIds));
+            return GetApiResponse(await dashboardService.UpdateDashboardLayout(dashboardId, dto));
         }
     }
 }

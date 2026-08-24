@@ -12,6 +12,7 @@ import { useMemo, useState } from "react";
 import { MdArrowBack, MdDelete, MdLink } from "react-icons/md";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 import { CalendarAnalyticDto } from "../types/AnalyticDto";
+import { cardBodyProps, cardShellProps, chartHeight } from "./cardSizing";
 
 interface CalendarCardProps {
     analytic: CalendarAnalyticDto;
@@ -19,6 +20,8 @@ interface CalendarCardProps {
     isConfiguring: boolean;
     onRemove?: (analyticId: string) => void;
     onEntryClick?: (entryId: string) => void;
+    /** Stretch to fill the height of the container instead of using a fixed one. */
+    fillHeight?: boolean;
 }
 
 const getDateKey = (date: Date): string => {
@@ -34,6 +37,7 @@ export function CalendarCard({
     isConfiguring,
     onRemove,
     onEntryClick,
+    fillHeight,
 }: CalendarCardProps) {
     const [selectedDate, setSelectedDate] = useState<Date | undefined>();
     const [viewDate, setViewDate] = useState<Date>(new Date());
@@ -61,8 +65,8 @@ export function CalendarCard({
     const eventsForSelectedDate = events.get(selectedDateKey) || [];
 
     return (
-        <Paper withBorder p="md" radius="md">
-            <Stack gap="xs">
+        <Paper withBorder p="md" radius="md" {...cardShellProps(fillHeight)}>
+            <Stack gap="xs" {...cardBodyProps(fillHeight)}>
                 <Group justify="space-between" wrap="nowrap" align="flex-start">
                     <Group align="flex-start">
                         <Text size="sm" mb={"sm"}>
@@ -82,7 +86,12 @@ export function CalendarCard({
                 </Group>
 
                 {!selectedDate ? (
-                    <Group w={"100%"} justify="center" h={300}>
+                    <Group
+                        w={"100%"}
+                        justify="center"
+                        h={chartHeight(fillHeight)}
+                        {...cardBodyProps(fillHeight)}
+                    >
                         <Calendar
                             date={viewDate}
                             onDateChange={(date) => setViewDate(new Date(date))}
@@ -113,7 +122,11 @@ export function CalendarCard({
                         />
                     </Group>
                 ) : (
-                    <Stack gap="xs" h={300}>
+                    <Stack
+                        gap="xs"
+                        h={chartHeight(fillHeight)}
+                        {...cardBodyProps(fillHeight)}
+                    >
                         <Group gap="xs">
                             <ActionIcon
                                 size="sm"
