@@ -19,20 +19,11 @@ namespace Operum.Service.Services.Dashboards
 {
     public class DashboardService(ICurrentUserService currentUserService, OperumContext db) : IDashboardService
     {
-        // The analytic definition behind a source, whether it came from a saved Analytic
-        // or from the source's own ad hoc Code/ResultType/Fields.
-        private sealed record SourceDefinition(
-            string ResultType,
-            string Code,
-            Dictionary<string, Field> FieldMap,
-            List<Field> Fields);
-
-        // One source after its definition has been resolved and calculated, ready to be
-        // returned as-is or merged with its siblings into a composed chart.
+        // One source after it has been calculated, ready to be returned as-is or merged
+        // with its siblings into a composed chart.
         private sealed record ResolvedSource(
             DashboardItemSource Source,
             string TrackerName,
-            SourceDefinition Definition,
             AnalyticDto Result);
 
         public async Task<Result<List<DashboardDto>>> GetDashboards()
@@ -65,13 +56,13 @@ namespace Operum.Service.Services.Dashboards
 
             foreach (var item in items)
             {
+                if (string.IsNullOrEmpty(item.ResultType) || string.IsNullOrEmpty(item.Code))
+                    continue;
+
                 var resolvedSources = new List<ResolvedSource>();
 
                 foreach (var source in item.Sources.OrderBy(s => s.Order))
                 {
-                    var definition = ResolveDefinition(source);
-                    if (definition == null) continue;
-
                     var viewIds = ParseViewIds(source.ViewIds);
                     var views = new List<View>();
 
@@ -98,23 +89,23 @@ namespace Operum.Service.Services.Dashboards
 
                     var request = new AnalyticResultBuilderRequest
                     {
-                        // An ad hoc source has no Analytic row, so the pipeline is fed a
-                        // transient one built from the source's own definition. The builders
-                        // only read ResultType/Code/Id/Description, all of which it carries.
-                        Analytic = source.Analytic ?? new Analytic
+                        // A dashboard source has no Analytic row of its own, so the pipeline
+                        // is fed a transient one built from the item's definition. The
+                        // builders only read ResultType/Code/Id/Description.
+                        Analytic = new Analytic
                         {
                             Id = source.Id,
                             TrackerId = source.TrackerId,
-                            Code = definition.Code,
-                            ResultType = definition.ResultType
+                            Code = item.Code,
+                            ResultType = item.ResultType
                         },
                         Entries = entries,
-                        FieldMap = definition.FieldMap
+                        FieldMap = BuildFieldMap(source)
                     };
 
                     var calculationResult = AnalyticResultBuilder.GetAnalyticResult(request);
                     if (calculationResult.IsSuccess)
-                        resolvedSources.Add(new ResolvedSource(source, source.Tracker.Name, definition, calculationResult.Data));
+                        resolvedSources.Add(new ResolvedSource(source, source.Tracker.Name, calculationResult.Data));
                 }
 
                 if (resolvedSources.Count == 0) continue;
@@ -194,11 +185,19 @@ namespace Operum.Service.Services.Dashboards
             if (dto.Sources.Count == 0 || dto.Sources.Count > DataLimits.MaxDashboardItemSourceCount)
                 return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("dashboard item sources", DataLimits.MaxDashboardItemSourceCount));
 
+            if (!AnalyticDefinitionList.IsValidForType(dto.ResultType, dto.Code))
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("code for this result type"));
+
+            // Combining sources into one chart only has a merge path for line/bar results —
+            // scatter/single-value/donut/calendar have no shared points shape to render
+            // together. The definition is shared by every source, so this is one check for
+            // the whole item rather than one per source.
+            if (dto.Sources.Count > 1 && dto.ResultType != AnalyticTypes.LineChart && dto.ResultType != AnalyticTypes.BarChart)
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.NotAllowed("combining this analytic with another tracker"));
+
             var user = currentUserService.GetCurrentUser();
             var sources = new List<DashboardItemSource>();
             var sourceNames = new List<string>();
-            var resultTypes = new List<string>();
-            var codes = new List<string>();
 
             foreach (var sourceDto in dto.Sources)
             {
@@ -228,37 +227,13 @@ namespace Operum.Service.Services.Dashboards
                     ViewIds = viewIds.Count > 0 ? string.Join(",", viewIds) : null
                 };
 
-                if (sourceDto.IsAdHoc)
-                {
-                    var adHocResult = await BuildAdHocSource(sourceDto, source);
-                    if (!adHocResult.IsSuccess)
-                        return Result.Failure(adHocResult.StatusCode, adHocResult.Messages);
+                var fieldsResult = await BuildSourceFields(dto.ResultType, dto.Code, sourceDto, source);
+                if (!fieldsResult.IsSuccess)
+                    return Result.Failure(fieldsResult.StatusCode, fieldsResult.Messages);
 
-                    resultTypes.Add(sourceDto.ResultType!);
-                    codes.Add(sourceDto.Code!);
-                    sourceNames.Add(adHocResult.Data);
-                }
-                else
-                {
-                    var analytic = await db.Analytics
-                        .Include(a => a.AnalyticFields).ThenInclude(af => af.Field)
-                        .FirstOrDefaultAsync(a => a.Id == sourceDto.AnalyticId && a.TrackerId == sourceDto.TrackerId);
-                    if (analytic == null)
-                        return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("analytic"));
-
-                    source.AnalyticId = analytic.Id;
-                    resultTypes.Add(analytic.ResultType);
-                    codes.Add(analytic.Code);
-                    sourceNames.Add(GetAnalyticName(analytic));
-                }
-
+                sourceNames.Add(fieldsResult.Data);
                 sources.Add(source);
             }
-
-            // Combining sources into one chart only has a merge path for line/bar results —
-            // scatter/single-value/donut/calendar have no shared points shape to render together.
-            if (sources.Count > 1 && resultTypes.Any(t => t != AnalyticTypes.LineChart && t != AnalyticTypes.BarChart))
-                return Result.Failure(ResultStatusCodes.BadRequest, Messages.NotAllowed("combining this analytic with another tracker"));
 
             var nextOrder = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.Order) + 1 : 0;
 
@@ -266,6 +241,8 @@ namespace Operum.Service.Services.Dashboards
             {
                 DashboardId = dashboardId,
                 Order = nextOrder,
+                ResultType = dto.ResultType,
+                Code = dto.Code,
                 Sources = sources
             };
 
@@ -284,14 +261,12 @@ namespace Operum.Service.Services.Dashboards
             {
                 Id = item.Id,
                 Order = item.Order,
+                ResultType = item.ResultType,
+                Code = item.Code,
                 Sources = sources.Select((s, i) => new DashboardItemSourceDto
                 {
                     Id = s.Id,
-                    AnalyticId = s.AnalyticId,
-                    AnalyticName = sourceNames[i],
-                    ResultType = resultTypes[i],
-                    Code = codes[i],
-                    IsAdHoc = s.IsAdHoc,
+                    Name = sourceNames[i],
                     Fields = s.Fields.Select(sf => new DashboardItemSourceFieldDto
                     {
                         Purpose = sf.Purpose,
@@ -338,16 +313,10 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success();
         }
 
-        // Validates an inline analytic definition and, if it holds up, fills the ad hoc
-        // parts of `source`. Returns the display name for the definition on success.
-        private async Task<Result<string>> BuildAdHocSource(DashboardItemSourceRequestDto dto, DashboardItemSource source)
+        // Validates the field mapping a source supplies for the item's definition and, if it
+        // holds up, fills source.Fields. Returns the display name for the source on success.
+        private async Task<Result<string>> BuildSourceFields(string resultType, string code, DashboardItemSourceRequestDto dto, DashboardItemSource source)
         {
-            var resultType = dto.ResultType!;
-            var code = dto.Code!;
-
-            if (!AnalyticDefinitionList.IsValidForType(resultType, code))
-                return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("code for this result type"));
-
             var requiredPurposes = AnalyticDefinitionList.GetRequiredPurposes(resultType, code);
             var suppliedPurposes = dto.AnalyticFields.Select(f => f.Purpose).ToList();
 
@@ -378,48 +347,19 @@ namespace Operum.Service.Services.Dashboards
                 fieldNames.Add(field.Name);
             }
 
-            source.ResultType = resultType;
-            source.Code = code;
-
             return Result.Success(AnalyticDefinitionList.GetDisplayName(resultType, code, fieldNames));
         }
 
-        // Reads the definition off whichever half of the source carries it. Returns null
-        // when the source is unusable (analytic deleted, or an ad hoc row with no code),
-        // in which case the caller skips it rather than failing the whole dashboard.
-        private static SourceDefinition? ResolveDefinition(DashboardItemSource source)
-        {
-            if (source.Analytic != null)
-            {
-                var fields = source.Analytic.AnalyticFields.Where(af => af.Field != null).ToList();
-                return new SourceDefinition(
-                    source.Analytic.ResultType,
-                    source.Analytic.Code,
-                    fields.ToDictionary(af => af.Purpose, af => af.Field),
-                    fields.Select(af => af.Field).ToList());
-            }
-
-            if (string.IsNullOrEmpty(source.ResultType) || string.IsNullOrEmpty(source.Code))
-                return null;
-
-            var sourceFields = source.Fields.Where(f => f.Field != null).ToList();
-            return new SourceDefinition(
-                source.ResultType,
-                source.Code,
-                sourceFields.ToDictionary(f => f.Purpose, f => f.Field),
-                sourceFields.Select(f => f.Field).ToList());
-        }
-
-        private static string GetAnalyticName(Analytic analytic) =>
-            AnalyticDefinitionList.GetDisplayName(
-                analytic.ResultType,
-                analytic.Code,
-                analytic.AnalyticFields.Where(af => af.Field != null).Select(af => af.Field.Name));
+        // Purpose -> Field for the mappings that still resolve. Deleting a field cascades its
+        // mapping away, so an incomplete map is possible here; the calculation then fails for
+        // that source and the caller skips it rather than failing the whole dashboard.
+        private static Dictionary<string, Field> BuildFieldMap(DashboardItemSource source) =>
+            source.Fields
+                .Where(f => f.Field != null)
+                .ToDictionary(f => f.Purpose, f => f.Field);
 
         private static IQueryable<Dashboard> WithSourceGraph(IQueryable<Dashboard> query) => query
             .Include(d => d.Items).ThenInclude(i => i.Sources).ThenInclude(s => s.Tracker)
-            .Include(d => d.Items).ThenInclude(i => i.Sources).ThenInclude(s => s.Analytic!)
-                .ThenInclude(a => a.AnalyticFields).ThenInclude(af => af.Field)
             .Include(d => d.Items).ThenInclude(i => i.Sources).ThenInclude(s => s.Fields)
                 .ThenInclude(f => f.Field);
 
@@ -429,11 +369,11 @@ namespace Operum.Service.Services.Dashboards
             return await WithSourceGraph(db.Dashboards)
                 // The DbContext defaults to QueryTrackingBehavior.NoTracking (see
                 // DatabaseConfiguration), which also skips identity resolution: if the same
-                // Tracker/Analytic is referenced by more than one source in this graph, each
-                // reference materializes as a separate CLR instance. Every caller here either
-                // mutates and calls SaveChanges (Update/Reorder), or hands the graph to
-                // Remove() (Delete), both of which need this tracked and identity-resolved,
-                // the latter otherwise throws when it tries to attach two same-key instances.
+                // Tracker is referenced by more than one source in this graph, each reference
+                // materializes as a separate CLR instance. Every caller here either mutates
+                // and calls SaveChanges (Update/Reorder), or hands the graph to Remove()
+                // (Delete), both of which need this tracked and identity-resolved, the latter
+                // otherwise throws when it tries to attach two same-key instances.
                 .AsTracking()
                 .FirstOrDefaultAsync(d => d.Id == dashboardId && d.UserId == user.Id);
         }
@@ -444,9 +384,10 @@ namespace Operum.Service.Services.Dashboards
                 : viewIds.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
 
         // Merges 2+ per-source results (each computed independently by the same
-        // single-tracker pipeline as always) into one multi-series chart. Mismatched
-        // ResultType/Code across sources is allowed but surfaced as a warning rather than
-        // rejected — see AddDashboardItem for the one hard constraint (line/bar only).
+        // single-tracker pipeline as always) into one multi-series chart. Every source shares
+        // the item's result type and code, so the series are always produced the same way;
+        // what they can still differ in is the kind of value on the x-axis, which is surfaced
+        // as a warning rather than rejected.
         private static ComposedChartAnalyticDto BuildComposedResult(List<ResolvedSource> resolvedSources)
         {
             var composed = new ComposedChartAnalyticDto
@@ -485,15 +426,9 @@ namespace Operum.Service.Services.Dashboards
                 if (series != null) composed.Series.Add(series);
             }
 
-            var distinctResultTypes = resolvedSources.Select(s => s.Definition.ResultType).Distinct().Count();
-            if (distinctResultTypes > 1)
-                composed.Warnings.Add("This chart mixes line and bar sources, axes may not align as expected.");
-
-            var hasMismatchedCodes = resolvedSources
-                .GroupBy(s => s.Definition.ResultType)
-                .Any(g => g.Select(s => s.Definition.Code).Distinct().Count() > 1);
-            if (hasMismatchedCodes)
-                composed.Warnings.Add("Sources use different time buckets or aggregations, axis alignment may be misleading.");
+            var hasMismatchedXTypes = composed.Series.Select(s => s.XField.Type).Distinct().Count() > 1;
+            if (hasMismatchedXTypes)
+                composed.Warnings.Add("Sources plot different kinds of value on the x-axis, alignment may be misleading.");
 
             return composed;
         }
@@ -508,32 +443,23 @@ namespace Operum.Service.Services.Dashboards
             {
                 Id = i.Id,
                 Order = i.Order,
-                Sources = i.Sources.OrderBy(s => s.Order).Select(MapSourceToDto).ToList()
+                ResultType = i.ResultType,
+                Code = i.Code,
+                Sources = i.Sources.OrderBy(s => s.Order).Select(s => MapSourceToDto(i, s)).ToList()
             }).ToList()
         };
 
-        private static DashboardItemSourceDto MapSourceToDto(DashboardItemSource s)
+        private static DashboardItemSourceDto MapSourceToDto(DashboardItem item, DashboardItemSource s)
         {
-            var definition = ResolveDefinition(s);
+            var fields = s.Fields.Where(f => f.Field != null).ToList();
 
             return new DashboardItemSourceDto
             {
                 Id = s.Id,
-                AnalyticId = s.AnalyticId,
-                AnalyticName = definition == null
-                    ? string.Empty
-                    : AnalyticDefinitionList.GetDisplayName(definition.ResultType, definition.Code, definition.Fields.Select(f => f.Name)),
-                ResultType = definition?.ResultType ?? string.Empty,
-                Code = definition?.Code ?? string.Empty,
-                IsAdHoc = s.IsAdHoc,
-                Fields = definition == null
-                    ? []
-                    : (s.Analytic != null
-                        ? s.Analytic.AnalyticFields.Where(af => af.Field != null)
-                            .Select(af => new DashboardItemSourceFieldDto { Purpose = af.Purpose, FieldId = af.FieldId, FieldName = af.Field.Name })
-                        : s.Fields.Where(f => f.Field != null)
-                            .Select(f => new DashboardItemSourceFieldDto { Purpose = f.Purpose, FieldId = f.FieldId, FieldName = f.Field.Name })
-                      ).ToList(),
+                Name = AnalyticDefinitionList.GetDisplayName(item.ResultType, item.Code, fields.Select(f => f.Field.Name)),
+                Fields = fields
+                    .Select(f => new DashboardItemSourceFieldDto { Purpose = f.Purpose, FieldId = f.FieldId, FieldName = f.Field.Name })
+                    .ToList(),
                 TrackerId = s.TrackerId,
                 TrackerName = s.Tracker.Name,
                 ViewIds = ParseViewIds(s.ViewIds),

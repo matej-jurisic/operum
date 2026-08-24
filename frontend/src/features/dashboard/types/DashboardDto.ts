@@ -16,12 +16,8 @@ export interface DashboardItemSourceFieldDto {
 
 export interface DashboardItemSourceDto {
     id: string;
-    /** Null when the source carries its own ad hoc, dashboard-only definition. */
-    analyticId?: string | null;
-    analyticName: string;
-    resultType: string;
-    code: string;
-    isAdHoc: boolean;
+    /** The item's definition read through this source's fields. */
+    name: string;
     fields: DashboardItemSourceFieldDto[];
     trackerId: string;
     trackerName: string;
@@ -33,6 +29,9 @@ export interface DashboardItemSourceDto {
 export interface DashboardItemDto {
     id: string;
     order: number;
+    /** The single analytic definition every source below is calculated with. */
+    resultType: string;
+    code: string;
     sources: DashboardItemSourceDto[];
 }
 
@@ -49,27 +48,18 @@ export interface UpdateDashboardDto {
 }
 
 /**
- * A source is defined one of two ways, never both: `analyticId` reuses an analytic
- * saved on the tracker, while `resultType` + `code` + `analyticFields` define one
- * inline that only ever exists on this dashboard.
+ * The tracker-specific half of an item: which tracker to read entries from and which
+ * of its fields fill the purposes the item's result type + code require.
  */
 export interface AddDashboardItemSourceDto {
     trackerId: string;
-    analyticId?: string;
-    resultType?: string;
-    code?: string;
-    analyticFields?: CreateAnalyticFieldDto[];
+    analyticFields: CreateAnalyticFieldDto[];
     viewIds: string[];
     label?: string;
 }
 
 export interface AddDashboardItemDto {
-    sources: AddDashboardItemSourceDto[];
-}
-
-export interface AnalyticSummaryDto {
-    id: string;
-    name: string;
     resultType: string;
     code: string;
+    sources: AddDashboardItemSourceDto[];
 }

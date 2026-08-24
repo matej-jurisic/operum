@@ -6,11 +6,9 @@ import {
     Modal,
     MultiSelect,
     Paper,
-    SegmentedControl,
     Select,
     Stack,
     Text,
-    Tooltip,
 } from "@mantine/core";
 import { useEffect, useMemo, useState } from "react";
 import { MdAdd, MdDelete, MdWarningAmber } from "react-icons/md";
@@ -27,27 +25,20 @@ import { trackersController } from "../../trackers/api/trackersController";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { viewsController } from "../../views/api/viewsController";
 import { ViewDto } from "../../views/types/ViewDto";
-import { AddDashboardItemDto, AnalyticSummaryDto } from "../types/DashboardDto";
+import { AddDashboardItemDto } from "../types/DashboardDto";
 
 interface Props {
     onClose: () => void;
     onAdd: (dto: AddDashboardItemDto) => Promise<void>;
 }
 
-type SourceMode = "saved" | "new";
-
-interface SourceRow {
-    mode: SourceMode;
+// One tracker's contribution to the item. The chart type and calculation are picked once
+// for the whole item, so a row only carries the tracker and its own field mapping.
+interface TrackerRow {
     trackerId: string | null;
-    // "saved" mode
-    analyticId: string | null;
-    // "new" mode: an ad hoc definition that lives on this dashboard only
-    resultType: string | null;
-    code: string | null;
     fieldMappings: Record<string, string>;
     viewIds: string[];
     // Loaded per tracker
-    analytics: AnalyticSummaryDto[];
     fields: FieldDto[];
     views: ViewDto[];
 }
@@ -59,37 +50,20 @@ const COMBINABLE_TYPES: string[] = [
     AnalyticResultTypeEnum.BarChart,
 ];
 
-// The result type + code a row resolves to, whichever mode it is in. Both the combine
-// constraint and the mismatch warning care only about this pair, not about where it
-// came from.
-interface RowDefinition {
-    resultType: string;
-    code: string;
-}
+// Mirrors DataLimits.MaxDashboardItemSourceCount on the backend.
+const MAX_TRACKERS = 5;
 
-// Mirrors DashboardService.BuildComposedResult's warning logic on the backend, so the
-// user sees this before adding the item rather than only after, on the dashboard.
-const getMismatchWarning = (
-    base: RowDefinition | undefined,
-    other: RowDefinition | undefined
-): string | null => {
-    if (!base || !other) return null;
-    if (base.resultType !== other.resultType)
-        return "This chart mixes line and bar sources, axes may not align as expected.";
-    if (base.code !== other.code)
-        return "Sources use different time buckets or aggregations, axis alignment may be misleading.";
-    return null;
+// The purpose whose field ends up on the shared x-axis of a combined chart, per chart
+// type. Only the combinable types need one.
+const X_AXIS_PURPOSE: Record<string, string> = {
+    [AnalyticResultTypeEnum.LineChart]: "X-axis",
+    [AnalyticResultTypeEnum.BarChart]: "Name",
 };
 
-const makeEmptyRow = (): SourceRow => ({
-    mode: "saved",
+const makeEmptyRow = (): TrackerRow => ({
     trackerId: null,
-    analyticId: null,
-    resultType: null,
-    code: null,
     fieldMappings: {},
     viewIds: [],
-    analytics: [],
     fields: [],
     views: [],
 });
@@ -97,7 +71,9 @@ const makeEmptyRow = (): SourceRow => ({
 export function AddDashboardItemModal({ onClose, onAdd }: Props) {
     const [trackers, setTrackers] = useState<TrackerDto[]>([]);
     const [config, setConfig] = useState<AnalyticConfigDto>();
-    const [rows, setRows] = useState<SourceRow[]>([makeEmptyRow()]);
+    const [resultType, setResultType] = useState<string | null>(null);
+    const [code, setCode] = useState<string | null>(null);
+    const [rows, setRows] = useState<TrackerRow[]>([makeEmptyRow()]);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
@@ -117,73 +93,54 @@ export function AddDashboardItemModal({ onClose, onAdd }: Props) {
         return map;
     }, [config]);
 
-    const getSelectedCode = (row: SourceRow): CodeDto | undefined => {
-        if (!row.resultType || !row.code) return undefined;
-        return resultTypesByName[row.resultType]?.codes.find(
-            (c) => c.code === row.code
+    const selectedCode: CodeDto | undefined =
+        resultType && code
+            ? resultTypesByName[resultType]?.codes.find((c) => c.code === code)
+            : undefined;
+
+    const isCombinable = !!resultType && COMBINABLE_TYPES.includes(resultType);
+
+    const updateRow = (index: number, patch: Partial<TrackerRow>) => {
+        setRows((prev) =>
+            prev.map((row, i) => (i === index ? { ...row, ...patch } : row))
         );
     };
 
-    const getRowDefinition = (row: SourceRow): RowDefinition | undefined => {
-        if (row.mode === "saved") {
-            const analytic = row.analytics.find((a) => a.id === row.analyticId);
-            return analytic
-                ? { resultType: analytic.resultType, code: analytic.code }
-                : undefined;
-        }
-        return row.resultType && row.code
-            ? { resultType: row.resultType, code: row.code }
-            : undefined;
+    // A different definition needs a different field mapping, so switching either one
+    // clears what every row had mapped.
+    const clearFieldMappings = () =>
+        setRows((prev) => prev.map((row) => ({ ...row, fieldMappings: {} })));
+
+    const handleResultTypeChange = (value: string | null) => {
+        setResultType(value);
+        setCode(null);
+        clearFieldMappings();
+        // Extra trackers only exist to be merged into one chart, which the new type may
+        // not support.
+        if (!value || !COMBINABLE_TYPES.includes(value))
+            setRows((prev) => prev.slice(0, 1));
     };
 
-    const isRowComplete = (row: SourceRow): boolean => {
-        if (!row.trackerId) return false;
-        if (row.mode === "saved") return !!row.analyticId;
-
-        const code = getSelectedCode(row);
-        if (!code) return false;
-        return code.purposes.every((p) => !!row.fieldMappings[p.name]);
-    };
-
-    const updateRow = (index: number, patch: Partial<SourceRow>) => {
-        setRows((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
-    };
-
-    // Any change that can make the first row non-combinable also invalidates the extra
-    // rows that were only there to merge into it, so they get dropped.
-    const updateRowAndPrune = (index: number, patch: Partial<SourceRow>) => {
-        setRows((prev) => {
-            const next = prev.map((row, i) => (i === index ? { ...row, ...patch } : row));
-            if (index > 0) return next;
-
-            const definition = getRowDefinition(next[0]);
-            const combinable =
-                !!definition && COMBINABLE_TYPES.includes(definition.resultType);
-            return combinable ? next : next.slice(0, 1);
-        });
+    const handleCodeChange = (value: string | null) => {
+        setCode(value);
+        clearFieldMappings();
     };
 
     const handleTrackerChange = async (index: number, trackerId: string | null) => {
-        updateRowAndPrune(index, {
+        updateRow(index, {
             trackerId,
-            analyticId: null,
-            resultType: null,
-            code: null,
             fieldMappings: {},
             viewIds: [],
-            analytics: [],
             fields: [],
             views: [],
         });
         if (!trackerId) return;
 
-        const [analyticsRes, fieldsRes, viewsRes] = await Promise.all([
-            trackersController.getTrackerAnalyticsSummary(trackerId),
+        const [fieldsRes, viewsRes] = await Promise.all([
             fieldsController.getFields(trackerId),
             viewsController.getViewList(trackerId),
         ]);
         updateRow(index, {
-            analytics: analyticsRes.data ?? [],
             fields: fieldsRes.data ?? [],
             views: viewsRes.data ?? [],
         });
@@ -194,97 +151,95 @@ export function AddDashboardItemModal({ onClose, onAdd }: Props) {
     const removeRow = (index: number) =>
         setRows((prev) => prev.filter((_, i) => i !== index));
 
+    const isRowComplete = (row: TrackerRow): boolean =>
+        !!row.trackerId &&
+        !!selectedCode &&
+        selectedCode.purposes.every((p) => !!row.fieldMappings[p.name]);
+
+    // Mirrors DashboardService.BuildComposedResult's warning, so the user sees this before
+    // adding the item rather than only after, on the dashboard. Sharing one definition
+    // leaves the x-axis field type as the last thing rows can disagree on.
+    const xAxisWarning = useMemo(() => {
+        if (rows.length < 2 || !resultType) return null;
+
+        const purpose = X_AXIS_PURPOSE[resultType];
+        // Rows that have not picked their x-axis field yet say nothing about alignment.
+        const types = new Set(
+            rows
+                .map(
+                    (row) =>
+                        row.fields.find((f) => f.id === row.fieldMappings[purpose])?.type
+                )
+                .filter((type): type is string => !!type)
+        );
+        return types.size > 1
+            ? "These trackers plot different kinds of value on the x-axis, alignment may be misleading."
+            : null;
+    }, [rows, resultType]);
+
     const handleSubmit = async () => {
         if (!canSubmit) return;
         setIsSubmitting(true);
         await onAdd({
-            sources: rows.map((row) =>
-                row.mode === "saved"
-                    ? {
-                          trackerId: row.trackerId!,
-                          analyticId: row.analyticId!,
-                          viewIds: row.viewIds,
-                      }
-                    : {
-                          trackerId: row.trackerId!,
-                          resultType: row.resultType!,
-                          code: row.code!,
-                          analyticFields: Object.entries(row.fieldMappings)
-                              .filter(([, fieldId]) => !!fieldId)
-                              .map(([purpose, fieldId]) => ({ purpose, fieldId })),
-                          viewIds: row.viewIds,
-                      }
-            ),
+            resultType: resultType!,
+            code: code!,
+            sources: rows.map((row) => ({
+                trackerId: row.trackerId!,
+                analyticFields: Object.entries(row.fieldMappings)
+                    .filter(([, fieldId]) => !!fieldId)
+                    .map(([purpose, fieldId]) => ({ purpose, fieldId })),
+                viewIds: row.viewIds,
+            })),
         });
         setIsSubmitting(false);
         onClose();
     };
 
     const trackerOptions = trackers.map((t) => ({ value: t.id, label: t.name }));
+    const resultTypeOptions = (config?.resultTypes ?? []).map((rt) => ({
+        value: rt.name,
+        label: rt.name,
+    }));
+    const codeOptions = (
+        resultType ? resultTypesByName[resultType]?.codes ?? [] : []
+    ).map((c) => ({ value: c.code, label: c.name }));
 
-    const firstDefinition = rows[0] ? getRowDefinition(rows[0]) : undefined;
-    const canAddAnotherTracker =
-        !!firstDefinition && COMBINABLE_TYPES.includes(firstDefinition.resultType);
-    const canSubmit = rows.every(isRowComplete);
+    const canAddAnotherTracker = isCombinable && rows.length < MAX_TRACKERS;
+    const canSubmit = !!selectedCode && rows.every(isRowComplete);
 
     return (
         <Modal opened onClose={onClose} title="Add analytic to dashboard" size="md" centered>
             <Stack gap="md">
+                <Select
+                    label="Chart type"
+                    placeholder="Select a chart type"
+                    data={resultTypeOptions}
+                    value={resultType}
+                    onChange={handleResultTypeChange}
+                />
+                <Select
+                    label="Calculation"
+                    placeholder="Select a calculation"
+                    data={codeOptions}
+                    value={code}
+                    onChange={handleCodeChange}
+                    disabled={!resultType}
+                />
+
                 {rows.map((row, index) => {
-                    // Extra rows can only hold their own against the first one if they
-                    // render as a line or bar, so both the saved list and the ad hoc
-                    // chart types are narrowed to those.
-                    const combinableOnly = index > 0;
-
-                    const analyticOptions = (
-                        combinableOnly
-                            ? row.analytics.filter((a) =>
-                                  COMBINABLE_TYPES.includes(a.resultType)
-                              )
-                            : row.analytics
-                    ).map((a) => ({ value: a.id, label: a.name }));
-
-                    const resultTypeOptions = (config?.resultTypes ?? [])
-                        .filter(
-                            (rt) => !combinableOnly || COMBINABLE_TYPES.includes(rt.name)
-                        )
-                        .map((rt) => ({ value: rt.name, label: rt.name }));
-
-                    const codeOptions = (
-                        row.resultType
-                            ? resultTypesByName[row.resultType]?.codes ?? []
-                            : []
-                    ).map((c) => ({ value: c.code, label: c.name }));
-
-                    const selectedCode = getSelectedCode(row);
                     const viewOptions = row.views.map((v) => ({
                         value: v.id,
                         label: v.name,
                     }));
-                    const mismatchWarning = combinableOnly
-                        ? getMismatchWarning(firstDefinition, getRowDefinition(row))
-                        : null;
 
                     return (
                         <Paper key={index} withBorder p="sm" radius="md">
                             <Stack gap="sm">
                                 {index > 0 && (
                                     <Group justify="space-between">
-                                        <Group gap="xs">
-                                            <Text size="xs" c="dimmed">
-                                                Combined with the chart above
-                                            </Text>
-                                            {mismatchWarning && (
-                                                <Tooltip label={mismatchWarning} multiline maw={260}>
-                                                    <Box style={{ cursor: "default", display: "flex" }}>
-                                                        <MdWarningAmber
-                                                            size={14}
-                                                            color="var(--mantine-color-yellow-6)"
-                                                        />
-                                                    </Box>
-                                                </Tooltip>
-                                            )}
-                                        </Group>
+                                        <Text size="xs" c="dimmed">
+                                            Combined with the tracker above
+                                        </Text>
                                         <ActionIcon
                                             size="sm"
                                             variant="subtle"
@@ -304,99 +259,34 @@ export function AddDashboardItemModal({ onClose, onAdd }: Props) {
                                     searchable
                                 />
 
-                                <SegmentedControl
-                                    fullWidth
-                                    size="xs"
-                                    value={row.mode}
-                                    onChange={(value) =>
-                                        updateRowAndPrune(index, {
-                                            mode: value as SourceMode,
-                                            analyticId: null,
-                                            resultType: null,
-                                            code: null,
-                                            fieldMappings: {},
-                                        })
-                                    }
-                                    data={[
-                                        { value: "saved", label: "Saved analytic" },
-                                        { value: "new", label: "Build a new chart" },
-                                    ]}
-                                />
-
-                                {row.mode === "saved" ? (
+                                {selectedCode?.purposes.map((purpose) => (
                                     <Select
-                                        label="Analytic"
-                                        placeholder="Select an analytic"
-                                        data={analyticOptions}
-                                        value={row.analyticId}
+                                        key={purpose.name}
+                                        label={purpose.name}
+                                        placeholder={`Select field (${purpose.allowedDataTypes.join(
+                                            ", "
+                                        )})`}
+                                        data={row.fields
+                                            .filter((f) =>
+                                                purpose.allowedDataTypes.includes(f.type)
+                                            )
+                                            .map((f) => ({
+                                                value: f.id,
+                                                label: f.name,
+                                            }))}
+                                        value={row.fieldMappings[purpose.name] || null}
                                         onChange={(value) =>
-                                            updateRowAndPrune(index, { analyticId: value })
+                                            updateRow(index, {
+                                                fieldMappings: {
+                                                    ...row.fieldMappings,
+                                                    [purpose.name]: value ?? "",
+                                                },
+                                            })
                                         }
-                                        searchable
                                         disabled={!row.trackerId}
+                                        clearable
                                     />
-                                ) : (
-                                    <>
-                                        <Select
-                                            label="Chart type"
-                                            placeholder="Select a chart type"
-                                            data={resultTypeOptions}
-                                            value={row.resultType}
-                                            onChange={(value) =>
-                                                updateRowAndPrune(index, {
-                                                    resultType: value,
-                                                    code: null,
-                                                    fieldMappings: {},
-                                                })
-                                            }
-                                            disabled={!row.trackerId}
-                                        />
-                                        <Select
-                                            label="Calculation"
-                                            placeholder="Select a calculation"
-                                            data={codeOptions}
-                                            value={row.code}
-                                            onChange={(value) =>
-                                                updateRowAndPrune(index, {
-                                                    code: value,
-                                                    fieldMappings: {},
-                                                })
-                                            }
-                                            disabled={!row.resultType}
-                                        />
-                                        {selectedCode?.purposes.map((purpose) => (
-                                            <Select
-                                                key={purpose.name}
-                                                label={purpose.name}
-                                                placeholder={`Select field (${purpose.allowedDataTypes.join(
-                                                    ", "
-                                                )})`}
-                                                data={row.fields
-                                                    .filter((f) =>
-                                                        purpose.allowedDataTypes.includes(
-                                                            f.type
-                                                        )
-                                                    )
-                                                    .map((f) => ({
-                                                        value: f.id,
-                                                        label: f.name,
-                                                    }))}
-                                                value={
-                                                    row.fieldMappings[purpose.name] || null
-                                                }
-                                                onChange={(value) =>
-                                                    updateRow(index, {
-                                                        fieldMappings: {
-                                                            ...row.fieldMappings,
-                                                            [purpose.name]: value ?? "",
-                                                        },
-                                                    })
-                                                }
-                                                clearable
-                                            />
-                                        ))}
-                                    </>
-                                )}
+                                ))}
 
                                 <MultiSelect
                                     label="Filter by views (optional)"
@@ -410,6 +300,20 @@ export function AddDashboardItemModal({ onClose, onAdd }: Props) {
                         </Paper>
                     );
                 })}
+
+                {xAxisWarning && (
+                    <Group gap="xs" wrap="nowrap">
+                        <Box style={{ display: "flex" }}>
+                            <MdWarningAmber
+                                size={16}
+                                color="var(--mantine-color-yellow-6)"
+                            />
+                        </Box>
+                        <Text size="xs" c="dimmed">
+                            {xAxisWarning}
+                        </Text>
+                    </Group>
+                )}
 
                 {canAddAnotherTracker && (
                     <Button

@@ -69,16 +69,6 @@ namespace Operum.Model
                 .HasForeignKey(s => s.DashboardItemId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // AnalyticId is optional (null for ad hoc sources that carry their own
-            // definition), but when it is set, deleting that analytic still takes the
-            // source with it — a source pointing at a deleted analytic can't render.
-            builder.Entity<DashboardItemSource>()
-                .HasOne(s => s.Analytic)
-                .WithMany()
-                .HasForeignKey(s => s.AnalyticId)
-                .IsRequired(false)
-                .OnDelete(DeleteBehavior.Cascade);
-
             builder.Entity<DashboardItemSourceField>()
                 .HasOne(f => f.DashboardItemSource)
                 .WithMany(s => s.Fields)

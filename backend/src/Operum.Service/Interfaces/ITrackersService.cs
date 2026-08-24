@@ -26,7 +26,6 @@ namespace Operum.Service.Interfaces
         public Task<Result> AddAnalytic(string trackerId, CreateAnalyticDto addTrackerAnalytic);
         public Task<Result> RemoveAnalytic(string trackerId, string trackerAnalyticId);
         public Task<Result> ReorderAnalytics(string trackerId, ReorderAnalyticsDto reorderAnalyticsDto);
-        public Task<Result> ReorderTrackers(ReorderTrackersDto dto);
-        public Task<Result<List<AnalyticSummaryDto>>> GetTrackerAnalyticsSummary(string trackerId);
+        public Task<Result> ReorderTrackers(ReorderTrackersDto dto);
     }
 }

@@ -1,6 +1,5 @@
 import api from "../../../shared/api/api";
 import { ApiResponse } from "../../../shared/types/ApiResponse";
-import { AnalyticSummaryDto } from "../../dashboard/types/DashboardDto";
 import AddUserToTrackerDto from "../types/requests/AddUserToTrackerDto";
 import { CreateTrackerDto } from "../types/requests/CreateTrackerDto";
 import RemoveUserFromTrackerDto from "../types/requests/RemoveUserFromTrackerDto";
@@ -70,10 +69,5 @@ export const trackersController = {
         search: string
     ): Promise<ApiResponse<{ id: string; userName: string }[]>> => {
         return await api.get("/users?search=" + encodeURIComponent(search));
-    },
-    getTrackerAnalyticsSummary: async (
-        trackerId: string
-    ): Promise<ApiResponse<AnalyticSummaryDto[]>> => {
-        return await api.get(`/trackers/${trackerId}/analytics/summary`);
     },
 };

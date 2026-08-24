@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Operum.Model.Models
 {
-    // Purpose -> Field mapping for an ad hoc dashboard source, i.e. the equivalent of
+    // Purpose -> Field mapping for a dashboard source, i.e. the equivalent of
     // AnalyticField but owned by the source rather than by a persisted Analytic, so it
     // is created and deleted together with the dashboard item it belongs to.
     public class DashboardItemSourceField

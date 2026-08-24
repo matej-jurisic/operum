@@ -27,38 +27,11 @@ namespace Operum.Tests.Tests.Dashboards
             return data;
         }
 
-        // Creates a tracker with a single string field, one entry, and a "Count per
-        // Category" bar chart analytic over that field (the minimal setup for a valid
-        // BarChart analytic — no Value field required).
-        private static async Task<(string TrackerId, string AnalyticId)> CreateBarAnalyticTracker(HttpClient client, string name)
-        {
-            var tracker = await Data(await client.PostAsJsonAsync("trackers", new CreateTrackerDto { Name = name }));
-            var trackerId = tracker.GetProperty("id").GetString()!;
-
-            var field = await Data(await client.PostAsJsonAsync($"trackers/{trackerId}/fields",
-                new CreateFieldDto { Name = "Category", Type = DataTypes.String }));
-            var fieldId = field.GetProperty("id").GetString()!;
-
-            await client.PostAsJsonAsync($"trackers/{trackerId}/entries",
-                new CreateEntryDto { FieldValues = new() { ["Category"] = "Cardio" } });
-
-            // AddAnalytic returns Result (no payload) by design — the caller is expected
-            // to refetch, same as the frontend does after creating one.
-            await client.PostAsJsonAsync($"trackers/{trackerId}/analytics",
-                new CreateAnalyticDto
-                {
-                    Type = AnalyticTypes.BarChart,
-                    Code = AnalyticCodes.CountBarChart,
-                    AnalyticFields = [new CreateAnalyticFieldDto { FieldId = fieldId, Purpose = AnalyticPurposes.Name }]
-                });
-            var analyticId = await GetSoleAnalyticId(client, trackerId);
-
-            return (trackerId, analyticId);
-        }
-
-        // Creates a tracker with date/number fields, one entry, and a raw "Line Chart"
-        // line analytic over them (the minimal setup for a valid LineChart analytic).
-        private static async Task<(string TrackerId, string AnalyticId)> CreateLineAnalyticTracker(HttpClient client, string name)
+        // A tracker with one entry and the three field types the dashboard tests draw on:
+        // a date and a number (a line chart's X/Y) and a string (a bar chart's category,
+        // or a line chart X of a different data type). Deliberately has no analytic of its
+        // own — a dashboard item never reuses one.
+        private static async Task<CapableTracker> CreateCapableTracker(HttpClient client, string name)
         {
             var tracker = await Data(await client.PostAsJsonAsync("trackers", new CreateTrackerDto { Name = name }));
             var trackerId = tracker.GetProperty("id").GetString()!;
@@ -67,55 +40,53 @@ namespace Operum.Tests.Tests.Dashboards
                 new CreateFieldDto { Name = "Day", Type = DataTypes.Date }));
             var amountField = await Data(await client.PostAsJsonAsync($"trackers/{trackerId}/fields",
                 new CreateFieldDto { Name = "Amount", Type = DataTypes.Number }));
-
-            await client.PostAsJsonAsync($"trackers/{trackerId}/entries",
-                new CreateEntryDto { FieldValues = new() { ["Day"] = "2026-01-01", ["Amount"] = "5" } });
-
-            await client.PostAsJsonAsync($"trackers/{trackerId}/analytics",
-                new CreateAnalyticDto
-                {
-                    Type = AnalyticTypes.LineChart,
-                    Code = AnalyticCodes.LineChart,
-                    AnalyticFields =
-                    [
-                        new CreateAnalyticFieldDto { FieldId = dayField.GetProperty("id").GetString()!, Purpose = AnalyticPurposes.Xaxis },
-                        new CreateAnalyticFieldDto { FieldId = amountField.GetProperty("id").GetString()!, Purpose = AnalyticPurposes.Yaxis }
-                    ]
-                });
-            var analyticId = await GetSoleAnalyticId(client, trackerId);
-
-            return (trackerId, analyticId);
-        }
-
-        // Creates a tracker with a single-value ("Count") analytic — one of the result
-        // types that can never be combined with another tracker's chart.
-        private static async Task<(string TrackerId, string AnalyticId)> CreateSingleValueAnalyticTracker(HttpClient client, string name)
-        {
-            var tracker = await Data(await client.PostAsJsonAsync("trackers", new CreateTrackerDto { Name = name }));
-            var trackerId = tracker.GetProperty("id").GetString()!;
-
-            var field = await Data(await client.PostAsJsonAsync($"trackers/{trackerId}/fields",
+            var categoryField = await Data(await client.PostAsJsonAsync($"trackers/{trackerId}/fields",
                 new CreateFieldDto { Name = "Category", Type = DataTypes.String }));
 
             await client.PostAsJsonAsync($"trackers/{trackerId}/entries",
-                new CreateEntryDto { FieldValues = new() { ["Category"] = "Cardio" } });
-
-            await client.PostAsJsonAsync($"trackers/{trackerId}/analytics",
-                new CreateAnalyticDto
+                new CreateEntryDto
                 {
-                    Type = AnalyticTypes.SingleValue,
-                    Code = AnalyticCodes.Count,
-                    AnalyticFields = [new CreateAnalyticFieldDto { FieldId = field.GetProperty("id").GetString()!, Purpose = AnalyticPurposes.Value }]
+                    FieldValues = new()
+                    {
+                        ["Day"] = "2026-01-01",
+                        ["Amount"] = "5",
+                        ["Category"] = "Cardio"
+                    }
                 });
-            var analyticId = await GetSoleAnalyticId(client, trackerId);
 
-            return (trackerId, analyticId);
+            return new CapableTracker(
+                trackerId,
+                dayField.GetProperty("id").GetString()!,
+                amountField.GetProperty("id").GetString()!,
+                categoryField.GetProperty("id").GetString()!);
         }
 
-        private static async Task<string> GetSoleAnalyticId(HttpClient client, string trackerId)
+        private sealed record CapableTracker(string Id, string DayFieldId, string AmountFieldId, string CategoryFieldId);
+
+        // The "Raw Values" line chart source for a tracker, mapping the given field to the
+        // x-axis (Day unless a test wants a differently typed axis) and Amount to the y-axis.
+        private static DashboardItemSourceRequestDto LineSource(CapableTracker tracker, string? xFieldId = null) => new()
         {
-            var summary = await Data(await client.GetAsync($"trackers/{trackerId}/analytics/summary"));
-            return summary[0].GetProperty("id").GetString()!;
+            TrackerId = tracker.Id,
+            AnalyticFields =
+            [
+                new CreateAnalyticFieldDto { FieldId = xFieldId ?? tracker.DayFieldId, Purpose = AnalyticPurposes.Xaxis },
+                new CreateAnalyticFieldDto { FieldId = tracker.AmountFieldId, Purpose = AnalyticPurposes.Yaxis }
+            ]
+        };
+
+        // The "Count per Category" bar chart source for a tracker — Name is the only purpose
+        // that code requires.
+        private static DashboardItemSourceRequestDto BarSource(CapableTracker tracker) => new()
+        {
+            TrackerId = tracker.Id,
+            AnalyticFields = [new CreateAnalyticFieldDto { FieldId = tracker.CategoryFieldId, Purpose = AnalyticPurposes.Name }]
+        };
+
+        private static async Task<string> CreateDashboard(HttpClient client)
+        {
+            var dashboard = await Data(await client.PostAsJsonAsync("dashboard", new CreateDashboardDto { Name = "My board" }));
+            return dashboard.GetProperty("id").GetString()!;
         }
 
         [Fact]
@@ -125,44 +96,39 @@ namespace Operum.Tests.Tests.Dashboards
             await _factory.SeedDatabaseAsync();
             await client.Authenticate(DefaultUsers.TestUserData);
 
-            var (trackerId, analyticId) = await CreateBarAnalyticTracker(client, "Workouts");
-
-            var dashboard = await Data(await client.PostAsJsonAsync("dashboard", new CreateDashboardDto { Name = "My board" }));
-            var dashboardId = dashboard.GetProperty("id").GetString()!;
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
 
             var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
             {
-                Sources = [new DashboardItemSourceRequestDto { TrackerId = trackerId, AnalyticId = analyticId }]
+                ResultType = AnalyticTypes.BarChart,
+                Code = AnalyticCodes.CountBarChart,
+                Sources = [BarSource(tracker)]
             });
             Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
 
-            var analyticsResponse = await client.GetAsync($"dashboard/{dashboardId}/analytics");
-            var results = await Data(analyticsResponse);
+            var results = await Data(await client.GetAsync($"dashboard/{dashboardId}/analytics"));
 
             Assert.Equal(1, results.GetArrayLength());
             Assert.Equal(AnalyticTypes.BarChart, results[0].GetProperty("resultType").GetString());
         }
 
         [Fact]
-        public async Task AddDashboardItem_TwoCombinableSources_MergesIntoComposedChartWithWarning()
+        public async Task AddDashboardItem_TwoSources_MergesIntoComposedChart()
         {
             var client = _factory.CreateClientWithCookies();
             await _factory.SeedDatabaseAsync();
             await client.Authenticate(DefaultUsers.TestUserData);
 
-            var (barTrackerId, barAnalyticId) = await CreateBarAnalyticTracker(client, "Workouts");
-            var (lineTrackerId, lineAnalyticId) = await CreateLineAnalyticTracker(client, "Weight");
-
-            var dashboard = await Data(await client.PostAsJsonAsync("dashboard", new CreateDashboardDto { Name = "My board" }));
-            var dashboardId = dashboard.GetProperty("id").GetString()!;
+            var weight = await CreateCapableTracker(client, "Weight");
+            var steps = await CreateCapableTracker(client, "Steps");
+            var dashboardId = await CreateDashboard(client);
 
             var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
             {
-                Sources =
-                [
-                    new DashboardItemSourceRequestDto { TrackerId = barTrackerId, AnalyticId = barAnalyticId },
-                    new DashboardItemSourceRequestDto { TrackerId = lineTrackerId, AnalyticId = lineAnalyticId }
-                ]
+                ResultType = AnalyticTypes.LineChart,
+                Code = AnalyticCodes.LineChart,
+                Sources = [LineSource(weight), LineSource(steps)]
             });
             Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
 
@@ -172,38 +138,88 @@ namespace Operum.Tests.Tests.Dashboards
             var combined = results[0];
             Assert.Equal(AnalyticTypes.Composed, combined.GetProperty("resultType").GetString());
             Assert.Equal(2, combined.GetProperty("series").GetArrayLength());
-            // Mixing a bar and a line source should surface a warning, not be rejected.
-            Assert.True(combined.GetProperty("warnings").GetArrayLength() > 0);
+            // One definition for both sources, and both plot a date on the x-axis, so there
+            // is nothing left to warn about.
+            Assert.Equal(0, combined.GetProperty("warnings").GetArrayLength());
         }
 
+        // Sharing a definition still leaves one thing sources can disagree on: the data type
+        // of the field on the x-axis, which the combined chart has to render on one axis.
         [Fact]
-        public async Task AddDashboardItem_SecondSourceNotCombinable_ReturnsBadRequest()
+        public async Task AddDashboardItem_SourcesWithDifferentXAxisTypes_WarnsWithoutRejecting()
         {
             var client = _factory.CreateClientWithCookies();
             await _factory.SeedDatabaseAsync();
             await client.Authenticate(DefaultUsers.TestUserData);
 
-            var (barTrackerId, barAnalyticId) = await CreateBarAnalyticTracker(client, "Workouts");
-            var (singleTrackerId, singleAnalyticId) = await CreateSingleValueAnalyticTracker(client, "Steps");
-
-            var dashboard = await Data(await client.PostAsJsonAsync("dashboard", new CreateDashboardDto { Name = "My board" }));
-            var dashboardId = dashboard.GetProperty("id").GetString()!;
+            var byDate = await CreateCapableTracker(client, "Weight");
+            var byCategory = await CreateCapableTracker(client, "Steps");
+            var dashboardId = await CreateDashboard(client);
 
             var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
             {
-                Sources =
-                [
-                    new DashboardItemSourceRequestDto { TrackerId = barTrackerId, AnalyticId = barAnalyticId },
-                    new DashboardItemSourceRequestDto { TrackerId = singleTrackerId, AnalyticId = singleAnalyticId }
-                ]
+                ResultType = AnalyticTypes.LineChart,
+                Code = AnalyticCodes.LineChart,
+                Sources = [LineSource(byDate), LineSource(byCategory, byCategory.CategoryFieldId)]
+            });
+            Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
+
+            var combined = (await Data(await client.GetAsync($"dashboard/{dashboardId}/analytics")))[0];
+            Assert.Equal(2, combined.GetProperty("series").GetArrayLength());
+            Assert.True(combined.GetProperty("warnings").GetArrayLength() > 0);
+        }
+
+        [Fact]
+        public async Task AddDashboardItem_MultipleSourcesForANonCombinableType_ReturnsBadRequest()
+        {
+            var client = _factory.CreateClientWithCookies();
+            await _factory.SeedDatabaseAsync();
+            await client.Authenticate(DefaultUsers.TestUserData);
+
+            var workouts = await CreateCapableTracker(client, "Workouts");
+            var steps = await CreateCapableTracker(client, "Steps");
+            var dashboardId = await CreateDashboard(client);
+
+            DashboardItemSourceRequestDto CountSource(CapableTracker tracker) => new()
+            {
+                TrackerId = tracker.Id,
+                AnalyticFields = [new CreateAnalyticFieldDto { FieldId = tracker.CategoryFieldId, Purpose = AnalyticPurposes.Value }]
+            };
+
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+            {
+                ResultType = AnalyticTypes.SingleValue,
+                Code = AnalyticCodes.Count,
+                Sources = [CountSource(workouts), CountSource(steps)]
+            });
+
+            Assert.Equal(HttpStatusCode.BadRequest, addResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task AddDashboardItem_CodeDoesNotBelongToResultType_ReturnsBadRequest()
+        {
+            var client = _factory.CreateClientWithCookies();
+            await _factory.SeedDatabaseAsync();
+            await client.Authenticate(DefaultUsers.TestUserData);
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+            {
+                ResultType = AnalyticTypes.LineChart,
+                // A bar chart code, which the line chart definition knows nothing about.
+                Code = AnalyticCodes.CountBarChart,
+                Sources = [LineSource(tracker)]
             });
 
             Assert.Equal(HttpStatusCode.BadRequest, addResponse.StatusCode);
         }
 
         // Regression test: two separate dashboard items whose sources both point at the same
-        // Tracker/Analytic used to make GetUserDashboard's untracked query materialize that
-        // Tracker as two distinct CLR instances (no identity resolution under the app's default
+        // Tracker used to make GetUserDashboard's untracked query materialize that Tracker as
+        // two distinct CLR instances (no identity resolution under the app's default
         // QueryTrackingBehavior.NoTracking). Remove() then threw when attaching the detached
         // graph and hitting the second same-key instance. See DashboardService.GetUserDashboard.
         [Fact]
@@ -213,16 +229,16 @@ namespace Operum.Tests.Tests.Dashboards
             await _factory.SeedDatabaseAsync();
             await client.Authenticate(DefaultUsers.TestUserData);
 
-            var (trackerId, analyticId) = await CreateBarAnalyticTracker(client, "Workouts");
-
-            var dashboard = await Data(await client.PostAsJsonAsync("dashboard", new CreateDashboardDto { Name = "My board" }));
-            var dashboardId = dashboard.GetProperty("id").GetString()!;
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
 
             for (var i = 0; i < 2; i++)
             {
                 var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
                 {
-                    Sources = [new DashboardItemSourceRequestDto { TrackerId = trackerId, AnalyticId = analyticId }]
+                    ResultType = AnalyticTypes.BarChart,
+                    Code = AnalyticCodes.CountBarChart,
+                    Sources = [BarSource(tracker)]
                 });
                 Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
             }
@@ -240,17 +256,17 @@ namespace Operum.Tests.Tests.Dashboards
             await _factory.SeedDatabaseAsync();
             await client.Authenticate(DefaultUsers.TestUserData);
 
-            var (trackerId, analyticId) = await CreateBarAnalyticTracker(client, "Workouts");
-
-            var dashboard = await Data(await client.PostAsJsonAsync("dashboard", new CreateDashboardDto { Name = "My board" }));
-            var dashboardId = dashboard.GetProperty("id").GetString()!;
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
 
             string? firstItemId = null;
             for (var i = 0; i < 2; i++)
             {
                 var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
                 {
-                    Sources = [new DashboardItemSourceRequestDto { TrackerId = trackerId, AnalyticId = analyticId }]
+                    ResultType = AnalyticTypes.BarChart,
+                    Code = AnalyticCodes.CountBarChart,
+                    Sources = [BarSource(tracker)]
                 });
                 Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
                 firstItemId ??= (await Data(addResponse)).GetProperty("id").GetString();
@@ -260,52 +276,21 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(HttpStatusCode.OK, removeResponse.StatusCode);
         }
 
-        // Creates a tracker with date/number fields and one entry, but deliberately no
-        // analytic — the starting point for an ad hoc dashboard source.
-        private static async Task<(string TrackerId, string DayFieldId, string AmountFieldId)> CreateLineCapableTracker(HttpClient client, string name)
-        {
-            var tracker = await Data(await client.PostAsJsonAsync("trackers", new CreateTrackerDto { Name = name }));
-            var trackerId = tracker.GetProperty("id").GetString()!;
-
-            var dayField = await Data(await client.PostAsJsonAsync($"trackers/{trackerId}/fields",
-                new CreateFieldDto { Name = "Day", Type = DataTypes.Date }));
-            var amountField = await Data(await client.PostAsJsonAsync($"trackers/{trackerId}/fields",
-                new CreateFieldDto { Name = "Amount", Type = DataTypes.Number }));
-
-            await client.PostAsJsonAsync($"trackers/{trackerId}/entries",
-                new CreateEntryDto { FieldValues = new() { ["Day"] = "2026-01-01", ["Amount"] = "5" } });
-
-            return (trackerId, dayField.GetProperty("id").GetString()!, amountField.GetProperty("id").GetString()!);
-        }
-
         [Fact]
-        public async Task AddDashboardItem_AdHocSource_RendersWithoutCreatingATrackerAnalytic()
+        public async Task AddDashboardItem_Source_RendersWithoutCreatingATrackerAnalytic()
         {
             var client = _factory.CreateClientWithCookies();
             await _factory.SeedDatabaseAsync();
             await client.Authenticate(DefaultUsers.TestUserData);
 
-            var (trackerId, dayFieldId, amountFieldId) = await CreateLineCapableTracker(client, "Weight");
-
-            var dashboard = await Data(await client.PostAsJsonAsync("dashboard", new CreateDashboardDto { Name = "My board" }));
-            var dashboardId = dashboard.GetProperty("id").GetString()!;
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
 
             var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
             {
-                Sources =
-                [
-                    new DashboardItemSourceRequestDto
-                    {
-                        TrackerId = trackerId,
-                        ResultType = AnalyticTypes.LineChart,
-                        Code = AnalyticCodes.LineChart,
-                        AnalyticFields =
-                        [
-                            new CreateAnalyticFieldDto { FieldId = dayFieldId, Purpose = AnalyticPurposes.Xaxis },
-                            new CreateAnalyticFieldDto { FieldId = amountFieldId, Purpose = AnalyticPurposes.Yaxis }
-                        ]
-                    }
-                ]
+                ResultType = AnalyticTypes.LineChart,
+                Code = AnalyticCodes.LineChart,
+                Sources = [LineSource(tracker)]
             });
             Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
 
@@ -315,74 +300,31 @@ namespace Operum.Tests.Tests.Dashboards
 
             // The whole point: the definition stays on the dashboard and never shows up
             // among the tracker's own analytics.
-            var summary = await Data(await client.GetAsync($"trackers/{trackerId}/analytics/summary"));
-            Assert.Equal(0, summary.GetArrayLength());
+            var trackerAnalytics = await Data(await client.GetAsync($"trackers/{tracker.Id}/analytics"));
+            Assert.Equal(0, trackerAnalytics.GetArrayLength());
         }
 
         [Fact]
-        public async Task AddDashboardItem_AdHocSourceCombinedWithSavedAnalytic_MergesIntoComposedChart()
+        public async Task AddDashboardItem_SourceMissingARequiredPurpose_ReturnsBadRequest()
         {
             var client = _factory.CreateClientWithCookies();
             await _factory.SeedDatabaseAsync();
             await client.Authenticate(DefaultUsers.TestUserData);
 
-            var (savedTrackerId, savedAnalyticId) = await CreateLineAnalyticTracker(client, "Weight");
-            var (adHocTrackerId, dayFieldId, amountFieldId) = await CreateLineCapableTracker(client, "Steps");
-
-            var dashboard = await Data(await client.PostAsJsonAsync("dashboard", new CreateDashboardDto { Name = "My board" }));
-            var dashboardId = dashboard.GetProperty("id").GetString()!;
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
 
             var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
             {
-                Sources =
-                [
-                    new DashboardItemSourceRequestDto { TrackerId = savedTrackerId, AnalyticId = savedAnalyticId },
-                    new DashboardItemSourceRequestDto
-                    {
-                        TrackerId = adHocTrackerId,
-                        ResultType = AnalyticTypes.LineChart,
-                        Code = AnalyticCodes.LineChart,
-                        AnalyticFields =
-                        [
-                            new CreateAnalyticFieldDto { FieldId = dayFieldId, Purpose = AnalyticPurposes.Xaxis },
-                            new CreateAnalyticFieldDto { FieldId = amountFieldId, Purpose = AnalyticPurposes.Yaxis }
-                        ]
-                    }
-                ]
-            });
-            Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
-
-            var results = await Data(await client.GetAsync($"dashboard/{dashboardId}/analytics"));
-            var combined = results[0];
-            Assert.Equal(AnalyticTypes.Composed, combined.GetProperty("resultType").GetString());
-            Assert.Equal(2, combined.GetProperty("series").GetArrayLength());
-            // Same result type and code on both sides, so nothing to warn about.
-            Assert.Equal(0, combined.GetProperty("warnings").GetArrayLength());
-        }
-
-        [Fact]
-        public async Task AddDashboardItem_AdHocSourceMissingARequiredPurpose_ReturnsBadRequest()
-        {
-            var client = _factory.CreateClientWithCookies();
-            await _factory.SeedDatabaseAsync();
-            await client.Authenticate(DefaultUsers.TestUserData);
-
-            var (trackerId, dayFieldId, _) = await CreateLineCapableTracker(client, "Weight");
-
-            var dashboard = await Data(await client.PostAsJsonAsync("dashboard", new CreateDashboardDto { Name = "My board" }));
-            var dashboardId = dashboard.GetProperty("id").GetString()!;
-
-            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
-            {
+                ResultType = AnalyticTypes.LineChart,
+                Code = AnalyticCodes.LineChart,
                 Sources =
                 [
                     new DashboardItemSourceRequestDto
                     {
-                        TrackerId = trackerId,
-                        ResultType = AnalyticTypes.LineChart,
-                        Code = AnalyticCodes.LineChart,
+                        TrackerId = tracker.Id,
                         // Y-axis left unmapped.
-                        AnalyticFields = [new CreateAnalyticFieldDto { FieldId = dayFieldId, Purpose = AnalyticPurposes.Xaxis }]
+                        AnalyticFields = [new CreateAnalyticFieldDto { FieldId = tracker.DayFieldId, Purpose = AnalyticPurposes.Xaxis }]
                     }
                 ]
             });
@@ -390,36 +332,34 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(HttpStatusCode.BadRequest, addResponse.StatusCode);
         }
 
-        // A dashboard spans trackers, so an ad hoc source must not be able to reach a
-        // field that belongs to a different tracker than the one it reads entries from.
+        // A dashboard spans trackers, so a source must not be able to reach a field that
+        // belongs to a different tracker than the one it reads entries from.
         [Fact]
-        public async Task AddDashboardItem_AdHocSourceFieldFromAnotherTracker_ReturnsNotFound()
+        public async Task AddDashboardItem_SourceFieldFromAnotherTracker_ReturnsNotFound()
         {
             var client = _factory.CreateClientWithCookies();
             await _factory.SeedDatabaseAsync();
             await client.Authenticate(DefaultUsers.TestUserData);
 
-            var (trackerId, dayFieldId, _) = await CreateLineCapableTracker(client, "Weight");
-            var (otherTrackerId, _, otherAmountFieldId) = await CreateLineCapableTracker(client, "Steps");
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var other = await CreateCapableTracker(client, "Steps");
+            var dashboardId = await CreateDashboard(client);
 
-            var dashboard = await Data(await client.PostAsJsonAsync("dashboard", new CreateDashboardDto { Name = "My board" }));
-            var dashboardId = dashboard.GetProperty("id").GetString()!;
-
-            Assert.NotEqual(trackerId, otherTrackerId);
+            Assert.NotEqual(tracker.Id, other.Id);
 
             var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
             {
+                ResultType = AnalyticTypes.LineChart,
+                Code = AnalyticCodes.LineChart,
                 Sources =
                 [
                     new DashboardItemSourceRequestDto
                     {
-                        TrackerId = trackerId,
-                        ResultType = AnalyticTypes.LineChart,
-                        Code = AnalyticCodes.LineChart,
+                        TrackerId = tracker.Id,
                         AnalyticFields =
                         [
-                            new CreateAnalyticFieldDto { FieldId = dayFieldId, Purpose = AnalyticPurposes.Xaxis },
-                            new CreateAnalyticFieldDto { FieldId = otherAmountFieldId, Purpose = AnalyticPurposes.Yaxis }
+                            new CreateAnalyticFieldDto { FieldId = tracker.DayFieldId, Purpose = AnalyticPurposes.Xaxis },
+                            new CreateAnalyticFieldDto { FieldId = other.AmountFieldId, Purpose = AnalyticPurposes.Yaxis }
                         ]
                     }
                 ]
@@ -428,36 +368,23 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(HttpStatusCode.NotFound, addResponse.StatusCode);
         }
 
-        // Removing the dashboard item is the only lifecycle an ad hoc definition has —
-        // it must take its source and field mappings with it rather than leaving orphans.
+        // Removing the dashboard item is the only lifecycle a source definition has — it must
+        // take its source and field mappings with it rather than leaving orphans.
         [Fact]
-        public async Task RemoveDashboardItem_AdHocSource_RemovesTheDefinitionToo()
+        public async Task RemoveDashboardItem_RemovesTheDefinitionToo()
         {
             var client = _factory.CreateClientWithCookies();
             await _factory.SeedDatabaseAsync();
             await client.Authenticate(DefaultUsers.TestUserData);
 
-            var (trackerId, dayFieldId, amountFieldId) = await CreateLineCapableTracker(client, "Weight");
-
-            var dashboard = await Data(await client.PostAsJsonAsync("dashboard", new CreateDashboardDto { Name = "My board" }));
-            var dashboardId = dashboard.GetProperty("id").GetString()!;
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
 
             var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
             {
-                Sources =
-                [
-                    new DashboardItemSourceRequestDto
-                    {
-                        TrackerId = trackerId,
-                        ResultType = AnalyticTypes.LineChart,
-                        Code = AnalyticCodes.LineChart,
-                        AnalyticFields =
-                        [
-                            new CreateAnalyticFieldDto { FieldId = dayFieldId, Purpose = AnalyticPurposes.Xaxis },
-                            new CreateAnalyticFieldDto { FieldId = amountFieldId, Purpose = AnalyticPurposes.Yaxis }
-                        ]
-                    }
-                ]
+                ResultType = AnalyticTypes.LineChart,
+                Code = AnalyticCodes.LineChart,
+                Sources = [LineSource(tracker)]
             });
             var itemId = (await Data(addResponse)).GetProperty("id").GetString()!;
 
@@ -477,8 +404,7 @@ namespace Operum.Tests.Tests.Dashboards
             await _factory.SeedDatabaseAsync();
             await client.Authenticate(DefaultUsers.TestUserData);
 
-            var dashboard = await Data(await client.PostAsJsonAsync("dashboard", new CreateDashboardDto { Name = "My board" }));
-            var dashboardId = dashboard.GetProperty("id").GetString()!;
+            var dashboardId = await CreateDashboard(client);
 
             var updateResponse = await client.PutAsJsonAsync($"dashboard/{dashboardId}", new UpdateDashboardDto { Name = "Renamed board" });
             Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);

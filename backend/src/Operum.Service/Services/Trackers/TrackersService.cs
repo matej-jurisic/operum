@@ -579,39 +579,6 @@ namespace Operum.Service.Services.Trackers
             return Result.Success();
         }
 
-        public async Task<Result<List<AnalyticSummaryDto>>> GetTrackerAnalyticsSummary(string trackerId)
-        {
-            var user = currentUserService.GetCurrentUser();
-            var tracker = await db.Trackers
-                .Include(t => t.ApplicationUserTrackers)
-                .FirstOrDefaultAsync(t => t.Id == trackerId);
-
-            var hasAccess = tracker != null &&
-                (tracker.OwnerId == user.Id || tracker.ApplicationUserTrackers.Any(ut => ut.ApplicationUserId == user.Id));
-
-            if (tracker == null || !hasAccess)
-                return Result.Failure(ResultStatusCodes.Forbidden);
-
-            var analytics = await db.Analytics
-                .Include(a => a.AnalyticFields).ThenInclude(af => af.Field)
-                .Where(a => a.TrackerId == trackerId)
-                .OrderBy(a => a.Order)
-                .ToListAsync();
-
-            var summaries = analytics.Select(a => new AnalyticSummaryDto
-            {
-                Id = a.Id,
-                Name = AnalyticDefinitionList.GetDisplayName(
-                    a.ResultType,
-                    a.Code,
-                    a.AnalyticFields.Where(af => af.Field != null).Select(af => af.Field.Name)),
-                ResultType = a.ResultType,
-                Code = a.Code
-            }).ToList();
-
-            return Result.Success(summaries);
-        }
-
         public async Task<Result> AddAnalytic(string trackerId, CreateAnalyticDto addAnalytic)
         {
             var user = currentUserService.GetCurrentUser();

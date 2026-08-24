@@ -3,6 +3,10 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Operum.Model.Models
 {
+    // One tracker's contribution to a dashboard item: which tracker to read entries from,
+    // which of its fields fill the purposes required by the item's ResultType/Code, and
+    // which views (if any) narrow the entries first. The definition only exists here, so
+    // it never shows up among the tracker's own analytics and disappears with the item.
     public class DashboardItemSource
     {
         [Key]
@@ -15,25 +19,10 @@ namespace Operum.Model.Models
         [ForeignKey(nameof(DashboardItemId))]
         public virtual DashboardItem DashboardItem { get; set; } = null!;
 
-        // A source is defined one of two ways, never both:
-        //  - AnalyticId set: it points at an analytic saved on the tracker, and Code /
-        //    ResultType / Fields are all null/empty.
-        //  - AnalyticId null: it carries its own ad hoc definition in Code + ResultType +
-        //    Fields. That definition only exists here, so it never shows up among the
-        //    tracker's own analytics and disappears when the dashboard item is removed.
-        public string? AnalyticId { get; set; }
-        [ForeignKey(nameof(AnalyticId))]
-        public virtual Analytic? Analytic { get; set; }
-
-        public string? Code { get; set; }
-        public string? ResultType { get; set; }
         public virtual List<DashboardItemSourceField> Fields { get; set; } = [];
 
         public string TrackerId { get; set; } = string.Empty;
         [ForeignKey(nameof(TrackerId))]
         public virtual Tracker Tracker { get; set; } = null!;
-
-        [NotMapped]
-        public bool IsAdHoc => string.IsNullOrEmpty(AnalyticId);
     }
 }
