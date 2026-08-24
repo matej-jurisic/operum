@@ -149,7 +149,7 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
                                 {...form.getInputProps("formula")}
                             />
                             <Text size="xs" c="dimmed">
-                                Reference fields/constants using {"{FieldName}"}. For timespan fields use {"{Field.hours}"}, {"{Field.minutes}"}, or {"{Field.seconds}"}. Supported input types: number, bool, timespan. Supported operators: +, -, *, /, % (booleans resolve to 1 or 0; division by 0 yields no result).
+                                Reference fields/constants using {"{FieldName}"}, including other calculated fields (circular references are rejected). For timespan fields use {"{Field.hours}"}, {"{Field.minutes}"}, or {"{Field.seconds}"}. Supported input types: number, bool, timespan. Supported operators: +, -, *, /, % (booleans resolve to 1 or 0; division by 0 yields no result).
                             </Text>
                         </Stack>
                     )}

@@ -224,12 +224,15 @@ namespace Operum.Service.Services.Entries
             }
 
             await db.FieldValues.AddRangeAsync(newFieldValues);
-            await db.SaveChangesAsync();
 
+            // Taken before saving: once the delete is committed the entity is detached, not
+            // Deleted, and cleared values would still look present to the formula evaluator.
             var allCurrentValues = fieldValues
             .Where(fv => db.Entry(fv).State != EntityState.Deleted) // Filter out items you just deleted
             .Concat(newFieldValues)
             .ToList();
+
+            await db.SaveChangesAsync();
 
             await formulaEvaluationService.EvaluateAndPersistCalculatedFields(
                 trackerId, entryId, allCurrentValues, allFields);

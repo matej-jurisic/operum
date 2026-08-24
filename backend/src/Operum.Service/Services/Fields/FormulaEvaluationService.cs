@@ -30,9 +30,13 @@ namespace Operum.Service.Services.Fields
                 .Where(c => c.TrackerId == trackerId)
                 .ToListAsync();
 
-            var manualFieldsByName = allFields
-                .Where(f => !f.IsCalculated)
-                .ToDictionary(f => f.Name, f => f, StringComparer.OrdinalIgnoreCase);
+            // Calculated fields may reference other calculated fields, so every field is
+            // resolvable by name. Manual fields win if the same name is used twice.
+            var fieldsByName = new Dictionary<string, Field>(StringComparer.OrdinalIgnoreCase);
+            foreach (var field in allFields.Where(f => !f.IsCalculated))
+                fieldsByName.TryAdd(field.Name, field);
+            foreach (var field in allFields.Where(f => f.IsCalculated))
+                fieldsByName.TryAdd(field.Name, field);
 
             var fieldValuesByFieldId = currentFieldValues
                 .ToDictionary(fv => fv.FieldId, fv => fv);
@@ -56,15 +60,28 @@ namespace Operum.Service.Services.Fields
             var existingByFieldId = currentFieldValues
                 .ToDictionary(fv => fv.FieldId, fv => fv);
 
-            foreach (var field in calculatedFields)
+            var (orderedFields, cyclicFieldIds) = OrderByDependencies(calculatedFields, fieldsByName);
+
+            foreach (var field in orderedFields)
             {
+                existingByFieldId.TryGetValue(field.Id, out var existing);
+
+                // A field inside a dependency cycle can never resolve; drop any stale value so
+                // fields depending on it fail to resolve as well.
+                if (cyclicFieldIds.Contains(field.Id))
+                {
+                    logger.LogDebug("Skipping field {FieldId} because its formula is part of a dependency cycle", field.Id);
+                    Discard(existing, field.Id, fieldValuesByFieldId);
+                    continue;
+                }
+
                 var tokens = ExtractTokenNames(field.Formula!).ToList();
                 var substitutedFormula = field.Formula!;
                 bool anyMissing = false;
 
                 foreach (var token in tokens)
                 {
-                    var resolved = TryResolveTokenValue(token, manualFieldsByName, fieldValuesByFieldId, constantsByName, fieldsByIdForMatcher, tz);
+                    var resolved = TryResolveTokenValue(token, fieldsByName, fieldValuesByFieldId, constantsByName, fieldsByIdForMatcher, tz);
                     if (resolved == null)
                     {
                         anyMissing = true;
@@ -75,12 +92,9 @@ namespace Operum.Service.Services.Fields
                         resolved.Value.ToString(CultureInfo.InvariantCulture));
                 }
 
-                existingByFieldId.TryGetValue(field.Id, out var existing);
-
                 if (anyMissing)
                 {
-                    if (existing != null)
-                        db.FieldValues.Remove(existing);
+                    Discard(existing, field.Id, fieldValuesByFieldId);
                     continue;
                 }
 
@@ -97,8 +111,7 @@ namespace Operum.Service.Services.Fields
                 catch (Exception ex)
                 {
                     logger.LogDebug(ex, "Formula evaluation failed for field {FieldId}: {Formula}", field.Id, substitutedFormula);
-                    if (existing != null)
-                        db.FieldValues.Remove(existing);
+                    Discard(existing, field.Id, fieldValuesByFieldId);
                     continue;
                 }
 
@@ -107,20 +120,22 @@ namespace Operum.Service.Services.Fields
                 if (double.IsNaN(result) || double.IsInfinity(result))
                 {
                     logger.LogDebug("Formula produced non-finite result for field {FieldId}: {Formula}", field.Id, substitutedFormula);
-                    if (existing != null)
-                        db.FieldValues.Remove(existing);
+                    Discard(existing, field.Id, fieldValuesByFieldId);
                     continue;
                 }
 
                 if (existing != null)
                 {
                     ApplyResult(existing, field.Type, result);
+                    // Make the fresh value visible to fields that reference this one.
+                    fieldValuesByFieldId[field.Id] = existing;
                 }
                 else
                 {
                     var newFv = new FieldValue { EntryId = entryId, FieldId = field.Id };
                     ApplyResult(newFv, field.Type, result);
                     newFieldValues.Add(newFv);
+                    fieldValuesByFieldId[field.Id] = newFv;
                 }
             }
 
@@ -128,6 +143,77 @@ namespace Operum.Service.Services.Fields
                 await db.FieldValues.AddRangeAsync(newFieldValues);
 
             await db.SaveChangesAsync();
+        }
+
+        private void Discard(FieldValue? existing, string fieldId, Dictionary<string, FieldValue> fieldValuesByFieldId)
+        {
+            if (existing != null)
+                db.FieldValues.Remove(existing);
+            fieldValuesByFieldId.Remove(fieldId);
+        }
+
+        /// <summary>
+        /// Orders calculated fields so that a field is evaluated after everything it references,
+        /// and reports which fields take part in a dependency cycle.
+        /// </summary>
+        private static (List<Field> Ordered, HashSet<string> Cyclic) OrderByDependencies(
+            List<Field> calculatedFields,
+            Dictionary<string, Field> fieldsByName)
+        {
+            var fieldsById = new Dictionary<string, Field>();
+            foreach (var field in calculatedFields)
+                fieldsById[field.Id] = field;
+
+            var dependencies = new Dictionary<string, List<string>>();
+            foreach (var field in calculatedFields)
+            {
+                var deps = new List<string>();
+                foreach (var token in ExtractTokenNames(field.Formula!))
+                {
+                    var (name, _) = ParseToken(token);
+                    if (fieldsByName.TryGetValue(name, out var referenced)
+                        && fieldsById.ContainsKey(referenced.Id)
+                        && !deps.Contains(referenced.Id))
+                    {
+                        deps.Add(referenced.Id);
+                    }
+                }
+                dependencies[field.Id] = deps;
+            }
+
+            var ordered = new List<Field>();
+            var cyclic = new HashSet<string>();
+            var states = new Dictionary<string, int>(); // 1 = on the current path, 2 = finished
+            var path = new List<string>();
+
+            void Visit(string fieldId)
+            {
+                if (states.TryGetValue(fieldId, out var state))
+                {
+                    if (state == 1)
+                    {
+                        // Back edge: every field from the revisited one onwards forms the cycle.
+                        for (var i = path.IndexOf(fieldId); i >= 0 && i < path.Count; i++)
+                            cyclic.Add(path[i]);
+                    }
+                    return;
+                }
+
+                states[fieldId] = 1;
+                path.Add(fieldId);
+
+                foreach (var dependency in dependencies[fieldId])
+                    Visit(dependency);
+
+                path.RemoveAt(path.Count - 1);
+                states[fieldId] = 2;
+                ordered.Add(fieldsById[fieldId]);
+            }
+
+            foreach (var field in calculatedFields)
+                Visit(field.Id);
+
+            return (ordered, cyclic);
         }
 
         private static void ApplyResult(FieldValue fv, string fieldType, double result)
@@ -162,7 +248,7 @@ namespace Operum.Service.Services.Fields
 
         private static double? TryResolveTokenValue(
             string tokenName,
-            Dictionary<string, Field> manualFieldsByName,
+            Dictionary<string, Field> fieldsByName,
             Dictionary<string, FieldValue> fieldValuesByFieldId,
             Dictionary<string, TrackerConstant> constantsByName,
             Dictionary<string, Field> fieldsByIdForMatcher,
@@ -171,7 +257,7 @@ namespace Operum.Service.Services.Fields
             var (name, property) = ParseToken(tokenName);
 
             // Fields take precedence over constants
-            if (manualFieldsByName.TryGetValue(name, out var field))
+            if (fieldsByName.TryGetValue(name, out var field))
             {
                 if (!fieldValuesByFieldId.TryGetValue(field.Id, out var fv))
                     return null;

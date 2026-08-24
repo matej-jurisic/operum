@@ -41,7 +41,7 @@ namespace Operum.Service.Services.Fields
 
             if (field.IsCalculated)
             {
-                var formulaError = await ValidateFormula(trackerId, field.Formula!);
+                var formulaError = await ValidateFormula(trackerId, field.Formula!, field.Name, null);
                 if (formulaError != null)
                     return Result.Failure(ResultStatusCodes.BadRequest, formulaError);
                 field.Required = false;
@@ -207,7 +207,7 @@ namespace Operum.Service.Services.Fields
 
             if (field.IsCalculated)
             {
-                var formulaError = await ValidateFormula(trackerId, field.Formula!);
+                var formulaError = await ValidateFormula(trackerId, field.Formula!, field.Name, fieldId);
                 if (formulaError != null)
                     return Result.Failure(ResultStatusCodes.BadRequest, formulaError);
                 field.Required = false;
@@ -233,15 +233,23 @@ namespace Operum.Service.Services.Fields
             return Result.Success(updatedField.Data);
         }
 
-        private async Task<string?> ValidateFormula(string trackerId, string formula)
+        // Strip optional ".property" suffix (e.g. "Duration.hours" → "Duration")
+        private static string TokenName(string token) =>
+            token.Contains('.') ? token[..token.IndexOf('.')] : token;
+
+        private static List<string> TokenNames(string formula) =>
+            TokenPattern.Matches(formula).Select(m => TokenName(m.Groups[1].Value)).ToList();
+
+        /// <param name="fieldId">Id of the field being updated, or null when creating one.</param>
+        private async Task<string?> ValidateFormula(string trackerId, string formula, string fieldName, string? fieldId)
         {
             var tokens = TokenPattern.Matches(formula).Select(m => m.Groups[1].Value).ToList();
             if (tokens.Count == 0)
                 return null;
 
-            var manualFieldNames = await db.Fields
-                .Where(f => f.TrackerId == trackerId && !f.IsCalculated)
-                .Select(f => f.Name)
+            var fields = await db.Fields
+                .Where(f => f.TrackerId == trackerId)
+                .Select(f => new { f.Id, f.Name, f.IsCalculated, f.Formula })
                 .ToListAsync();
 
             var constantNames = await db.TrackerConstants
@@ -249,19 +257,63 @@ namespace Operum.Service.Services.Fields
                 .Select(c => c.Name)
                 .ToListAsync();
 
+            // The field being saved is excluded: it is only referenceable through itself,
+            // which is a circular reference.
             var validNames = new HashSet<string>(
-                manualFieldNames.Concat(constantNames),
+                fields.Where(f => f.Id != fieldId).Select(f => f.Name).Concat(constantNames),
                 StringComparer.OrdinalIgnoreCase);
 
             foreach (var token in tokens)
             {
-                // Strip optional ".property" suffix (e.g. "Duration.hours" → "Duration")
-                var name = token.Contains('.') ? token[..token.IndexOf('.')] : token;
-                if (!validNames.Contains(name))
-                    return $"Unknown token '{token}' in formula. Only manual fields and constants can be referenced.";
+                var name = TokenName(token);
+                if (validNames.Contains(name))
+                    continue;
+
+                return name.Equals(fieldName, StringComparison.OrdinalIgnoreCase)
+                    ? "Formula cannot reference the field itself."
+                    : $"Unknown token '{token}' in formula. Only fields and constants can be referenced.";
             }
 
+            // Walk the chain of calculated fields this formula pulls in, using the pending
+            // formula for the field being saved, and reject if it leads back to itself.
+            var formulasByName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var field in fields.Where(f => f.IsCalculated && !string.IsNullOrWhiteSpace(f.Formula) && f.Id != fieldId))
+                formulasByName[field.Name] = field.Formula!;
+            formulasByName[fieldName] = formula;
+
+            if (HasCircularReference(fieldName, formulasByName))
+                return "Formula creates a circular reference between calculated fields.";
+
             return null;
+        }
+
+        private static bool HasCircularReference(string startName, Dictionary<string, string> formulasByName)
+        {
+            var onPath = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var settled = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            bool Visit(string name)
+            {
+                if (onPath.Contains(name)) return true;
+                if (settled.Contains(name)) return false;
+                if (!formulasByName.TryGetValue(name, out var formula))
+                {
+                    settled.Add(name);
+                    return false;
+                }
+
+                onPath.Add(name);
+                foreach (var referenced in TokenNames(formula))
+                {
+                    if (Visit(referenced))
+                        return true;
+                }
+                onPath.Remove(name);
+                settled.Add(name);
+                return false;
+            }
+
+            return Visit(startName);
         }
 
         private async Task ReorderFieldsAfterDeletion(string trackerId, int deletedOrder)
