@@ -51,7 +51,14 @@ export function AnalyticCardHeader({
       top={compact ? 0 : undefined}
       left={compact ? 0 : undefined}
       right={compact ? layout.padding : undefined}
-      style={{ zIndex: compact && isConfiguring ? 10 : "auto" }}
+      style={{
+        zIndex: compact && isConfiguring ? 10 : "auto",
+        // Compact spans the whole card so its icons can float over the button
+        // rather than pushing it down. Empty of content outside edit mode, it
+        // would otherwise sit -- invisibly -- on top of that button and take
+        // every tap meant for it. Only the icons opt back in below.
+        pointerEvents: compact ? "none" : undefined,
+      }}
       p={0}
     >
       {!compact && (
@@ -84,6 +91,7 @@ export function AnalyticCardHeader({
             size="md"
             color={color}
             variant="outline"
+            style={{ pointerEvents: "auto" }}
             onClick={() => onRename(analyticId)}
           >
             <MdEdit size={18} />
@@ -94,6 +102,7 @@ export function AnalyticCardHeader({
             size="md"
             color={color}
             variant="outline"
+            style={{ pointerEvents: "auto" }}
             onClick={() => onRemove(analyticId)}
           >
             <MdDelete size={18} />
