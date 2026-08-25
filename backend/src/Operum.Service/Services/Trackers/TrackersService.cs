@@ -293,6 +293,7 @@ namespace Operum.Service.Services.Trackers
             else if (filter == TrackerFilters.Accessible)
             {
                 var trackers = await db.Trackers
+                    .Include(x => x.Fields)
                     .Include(x => x.ApplicationUserTrackers)
                     .Include(x => x.Owner)
                     .Where(x => x.TrackerTypeId == null &&
@@ -663,13 +664,17 @@ namespace Operum.Service.Services.Trackers
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("tracker"));
             }
 
-            var analytic = await db.Analytics.FirstOrDefaultAsync(x => x.Id == trackerAnalyticId);
+            var analytic = await db.Analytics.FindAsync(trackerAnalyticId);
             if (analytic == null || analytic.TrackerId != trackerId)
             {
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("analytic"));
             }
 
             analytic.Name = updateAnalytic.Name?.Trim() ?? string.Empty;
+            // The DbContext defaults to QueryTrackingBehavior.NoTracking (see
+            // DatabaseConfiguration), so the mutation above is invisible to SaveChangesAsync
+            // unless the entity is explicitly re-attached as Modified.
+            db.Analytics.Update(analytic);
             await db.SaveChangesAsync();
 
             return Result.Success();

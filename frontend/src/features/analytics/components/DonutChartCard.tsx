@@ -106,8 +106,7 @@ export function DonutChartCard({
         >
             <Stack gap="xs" {...cardBodyProps(fillHeight)}>
                 <AnalyticCardHeader
-                    title={cardTitle(layout, analytic.name, subtitle)}
-                    fullTitle={`${analytic.name}: ${subtitle}`}
+                    title={cardTitle(analytic.name, subtitle)}
                     layout={layout}
                     color={color}
                     isConfiguring={isConfiguring}

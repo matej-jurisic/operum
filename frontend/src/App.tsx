@@ -131,7 +131,7 @@ const App = observer(() => {
                                 path="*"
                                 element={
                                     globalStore.currentUser ? (
-                                        <Navigate to={"/trackers"} />
+                                        <Navigate to={"/dashboard"} />
                                     ) : (
                                         <Navigate to={"/home"} />
                                     )

@@ -4,7 +4,14 @@ import { CreateAnalyticFieldDto } from "../../analytics/types/requests/CreateAna
 /** The kinds of widget a dashboard item can be. */
 export const WidgetTypes = {
     Analytic: "analytic",
+    QuickAdd: "quickAdd",
 } as const;
+
+/** The Config payload of a WidgetTypes.QuickAdd widget: which tracker its button opens
+    the quick-add entry dialog for. */
+export interface QuickAddWidgetConfig {
+    trackerId: string;
+}
 
 /** Placement on one of the dashboard's grids, in that grid's columns. */
 export interface WidgetLayoutDto {
@@ -133,4 +140,10 @@ export interface AddDashboardItemDto {
     /** Combined charts only: keep just the x-axis values every source has a point for. */
     matchedValuesOnly?: boolean;
     sources: AddDashboardItemSourceDto[];
+}
+
+/** Adds a WidgetTypes.QuickAdd widget: a button that opens a tracker's quick-add entry
+    dialog from the board. */
+export interface AddDashboardQuickAddItemDto {
+    trackerId: string;
 }

@@ -15,6 +15,7 @@ import { CiSettings } from "react-icons/ci";
 import { MdAdd } from "react-icons/md";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import EntryDetailsDialog from "../../entries/components/EntryDetailsDialog";
+import { useFields } from "../../fields/context/FieldsContext";
 import RenameAnalyticDialog from "../../trackers/components/RenameAnalyticDialog";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { analyticsController } from "../api/analyticsController";
@@ -25,6 +26,7 @@ import { AnalyticsGrid } from "./AnalyticsGrid";
 export default function Analytics() {
     const { tracker, canEditSchema } = useTracker();
     const { refreshAnalytics, analytics, analyticsDirty } = useAnalytics();
+    const { refreshFieldsIfDirty } = useFields();
     const { removeAnalytic } = useTrackerOperations();
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
     const [isLoadingData, setIsLoadingData] = useState(analyticsDirty);
@@ -40,6 +42,9 @@ export default function Analytics() {
         const loadData = async () => {
             setIsLoadingData(true);
             await refreshAnalytics();
+            // The "Add Analytic" dialog maps fields by type, so they need to be loaded
+            // even though this tab otherwise never touches FieldsContext.
+            await refreshFieldsIfDirty();
             setIsLoadingData(false);
         };
         loadData();

@@ -8,6 +8,7 @@ import { dashboardController } from "../api/dashboardController";
 import {
     AddDashboardItemDto,
     AddDashboardItemFromAnalyticDto,
+    AddDashboardQuickAddItemDto,
     DashboardLayoutItemDto,
     DashboardWidgetDto,
     LayoutVariant,
@@ -20,6 +21,7 @@ type DashboardContextType = {
     refreshWidgets: () => Promise<void>;
     addItem: (dto: AddDashboardItemDto) => Promise<void>;
     addItemFromAnalytic: (dto: AddDashboardItemFromAnalyticDto) => Promise<void>;
+    addQuickAddItem: (dto: AddDashboardQuickAddItemDto) => Promise<void>;
     removeItem: (itemId: string) => Promise<void>;
     saveLayout: (
         variant: LayoutVariant,
@@ -50,6 +52,11 @@ export const DashboardProvider: React.FC<{
 
     const addItemFromAnalytic = async (dto: AddDashboardItemFromAnalyticDto) => {
         await dashboardController.addDashboardItemFromAnalytic(dashboardId, dto);
+        await refreshWidgets();
+    };
+
+    const addQuickAddItem = async (dto: AddDashboardQuickAddItemDto) => {
+        await dashboardController.addQuickAddItem(dashboardId, dto);
         await refreshWidgets();
     };
 
@@ -103,6 +110,7 @@ export const DashboardProvider: React.FC<{
                 refreshWidgets,
                 addItem,
                 addItemFromAnalytic,
+                addQuickAddItem,
                 removeItem,
                 saveLayout,
             }}

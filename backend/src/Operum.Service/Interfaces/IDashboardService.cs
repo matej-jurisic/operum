@@ -15,6 +15,7 @@ namespace Operum.Service.Interfaces
         Task<Result> DeleteDashboard(string dashboardId);
         Task<Result<DashboardItemDto>> AddDashboardItem(string dashboardId, AddDashboardItemDto dto);
         Task<Result<DashboardItemDto>> AddDashboardItemFromAnalytic(string dashboardId, AddDashboardItemFromAnalyticDto dto);
+        Task<Result<DashboardItemDto>> AddQuickAddItem(string dashboardId, AddDashboardQuickAddItemDto dto);
         Task<Result> RemoveDashboardItem(string dashboardId, string itemId);
         Task<Result> UpdateDashboardLayout(string dashboardId, UpdateDashboardLayoutDto dto);
     }

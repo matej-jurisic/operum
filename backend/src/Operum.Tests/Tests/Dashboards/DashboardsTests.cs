@@ -833,6 +833,46 @@ namespace Operum.Tests.Tests.Dashboards
         // Regression test: GetUserDashboard's query must be tracked, otherwise mutating the
         // fetched entity and calling SaveChanges silently persists nothing.
         [Fact]
+        public async Task AddQuickAddItem_ValidTracker_AddsAQuickAddWidget()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("quickadd");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/quick-add",
+                new AddDashboardQuickAddItemDto { TrackerId = tracker.Id });
+            Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
+
+            var widgets = await Widgets(client, dashboardId);
+            Assert.Equal(1, widgets.GetArrayLength());
+            Assert.Equal(DashboardWidgetTypes.QuickAdd, widgets[0].GetProperty("type").GetString());
+
+            var config = JsonDocument.Parse(widgets[0].GetProperty("config").GetString()!).RootElement;
+            Assert.Equal(tracker.Id, config.GetProperty("trackerId").GetString());
+        }
+
+        // A quick-add button is still a way to reach a tracker's entries, so it must not
+        // become a way around tracker access.
+        [Fact]
+        public async Task AddQuickAddItem_TrackerNotAccessibleToUser_ReturnsForbidden()
+        {
+            await _factory.SeedDatabaseAsync();
+
+            var owner = await _factory.NewUserClient("quickaddowner");
+            var tracker = await CreateCapableTracker(owner, "Weight");
+
+            var stranger = await _factory.NewUserClient("quickaddstranger");
+            var dashboardId = await CreateDashboard(stranger);
+
+            var addResponse = await stranger.PostAsJsonAsync($"dashboard/{dashboardId}/items/quick-add",
+                new AddDashboardQuickAddItemDto { TrackerId = tracker.Id });
+
+            Assert.Equal(HttpStatusCode.Forbidden, addResponse.StatusCode);
+        }
+
+        [Fact]
         public async Task UpdateDashboard_PersistsNewName()
         {
             var client = _factory.CreateClientWithCookies();

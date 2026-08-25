@@ -35,5 +35,9 @@ namespace Operum.Model.Constants
             AnalyticTypes.Calendar => (6, 8),
             _ => (6, 6)
         };
+
+        // A quick-add button is a single row of chrome, not a chart — it only ever needs
+        // room for an icon, a name and a button.
+        public static readonly (int Width, int Height) QuickAddSize = (3, 3);
     }
 }

@@ -48,6 +48,7 @@ function DashboardContent({
         refreshWidgets,
         addItem,
         addItemFromAnalytic,
+        addQuickAddItem,
         removeItem,
         saveLayout,
     } = useDashboard();
@@ -161,6 +162,7 @@ function DashboardContent({
                     onClose={() => setIsAddOpen(false)}
                     onAdd={addItem}
                     onAddFromAnalytic={addItemFromAnalytic}
+                    onAddQuickAdd={addQuickAddItem}
                 />
             )}
         </Stack>

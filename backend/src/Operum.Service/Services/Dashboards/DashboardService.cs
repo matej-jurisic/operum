@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using Operum.Model;
 using Operum.Model.Common;
 using Operum.Model.Constants;
@@ -26,6 +27,10 @@ namespace Operum.Service.Services.Dashboards
             DashboardItemSource Source,
             string TrackerName,
             AnalyticDto Result);
+
+        // Config is written by hand rather than through the controller's own JSON
+        // formatting, so it has to pick the same camelCase convention itself.
+        private static readonly JsonSerializerOptions ConfigJsonOptions = new(JsonSerializerDefaults.Web);
 
         public async Task<Result<List<DashboardDto>>> GetDashboards()
         {
@@ -357,6 +362,71 @@ namespace Operum.Service.Services.Dashboards
                             .ToList()
                     }
                 ]
+            });
+        }
+
+        // A button that opens a tracker's quick-add entry dialog from the board. Unlike
+        // AddDashboardItem this carries no analytic definition — access to the tracker is
+        // the only thing worth checking before it is placed.
+        public async Task<Result<DashboardItemDto>> AddQuickAddItem(string dashboardId, AddDashboardQuickAddItemDto dto)
+        {
+            var dashboard = await GetUserDashboard(dashboardId);
+            if (dashboard == null)
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
+
+            if (dashboard.Items.Count >= DataLimits.MaxDashboardItemCount)
+                return Result.Failure(ResultStatusCodes.Conflict, Messages.MaxNumberReached("dashboard items", DataLimits.MaxDashboardItemCount));
+
+            var user = currentUserService.GetCurrentUser();
+            var tracker = await db.Trackers
+                .Include(t => t.ApplicationUserTrackers)
+                .FirstOrDefaultAsync(t => t.Id == dto.TrackerId);
+
+            var hasAccess = tracker != null &&
+                (tracker.OwnerId == user.Id || tracker.ApplicationUserTrackers.Any(ut => ut.ApplicationUserId == user.Id));
+
+            if (tracker == null || !hasAccess)
+                return Result.Failure(ResultStatusCodes.Forbidden);
+
+            var nextOrder = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.Order) + 1 : 0;
+
+            // Same placement rules as a chart: its own row under everything already on the
+            // board, on both grids at once.
+            var nextRow = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.Y + i.H) : 0;
+            var nextMobileRow = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.MobileY + i.MobileH) : 0;
+            var (width, height) = DashboardGrid.QuickAddSize;
+
+            var item = new DashboardItem
+            {
+                DashboardId = dashboardId,
+                Order = nextOrder,
+                Type = DashboardWidgetTypes.QuickAdd,
+                Config = JsonSerializer.Serialize(new QuickAddWidgetConfigDto { TrackerId = dto.TrackerId }, ConfigJsonOptions),
+                X = 0,
+                Y = nextRow,
+                W = width,
+                H = height,
+                MobileX = 0,
+                MobileY = nextMobileRow,
+                MobileW = DashboardGrid.MobileColumns,
+                MobileH = height
+            };
+
+            db.DashboardItems.Add(item);
+            await db.SaveChangesAsync();
+
+            return Result.Success(new DashboardItemDto
+            {
+                Id = item.Id,
+                Order = item.Order,
+                Type = item.Type,
+                Layout = MapToLayoutDto(item),
+                MobileLayout = MapToMobileLayoutDto(item),
+                Config = item.Config,
+                ResultType = item.ResultType,
+                Code = item.Code,
+                MatchedValuesOnly = item.MatchedValuesOnly,
+                Sources = []
             });
         }
 

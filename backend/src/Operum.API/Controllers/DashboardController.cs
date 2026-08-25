@@ -59,6 +59,12 @@ namespace Operum.API.Controllers
             return GetApiResponse(await dashboardService.AddDashboardItemFromAnalytic(dashboardId, dto));
         }
 
+        [HttpPost("{dashboardId}/items/quick-add")]
+        public async Task<IActionResult> AddQuickAddItem([FromRoute] string dashboardId, [FromBody] AddDashboardQuickAddItemDto dto)
+        {
+            return GetApiResponse(await dashboardService.AddQuickAddItem(dashboardId, dto));
+        }
+
         [HttpDelete("{dashboardId}/items/{itemId}")]
         public async Task<IActionResult> RemoveDashboardItem([FromRoute] string dashboardId, [FromRoute] string itemId)
         {

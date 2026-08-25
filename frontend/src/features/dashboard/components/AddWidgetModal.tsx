@@ -8,24 +8,27 @@ import {
     useMantineTheme,
 } from "@mantine/core";
 import { IconType } from "react-icons";
-import { FiChevronRight } from "react-icons/fi";
+import { FiChevronRight, FiPlusSquare } from "react-icons/fi";
 import { TbChartHistogram, TbLayoutGrid } from "react-icons/tb";
 import { useState } from "react";
 import {
     AddDashboardItemDto,
     AddDashboardItemFromAnalyticDto,
+    AddDashboardQuickAddItemDto,
 } from "../types/DashboardDto";
 import { CustomAnalyticForm } from "./CustomAnalyticForm";
 import { ExistingAnalyticForm } from "./ExistingAnalyticForm";
+import { QuickAddTrackerForm } from "./QuickAddTrackerForm";
 
 interface Props {
     color: string;
     onClose: () => void;
     onAdd: (dto: AddDashboardItemDto) => Promise<void>;
     onAddFromAnalytic: (dto: AddDashboardItemFromAnalyticDto) => Promise<void>;
+    onAddQuickAdd: (dto: AddDashboardQuickAddItemDto) => Promise<void>;
 }
 
-type WidgetKind = "existing" | "custom";
+type WidgetKind = "existing" | "custom" | "quickAdd";
 
 interface WidgetKindOption {
     kind: WidgetKind;
@@ -54,6 +57,13 @@ const WIDGET_KINDS: WidgetKindOption[] = [
         icon: TbChartHistogram,
         formTitle: "Build a chart",
     },
+    {
+        kind: "quickAdd",
+        title: "Quick add button",
+        description: "Add entries to a tracker straight from the board",
+        icon: FiPlusSquare,
+        formTitle: "Add a quick-add button",
+    },
 ];
 
 export function AddWidgetModal({
@@ -61,6 +71,7 @@ export function AddWidgetModal({
     onClose,
     onAdd,
     onAddFromAnalytic,
+    onAddQuickAdd,
 }: Props) {
     const theme = useMantineTheme();
     const [kind, setKind] = useState<WidgetKind | null>(null);
@@ -129,6 +140,13 @@ export function AddWidgetModal({
                 <CustomAnalyticForm
                     onBack={() => setKind(null)}
                     onAdd={submit(onAdd)}
+                />
+            )}
+
+            {kind === "quickAdd" && (
+                <QuickAddTrackerForm
+                    onBack={() => setKind(null)}
+                    onAdd={submit(onAddQuickAdd)}
                 />
             )}
         </Modal>

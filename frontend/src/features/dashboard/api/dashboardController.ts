@@ -3,6 +3,7 @@ import { ApiResponse } from "../../../shared/types/ApiResponse";
 import {
     AddDashboardItemDto,
     AddDashboardItemFromAnalyticDto,
+    AddDashboardQuickAddItemDto,
     CreateDashboardDto,
     DashboardDto,
     DashboardItemDto,
@@ -53,6 +54,13 @@ export const dashboardController = {
         dto: AddDashboardItemFromAnalyticDto
     ): Promise<ApiResponse<DashboardItemDto>> => {
         return await api.post(`/dashboard/${dashboardId}/items/from-analytic`, dto);
+    },
+
+    addQuickAddItem: async (
+        dashboardId: string,
+        dto: AddDashboardQuickAddItemDto
+    ): Promise<ApiResponse<DashboardItemDto>> => {
+        return await api.post(`/dashboard/${dashboardId}/items/quick-add`, dto);
     },
 
     removeDashboardItem: async (

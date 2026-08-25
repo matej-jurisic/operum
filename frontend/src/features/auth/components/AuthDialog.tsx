@@ -81,7 +81,7 @@ export default function AuthDialog(props: Props) {
     });
 
     const onSuccess = () => {
-        navigate("/trackers");
+        navigate("/dashboard");
     };
 
     const onLogin = async (values: LoginRequestDto) => {
