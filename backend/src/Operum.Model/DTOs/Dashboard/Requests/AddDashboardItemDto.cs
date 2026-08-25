@@ -45,6 +45,10 @@ namespace Operum.Model.DTOs.Dashboard.Requests
             RuleFor(x => x.TrackerId)
                 .NotEmpty().WithMessage(x => Messages.Required("tracker id"));
 
+            RuleFor(x => x.Label)
+                .MaximumLength(100).WithMessage("Label cannot exceed 100 characters.")
+                .When(x => !string.IsNullOrEmpty(x.Label));
+
             RuleForEach(x => x.AnalyticFields)
                 .SetValidator(new CreateAnalyticFieldDtoValidator());
         }

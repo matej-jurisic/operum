@@ -33,6 +33,7 @@ interface AnalyticCardProps {
     /** Stretch to fill the container instead of rendering at a fixed height. */
     fillHeight?: boolean;
     onRemove?: (analyticId: string) => void;
+    onRename?: (analyticId: string) => void;
     onEntryClick?: (entryId: string) => void;
 }
 
@@ -47,6 +48,7 @@ export function AnalyticCard({
     isConfiguring,
     fillHeight,
     onRemove,
+    onRename,
     onEntryClick,
 }: AnalyticCardProps) {
     switch (analytic.resultType) {
@@ -58,6 +60,7 @@ export function AnalyticCard({
                     isConfiguring={isConfiguring}
                     fillHeight={fillHeight}
                     onRemove={onRemove}
+                    onRename={onRename}
                     onEntryClick={onEntryClick}
                 />
             );
@@ -69,6 +72,7 @@ export function AnalyticCard({
                     isConfiguring={isConfiguring}
                     fillHeight={fillHeight}
                     onRemove={onRemove}
+                    onRename={onRename}
                 />
             );
         case AnalyticResultTypeEnum.ScatterChart:
@@ -79,6 +83,7 @@ export function AnalyticCard({
                     isConfiguring={isConfiguring}
                     fillHeight={fillHeight}
                     onRemove={onRemove}
+                    onRename={onRename}
                 />
             );
         case AnalyticResultTypeEnum.Calendar:
@@ -89,6 +94,7 @@ export function AnalyticCard({
                     isConfiguring={isConfiguring}
                     fillHeight={fillHeight}
                     onRemove={onRemove}
+                    onRename={onRename}
                     onEntryClick={onEntryClick}
                 />
             );
@@ -100,6 +106,7 @@ export function AnalyticCard({
                     isConfiguring={isConfiguring}
                     fillHeight={fillHeight}
                     onRemove={onRemove}
+                    onRename={onRename}
                 />
             );
         case AnalyticResultTypeEnum.BarChart:
@@ -110,6 +117,7 @@ export function AnalyticCard({
                     isConfiguring={isConfiguring}
                     fillHeight={fillHeight}
                     onRemove={onRemove}
+                    onRename={onRename}
                 />
             );
         case AnalyticResultTypeEnum.Composed:
@@ -120,6 +128,7 @@ export function AnalyticCard({
                     isConfiguring={isConfiguring}
                     fillHeight={fillHeight}
                     onRemove={onRemove}
+                    onRename={onRename}
                 />
             );
         default:

@@ -1,6 +1,6 @@
 import { ActionIcon, Box, Group, Paper, Stack, Text } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
-import { MdDelete, MdLink } from "react-icons/md";
+import { MdDelete, MdEdit, MdLink } from "react-icons/md";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 import { SingleValueAnalyticDto } from "../types/AnalyticDto";
 import {
@@ -16,6 +16,7 @@ interface Props {
     color: string | undefined;
     isConfiguring: boolean;
     onRemove?: (analyticId: string) => void;
+    onRename?: (analyticId: string) => void;
     onEntryClick?: (entryId: string) => void;
     /** Stretch to fill the height of the container instead of using a fixed one. */
     fillHeight?: boolean;
@@ -37,6 +38,7 @@ export function SingleValueCard({
     color,
     isConfiguring,
     onRemove,
+    onRename,
     onEntryClick,
     fillHeight,
 }: Props) {
@@ -98,6 +100,16 @@ export function SingleValueCard({
                                 onClick={() => onEntryClick(analytic.entryId!)}
                             >
                                 <MdLink size={18} />
+                            </ActionIcon>
+                        )}
+                        {isConfiguring && onRename && (
+                            <ActionIcon
+                                size="md"
+                                color={color}
+                                variant="outline"
+                                onClick={() => onRename(analytic.id)}
+                            >
+                                <MdEdit size={18} />
                             </ActionIcon>
                         )}
                         {isConfiguring && onRemove && (

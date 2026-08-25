@@ -3,6 +3,7 @@ import { ApiResponse } from "../../../shared/types/ApiResponse";
 import { AnalyticConfigDto } from "../types/AnalyticConfigDto";
 import { AnalyticDto } from "../types/AnalyticDto";
 import { CreateAnalyticDto } from "../types/requests/CreateAnalyticDto";
+import { UpdateAnalyticDto } from "../types/requests/UpdateAnalyticDto";
 
 export const analyticsController = {
     getAnalyticsConfig: async (): Promise<ApiResponse<AnalyticConfigDto>> => {
@@ -32,6 +33,16 @@ export const analyticsController = {
         addAnalytic: CreateAnalyticDto
     ): Promise<ApiResponse> => {
         return await api.post(`/trackers/${trackerId}/analytics`, addAnalytic);
+    },
+    updateAnalytic: async (
+        trackerId: string,
+        analyticId: string,
+        updateAnalytic: UpdateAnalyticDto
+    ): Promise<ApiResponse> => {
+        return await api.put(
+            `/trackers/${trackerId}/analytics/${analyticId}`,
+            updateAnalytic
+        );
     },
     removeAnalytic: async (
         trackerId: string,

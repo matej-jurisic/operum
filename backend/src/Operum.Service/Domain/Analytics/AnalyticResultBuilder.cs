@@ -33,7 +33,17 @@ namespace Operum.Service.Domain.Analytics
                     Name = request.Analytic.Code + " " + request.Analytic.ResultType,
                 });
 
-            return builder.Build(request);
+            var result = builder.Build(request);
+
+            // A builder always names its result from the definition (e.g. "Sum"), since it
+            // has no idea whether the analytic was ever given a name of its own. Applying
+            // the override here, once, keeps every builder ignorant of naming and covers
+            // both places an Analytic is calculated: the tracker's own analytics page and a
+            // dashboard widget copied from one.
+            if (result.IsSuccess && !string.IsNullOrWhiteSpace(request.Analytic.Name))
+                result.Data.Name = request.Analytic.Name;
+
+            return result;
         }
     }
 }

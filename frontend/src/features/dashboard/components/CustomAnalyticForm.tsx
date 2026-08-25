@@ -8,6 +8,7 @@ import {
     Select,
     Stack,
     Text,
+    TextInput,
 } from "@mantine/core";
 import { useEffect, useMemo, useState } from "react";
 import { MdAdd, MdDelete } from "react-icons/md";
@@ -78,6 +79,7 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
     const [config, setConfig] = useState<AnalyticConfigDto>();
     const [resultType, setResultType] = useState<string | null>(null);
     const [code, setCode] = useState<string | null>(null);
+    const [name, setName] = useState("");
     const [rows, setRows] = useState<TrackerRow[]>([makeEmptyRow()]);
     const [matchedValuesOnly, setMatchedValuesOnly] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -199,12 +201,18 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
             resultType: resultType!,
             code: code!,
             matchedValuesOnly: rows.length > 1 && matchedValuesOnly,
-            sources: rows.map((row) => ({
+            sources: rows.map((row, index) => ({
                 trackerId: row.trackerId!,
                 analyticFields: Object.entries(row.fieldMappings)
                     .filter(([, fieldId]) => !!fieldId)
                     .map(([purpose, fieldId]) => ({ purpose, fieldId })),
                 viewIds: row.viewIds,
+                // Only a single-source item has one calculated result to name; a combined
+                // chart names itself from its series instead, so the label is dropped there.
+                label:
+                    index === 0 && rows.length === 1 && name.trim()
+                        ? name.trim()
+                        : undefined,
             })),
         });
         setIsSubmitting(false);
@@ -239,6 +247,22 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
                 onChange={handleCodeChange}
                 disabled={!resultType}
             />
+
+            {rows.length === 1 ? (
+                <TextInput
+                    label="Name"
+                    description="Shown on the card instead of the calculation's default label"
+                    placeholder={selectedCode?.name}
+                    maxLength={100}
+                    value={name}
+                    onChange={(event) => setName(event.currentTarget.value)}
+                />
+            ) : (
+                <Text size="xs" c="dimmed">
+                    Combining trackers names the chart from its series instead of a name
+                    typed here.
+                </Text>
+            )}
 
             {rows.map((row, index) => {
                 const viewOptions = row.views.map((v) => ({

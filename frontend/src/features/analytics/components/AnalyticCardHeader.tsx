@@ -1,6 +1,6 @@
 import { ActionIcon, Group, Text } from "@mantine/core";
 import { ReactNode } from "react";
-import { MdDelete } from "react-icons/md";
+import { MdDelete, MdEdit } from "react-icons/md";
 import { CardLayout, CARD_HEADER_CLASS } from "./cardSizing";
 
 interface Props {
@@ -13,6 +13,8 @@ interface Props {
     isConfiguring: boolean;
     analyticId: string;
     onRemove?: (analyticId: string) => void;
+    /** Opens the rename dialog for the analytic this card was built from. */
+    onRename?: (analyticId: string) => void;
     /** Sits next to the title, for anything that qualifies it. */
     titleAdornment?: ReactNode;
     /** Sits with the remove button, for anything else the card can be acted on with. */
@@ -32,6 +34,7 @@ export function AnalyticCardHeader({
     isConfiguring,
     analyticId,
     onRemove,
+    onRename,
     titleAdornment,
     actions,
 }: Props) {
@@ -66,6 +69,16 @@ export function AnalyticCardHeader({
             </Group>
             <Group gap="xs" wrap="nowrap">
                 {actions}
+                {isConfiguring && onRename && (
+                    <ActionIcon
+                        size="md"
+                        color={color}
+                        variant="outline"
+                        onClick={() => onRename(analyticId)}
+                    >
+                        <MdEdit size={18} />
+                    </ActionIcon>
+                )}
                 {isConfiguring && onRemove && (
                     <ActionIcon
                         size="md"

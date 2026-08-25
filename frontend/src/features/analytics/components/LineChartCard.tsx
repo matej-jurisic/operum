@@ -17,6 +17,7 @@ interface LineChartCardProps {
     color: string | undefined;
     isConfiguring: boolean;
     onRemove?: (analyticId: string) => void;
+    onRename?: (analyticId: string) => void;
     /** Stretch to fill the height of the container instead of using a fixed one. */
     fillHeight?: boolean;
 }
@@ -26,6 +27,7 @@ export function LineChartCard({
     color,
     isConfiguring,
     onRemove,
+    onRename,
     fillHeight,
 }: LineChartCardProps) {
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
@@ -50,6 +52,7 @@ export function LineChartCard({
                     isConfiguring={isConfiguring}
                     analyticId={analytic.id}
                     onRemove={onRemove}
+                    onRename={onRename}
                 />
                 <LineChart
                     tooltipAnimationDuration={200}

@@ -627,6 +627,7 @@ namespace Operum.Service.Services.Trackers
                 TrackerId = tracker.Id,
                 Code = addAnalytic.Code,
                 ResultType = addAnalytic.Type,
+                Name = addAnalytic.Name?.Trim() ?? string.Empty,
             };
 
             var maxOrder = await db.Analytics
@@ -644,6 +645,31 @@ namespace Operum.Service.Services.Trackers
             }
 
             db.Analytics.Add(analytic);
+            await db.SaveChangesAsync();
+
+            return Result.Success();
+        }
+
+        public async Task<Result> UpdateAnalytic(string trackerId, string trackerAnalyticId, UpdateAnalyticDto updateAnalytic)
+        {
+            var user = currentUserService.GetCurrentUser();
+            var tracker = await db.Trackers
+                .Include(t => t.ApplicationUserTrackers)
+                .FirstOrDefaultAsync(t => t.Id == trackerId);
+            var isOwner = tracker?.OwnerId == user.Id;
+            var userTracker = tracker?.ApplicationUserTrackers.FirstOrDefault(ut => ut.ApplicationUserId == user.Id);
+            if (tracker == null || (!isOwner && userTracker?.CanEditSchema != true))
+            {
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("tracker"));
+            }
+
+            var analytic = await db.Analytics.FirstOrDefaultAsync(x => x.Id == trackerAnalyticId);
+            if (analytic == null || analytic.TrackerId != trackerId)
+            {
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("analytic"));
+            }
+
+            analytic.Name = updateAnalytic.Name?.Trim() ?? string.Empty;
             await db.SaveChangesAsync();
 
             return Result.Success();

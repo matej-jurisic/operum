@@ -3,6 +3,7 @@ import { useTracker } from "../../trackers/context/TrackerContext";
 import { analyticsController } from "../api/analyticsController";
 import { AnalyticDto } from "../types/AnalyticDto";
 import { CreateAnalyticDto } from "../types/requests/CreateAnalyticDto";
+import { UpdateAnalyticDto } from "../types/requests/UpdateAnalyticDto";
 
 type AnalyticsContextType = {
     analytics: AnalyticDto[];
@@ -12,6 +13,10 @@ type AnalyticsContextType = {
     markAnalyticsDirty: () => void;
     // API methods - internal use only
     _addAnalytic: (trackerAnalytic: CreateAnalyticDto) => Promise<void>;
+    _updateAnalytic: (
+        analyticId: string,
+        updateAnalytic: UpdateAnalyticDto
+    ) => Promise<void>;
     _removeAnalytic: (trackerAnalyticId: string) => Promise<void>;
 };
 
@@ -49,6 +54,14 @@ export const AnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({
         await refreshAnalytics();
     };
 
+    const _updateAnalytic = async (
+        analyticId: string,
+        update: UpdateAnalyticDto
+    ) => {
+        await analyticsController.updateAnalytic(tracker.id, analyticId, update);
+        await refreshAnalytics();
+    };
+
     const _removeAnalytic = async (analyticId: string) => {
         await analyticsController.removeAnalytic(tracker.id, analyticId);
         await refreshAnalytics();
@@ -63,6 +76,7 @@ export const AnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({
                 refreshAnalyticsIfDirty,
                 markAnalyticsDirty,
                 _addAnalytic,
+                _updateAnalytic,
                 _removeAnalytic,
             }}
         >

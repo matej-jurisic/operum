@@ -67,9 +67,10 @@ export function ExistingAnalyticForm({ onBack, onAdd }: Props) {
         setIsSubmitting(false);
     };
 
-    // Two analytics of a tracker can carry the same name, since a name is derived from the
-    // chart type and calculation rather than typed in. Numbering the repeats keeps the
-    // options tellable apart without inventing a name the tracker never showed.
+    // A name is optional when an analytic is built, so two of a tracker's analytics can
+    // still end up sharing one — either typed the same or both left to fall back to the
+    // same calculation label. Numbering the repeats keeps the options tellable apart
+    // without inventing a name the tracker never showed.
     const analyticOptions = analytics.map((analytic, index) => {
         const sameName = analytics.filter((a) => a.name === analytic.name);
         const position = sameName.indexOf(analytic) + 1;

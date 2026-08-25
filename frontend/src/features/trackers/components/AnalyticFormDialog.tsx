@@ -1,4 +1,4 @@
-import { Button, Modal, Select, Stack, Text } from "@mantine/core";
+import { Button, Modal, Select, Stack, Text, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useMemo } from "react";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
@@ -19,6 +19,7 @@ interface Props {
 }
 
 interface FormValues {
+    name: string;
     fieldMappings: Record<string, string>;
 }
 
@@ -33,9 +34,14 @@ export default function AnalyticFormDialog({
 
     const form = useForm<FormValues>({
         initialValues: {
+            name: "",
             fieldMappings: {},
         },
         validate: {
+            name: (value) =>
+                value.length > 100
+                    ? "Name cannot exceed 100 characters"
+                    : null,
             fieldMappings: (value) => {
                 const mappedCount = Object.keys(value).filter(
                     (k) => value[k]
@@ -74,6 +80,7 @@ export default function AnalyticFormDialog({
         const dto: CreateAnalyticDto = {
             code: code.code,
             type: resultType.name,
+            name: values.name.trim() || undefined,
             analyticFields,
         };
 
@@ -99,6 +106,14 @@ export default function AnalyticFormDialog({
                             {code.name}
                         </Text>
                     </Text>
+
+                    <TextInput
+                        label="Name"
+                        description="Shown on the card instead of the calculation's default label"
+                        placeholder={code.name}
+                        maxLength={100}
+                        {...form.getInputProps("name")}
+                    />
 
                     {code.purposes.map((purpose) => (
                         <Select

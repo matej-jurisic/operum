@@ -1,5 +1,6 @@
 import { useAnalytics } from "../../features/analytics/context/AnalyticsContext";
 import { CreateAnalyticDto } from "../../features/analytics/types/requests/CreateAnalyticDto";
+import { UpdateAnalyticDto } from "../../features/analytics/types/requests/UpdateAnalyticDto";
 import { useEntries } from "../../features/entries/context/EntriesContext";
 import { EntrySelection } from "../../features/entries/types/EntrySelection";
 import { useFields } from "../../features/fields/context/FieldsContext";
@@ -24,7 +25,7 @@ export const useTrackerOperations = () => {
         _recalculateEntries,
     } = useEntries();
 
-    const { markAnalyticsDirty, _addAnalytic, _removeAnalytic } =
+    const { markAnalyticsDirty, _addAnalytic, _updateAnalytic, _removeAnalytic } =
         useAnalytics();
 
     const { _createView, _updateView, _deleteView, _updateViewOrder } = useViews();
@@ -101,6 +102,13 @@ export const useTrackerOperations = () => {
         await _addAnalytic(trackerAnalytic);
     };
 
+    const updateAnalytic = async (
+        trackerAnalyticId: string,
+        update: UpdateAnalyticDto
+    ) => {
+        await _updateAnalytic(trackerAnalyticId, update);
+    };
+
     const removeAnalytic = async (trackerAnalyticId: string) => {
         await _removeAnalytic(trackerAnalyticId);
     };
@@ -155,6 +163,7 @@ export const useTrackerOperations = () => {
 
         // Analytic operations
         addAnalytic,
+        updateAnalytic,
         removeAnalytic,
 
         // View operations

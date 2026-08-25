@@ -15,6 +15,7 @@ import { CiSettings } from "react-icons/ci";
 import { MdAdd } from "react-icons/md";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import EntryDetailsDialog from "../../entries/components/EntryDetailsDialog";
+import RenameAnalyticDialog from "../../trackers/components/RenameAnalyticDialog";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { analyticsController } from "../api/analyticsController";
 import { useAnalytics } from "../context/AnalyticsContext";
@@ -32,6 +33,7 @@ export default function Analytics() {
     >();
     const [isConfiguring, setIsConfiguring] = useState(false);
     const [selectedEntryId, setSelectedEntryId] = useState<string>();
+    const [renamingAnalyticId, setRenamingAnalyticId] = useState<string>();
 
     useEffect(() => {
         if (!analyticsDirty) return;
@@ -52,6 +54,7 @@ export default function Analytics() {
     );
 
     const hasAnalytics = analytics.length > 0;
+    const renamingAnalytic = analytics.find((a) => a.id === renamingAnalyticId);
 
     const showEmptyState = !isLoadingData && !hasAnalytics && !isConfiguring;
 
@@ -115,6 +118,7 @@ export default function Analytics() {
                                     isConfiguring={isConfiguring}
                                     onReorder={handleReorder}
                                     onRemove={removeAnalytic}
+                                    onRename={setRenamingAnalyticId}
                                     onEntryClick={setSelectedEntryId}
                                 />
                             )}
@@ -134,6 +138,13 @@ export default function Analytics() {
             {openDialogType === "configureAnalytics" && (
                 <AnalyticSelectionDialog
                     onClose={() => setOpenDialogType(undefined)}
+                />
+            )}
+
+            {renamingAnalytic && (
+                <RenameAnalyticDialog
+                    analytic={renamingAnalytic}
+                    onClose={() => setRenamingAnalyticId(undefined)}
                 />
             )}
         </>
