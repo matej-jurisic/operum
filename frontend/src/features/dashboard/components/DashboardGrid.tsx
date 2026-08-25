@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { MdDragIndicator } from "react-icons/md";
 import {
     getBreakpointFromWidth,
     Layout,
@@ -11,6 +12,8 @@ import "react-grid-layout/css/styles.css";
 import {
     DashboardLayoutItemDto,
     DashboardWidgetDto,
+    LayoutVariant,
+    LayoutVariants,
 } from "../types/DashboardDto";
 import "./DashboardGrid.css";
 import { DashboardWidget } from "./DashboardWidget";
@@ -18,40 +21,87 @@ import { DashboardWidget } from "./DashboardWidget";
 /** Kept in step with DashboardGrid.Columns on the backend: a stored x/w is in these. */
 export const DASHBOARD_GRID_COLUMNS = 12;
 
+/** Kept in step with DashboardGrid.MobileColumns. */
+export const DASHBOARD_MOBILE_GRID_COLUMNS = 4;
+
 const ROW_HEIGHT = 40;
-const MARGIN: [number, number] = [16, 16];
 const MIN_WIDTH = 2;
 const MIN_HEIGHT = 2;
 
-// A placement is stored once, in full-width columns. Narrower screens fold it down to
-// fewer columns for reading, which is why they are not allowed to save (see canArrange):
-// a board rearranged on a phone would otherwise overwrite the desktop one.
-const BREAKPOINTS = { lg: 1200, md: 900, sm: 600, xs: 0 };
-const COLS = {
-    lg: DASHBOARD_GRID_COLUMNS,
-    md: DASHBOARD_GRID_COLUMNS,
-    sm: 6,
-    xs: 1,
+// Grabbed by the drag handle below, and by react-grid-layout to tell that handle apart
+// from the rest of the card.
+const DRAG_HANDLE_CLASS = "dashboard-drag-handle";
+
+// Where the wide grid gives way to the narrow one. A twelfth of anything below this is
+// about eighty pixels, which is narrower than the axis labels of the chart inside it.
+//
+// The breakpoint names are the variants an arrangement is stored under, so the breakpoint
+// the grid reports is also the grid that gets saved: a placement can never be written back
+// to the grid it was not made on.
+const BREAKPOINTS: Record<LayoutVariant, number> = {
+    [LayoutVariants.Desktop]: 900,
+    [LayoutVariants.Mobile]: 0,
 };
 
-// Where a widget goes when it has no placement yet, i.e. one added before the board had a
-// grid and never arranged since. Two to a row, in the order the server returned them.
-const FALLBACK_WIDTH = 6;
+const COLS: Record<LayoutVariant, number> = {
+    [LayoutVariants.Desktop]: DASHBOARD_GRID_COLUMNS,
+    [LayoutVariants.Mobile]: DASHBOARD_MOBILE_GRID_COLUMNS,
+};
+
+/** Everything else the two grids do differently. */
+interface VariantConfig {
+    /** Gap between cells. A phone cannot spare 16px of it beside every widget. */
+    margin: [number, number];
+    /** How wide a widget with no placement yet is, i.e. one added before the board had a
+        grid and never arranged since. The rest of the row is filled with the next ones. */
+    fallbackWidth: number;
+    /**
+     * A selector for the only part of a widget a drag may start from, or nothing to drag
+     * it from anywhere.
+     *
+     * A touch that starts a drag is swallowed by it, so on the narrow grid -- where a card
+     * spans the full width -- a card draggable everywhere would leave the board with
+     * nothing to scroll it by while it is being arranged. A mouse has no such conflict,
+     * and dragging the card itself is the nicer gesture, so the wide grid keeps it.
+     */
+    dragHandle?: string;
+}
+
+const VARIANTS: Record<LayoutVariant, VariantConfig> = {
+    [LayoutVariants.Desktop]: {
+        margin: [16, 16],
+        fallbackWidth: 6,
+    },
+    [LayoutVariants.Mobile]: {
+        margin: [8, 8],
+        fallbackWidth: DASHBOARD_MOBILE_GRID_COLUMNS,
+        dragHandle: `.${DRAG_HANDLE_CLASS}`,
+    },
+};
+
 const FALLBACK_HEIGHT = 6;
 
 const toLayoutItem = (
     widget: DashboardWidgetDto,
     index: number,
+    variant: LayoutVariant,
 ): LayoutItem => {
-    const placed = widget.layout && widget.layout.w > 0 && widget.layout.h > 0;
+    const placement =
+        variant === LayoutVariants.Mobile ? widget.mobileLayout : widget.layout;
+    const placed = placement && placement.w > 0 && placement.h > 0;
+
+    const { fallbackWidth } = VARIANTS[variant];
+    const perRow = Math.max(1, Math.floor(COLS[variant] / fallbackWidth));
 
     return {
         i: widget.id,
-        x: placed ? widget.layout.x : (index % 2) * FALLBACK_WIDTH,
-        y: placed ? widget.layout.y : Math.floor(index / 2) * FALLBACK_HEIGHT,
-        w: placed ? widget.layout.w : FALLBACK_WIDTH,
-        h: placed ? widget.layout.h : FALLBACK_HEIGHT,
-        minW: MIN_WIDTH,
+        x: placed ? placement.x : (index % perRow) * fallbackWidth,
+        y: placed ? placement.y : Math.floor(index / perRow) * FALLBACK_HEIGHT,
+        w: placed ? placement.w : fallbackWidth,
+        h: placed ? placement.h : FALLBACK_HEIGHT,
+        // On the narrow grid the smallest a widget can be squeezed to is half the screen
+        // rather than a sixth of it. Mirrors DashboardGrid.MinWidthFor on the backend.
+        minW: Math.min(MIN_WIDTH, COLS[variant]),
         minH: MIN_HEIGHT,
     };
 };
@@ -69,7 +119,10 @@ interface Props {
     widgets: DashboardWidgetDto[];
     color: string | undefined;
     isConfiguring: boolean;
-    onLayoutSave: (layout: DashboardLayoutItemDto[]) => void;
+    onLayoutSave: (
+        variant: LayoutVariant,
+        layout: DashboardLayoutItemDto[],
+    ) => void;
     onRemove?: (itemId: string) => void;
     onEntryClick?: (entryId: string) => void;
 }
@@ -88,37 +141,37 @@ export function DashboardGrid({
         measureBeforeMount: true,
     });
 
-    const layout = useMemo(() => widgets.map(toLayoutItem), [widgets]);
+    // Which grid this screen is wide enough for, and so which arrangement is being both
+    // rendered and written back.
+    const variant = getBreakpointFromWidth(BREAKPOINTS, width);
+    const config = VARIANTS[variant];
 
-    // Only the breakpoints that render the full set of columns show the layout as it is
-    // stored, so only those may write it back.
-    const breakpoint = getBreakpointFromWidth(BREAKPOINTS, width);
-    const layouts = useMemo(
-        () => ({ [breakpoint]: layout }),
-        [breakpoint, layout],
+    const layout = useMemo(
+        () =>
+            widgets.map((widget, index) => toLayoutItem(widget, index, variant)),
+        [widgets, variant],
     );
-    const canArrange =
-        isConfiguring && COLS[breakpoint] === DASHBOARD_GRID_COLUMNS;
+    const layouts = useMemo(() => ({ [variant]: layout }), [variant, layout]);
 
     // Saving on drag/resize stop rather than on every layout change: the change callback
-    // also fires when the grid first lays itself out or folds to another breakpoint, which
+    // also fires when the grid first lays itself out or folds to the other grid, which
     // would write back a placement the user never made.
     const handleArranged = (newLayout: Layout) => {
-        if (!canArrange) return;
-        onLayoutSave(toLayoutDto(newLayout));
+        if (!isConfiguring) return;
+        onLayoutSave(variant, toLayoutDto(newLayout));
     };
 
     return (
         <div ref={containerRef}>
             {mounted && (
                 <Responsive
-                    className={`dashboard-grid${canArrange ? " is-editing" : ""}`}
+                    className={`dashboard-grid${isConfiguring ? " is-editing" : ""}`}
                     width={width}
                     layouts={layouts}
                     breakpoints={BREAKPOINTS}
                     cols={COLS}
                     rowHeight={ROW_HEIGHT}
-                    margin={MARGIN}
+                    margin={config.margin}
                     containerPadding={[0, 0]}
                     // Widgets stay exactly where they are dropped: no pulling up into the
                     // gap above them, so a board can be laid out with deliberate empty
@@ -126,21 +179,35 @@ export function DashboardGrid({
                     // away afterwards.
                     compactor={verticalCompactor}
                     dragConfig={{
-                        enabled: canArrange,
+                        enabled: isConfiguring,
                         // Keep the dragged widget inside the board. Without this it
                         // follows the pointer past the right edge and the page picks up
                         // a horizontal scrollbar mid-drag.
                         bounded: true,
+                        handle: config.dragHandle,
                         // Everything a user can press inside a card stays pressable while
                         // the board is being arranged.
                         cancel: "button, a, input, .mantine-ActionIcon-root",
                     }}
-                    resizeConfig={{ enabled: canArrange }}
+                    resizeConfig={{ enabled: isConfiguring }}
                     onDragStop={handleArranged}
                     onResizeStop={handleArranged}
                 >
                     {widgets.map((widget) => (
                         <div key={widget.id} className="dashboard-widget">
+                            {/* Not a button: react-draggable ignores anything matching
+                                the cancel selector above, which every real control on a
+                                card is meant to match. Dragging is a pointer gesture with
+                                no keyboard equivalent here, so nothing is lost by hiding
+                                it from assistive tech. */}
+                            {isConfiguring && config.dragHandle && (
+                                <div
+                                    className={DRAG_HANDLE_CLASS}
+                                    aria-hidden="true"
+                                >
+                                    <MdDragIndicator size={18} />
+                                </div>
+                            )}
                             <DashboardWidget
                                 widget={widget}
                                 color={color}

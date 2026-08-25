@@ -22,12 +22,22 @@ namespace Operum.Model.Models
         // definition. Null for analytic widgets.
         public string? Config { get; set; }
 
-        // Where the item sits on the dashboard grid, in DashboardGrid.Columns columns.
+        // Where the item sits on the wide grid, in DashboardGrid.Columns columns.
         // A zero width means the item predates layouts and the client places it itself.
         public int X { get; set; }
         public int Y { get; set; }
         public int W { get; set; }
         public int H { get; set; }
+
+        // The same item's placement on the narrow grid a phone renders, in
+        // DashboardGrid.MobileColumns columns. Kept apart from the wide placement above so
+        // arranging the board on a phone cannot overwrite the desktop arrangement, and vice
+        // versa. Filled in whenever an item is created, so a zero width here means the same
+        // thing it does above.
+        public int MobileX { get; set; }
+        public int MobileY { get; set; }
+        public int MobileW { get; set; }
+        public int MobileH { get; set; }
 
         // The analytic definition every source of this item is calculated with. It lives
         // on the item rather than on each source so a multi-tracker chart can only ever

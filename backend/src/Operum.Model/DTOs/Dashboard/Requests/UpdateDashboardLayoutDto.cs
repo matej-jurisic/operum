@@ -18,6 +18,11 @@ namespace Operum.Model.DTOs.Dashboard.Requests
     // after a drag or a resize, and ids that are not on the dashboard are ignored.
     public class UpdateDashboardLayoutDto
     {
+        // Which of the board's two grids these placements were made on. Defaults to the
+        // wide one so a client that predates the narrow grid keeps saving what it always
+        // did rather than silently writing over the phone arrangement.
+        public string Variant { get; set; } = DashboardLayoutVariants.Desktop;
+
         public List<DashboardLayoutItemDto> Items { get; set; } = [];
     }
 
@@ -42,6 +47,12 @@ namespace Operum.Model.DTOs.Dashboard.Requests
     {
         public UpdateDashboardLayoutDtoValidator()
         {
+            // Unlike a placement, an unknown variant cannot be clamped into something
+            // sensible: there is no way to tell which grid the numbers below belong to, so
+            // the whole call is refused rather than guessed at.
+            RuleFor(x => x.Variant)
+                .Must(DashboardLayoutVariants.IsValid).WithMessage(x => Messages.Invalid("layout variant"));
+
             RuleForEach(x => x.Items).SetValidator(new DashboardLayoutItemDtoValidator());
         }
     }

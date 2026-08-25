@@ -259,6 +259,12 @@ namespace Operum.Service.Services.Dashboards
             var (width, height) = DashboardGrid.DefaultSizeFor(dto.ResultType);
             var nextRow = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.Y + i.H) : 0;
 
+            // Both grids are placed at once, so neither arrangement has a hole in it the
+            // first time the board is opened on the other kind of screen. On a phone there
+            // is no room to put anything beside anything else, so a new widget takes the
+            // full width of the narrow grid and keeps the height its chart type wants.
+            var nextMobileRow = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.MobileY + i.MobileH) : 0;
+
             var item = new DashboardItem
             {
                 DashboardId = dashboardId,
@@ -268,6 +274,10 @@ namespace Operum.Service.Services.Dashboards
                 Y = nextRow,
                 W = width,
                 H = height,
+                MobileX = 0,
+                MobileY = nextMobileRow,
+                MobileW = DashboardGrid.MobileColumns,
+                MobileH = height,
                 ResultType = dto.ResultType,
                 Code = dto.Code,
                 MatchedValuesOnly = dto.MatchedValuesOnly,
@@ -291,6 +301,7 @@ namespace Operum.Service.Services.Dashboards
                 Order = item.Order,
                 Type = item.Type,
                 Layout = MapToLayoutDto(item),
+                MobileLayout = MapToMobileLayoutDto(item),
                 Config = item.Config,
                 ResultType = item.ResultType,
                 Code = item.Code,
@@ -375,15 +386,23 @@ namespace Operum.Service.Services.Dashboards
                 var item = dashboard.Items.FirstOrDefault(x => x.Id == placement.ItemId);
                 if (item == null) continue;
 
-                ApplyPlacement(item, placement.X, placement.Y, placement.W, placement.H);
+                ApplyPlacement(item, dto.Variant, placement.X, placement.Y, placement.W, placement.H);
             }
 
             // Order no longer decides where an item sits, but it still decides which widget
             // a client without the grid reads first, so keep it as the board's reading
             // order instead of letting it drift away from what the user arranged.
-            var order = 0;
-            foreach (var item in dashboard.Items.OrderBy(i => i.Y).ThenBy(i => i.X))
-                item.Order = order++;
+            //
+            // Only the wide grid gets a say in it. The two arrangements can disagree about
+            // what comes first, and letting whichever screen was used last rewrite the order
+            // would make it flip back and forth; the desktop board is the one that has the
+            // room to express an order in the first place.
+            if (dto.Variant == DashboardLayoutVariants.Desktop)
+            {
+                var order = 0;
+                foreach (var item in dashboard.Items.OrderBy(i => i.Y).ThenBy(i => i.X))
+                    item.Order = order++;
+            }
 
             await db.SaveChangesAsync();
             return Result.Success();
@@ -392,11 +411,24 @@ namespace Operum.Service.Services.Dashboards
         // Clamps a placement to the grid the client is told to render. Out-of-bounds values
         // are pulled back in rather than rejected: refusing would throw away the rest of
         // the board's arrangement over one widget the client placed badly.
-        private static void ApplyPlacement(DashboardItem item, int x, int y, int w, int h)
+        private static void ApplyPlacement(DashboardItem item, string variant, int x, int y, int w, int h)
         {
-            item.W = Math.Clamp(w, DashboardGrid.MinWidth, DashboardGrid.Columns);
-            item.H = Math.Clamp(h, DashboardGrid.MinHeight, DashboardGrid.MaxHeight);
-            item.X = Math.Clamp(x, 0, DashboardGrid.Columns - item.W);
+            var columns = DashboardGrid.ColumnsFor(variant);
+            var width = Math.Clamp(w, DashboardGrid.MinWidthFor(variant), columns);
+            var height = Math.Clamp(h, DashboardGrid.MinHeight, DashboardGrid.MaxHeight);
+
+            if (variant == DashboardLayoutVariants.Mobile)
+            {
+                item.MobileW = width;
+                item.MobileH = height;
+                item.MobileX = Math.Clamp(x, 0, columns - width);
+                item.MobileY = Math.Max(y, 0);
+                return;
+            }
+
+            item.W = width;
+            item.H = height;
+            item.X = Math.Clamp(x, 0, columns - width);
             item.Y = Math.Max(y, 0);
         }
 
@@ -553,6 +585,7 @@ namespace Operum.Service.Services.Dashboards
                 Order = i.Order,
                 Type = i.Type,
                 Layout = MapToLayoutDto(i),
+                MobileLayout = MapToMobileLayoutDto(i),
                 Config = i.Config,
                 ResultType = i.ResultType,
                 Code = i.Code,
@@ -569,11 +602,20 @@ namespace Operum.Service.Services.Dashboards
             H = i.H
         };
 
+        private static DashboardWidgetLayoutDto MapToMobileLayoutDto(DashboardItem i) => new()
+        {
+            X = i.MobileX,
+            Y = i.MobileY,
+            W = i.MobileW,
+            H = i.MobileH
+        };
+
         private static DashboardWidgetDto MapToWidgetDto(DashboardItem item, AnalyticDto? analytic) => new()
         {
             Id = item.Id,
             Type = item.Type,
             Layout = MapToLayoutDto(item),
+            MobileLayout = MapToMobileLayoutDto(item),
             Config = item.Config,
             Analytic = analytic
         };

@@ -5,6 +5,9 @@
 .dashboard-grid .dashboard-widget {
     height: 100%;
     overflow: hidden;
+    /* Anchors the drag handle below, which floats over the card rather than taking a
+       strip of its height. */
+    position: relative;
 }
 
 /* A cell has a fixed pixel height, so the card inside it takes all of it and any chart
@@ -37,4 +40,55 @@
     border-bottom-color: var(--mantine-color-dimmed);
     width: 8px;
     height: 8px;
+}
+
+/* The grip the narrow grid drags a widget by, over the top left of the card. It mirrors
+   the remove button the card puts at its top right, so arrange mode reads as one row of
+   controls across the top of every widget. */
+.dashboard-drag-handle {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--mantine-radius-sm);
+    color: var(--mantine-color-dimmed);
+    background: var(--mantine-color-body);
+    border: 1px solid var(--mantine-color-default-border);
+    cursor: grab;
+    /* The one place on the board where a touch must move the widget rather than scroll
+       the page. Everywhere else the browser is left to scroll as it always did. */
+    touch-action: none;
+}
+
+.dashboard-drag-handle:active {
+    cursor: grabbing;
+}
+
+@media (pointer: coarse) {
+    /* react-grid-layout only reveals the resize corner on hover, which a touchscreen
+       never reports: without this the handle is there but invisible, and the board looks
+       like it cannot be resized at all. */
+    .dashboard-grid.is-editing .react-grid-item > .react-resizable-handle {
+        opacity: 1;
+    }
+
+    /* A 20px corner is under half a fingertip. The chevron grows with the target so the
+       larger hit area is visible rather than only felt. */
+    .dashboard-grid .react-grid-item > .react-resizable-handle {
+        width: 32px;
+        height: 32px;
+        touch-action: none;
+    }
+
+    .dashboard-grid .react-grid-item > .react-resizable-handle::after {
+        right: 6px;
+        bottom: 6px;
+        width: 10px;
+        height: 10px;
+    }
 }

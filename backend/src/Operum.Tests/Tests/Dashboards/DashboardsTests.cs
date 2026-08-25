@@ -99,6 +99,8 @@ namespace Operum.Tests.Tests.Dashboards
 
         private static JsonElement Layout(JsonElement widget) => widget.GetProperty("layout");
 
+        private static JsonElement MobileLayout(JsonElement widget) => widget.GetProperty("mobileLayout");
+
         // Adds the "Raw Values" line chart of a tracker and hands back the item's id.
         private static async Task<string> AddLineItem(HttpClient client, string dashboardId, CapableTracker tracker)
         {
@@ -643,6 +645,170 @@ namespace Operum.Tests.Tests.Dashboards
             var widgets = await Widgets(client, dashboardId);
             Assert.Equal(1, widgets.GetArrayLength());
             Assert.Equal(4, Layout(widgets[0]).GetProperty("w").GetInt32());
+        }
+
+        // A board is arranged twice, so a widget added on one screen still has to be
+        // somewhere sensible on the other. The narrow grid has no room beside anything, so
+        // a new widget takes the full width of it and stacks under what is already there.
+        [Fact]
+        public async Task AddDashboardItem_PlacesTheWidgetOnBothGrids()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("bothgrids");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+
+            await AddLineItem(client, dashboardId, tracker);
+            await AddLineItem(client, dashboardId, tracker);
+
+            var widgets = await Widgets(client, dashboardId);
+            var first = MobileLayout(widgets[0]);
+            var second = MobileLayout(widgets[1]);
+
+            Assert.Equal(0, first.GetProperty("x").GetInt32());
+            Assert.Equal(0, first.GetProperty("y").GetInt32());
+            Assert.Equal(DashboardGrid.MobileColumns, first.GetProperty("w").GetInt32());
+            Assert.True(first.GetProperty("h").GetInt32() > 0);
+
+            Assert.Equal(0, second.GetProperty("x").GetInt32());
+            Assert.Equal(DashboardGrid.MobileColumns, second.GetProperty("w").GetInt32());
+            Assert.Equal(
+                first.GetProperty("y").GetInt32() + first.GetProperty("h").GetInt32(),
+                second.GetProperty("y").GetInt32());
+        }
+
+        // The whole point of storing two arrangements: dragging a widget on a phone must
+        // not move it on the desktop board, and arranging the desktop board afterwards must
+        // not undo what was done on the phone.
+        [Fact]
+        public async Task UpdateDashboardLayout_WritesOnlyTheGridItWasMadeOn()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("gridsapart");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+
+            var desktopResponse = await client.PutAsJsonAsync($"dashboard/{dashboardId}/layout", new UpdateDashboardLayoutDto
+            {
+                Variant = DashboardLayoutVariants.Desktop,
+                Items = [new DashboardLayoutItemDto { ItemId = itemId, X = 4, Y = 2, W = 5, H = 7 }]
+            });
+            Assert.Equal(HttpStatusCode.OK, desktopResponse.StatusCode);
+
+            var mobileResponse = await client.PutAsJsonAsync($"dashboard/{dashboardId}/layout", new UpdateDashboardLayoutDto
+            {
+                Variant = DashboardLayoutVariants.Mobile,
+                Items = [new DashboardLayoutItemDto { ItemId = itemId, X = 0, Y = 3, W = 4, H = 9 }]
+            });
+            Assert.Equal(HttpStatusCode.OK, mobileResponse.StatusCode);
+
+            var widget = (await Widgets(client, dashboardId))[0];
+
+            var desktop = Layout(widget);
+            Assert.Equal(4, desktop.GetProperty("x").GetInt32());
+            Assert.Equal(2, desktop.GetProperty("y").GetInt32());
+            Assert.Equal(5, desktop.GetProperty("w").GetInt32());
+            Assert.Equal(7, desktop.GetProperty("h").GetInt32());
+
+            var mobile = MobileLayout(widget);
+            Assert.Equal(0, mobile.GetProperty("x").GetInt32());
+            Assert.Equal(3, mobile.GetProperty("y").GetInt32());
+            Assert.Equal(4, mobile.GetProperty("w").GetInt32());
+            Assert.Equal(9, mobile.GetProperty("h").GetInt32());
+
+            // Arranging the desktop board again leaves the phone's arrangement where it is.
+            var reDesktopResponse = await client.PutAsJsonAsync($"dashboard/{dashboardId}/layout", new UpdateDashboardLayoutDto
+            {
+                Variant = DashboardLayoutVariants.Desktop,
+                Items = [new DashboardLayoutItemDto { ItemId = itemId, X = 0, Y = 0, W = 3, H = 3 }]
+            });
+            Assert.Equal(HttpStatusCode.OK, reDesktopResponse.StatusCode);
+
+            var afterMobile = MobileLayout((await Widgets(client, dashboardId))[0]);
+            Assert.Equal(3, afterMobile.GetProperty("y").GetInt32());
+            Assert.Equal(4, afterMobile.GetProperty("w").GetInt32());
+            Assert.Equal(9, afterMobile.GetProperty("h").GetInt32());
+        }
+
+        // A placement is clamped to the grid it was made on, not to the widest one there is,
+        // or a phone could push a widget three columns off its own right edge.
+        [Fact]
+        public async Task UpdateDashboardLayout_MobilePlacementOutsideTheNarrowGrid_IsClamped()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("mobileclamp");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+
+            var layoutResponse = await client.PutAsJsonAsync($"dashboard/{dashboardId}/layout", new UpdateDashboardLayoutDto
+            {
+                Variant = DashboardLayoutVariants.Mobile,
+                Items = [new DashboardLayoutItemDto { ItemId = itemId, X = DashboardGrid.MobileColumns - 1, Y = 0, W = DashboardGrid.Columns, H = 4 }]
+            });
+            Assert.Equal(HttpStatusCode.OK, layoutResponse.StatusCode);
+
+            var mobile = MobileLayout((await Widgets(client, dashboardId))[0]);
+            Assert.Equal(DashboardGrid.MobileColumns, mobile.GetProperty("w").GetInt32());
+            Assert.Equal(0, mobile.GetProperty("x").GetInt32());
+        }
+
+        // Unlike a placement, an unknown variant cannot be clamped into something sensible:
+        // there is no telling which grid the numbers beside it belong to.
+        [Fact]
+        public async Task UpdateDashboardLayout_UnknownVariant_ReturnsBadRequest()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("unknownvariant");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+
+            var layoutResponse = await client.PutAsJsonAsync($"dashboard/{dashboardId}/layout", new UpdateDashboardLayoutDto
+            {
+                Variant = "watch",
+                Items = [new DashboardLayoutItemDto { ItemId = itemId, X = 0, Y = 0, W = 4, H = 4 }]
+            });
+
+            Assert.Equal(HttpStatusCode.BadRequest, layoutResponse.StatusCode);
+        }
+
+        // The two arrangements can disagree about what comes first, so only the wide grid
+        // gets a say in the board's reading order. Otherwise it would flip back and forth
+        // with whichever screen was used last.
+        [Fact]
+        public async Task UpdateDashboardLayout_MobileVariant_DoesNotRewriteTheReadingOrder()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("mobileorder");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var firstId = await AddLineItem(client, dashboardId, tracker);
+            var secondId = await AddLineItem(client, dashboardId, tracker);
+
+            // Stack them the other way round on the phone: second on top, first below.
+            var layoutResponse = await client.PutAsJsonAsync($"dashboard/{dashboardId}/layout", new UpdateDashboardLayoutDto
+            {
+                Variant = DashboardLayoutVariants.Mobile,
+                Items =
+                [
+                    new DashboardLayoutItemDto { ItemId = secondId, X = 0, Y = 0, W = 4, H = 4 },
+                    new DashboardLayoutItemDto { ItemId = firstId, X = 0, Y = 4, W = 4, H = 4 }
+                ]
+            });
+            Assert.Equal(HttpStatusCode.OK, layoutResponse.StatusCode);
+
+            var items = (await Data(await client.GetAsync($"dashboard/{dashboardId}"))).GetProperty("items");
+            var orderById = items.EnumerateArray()
+                .ToDictionary(i => i.GetProperty("id").GetString()!, i => i.GetProperty("order").GetInt32());
+
+            Assert.True(orderById[firstId] < orderById[secondId]);
         }
 
         [Fact]

@@ -6,13 +6,25 @@ export const WidgetTypes = {
     Analytic: "analytic",
 } as const;
 
-/** Placement on the dashboard grid, in DASHBOARD_GRID_COLUMNS columns. */
+/** Placement on one of the dashboard's grids, in that grid's columns. */
 export interface WidgetLayoutDto {
     x: number;
     y: number;
     w: number;
     h: number;
 }
+
+/**
+ * Which of a board's two grids an arrangement belongs to. A placement means nothing
+ * without the column count it was made in, so the wide grid and the narrow one a phone
+ * renders are stored — and saved — separately.
+ */
+export const LayoutVariants = {
+    Desktop: "desktop",
+    Mobile: "mobile",
+} as const;
+
+export type LayoutVariant = (typeof LayoutVariants)[keyof typeof LayoutVariants];
 
 /**
  * One item of a dashboard as it is rendered: where it sits on the grid, what kind of
@@ -22,7 +34,10 @@ export interface WidgetLayoutDto {
 export interface DashboardWidgetDto {
     id: string;
     type: string;
+    /** Placement on the wide grid, in DASHBOARD_GRID_COLUMNS columns. */
     layout: WidgetLayoutDto;
+    /** Placement on the narrow grid, in DASHBOARD_MOBILE_GRID_COLUMNS columns. */
+    mobileLayout: WidgetLayoutDto;
     config?: string;
     analytic?: AnalyticDto;
 }
@@ -32,6 +47,8 @@ export interface DashboardLayoutItemDto extends WidgetLayoutDto {
 }
 
 export interface UpdateDashboardLayoutDto {
+    /** Which grid these placements were made on. Only that grid is written. */
+    variant: LayoutVariant;
     items: DashboardLayoutItemDto[];
 }
 
@@ -66,6 +83,7 @@ export interface DashboardItemDto {
     order: number;
     type: string;
     layout: WidgetLayoutDto;
+    mobileLayout: WidgetLayoutDto;
     config?: string;
     /** The single analytic definition every source below is calculated with. */
     resultType: string;

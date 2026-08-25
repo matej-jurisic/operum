@@ -10,6 +10,8 @@ import {
     AddDashboardItemFromAnalyticDto,
     DashboardLayoutItemDto,
     DashboardWidgetDto,
+    LayoutVariant,
+    LayoutVariants,
 } from "../types/DashboardDto";
 
 type DashboardContextType = {
@@ -19,7 +21,10 @@ type DashboardContextType = {
     addItem: (dto: AddDashboardItemDto) => Promise<void>;
     addItemFromAnalytic: (dto: AddDashboardItemFromAnalyticDto) => Promise<void>;
     removeItem: (itemId: string) => Promise<void>;
-    saveLayout: (layout: DashboardLayoutItemDto[]) => Promise<void>;
+    saveLayout: (
+        variant: LayoutVariant,
+        layout: DashboardLayoutItemDto[]
+    ) => Promise<void>;
 };
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -56,14 +61,24 @@ export const DashboardProvider: React.FC<{
     // The grid has already moved the cards on screen by the time this runs, so the new
     // placement is kept locally rather than re-fetched: re-reading the board would
     // recalculate every chart just to redraw them where they already are.
-    const saveLayout = async (layout: DashboardLayoutItemDto[]) => {
+    //
+    // Only the grid that was actually arranged is touched, on the client as well as on the
+    // server: the other one is a different arrangement of the same widgets, not a stale
+    // copy of this one.
+    const saveLayout = async (
+        variant: LayoutVariant,
+        layout: DashboardLayoutItemDto[]
+    ) => {
+        const key =
+            variant === LayoutVariants.Mobile ? "mobileLayout" : "layout";
+
         setWidgets((current) =>
             current.map((widget) => {
                 const placement = layout.find((l) => l.itemId === widget.id);
                 return placement
                     ? {
                           ...widget,
-                          layout: {
+                          [key]: {
                               x: placement.x,
                               y: placement.y,
                               w: placement.w,
@@ -75,6 +90,7 @@ export const DashboardProvider: React.FC<{
         );
 
         await dashboardController.updateDashboardLayout(dashboardId, {
+            variant,
             items: layout,
         });
     };

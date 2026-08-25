@@ -8,6 +8,7 @@ import {
     ThemeIcon,
     useMantineTheme,
 } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { useCallback, useEffect, useState } from "react";
 import { FiCheck, FiPlus } from "react-icons/fi";
 import { TbLayoutDashboard } from "react-icons/tb";
@@ -54,6 +55,10 @@ function DashboardContent({
     const [isConfiguring, setIsConfiguring] = useState(false);
     const [isAddOpen, setIsAddOpen] = useState(false);
 
+    // The board's name, the way out of arrange mode and the app's own controls all share
+    // one row. On a phone that row only fits if the buttons on it drop their labels.
+    const isMobile = useMediaQuery("(max-width: 48em)");
+
     useEffect(() => {
         refreshWidgets();
     }, [refreshWidgets]);
@@ -67,10 +72,13 @@ function DashboardContent({
         <Stack h="100%" gap="md">
             <Group
                 w="100%"
+                gap="xs"
                 justify="space-between"
                 wrap="nowrap"
                 align="center"
             >
+                {/* Takes whatever the header leaves it, down to nothing: the board
+                    switcher ellipsizes its name rather than pushing the row wider. */}
                 <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
                     <BoardSwitcher
                         boards={boards}
@@ -84,17 +92,22 @@ function DashboardContent({
                         onToggleArrange={() => setIsConfiguring((v) => !v)}
                     />
                     {/* The only way out of arrange mode that does not cost a
-                        row of chrome while the board is just being read. */}
+                        row of chrome while the board is just being read. On a
+                        phone the tick carries it on its own. */}
                     {isConfiguring && (
                         <Button
                             size="sm"
                             radius="xl"
                             color={color}
-                            leftSection={<FiCheck size={16} />}
+                            px={isMobile ? "xs" : undefined}
+                            leftSection={
+                                isMobile ? undefined : <FiCheck size={16} />
+                            }
+                            aria-label={isMobile ? "Done arranging" : undefined}
                             onClick={() => setIsConfiguring(false)}
                             style={{ flexShrink: 0 }}
                         >
-                            Done
+                            {isMobile ? <FiCheck size={16} /> : "Done"}
                         </Button>
                     )}
                 </Group>
