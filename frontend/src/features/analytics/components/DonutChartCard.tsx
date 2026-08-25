@@ -1,19 +1,15 @@
 import { DonutChart } from "@mantine/charts";
-import {
-    ActionIcon,
-    Box,
-    em,
-    Group,
-    Paper,
-    Stack,
-    Text,
-    Tooltip,
-} from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
+import { Box, em, Paper, Stack, Text, Tooltip } from "@mantine/core";
+import { useElementSize, useMediaQuery } from "@mantine/hooks";
 import { useMemo } from "react";
-import { MdDelete } from "react-icons/md";
 import { DonutChartAnaylticDto } from "../types/AnalyticDto";
-import { cardBodyProps, cardShellProps, chartHeight } from "./cardSizing";
+import { AnalyticCardHeader } from "./AnalyticCardHeader";
+import {
+    cardBodyProps,
+    cardShellProps,
+    chartHeight,
+    useCardLayout,
+} from "./cardSizing";
 import { createDonutTooltipContent } from "./ChartFormatters";
 
 interface Props {
@@ -25,6 +21,20 @@ interface Props {
     fillHeight?: boolean;
 }
 
+// The ring is the one part of a card that has to be given a size in pixels, so a widget
+// that fills its cell works its own out from the box the ring is drawn in.
+//
+// Mantine centres the ring and leaves the rest of the box to the labels, which reach out
+// past it on every side: below a box that can seat a readable ring and its labels both,
+// the labels are dropped and the ring takes the whole box instead.
+const LABEL_GUTTER = 40;
+const MIN_LABELLED_BOX = 200;
+const MIN_DONUT_SIZE = 60;
+const MAX_DONUT_SIZE = 400;
+
+const clamp = (value: number, min: number, max: number) =>
+    Math.max(min, Math.min(max, value));
+
 export function DonutChartCard({
     analytic,
     color,
@@ -33,6 +43,8 @@ export function DonutChartCard({
     fillHeight,
 }: Props) {
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
+    const layout = useCardLayout(fillHeight);
+    const plot = useElementSize<HTMLDivElement>();
 
     const { positivePoints, excludedPoints } = useMemo(() => {
         const positive = analytic.points.filter((x) => (x.value ?? 0) > 0);
@@ -57,26 +69,45 @@ export function DonutChartCard({
         });
     }, [positivePoints, color]);
 
+    // In the masonry the box is the same on every card, so the ring is too.
+    const donut = useMemo(() => {
+        if (!fillHeight) {
+            const size = isMobile ? 150 : 200;
+            return { size, thickness: 20, withLabels: true };
+        }
+
+        const box = Math.min(plot.width, plot.height);
+        const withLabels = box >= MIN_LABELLED_BOX;
+        const size = clamp(
+            box - (withLabels ? LABEL_GUTTER * 2 : 4),
+            MIN_DONUT_SIZE,
+            MAX_DONUT_SIZE,
+        );
+
+        return {
+            size,
+            thickness: clamp(Math.round(size * 0.1), 6, 28),
+            withLabels,
+        };
+    }, [fillHeight, isMobile, plot.width, plot.height]);
+
     return (
-        <Paper withBorder p="md" radius="md" {...cardShellProps(fillHeight)}>
+        <Paper
+            ref={layout.ref}
+            withBorder
+            p={layout.padding}
+            radius="md"
+            {...cardShellProps(fillHeight)}
+        >
             <Stack gap="xs" {...cardBodyProps(fillHeight)}>
-                <Group justify="space-between" wrap="nowrap" align="flex-start">
-                    <Group align="flex-start">
-                        <Text size="sm" mb="sm">
-                            {`${analytic.name}: ${analytic.nameField.name} - ${analytic.valueField.name}`}
-                        </Text>
-                    </Group>
-                    {isConfiguring && onRemove && (
-                        <ActionIcon
-                            size="md"
-                            color={color}
-                            variant="outline"
-                            onClick={() => onRemove(analytic.id)}
-                        >
-                            <MdDelete size={18} />
-                        </ActionIcon>
-                    )}
-                </Group>
+                <AnalyticCardHeader
+                    title={`${analytic.name}: ${analytic.nameField.name} - ${analytic.valueField.name}`}
+                    layout={layout}
+                    color={color}
+                    isConfiguring={isConfiguring}
+                    analyticId={analytic.id}
+                    onRemove={onRemove}
+                />
                 <Box
                     h={chartHeight(fillHeight, isMobile)}
                     style={{
@@ -86,6 +117,8 @@ export function DonutChartCard({
                         ...(fillHeight ? { flex: 1, minHeight: 0 } : {}),
                     }}
                 >
+                    {/* The note is what a small widget can least afford, and the ring is
+                        what it is there for: on one the count alone has to carry it. */}
                     {excludedPoints.length > 0 && (
                         <Tooltip
                             label={excludedPoints
@@ -97,15 +130,21 @@ export function DonutChartCard({
                             <Text
                                 size="xs"
                                 c="dimmed"
+                                lineClamp={1}
                                 style={{ cursor: "default" }}
                             >
-                                {excludedPoints.length} categor
-                                {excludedPoints.length === 1 ? "y" : "ies"} not
-                                shown (zero or negative value)
+                                {layout.isCompact
+                                    ? `${excludedPoints.length} not shown`
+                                    : `${excludedPoints.length} categor${
+                                          excludedPoints.length === 1
+                                              ? "y"
+                                              : "ies"
+                                      } not shown (zero or negative value)`}
                             </Text>
                         </Tooltip>
                     )}
                     <Box
+                        ref={plot.ref}
                         style={{
                             flex: 1,
                             minHeight: 0,
@@ -114,11 +153,11 @@ export function DonutChartCard({
                         }}
                     >
                         <DonutChart
-                            withLabelsLine
+                            withLabelsLine={donut.withLabels}
                             w={"100%"}
-                            withLabels
-                            size={isMobile ? 150 : 200}
-                            thickness={20}
+                            withLabels={donut.withLabels}
+                            size={donut.size}
+                            thickness={donut.thickness}
                             paddingAngle={2}
                             tooltipDataSource="segment"
                             tooltipProps={{

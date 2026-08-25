@@ -9,10 +9,16 @@ import {
 } from "@mantine/core";
 import { Calendar } from "@mantine/dates";
 import { useMemo, useState } from "react";
-import { MdArrowBack, MdDelete, MdLink } from "react-icons/md";
+import { MdArrowBack, MdLink } from "react-icons/md";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 import { CalendarAnalyticDto } from "../types/AnalyticDto";
-import { cardBodyProps, cardShellProps, chartHeight } from "./cardSizing";
+import { AnalyticCardHeader } from "./AnalyticCardHeader";
+import {
+    cardBodyProps,
+    cardShellProps,
+    chartHeight,
+    useCardLayout,
+} from "./cardSizing";
 
 interface CalendarCardProps {
     analytic: CalendarAnalyticDto;
@@ -39,6 +45,7 @@ export function CalendarCard({
     onEntryClick,
     fillHeight,
 }: CalendarCardProps) {
+    const layout = useCardLayout(fillHeight);
     const [selectedDate, setSelectedDate] = useState<Date | undefined>();
     const [viewDate, setViewDate] = useState<Date>(new Date());
 
@@ -65,37 +72,39 @@ export function CalendarCard({
     const eventsForSelectedDate = events.get(selectedDateKey) || [];
 
     return (
-        <Paper withBorder p="md" radius="md" {...cardShellProps(fillHeight)}>
+        <Paper
+            ref={layout.ref}
+            withBorder
+            p={layout.padding}
+            radius="md"
+            {...cardShellProps(fillHeight)}
+        >
             <Stack gap="xs" {...cardBodyProps(fillHeight)}>
-                <Group justify="space-between" wrap="nowrap" align="flex-start">
-                    <Group align="flex-start">
-                        <Text size="sm" mb={"sm"}>
-                            {`${analytic.name}: ${analytic.whenField.name} - ${analytic.whatField.name}`}
-                        </Text>
-                    </Group>
-                    {isConfiguring && onRemove && (
-                        <ActionIcon
-                            size="md"
-                            color={color}
-                            variant="outline"
-                            onClick={() => onRemove(analytic.id)}
-                        >
-                            <MdDelete size={18} />
-                        </ActionIcon>
-                    )}
-                </Group>
+                <AnalyticCardHeader
+                    title={`${analytic.name}: ${analytic.whenField.name} - ${analytic.whatField.name}`}
+                    layout={layout}
+                    color={color}
+                    isConfiguring={isConfiguring}
+                    analyticId={analytic.id}
+                    onRemove={onRemove}
+                />
 
                 {!selectedDate ? (
                     <Group
                         w={"100%"}
                         justify="center"
                         h={chartHeight(fillHeight)}
-                        {...cardBodyProps(fillHeight)}
+                        style={{
+                            ...cardBodyProps(fillHeight).style,
+                            overflow: "auto",
+                        }}
                     >
                         <Calendar
                             date={viewDate}
                             onDateChange={(date) => setViewDate(new Date(date))}
-                            size={"sm"}
+                            // A month grid cannot reflow, so on a widget with no room
+                            // for it at full size it is drawn at the smaller one.
+                            size={layout.isCompact ? "xs" : "sm"}
                             getDayProps={(date) => {
                                 const dateObj = new Date(date);
                                 return {

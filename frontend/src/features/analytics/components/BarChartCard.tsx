@@ -1,13 +1,18 @@
 import { BarChart } from "@mantine/charts";
-import { ActionIcon, em, Group, Paper, Stack, Text } from "@mantine/core";
+import { em, Paper, Stack } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { MdDelete } from "react-icons/md";
 import { BarChartAnalyticDto } from "../types/AnalyticDto";
+import { AnalyticCardHeader } from "./AnalyticCardHeader";
 import {
     createBarChartTooltipContent,
     getAxisFormatter,
 } from "./ChartFormatters";
-import { cardBodyProps, cardShellProps, chartHeight } from "./cardSizing";
+import {
+    cardBodyProps,
+    cardShellProps,
+    chartHeight,
+    useCardLayout,
+} from "./cardSizing";
 
 interface Props {
     analytic: BarChartAnalyticDto;
@@ -26,34 +31,36 @@ export function BarChartCard({
     fillHeight,
 }: Props) {
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
+    const layout = useCardLayout(fillHeight);
 
     const subtitle = analytic.valueField
         ? `${analytic.nameField.name} - ${analytic.valueField.name}`
         : analytic.nameField.name;
 
     return (
-        <Paper withBorder p="md" radius="md" {...cardShellProps(fillHeight)}>
+        <Paper
+            ref={layout.ref}
+            withBorder
+            p={layout.padding}
+            radius="md"
+            {...cardShellProps(fillHeight)}
+        >
             <Stack gap="xs" {...cardBodyProps(fillHeight)}>
-                <Group justify="space-between" wrap="nowrap" align="flex-start">
-                    <Text size="sm" mb="sm">
-                        {`${analytic.name}: ${subtitle}`}
-                    </Text>
-                    {isConfiguring && onRemove && (
-                        <ActionIcon
-                            size="md"
-                            color={color}
-                            variant="outline"
-                            onClick={() => onRemove(analytic.id)}
-                        >
-                            <MdDelete size={18} />
-                        </ActionIcon>
-                    )}
-                </Group>
+                <AnalyticCardHeader
+                    title={`${analytic.name}: ${subtitle}`}
+                    layout={layout}
+                    color={color}
+                    isConfiguring={isConfiguring}
+                    analyticId={analytic.id}
+                    onRemove={onRemove}
+                />
                 <BarChart
                     h={chartHeight(fillHeight, isMobile)}
                     {...cardBodyProps(fillHeight)}
                     data={analytic.points}
                     dataKey="name"
+                    withXAxis={layout.withXAxis}
+                    withYAxis={layout.withYAxis}
                     series={[
                         {
                             name: "value",

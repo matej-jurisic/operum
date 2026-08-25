@@ -69,6 +69,14 @@
     cursor: grabbing;
 }
 
+/* The handle floats over the card rather than taking a strip of its height, so on the
+   grid that has one the card's header starts after it instead of underneath it. Clears
+   the handle from either of the paddings a card is drawn with, and only ever applies to
+   a widget that actually has a handle -- which is the narrow grid, in arrange mode. */
+.dashboard-widget:has(> .dashboard-drag-handle) .analytic-card-header {
+    padding-left: 32px;
+}
+
 @media (pointer: coarse) {
     /* react-grid-layout only reveals the resize corner on hover, which a touchscreen
        never reports: without this the handle is there but invisible, and the board looks

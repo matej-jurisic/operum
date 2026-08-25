@@ -1,19 +1,16 @@
 import { CompositeChart } from "@mantine/charts";
-import {
-    ActionIcon,
-    Box,
-    em,
-    Group,
-    Paper,
-    Stack,
-    Text,
-    Tooltip,
-} from "@mantine/core";
+import { Box, em, Paper, Stack, Tooltip } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { useMemo } from "react";
-import { MdDelete, MdWarningAmber } from "react-icons/md";
+import { MdWarningAmber } from "react-icons/md";
 import { ComposedChartAnalyticDto } from "../types/AnalyticDto";
-import { cardBodyProps, cardShellProps, chartHeight } from "./cardSizing";
+import { AnalyticCardHeader } from "./AnalyticCardHeader";
+import {
+    cardBodyProps,
+    cardShellProps,
+    chartHeight,
+    useCardLayout,
+} from "./cardSizing";
 import { createComposedTooltipContent, getAxisFormatter } from "./ChartFormatters";
 
 interface Props {
@@ -37,6 +34,7 @@ export function ComposedChartCard({
     fillHeight,
 }: Props) {
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
+    const layout = useCardLayout(fillHeight);
 
     // Union of every series' x labels, sorted. Sources may bucket by different
     // semantics (dates vs. category names, monthly vs. yearly, ...) — see the
@@ -72,32 +70,31 @@ export function ComposedChartCard({
         : undefined;
 
     return (
-        <Paper withBorder p="md" radius="md" {...cardShellProps(fillHeight)}>
+        <Paper
+            ref={layout.ref}
+            withBorder
+            p={layout.padding}
+            radius="md"
+            {...cardShellProps(fillHeight)}
+        >
             <Stack gap="xs" {...cardBodyProps(fillHeight)}>
-                <Group justify="space-between" wrap="nowrap" align="flex-start">
-                    <Group align="flex-start" gap="xs" wrap="nowrap">
-                        <Text size="sm" mb="sm">
-                            {subtitle}
-                        </Text>
-                        {analytic.warnings.length > 0 && (
+                <AnalyticCardHeader
+                    title={subtitle}
+                    layout={layout}
+                    color={color}
+                    isConfiguring={isConfiguring}
+                    analyticId={analytic.id}
+                    onRemove={onRemove}
+                    titleAdornment={
+                        analytic.warnings.length > 0 && (
                             <Tooltip label={analytic.warnings.join(" ")} multiline maw={280}>
                                 <Box style={{ cursor: "default", display: "flex" }}>
                                     <MdWarningAmber size={16} color="var(--mantine-color-yellow-6)" />
                                 </Box>
                             </Tooltip>
-                        )}
-                    </Group>
-                    {isConfiguring && onRemove && (
-                        <ActionIcon
-                            size="md"
-                            color={color}
-                            variant="outline"
-                            onClick={() => onRemove(analytic.id)}
-                        >
-                            <MdDelete size={18} />
-                        </ActionIcon>
-                    )}
-                </Group>
+                        )
+                    }
+                />
                 <CompositeChart
                     tooltipAnimationDuration={200}
                     gridAxis="x"
@@ -105,6 +102,9 @@ export function ComposedChartCard({
                     dataKey="x"
                     h={chartHeight(fillHeight, isMobile)}
                     {...cardBodyProps(fillHeight)}
+                    withXAxis={layout.withXAxis}
+                    withYAxis={layout.withYAxis}
+                    withDots={!layout.isCompact}
                     series={chartSeries}
                     xAxisProps={{ tickFormatter: xAxisFormatter }}
                     tooltipProps={{

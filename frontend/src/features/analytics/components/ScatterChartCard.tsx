@@ -1,13 +1,18 @@
 import { ScatterChart } from "@mantine/charts";
-import { ActionIcon, em, Group, Paper, Stack, Text } from "@mantine/core";
+import { em, Paper, Stack } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { MdDelete } from "react-icons/md";
 import { ScatterChartAnalyticDto } from "../types/AnalyticDto";
+import { AnalyticCardHeader } from "./AnalyticCardHeader";
 import {
     createScatterTooltipContent,
     getAxisFormatter,
 } from "./ChartFormatters";
-import { cardBodyProps, cardShellProps, chartHeight } from "./cardSizing";
+import {
+    cardBodyProps,
+    cardShellProps,
+    chartHeight,
+    useCardLayout,
+} from "./cardSizing";
 
 interface ScatterChartCardProps {
     analytic: ScatterChartAnalyticDto;
@@ -26,27 +31,25 @@ export function ScatterChartCard({
     fillHeight,
 }: ScatterChartCardProps) {
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
+    const layout = useCardLayout(fillHeight);
 
     return (
-        <Paper withBorder p="md" radius="md" {...cardShellProps(fillHeight)}>
+        <Paper
+            ref={layout.ref}
+            withBorder
+            p={layout.padding}
+            radius="md"
+            {...cardShellProps(fillHeight)}
+        >
             <Stack gap="xs" {...cardBodyProps(fillHeight)}>
-                <Group justify="space-between" wrap="nowrap" align="flex-start">
-                    <Group align="flex-start">
-                        <Text size="sm" mb="sm">
-                            {`${analytic.name}: ${analytic.xField.name} - ${analytic.yField.name}`}
-                        </Text>
-                    </Group>
-                    {isConfiguring && onRemove && (
-                        <ActionIcon
-                            size="md"
-                            color={color}
-                            variant="outline"
-                            onClick={() => onRemove(analytic.id)}
-                        >
-                            <MdDelete size={18} />
-                        </ActionIcon>
-                    )}
-                </Group>
+                <AnalyticCardHeader
+                    title={`${analytic.name}: ${analytic.xField.name} - ${analytic.yField.name}`}
+                    layout={layout}
+                    color={color}
+                    isConfiguring={isConfiguring}
+                    analyticId={analytic.id}
+                    onRemove={onRemove}
+                />
                 <ScatterChart
                     tooltipAnimationDuration={200}
                     gridAxis="x"
@@ -59,6 +62,8 @@ export function ScatterChartCard({
                     ]}
                     h={chartHeight(fillHeight, isMobile)}
                     {...cardBodyProps(fillHeight)}
+                    withXAxis={layout.withXAxis}
+                    withYAxis={layout.withYAxis}
                     xAxisProps={{
                         tickFormatter: getAxisFormatter(analytic.xField.type),
                     }}
