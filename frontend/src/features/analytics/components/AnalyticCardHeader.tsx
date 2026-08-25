@@ -38,8 +38,6 @@ export function AnalyticCardHeader({
   actions,
   compact,
 }: Props) {
-  if (compact) return null;
-
   return (
     <Group
       className={CARD_HEADER_CLASS}
@@ -53,7 +51,7 @@ export function AnalyticCardHeader({
       top={compact ? 0 : undefined}
       left={compact ? 0 : undefined}
       right={compact ? layout.padding : undefined}
-      style={{ zIndex: compact ? 2 : undefined }}
+      style={{ zIndex: compact && isConfiguring ? 10 : "auto" }}
       p={0}
     >
       {!compact && (

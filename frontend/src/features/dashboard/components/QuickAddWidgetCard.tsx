@@ -83,7 +83,7 @@ export function QuickAddWidgetCard({
           onRemove={onRemove}
           compact
         />
-        <Center style={{ flex: 1, minHeight: 0 }}>
+        <Center style={{ flex: 1, minHeight: 0, zIndex: 1 }}>
           {tracker ? (
             <Button
               color={trackerColor}
