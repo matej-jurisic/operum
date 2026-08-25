@@ -38,27 +38,32 @@ export function AnalyticCardHeader({
   actions,
   compact,
 }: Props) {
+  if (compact) return null;
+
   return (
     <Group
       className={CARD_HEADER_CLASS}
-      justify="space-between"
+      justify={compact ? "center" : "space-between"}
+      align={compact ? "center" : "flex-start"}
       wrap="nowrap"
-      align="flex-start"
       w="100%"
+      h={compact ? "100%" : "auto"}
       gap="xs"
       pos={compact ? "absolute" : "inherit"}
       top={compact ? 0 : undefined}
       left={compact ? 0 : undefined}
       right={compact ? layout.padding : undefined}
+      style={{ zIndex: compact ? 2 : undefined }}
+      p={0}
     >
-      <Group
-        align="flex-start"
-        gap="xs"
-        wrap="nowrap"
-        miw={0}
-        style={{ flex: 1 }}
-      >
-        {!compact && (
+      {!compact && (
+        <Group
+          align="flex-start"
+          gap="xs"
+          wrap="nowrap"
+          miw={0}
+          style={{ flex: 1 }}
+        >
           <Text
             size="sm"
             truncate="end"
@@ -71,10 +76,10 @@ export function AnalyticCardHeader({
           >
             {title}
           </Text>
-        )}
-        {titleAdornment}
-      </Group>
-      <Group gap="xs" wrap="nowrap">
+          {titleAdornment}
+        </Group>
+      )}
+      <Group gap="xs" wrap="nowrap" align="center">
         {actions}
         {isConfiguring && onRename && (
           <ActionIcon

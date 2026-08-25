@@ -10,7 +10,10 @@ import QuickAddEntryDialog from "../../entries/components/QuickAddEntryDialog";
 import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
 import { trackersController } from "../../trackers/api/trackersController";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
-import { QuickAddTrackerDto, QuickAddWidgetConfig } from "../types/DashboardDto";
+import {
+  QuickAddTrackerDto,
+  QuickAddWidgetConfig,
+} from "../types/DashboardDto";
 
 interface Props {
   widgetId: string;
@@ -58,8 +61,8 @@ export function QuickAddWidgetCard({
   return (
     <Paper
       ref={layout.ref}
-      withBorder
-      p={"xs"}
+      withBorder={isConfiguring}
+      p={0}
       radius="md"
       w="100%"
       {...cardShellProps(true)}
@@ -84,8 +87,14 @@ export function QuickAddWidgetCard({
           {tracker ? (
             <Button
               color={trackerColor}
+              disabled={isConfiguring}
               variant="light"
               radius="md"
+              w={"100%"}
+              h={"100%"}
+              style={{
+                pointerEvents: isConfiguring ? "none" : "all",
+              }}
               loading={isOpening}
               leftSection={createElement(Icon, { size: 18 })}
               onClick={handleOpen}

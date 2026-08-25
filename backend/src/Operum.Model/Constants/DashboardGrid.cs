@@ -12,8 +12,8 @@ namespace Operum.Model.Constants
     {
         public const int Columns = 12;
         public const int MobileColumns = 4;
-        public const int MinWidth = 2;
-        public const int MinHeight = 2;
+        public const int MinWidth = 1;
+        public const int MinHeight = 1;
         public const int MaxHeight = 40;
 
         // How wide the grid is for the arrangement being saved. Unknown variants fall back
