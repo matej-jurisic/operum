@@ -24,7 +24,7 @@ import {
     Stack,
     Text,
 } from "@mantine/core";
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { CiBoxList } from "react-icons/ci";
 import { FiPlus } from "react-icons/fi";
 import { IoChevronDownCircle } from "react-icons/io5";
@@ -44,6 +44,8 @@ import ViewFormDialog from "./ViewFormDialog";
 
 interface Props {
     tracker: TrackerDto;
+    // Rendered in the action row right of Create, so the Views/Queries switch shares it.
+    headerSection?: ReactNode;
 }
 
 enum OpenDialogType {
@@ -111,23 +113,31 @@ export default function Views(props: Props) {
     return (
         <>
             <Stack gap="md" h={"100%"}>
-                {canEditSchema && (
+                {(canEditSchema || props.headerSection) && (
                     <Group justify="space-between" w="100%">
-                        <Button
-                            color={props.tracker.color}
-                            onClick={() =>
-                                setOpenDialogType(OpenDialogType.CreateView)
-                            }
-                            disabled={
-                                fields.length === 0 || views.length >= MAX_VIEWS
-                            }
-                            variant="outline"
-                            leftSection={<FiPlus size={18} />}
-                        >
-                            Create
-                        </Button>
+                        <Group gap="sm">
+                            {canEditSchema && (
+                                <Button
+                                    color={props.tracker.color}
+                                    onClick={() =>
+                                        setOpenDialogType(
+                                            OpenDialogType.CreateView,
+                                        )
+                                    }
+                                    disabled={
+                                        fields.length === 0 ||
+                                        views.length >= MAX_VIEWS
+                                    }
+                                    variant="outline"
+                                    leftSection={<FiPlus size={18} />}
+                                >
+                                    Create
+                                </Button>
+                            )}
+                            {props.headerSection}
+                        </Group>
                         <Group>
-                            {isOwner && (
+                            {canEditSchema && isOwner && (
                                 <ActionIcon
                                     size={"lg"}
                                     variant={
@@ -141,7 +151,7 @@ export default function Views(props: Props) {
                                     <CiBoxList size={18} />
                                 </ActionIcon>
                             )}
-                            {isOwner && (
+                            {canEditSchema && isOwner && (
                                 <Menu
                                     position="bottom-end"
                                     width={280}
@@ -296,9 +306,6 @@ export default function Views(props: Props) {
                             <Stack gap="md" align="center">
                                 <Text size="lg" fw={500} c="dimmed">
                                     No Views Available
-                                </Text>
-                                <Text ta="center" c="dimmed">
-                                    Views will appear here when you create them.
                                 </Text>
                             </Stack>
                         </Paper>

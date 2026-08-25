@@ -1,5 +1,6 @@
 using Operum.Model.DTOs.Entries.Requests;
 using Operum.Model.DTOs.Fields.Requests;
+using Operum.Model.Constants;
 using Operum.Model.DTOs.Queries.Requests;
 using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Model.DTOs.Views.Requests;
@@ -110,35 +111,35 @@ namespace Operum.Tests.Util
         public static async Task<string> CreateQuery(HttpClient client, string trackerId, CreateQueryDto query) =>
             await IdOf(await PostQuery(client, trackerId, query));
 
-        /// <summary>A single-filter query.</summary>
-        public static Task<string> CreateFilterQuery(HttpClient client, string trackerId, string name, string fieldId, string op, string? value) =>
-            CreateQuery(client, trackerId, new CreateQueryDto
-            {
-                Name = name,
-                Filters = [new CreateQueryFilterDto { FieldId = fieldId, Operator = op, Value = value }]
-            });
+        /// <summary>A standalone filter query.</summary>
+        public static Task<string> CreateFilterQuery(HttpClient client, string trackerId, string fieldId, string op, string? value) =>
+            CreateQuery(client, trackerId, FilterClause(fieldId, op, value));
 
-        /// <summary>A single-sort query.</summary>
-        public static Task<string> CreateSortQuery(HttpClient client, string trackerId, string name, string fieldId, bool descending) =>
-            CreateQuery(client, trackerId, new CreateQueryDto
-            {
-                Name = name,
-                Sorts = [new CreateQuerySortDto { FieldId = fieldId, Descending = descending }]
-            });
+        /// <summary>A standalone sort query.</summary>
+        public static Task<string> CreateSortQuery(HttpClient client, string trackerId, string fieldId, bool descending) =>
+            CreateQuery(client, trackerId, SortClause(fieldId, descending));
+
+        public static CreateQueryDto FilterClause(string fieldId, string op, string? value) => new()
+        {
+            Kind = QueryKinds.Filter,
+            FieldId = fieldId,
+            Operator = op,
+            Value = value
+        };
+
+        public static CreateQueryDto SortClause(string fieldId, bool descending) => new()
+        {
+            Kind = QueryKinds.Sort,
+            FieldId = fieldId,
+            Descending = descending
+        };
 
         /// <summary>A view built from one ad-hoc filter, the shape most filtering tests need.</summary>
         public static Task<string> CreateFilterView(HttpClient client, string trackerId, string name, string fieldId, string op, string? value) =>
             CreateView(client, trackerId, new CreateViewDto
             {
                 Name = name,
-                Queries = [new ViewQueryRefDto
-                {
-                    NewQuery = new CreateQueryDto
-                    {
-                        Name = name,
-                        Filters = [new CreateQueryFilterDto { FieldId = fieldId, Operator = op, Value = value }]
-                    }
-                }]
+                Queries = [new ViewQueryRefDto { NewQuery = FilterClause(fieldId, op, value) }]
             });
 
         /// <summary>A view built from one ad-hoc sort.</summary>
@@ -146,14 +147,7 @@ namespace Operum.Tests.Util
             CreateView(client, trackerId, new CreateViewDto
             {
                 Name = name,
-                Queries = [new ViewQueryRefDto
-                {
-                    NewQuery = new CreateQueryDto
-                    {
-                        Name = name,
-                        Sorts = [new CreateQuerySortDto { FieldId = fieldId, Descending = descending }]
-                    }
-                }]
+                Queries = [new ViewQueryRefDto { NewQuery = SortClause(fieldId, descending) }]
             });
 
         /// <summary>A view composed of existing queries, in the given order (order decides sort precedence).</summary>

@@ -31,7 +31,7 @@ namespace Operum.Service.Services.Queries
             if (queryCount >= DataLimits.MaxQueryCount)
                 return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("queries", DataLimits.MaxQueryCount));
 
-            var validation = await QueryBuilder.ValidateSortsAndFilters(db, trackerId, query.Sorts, query.Filters);
+            var validation = await QueryBuilder.ValidateClause(db, trackerId, query);
             if (validation.IsFailure)
                 return Result.Failure(validation.StatusCode, validation.Messages);
 
@@ -58,34 +58,14 @@ namespace Operum.Service.Services.Queries
                 return Result.Failure(ResultStatusCodes.NotFound);
             }
 
-            var validation = await QueryBuilder.ValidateSortsAndFilters(db, trackerId, query.Sorts, query.Filters);
+            var validation = await QueryBuilder.ValidateClause(db, trackerId, query.Kind, query.FieldId, query.Operator, query.Value);
             if (validation.IsFailure)
                 return Result.Failure(validation.StatusCode, validation.Messages);
 
-            existingQuery.Name = query.Name;
-            existingQuery.Description = query.Description;
+            // Editing in place rather than replacing: every view built on this query keeps
+            // pointing at it, and simply reads differently afterwards.
+            QueryBuilder.ApplyClause(existingQuery, query.Kind, query.FieldId, query.Operator, query.Value, query.Descending);
 
-            await db.QuerySorts.Where(x => x.QueryId == queryId).ExecuteDeleteAsync();
-            await db.QueryFilters.Where(x => x.QueryId == queryId).ExecuteDeleteAsync();
-
-            var newSorts = query.Sorts.Select((s, i) => new QuerySort
-            {
-                QueryId = queryId,
-                FieldId = s.FieldId,
-                Descending = s.Descending,
-                Order = i,
-            }).ToList();
-
-            var newFilters = query.Filters.Select(f => new QueryFilter
-            {
-                QueryId = queryId,
-                FieldId = f.FieldId,
-                Operator = f.Operator,
-                Value = f.Value,
-            }).ToList();
-
-            await db.QuerySorts.AddRangeAsync(newSorts);
-            await db.QueryFilters.AddRangeAsync(newFilters);
             db.Queries.Update(existingQuery);
             await db.SaveChangesAsync();
 
@@ -121,10 +101,7 @@ namespace Operum.Service.Services.Queries
             var query = await db.Queries
                 .Include(x => x.Tracker)
                     .ThenInclude(x => x.ApplicationUserTrackers)
-                .Include(x => x.Sorts.OrderBy(s => s.Order))
-                    .ThenInclude(x => x.Field)
-                .Include(x => x.Filters)
-                    .ThenInclude(x => x.Field)
+                .Include(x => x.Field)
                 .FirstOrDefaultAsync(x => x.Id == queryId && x.TrackerId == trackerId);
 
             var hasAccess = query != null && (query.Tracker.OwnerId == user.Id || query.Tracker.ApplicationUserTrackers.Any(x => x.ApplicationUserId == user.Id));
@@ -152,13 +129,14 @@ namespace Operum.Service.Services.Queries
                 return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
+            // Nothing here has a name to sort by, so the list is grouped the way it reads:
+            // filters first, then by the field each clause is about.
             var queries = await db.Queries
-                .Include(x => x.Filters)
-                    .ThenInclude(x => x.Field)
-                .Include(x => x.Sorts.OrderBy(s => s.Order))
-                    .ThenInclude(x => x.Field)
+                .Include(x => x.Field)
                 .Where(x => x.TrackerId == trackerId)
-                .OrderBy(x => x.Name)
+                .OrderBy(x => x.Kind)
+                .ThenBy(x => x.Field.Order)
+                .ThenBy(x => x.Operator)
                 .ToListAsync();
 
             return Result.Success(mapper.Map<List<Query>, List<QueryDto>>(queries));

@@ -19,7 +19,7 @@ interface Props {
     color: string | undefined;
     isConfiguring: boolean;
     onRemove?: (analyticId: string) => void;
-    onRename?: (analyticId: string) => void;
+    onEdit?: (analyticId: string) => void;
     /** Stretch to fill the height of the container instead of using a fixed one. */
     fillHeight?: boolean;
 }
@@ -29,7 +29,7 @@ export function BarChartCard({
     color,
     isConfiguring,
     onRemove,
-    onRename,
+    onEdit,
     fillHeight,
 }: Props) {
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
@@ -51,7 +51,7 @@ export function BarChartCard({
                     isConfiguring={isConfiguring}
                     analyticId={analytic.id}
                     onRemove={onRemove}
-                    onRename={onRename}
+                    onEdit={onEdit}
                 />
                 <BarChart
                     h={chartHeight(fillHeight, isMobile)}

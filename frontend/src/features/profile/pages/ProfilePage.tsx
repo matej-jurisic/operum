@@ -330,16 +330,9 @@ export default function ProfilePage() {
                                         justify="space-between"
                                         align="center"
                                     >
-                                        <Stack gap={2}>
-                                            <Text fw={500} size="sm">
-                                                Delete Account
-                                            </Text>
-                                            <Text size="xs" c="dimmed">
-                                                Permanently deletes your account
-                                                and all trackers you own. Cannot
-                                                be undone.
-                                            </Text>
-                                        </Stack>
+                                        <Text fw={500} size="sm">
+                                            Delete Account
+                                        </Text>
                                         <Button
                                             color="red"
                                             variant="outline"
@@ -361,7 +354,7 @@ export default function ProfilePage() {
                 <ConfirmationDialog
                     isOpen
                     severity="important"
-                    message="Are you sure you want to permanently delete your account? All trackers you own will also be deleted. This cannot be undone."
+                    message="Permanently delete your account and every tracker you own? This cannot be undone."
                     onClose={() => setShowDeleteDialog(false)}
                     onConfirm={handleDeleteAccount}
                 />

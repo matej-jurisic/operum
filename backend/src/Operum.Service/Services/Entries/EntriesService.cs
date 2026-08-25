@@ -695,12 +695,7 @@ namespace Operum.Service.Services.Entries
                 view = await db.Views
                     .Include(v => v.ViewQueries.OrderBy(vq => vq.Order))
                         .ThenInclude(vq => vq.Query)
-                            .ThenInclude(q => q.Filters)
-                                .ThenInclude(f => f.Field)
-                    .Include(v => v.ViewQueries)
-                        .ThenInclude(vq => vq.Query)
-                            .ThenInclude(q => q.Sorts)
-                                .ThenInclude(s => s.Field)
+                            .ThenInclude(q => q.Field)
                     .FirstOrDefaultAsync(v => v.Id == viewId && v.TrackerId == trackerId);
 
                 if (view == null)

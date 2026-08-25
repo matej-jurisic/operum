@@ -71,6 +71,14 @@ namespace Operum.API.Controllers
             return GetApiResponse(await dashboardService.AddViewItem(dashboardId, dto));
         }
 
+        // Only the widget's name and how each of its sources is filtered — the definition it
+        // was built from stays as it was placed.
+        [HttpPut("{dashboardId}/items/{itemId}")]
+        public async Task<IActionResult> UpdateDashboardItem([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] UpdateDashboardItemDto dto)
+        {
+            return GetApiResponse(await dashboardService.UpdateDashboardItem(dashboardId, itemId, dto));
+        }
+
         [HttpPut("{dashboardId}/items/{itemId}/view-selection")]
         public async Task<IActionResult> SetViewWidgetSelection([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] SetViewWidgetSelectionDto dto)
         {

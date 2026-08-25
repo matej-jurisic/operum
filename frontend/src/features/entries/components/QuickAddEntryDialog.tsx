@@ -29,7 +29,7 @@ export default function QuickAddEntryDialog({ tracker, onClose }: Props) {
         <Modal
             opened
             centered
-            title={`Add entry — ${tracker.name}`}
+            title={`Add entry: ${tracker.name}`}
             onClose={onClose}
         >
             <form onSubmit={form.onSubmit(handleSubmit)}>

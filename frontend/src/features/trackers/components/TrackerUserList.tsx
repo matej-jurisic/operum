@@ -171,10 +171,6 @@ export default function TrackerUserList() {
                                     <Text size="lg" fw={500} c="dimmed">
                                         No Users Added
                                     </Text>
-                                    <Text ta="center" c="dimmed">
-                                        Users will appear here when you add them
-                                        to the tracker.
-                                    </Text>
                                 </Stack>
                             </Paper>
                         )}
@@ -222,7 +218,7 @@ export default function TrackerUserList() {
                             setOpenDialogType(undefined);
                             setSelectedUser(undefined);
                         }}
-                        title={`Permissions — ${selectedUser.userName}`}
+                        title={`Permissions: ${selectedUser.userName}`}
                         centered
                     >
                         <Stack>

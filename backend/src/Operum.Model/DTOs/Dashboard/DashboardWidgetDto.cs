@@ -38,6 +38,7 @@ namespace Operum.Model.DTOs.Dashboard
         public string TrackerId { get; set; } = string.Empty;
         public string TrackerName { get; set; } = string.Empty;
         public string? Color { get; set; }
+        public string? Icon { get; set; }
         public string? ViewId { get; set; }
         public List<ViewOptionDto> Views { get; set; } = [];
     }

@@ -39,6 +39,14 @@ namespace Operum.Model
                 .HasForeignKey(q => q.TrackerId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // A query is a clause over one field, so it cannot outlive it: deleting the
+            // field drops the query, which in turn drops it from whichever views used it.
+            builder.Entity<Query>()
+                .HasOne(q => q.Field)
+                .WithMany()
+                .HasForeignKey(q => q.FieldId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             builder.Entity<ViewQuery>()
                 .HasOne(vq => vq.View)
                 .WithMany(v => v.ViewQueries)
@@ -177,8 +185,6 @@ namespace Operum.Model
         public DbSet<View> Views { get; set; }
         public DbSet<ViewQuery> ViewQueries { get; set; }
         public DbSet<Query> Queries { get; set; }
-        public DbSet<QuerySort> QuerySorts { get; set; }
-        public DbSet<QueryFilter> QueryFilters { get; set; }
         public DbSet<ViewGroup> ViewGroups { get; set; }
         public DbSet<ViewColumn> ViewColumns { get; set; }
         public DbSet<TrackerType> TrackerTypes { get; set; }

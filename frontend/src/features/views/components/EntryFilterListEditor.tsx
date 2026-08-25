@@ -226,10 +226,6 @@ export default function EntryFilterListEditor({
                     size="md"
                 >
                     <Stack gap="md">
-                        <Text size="sm" c="dimmed">
-                            First select a field, then choose from available
-                            templates for that field type
-                        </Text>
                         <Select
                             label="Select Field"
                             placeholder="Choose a field to filter on"
@@ -281,22 +277,9 @@ export default function EntryFilterListEditor({
                                                 >
                                                     <Group gap="sm">
                                                         {template.icon}
-                                                        <div>
-                                                            <Text
-                                                                fw={500}
-                                                                size="sm"
-                                                            >
-                                                                {template.name}
-                                                            </Text>
-                                                            <Text
-                                                                c="dimmed"
-                                                                size="xs"
-                                                            >
-                                                                {
-                                                                    template.description
-                                                                }
-                                                            </Text>
-                                                        </div>
+                                                        <Text fw={500} size="sm">
+                                                            {template.name}
+                                                        </Text>
                                                     </Group>
                                                     <Text c="dimmed" size="xs">
                                                         +{template.filters.length}{" "}

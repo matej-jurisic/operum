@@ -41,11 +41,6 @@ namespace Operum.Service.Services.Trackers
                     .Include(t => t.Views)
                         .ThenInclude(v => v.ViewQueries.OrderBy(vq => vq.Order))
                             .ThenInclude(vq => vq.Query)
-                                .ThenInclude(q => q.Sorts)
-                    .Include(t => t.Views)
-                        .ThenInclude(v => v.ViewQueries)
-                            .ThenInclude(vq => vq.Query)
-                                .ThenInclude(q => q.Filters)
                     .Include(t => t.Analytics)
                         .ThenInclude(a => a.AnalyticFields)
                     .FirstOrDefaultAsync(t => t.Id == tracker.TemplateTrackerId);
@@ -114,7 +109,9 @@ namespace Operum.Service.Services.Trackers
             }
 
             // Copy every Query referenced by the template's views (a Query is only ever
-            // touched once here even if several template views share it).
+            // touched once here even if several template views share it). A query is one
+            // clause over one field, so one whose field was not copied is dropped whole,
+            // and with it every link a template view had to it.
             var templateQueries = templateTracker.Views
                 .SelectMany(v => v.ViewQueries.Select(vq => vq.Query))
                 .DistinctBy(q => q.Id)
@@ -123,59 +120,25 @@ namespace Operum.Service.Services.Trackers
             var queryIdMapping = new Dictionary<string, string>();
             foreach (var templateQuery in templateQueries)
             {
+                if (!fieldIdMapping.TryGetValue(templateQuery.FieldId, out var newFieldId))
+                    continue;
+
                 var newQuery = new Query
                 {
                     Id = Guid.NewGuid().ToString(),
-                    Name = templateQuery.Name,
-                    Description = templateQuery.Description,
-                    TrackerId = newTracker.Id
+                    TrackerId = newTracker.Id,
+                    Kind = templateQuery.Kind,
+                    FieldId = newFieldId,
+                    Operator = templateQuery.Operator,
+                    Value = templateQuery.Value,
+                    Descending = templateQuery.Descending
                 };
                 queryIdMapping[templateQuery.Id] = newQuery.Id;
                 await db.Queries.AddAsync(newQuery);
             }
 
-            // Save views and queries first so they exist for sort/filter/link references
+            // Save views and queries first so they exist for the link references below
             await db.SaveChangesAsync();
-
-            // Copy query sorts/filters and the view <-> query links
-            foreach (var templateQuery in templateQueries)
-            {
-                if (!queryIdMapping.TryGetValue(templateQuery.Id, out var newQueryId))
-                    continue;
-
-                foreach (var templateSort in templateQuery.Sorts)
-                {
-                    // Only create sort if the field was copied
-                    if (fieldIdMapping.TryGetValue(templateSort.FieldId, out var newFieldId))
-                    {
-                        var newSort = new QuerySort
-                        {
-                            Id = Guid.NewGuid().ToString(),
-                            QueryId = newQueryId,
-                            FieldId = newFieldId,
-                            Order = templateSort.Order,
-                            Descending = templateSort.Descending
-                        };
-                        await db.QuerySorts.AddAsync(newSort);
-                    }
-                }
-                foreach (var templateFilter in templateQuery.Filters)
-                {
-                    // Only create filter if the field was copied
-                    if (fieldIdMapping.TryGetValue(templateFilter.FieldId, out var newFieldId))
-                    {
-                        var newFilter = new QueryFilter
-                        {
-                            Id = Guid.NewGuid().ToString(),
-                            QueryId = newQueryId,
-                            FieldId = newFieldId,
-                            Operator = templateFilter.Operator,
-                            Value = templateFilter.Value
-                        };
-                        await db.QueryFilters.AddAsync(newFilter);
-                    }
-                }
-            }
 
             foreach (var templateView in templateTracker.Views)
             {
@@ -414,8 +377,7 @@ namespace Operum.Service.Services.Trackers
             if (!string.IsNullOrEmpty(viewId))
             {
                 view = await db.Views
-                    .Include(v => v.ViewQueries.OrderBy(vq => vq.Order)).ThenInclude(vq => vq.Query).ThenInclude(q => q.Filters).ThenInclude(f => f.Field)
-                    .Include(v => v.ViewQueries).ThenInclude(vq => vq.Query).ThenInclude(q => q.Sorts).ThenInclude(s => s.Field)
+                    .Include(v => v.ViewQueries.OrderBy(vq => vq.Order)).ThenInclude(vq => vq.Query).ThenInclude(q => q.Field)
                     .FirstOrDefaultAsync(v => v.Id == viewId && v.TrackerId == trackerId);
 
                 if (view == null)

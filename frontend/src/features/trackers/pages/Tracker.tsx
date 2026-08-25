@@ -3,7 +3,7 @@ import { useMediaQuery } from "@mantine/hooks";
 import { createElement, useEffect, useState } from "react";
 import {
     CiBellOn,
-    CiFilter,
+    CiBoxList,
     CiGrid41,
     CiHashtag,
     CiUser,
@@ -21,7 +21,7 @@ import Fields from "../../fields/components/Fields";
 import Notifications from "../../notifications/components/Notifications";
 import { areNotificationsEnabled } from "../../notifications/config/notificationsFeature";
 import SelectView from "../../views/components/SelectView";
-import Views from "../../views/components/Views";
+import ViewsAndQueries from "../../views/components/ViewsAndQueries";
 import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
 import { trackersController } from "../api/trackersController";
 import TrackerUserList from "../components/TrackerUserList";
@@ -33,13 +33,18 @@ export default function Tracker() {
     const [tracker, setTracker] = useState<TrackerDto>();
 
     const urlParts = (splat ?? "").split("/").filter(Boolean);
-    const requestedTab = urlParts[0] || "entries";
+    const rawTab = urlParts[0] || "entries";
+    // Queries no longer have a tab of their own, so a bookmarked /queries url lands on the
+    // Views tab with the Queries sub-tab open.
+    const requestedTab = rawTab === "queries" ? "views" : rawTab;
     // A bookmarked /notifications url must not land on a tab that no longer exists.
     const activeTab =
         requestedTab === "notifications" && !areNotificationsEnabled
             ? "entries"
             : requestedTab;
     const action = urlParts[1];
+    const viewsSubTab =
+        rawTab === "queries" || action === "queries" ? "queries" : "views";
 
     useEffect(() => {
         const fetchData = async () => {
@@ -133,7 +138,7 @@ export default function Tracker() {
                                 px={isMobile ? "xs" : undefined}
                                 leftSection={
                                     isMobile ? (
-                                        <CiFilter size={18} />
+                                        <CiBoxList size={18} />
                                     ) : undefined
                                 }
                             >
@@ -209,7 +214,19 @@ export default function Tracker() {
                                 <Entries autoOpenCreate={action === "create"} />
                             </Tabs.Panel>
                             <Tabs.Panel value="views" h="100%">
-                                <Views tracker={tracker} />
+                                <ViewsAndQueries
+                                    tracker={tracker}
+                                    activeSubTab={viewsSubTab}
+                                    onSubTabChange={(value) =>
+                                        navigate(
+                                            `/trackers/${trackerId}/views${
+                                                value === "queries"
+                                                    ? "/queries"
+                                                    : ""
+                                            }`,
+                                        )
+                                    }
+                                />
                             </Tabs.Panel>
                             <Tabs.Panel value="fields" h="100%">
                                 <Fields tracker={tracker} />

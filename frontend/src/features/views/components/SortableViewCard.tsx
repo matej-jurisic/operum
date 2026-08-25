@@ -12,6 +12,7 @@ import {
 import { CSSProperties } from "react";
 import { CiBoxList } from "react-icons/ci";
 import { MdDelete, MdDragHandle, MdEdit } from "react-icons/md";
+import { QueryKinds } from "../../../shared/constants/QueryKinds";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { ViewDto } from "../types/ViewDto";
 
@@ -49,11 +50,12 @@ export default function SortableViewCard({
 
     const { canEditSchema } = useTracker();
 
-    const filterCount = view.queries.reduce(
-        (sum, q) => sum + q.filters.length,
-        0,
-    );
-    const sortCount = view.queries.reduce((sum, q) => sum + q.sorts.length, 0);
+    const filterCount = view.queries.filter(
+        (q) => q.kind === QueryKinds.Filter,
+    ).length;
+    const sortCount = view.queries.filter(
+        (q) => q.kind === QueryKinds.Sort,
+    ).length;
 
     return (
         <Card ref={setNodeRef} style={style} p="md" radius="md" withBorder>
@@ -87,16 +89,8 @@ export default function SortableViewCard({
                     >
                         {view.description || "No description"}
                     </Text>
-                    {(view.queries.length > 0 ||
-                        filterCount > 0 ||
-                        sortCount > 0) && (
+                    {view.queries.length > 0 && (
                         <Group wrap="wrap">
-                            <Badge variant="light" color="gray" size="sm">
-                                {view.queries.length}{" "}
-                                {view.queries.length === 1
-                                    ? "query"
-                                    : "queries"}
-                            </Badge>
                             {filterCount > 0 && (
                                 <Badge variant="light" color="blue" size="sm">
                                     {filterCount}{" "}

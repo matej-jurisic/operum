@@ -12,8 +12,9 @@ interface Props {
   isConfiguring: boolean;
   analyticId: string;
   onRemove?: (analyticId: string) => void;
-  /** Opens the rename dialog for the analytic this card was built from. */
-  onRename?: (analyticId: string) => void;
+  /** Opens whatever editing the card's owner offers for it: renaming a tracker's own
+        analytic, or a dashboard widget's name and the view it reads through. */
+  onEdit?: (analyticId: string) => void;
   /** Sits next to the title, for anything that qualifies it. */
   titleAdornment?: ReactNode;
   /** Sits with the remove button, for anything else the card can be acted on with. */
@@ -33,7 +34,7 @@ export function AnalyticCardHeader({
   isConfiguring,
   analyticId,
   onRemove,
-  onRename,
+  onEdit,
   titleAdornment,
   actions,
   compact,
@@ -86,13 +87,13 @@ export function AnalyticCardHeader({
       )}
       <Group gap="xs" wrap="nowrap" align="center">
         {actions}
-        {isConfiguring && onRename && (
+        {isConfiguring && onEdit && (
           <ActionIcon
             size="md"
             color={color}
             variant="outline"
             style={{ pointerEvents: "auto" }}
-            onClick={() => onRename(analyticId)}
+            onClick={() => onEdit(analyticId)}
           >
             <MdEdit size={18} />
           </ActionIcon>

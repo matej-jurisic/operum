@@ -5,41 +5,30 @@ namespace Operum.Model.DTOs.Queries.Requests
 {
     public class UpdateQueryDto
     {
-        public required string Name { get; set; } = string.Empty;
-        public string? Description { get; set; }
+        public required string Kind { get; set; } = string.Empty;
+        public required string FieldId { get; set; } = string.Empty;
 
-        public List<CreateQuerySortDto> Sorts { get; set; } = [];
-        public List<CreateQueryFilterDto> Filters { get; set; } = [];
+        public string? Operator { get; set; }
+        public string? Value { get; set; }
+
+        public bool Descending { get; set; }
     }
 
     public class UpdateQueryDtoValidator : AbstractValidator<UpdateQueryDto>
     {
         public UpdateQueryDtoValidator()
         {
-            RuleFor(x => x.Name)
-                .NotEmpty().WithMessage((x) => Messages.Required("name"))
-                .MaximumLength(50).WithMessage("Query name cannot exceed 50 characters.");
+            RuleFor(x => x.Kind)
+                .NotEmpty().WithMessage((x) => Messages.Required("kind"))
+                .Must(QueryKinds.IsValid).WithMessage((x) => Messages.Invalid("kind"));
 
-            RuleFor(x => x.Description)
-               .MaximumLength(500).WithMessage("Description cannot exceed 500 characters.")
-               .When(x => !string.IsNullOrEmpty(x.Description));
+            RuleFor(x => x.FieldId)
+                .NotEmpty().WithMessage((x) => Messages.Required("field id"));
 
-            RuleFor(x => x.Sorts)
-                .Must(sorts => sorts.Count <= DataLimits.MaxSorts)
-                    .WithMessage((x) => Messages.MaxNumberReached("sorts", DataLimits.MaxSorts))
-                .Must(sorts => sorts.Select(s => s.FieldId).Distinct().Count() == sorts.Count)
-                    .WithMessage("Each sort field must be unique.");
-
-            RuleFor(x => x.Filters)
-                .Must(filters => filters.Count <= DataLimits.MaxFilters)
-                    .WithMessage((x) => Messages.MaxNumberReached("filters", DataLimits.MaxFilters))
-                .Must(filters => filters.Distinct().Count() == filters.Count)
-                    .WithMessage("Each filter must be unique.");
-
-            RuleForEach(x => x.Sorts)
-                .SetValidator(new CreateQuerySortDtoValidator());
-            RuleForEach(x => x.Filters)
-                .SetValidator(new CreateQueryFilterDtoValidator());
+            RuleFor(x => x.Operator)
+                .NotEmpty().WithMessage((x) => Messages.Required("operator"))
+                .Must(op => op != null && OperatorTypes.IsValid(op)).WithMessage((x) => Messages.Invalid("operator"))
+                .When(x => x.Kind == QueryKinds.Filter);
         }
     }
 }

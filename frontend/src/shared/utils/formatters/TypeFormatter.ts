@@ -52,5 +52,7 @@ export const formatMinutesToTime = (minutes?: number): string => {
 
 export const formatBoolean = (value?: string): string => {
     if (value === undefined || value === null) return "";
-    return value === "True" ? "Yes" : "No";
+    // Entry values arrive capitalised from .NET while a query stores the value it was
+    // written with, so the comparison cannot be case-sensitive.
+    return value.toLowerCase() === "true" ? "Yes" : "No";
 };

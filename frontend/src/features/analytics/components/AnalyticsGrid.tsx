@@ -28,7 +28,7 @@ interface AnalyticsGridProps {
     isConfiguring: boolean;
     onReorder: (orderedIds: string[]) => void;
     onRemove?: (analyticId: string) => void;
-    onRename?: (analyticId: string) => void;
+    onEdit?: (analyticId: string) => void;
     onEntryClick?: (entryId: string) => void;
 }
 
@@ -85,7 +85,7 @@ export function AnalyticsGrid({
     isConfiguring,
     onReorder,
     onRemove,
-    onRename,
+    onEdit,
     onEntryClick,
 }: AnalyticsGridProps) {
     // Local state to reflect current order
@@ -147,7 +147,7 @@ export function AnalyticsGrid({
                                         color={color}
                                         isConfiguring={isConfiguring}
                                         onRemove={onRemove}
-                                        onRename={onRename}
+                                        onEdit={onEdit}
                                         onEntryClick={onEntryClick}
                                     />
                                 </SortableCardWrapper>

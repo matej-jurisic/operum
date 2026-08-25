@@ -37,7 +37,8 @@ type WidgetKind = "existing" | "custom" | "quickAdd" | "view";
 interface WidgetKindOption {
     kind: WidgetKind;
     title: string;
-    description: string;
+    /** Only when the title alone does not say what the widget does. */
+    description?: string;
     icon: IconType;
     /** Modal title once this kind is being configured. */
     formTitle: string;
@@ -50,21 +51,18 @@ const WIDGET_KINDS: WidgetKindOption[] = [
     {
         kind: "existing",
         title: "Existing analytic",
-        description: "Put a chart you already built on a tracker onto the board",
         icon: TbLayoutGrid,
         formTitle: "Add an existing analytic",
     },
     {
         kind: "custom",
         title: "New chart",
-        description: "Build a chart here, from one tracker or several combined",
         icon: TbChartHistogram,
         formTitle: "Build a chart",
     },
     {
         kind: "quickAdd",
         title: "Quick add button",
-        description: "Add entries to a tracker straight from the board",
         icon: FiPlusSquare,
         formTitle: "Add a quick-add button",
     },
@@ -130,9 +128,11 @@ export function AddWidgetModal({
                                 </ThemeIcon>
                                 <Stack gap={2} style={{ flex: 1 }}>
                                     <Text fw={600}>{option.title}</Text>
-                                    <Text size="sm" c="dimmed">
-                                        {option.description}
-                                    </Text>
+                                    {option.description && (
+                                        <Text size="sm" c="dimmed">
+                                            {option.description}
+                                        </Text>
+                                    )}
                                 </Stack>
                                 <FiChevronRight size={18} />
                             </Group>

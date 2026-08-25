@@ -1,15 +1,10 @@
-import {
-    Badge,
-    Divider,
-    Group,
-    Modal,
-    Stack,
-    Text,
-    Title,
-} from "@mantine/core";
+import { Badge, Group, Modal, Paper, Stack, Text, Title } from "@mantine/core";
 import { useEffect, useState } from "react";
-import { formatOperator } from "../../../shared/utils/formatters/OperatorFormatter";
-import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
+import {
+    QueryKindColor,
+    QueryKindLabel,
+} from "../../../shared/constants/QueryKinds";
+import { describeQuery } from "../../../shared/utils/formatters/QueryFormatter";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { viewsController } from "../api/viewsController";
 import { ViewDto } from "../types/ViewDto";
@@ -55,110 +50,43 @@ export default function ViewDetailsDialog(props: Props) {
             size={"md"}
         >
             <Stack>
-                {view.queries.length === 0 && (
-                    <Text c="dimmed" ta="center" size="sm">
-                        This view has no queries — it matches every entry.
+                {view.description && (
+                    <Text c="dimmed" size="sm" className="wrapped-text">
+                        {view.description}
                     </Text>
                 )}
 
-                {view.queries.map((query, queryIndex) => (
-                    <Stack key={query.id} gap="xs">
-                        <Divider
-                            label={
-                                <Group gap={6}>
-                                    <Text fw={500} size="sm">
-                                        {query.name}
-                                    </Text>
+                {view.queries.length === 0 ? (
+                    <Text c="dimmed" ta="center" size="sm">
+                        This view has no queries, so it matches every entry.
+                    </Text>
+                ) : (
+                    view.queries.map((query, index) => (
+                        <Paper key={query.id} p="sm" withBorder>
+                            <Group justify="space-between" wrap="nowrap">
+                                <Group gap="xs" wrap="nowrap">
                                     <Badge
                                         variant="light"
-                                        color="gray"
-                                        size="xs"
+                                        color={QueryKindColor[query.kind]}
+                                        size="sm"
                                     >
-                                        precedence {queryIndex + 1}
+                                        {QueryKindLabel[query.kind]}
                                     </Badge>
+                                    <Text
+                                        fw={500}
+                                        size="sm"
+                                        className="wrapped-text"
+                                    >
+                                        {describeQuery(query)}
+                                    </Text>
                                 </Group>
-                            }
-                            labelPosition="center"
-                        />
-
-                        {query.sorts.length > 0 && (
-                            <Stack gap={4}>
-                                <Text size="xs" fw={500} c="dimmed">
-                                    Sorts
-                                </Text>
-                                {query.sorts.map((sort, index) => (
-                                    <Group
-                                        key={index}
-                                        justify="space-between"
-                                        wrap="nowrap"
-                                    >
-                                        <Text fw={500}>{sort.field.name}</Text>
-                                        <Group gap="xs">
-                                            <Badge
-                                                color={props.tracker.color}
-                                                variant="light"
-                                            >
-                                                Order: {sort.order + 1}
-                                            </Badge>
-                                            <Badge color="gray" variant="light">
-                                                {sort.descending
-                                                    ? "Descending"
-                                                    : "Ascending"}
-                                            </Badge>
-                                        </Group>
-                                    </Group>
-                                ))}
-                            </Stack>
-                        )}
-
-                        {query.filters.length > 0 && (
-                            <Stack gap={4}>
-                                <Text size="xs" fw={500} c="dimmed">
-                                    Filters
-                                </Text>
-                                {query.filters.map((filter, index) => (
-                                    <Group
-                                        key={index}
-                                        justify="space-between"
-                                        wrap="nowrap"
-                                    >
-                                        <Text fw={500}>
-                                            {filter.field.name}
-                                        </Text>
-                                        <Group gap="xs">
-                                            <Badge
-                                                color={props.tracker.color}
-                                                variant="light"
-                                            >
-                                                {formatOperator(
-                                                    filter.operator,
-                                                )}
-                                            </Badge>
-                                            <Badge
-                                                color={props.tracker.color}
-                                                variant="outline"
-                                            >
-                                                {filter.value
-                                                    ? renderValue(
-                                                          filter.field.type,
-                                                          filter.value,
-                                                      )
-                                                    : "Empty"}
-                                            </Badge>
-                                        </Group>
-                                    </Group>
-                                ))}
-                            </Stack>
-                        )}
-
-                        {query.sorts.length === 0 &&
-                            query.filters.length === 0 && (
-                                <Text size="xs" c="dimmed" ta="center">
-                                    No filters or sorts
-                                </Text>
-                            )}
-                    </Stack>
-                ))}
+                                <Badge variant="outline" color="gray" size="xs">
+                                    precedence {index + 1}
+                                </Badge>
+                            </Group>
+                        </Paper>
+                    ))
+                )}
             </Stack>
         </Modal>
     );

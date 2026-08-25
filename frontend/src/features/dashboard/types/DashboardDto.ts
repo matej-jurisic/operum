@@ -37,6 +37,7 @@ export interface ViewWidgetDto {
     trackerId: string;
     trackerName: string;
     color?: string;
+    icon?: string;
     viewId?: string | null;
     views: ViewOptionDto[];
 }
@@ -114,7 +115,10 @@ export interface DashboardItemSourceDto {
     fields: DashboardItemSourceFieldDto[];
     trackerId: string;
     trackerName: string;
+    /** How the source is filtered: a fixed view of its own tracker, or the View widget on
+        the board whose selection it follows. Never both. */
     viewId?: string;
+    linkedViewWidgetId?: string;
     label?: string;
     order: number;
 }
@@ -194,6 +198,29 @@ export interface AddDashboardViewItemDto {
     trackerId: string;
     /** The dropdown's starting selection. Left unset to start on "All entries". */
     viewId?: string | null;
+}
+
+/**
+ * One source of an analytic widget as the board is allowed to change it after the fact:
+ * what the series is called, and which view narrows the entries it reads.
+ */
+export interface UpdateDashboardItemSourceDto {
+    sourceId: string;
+    /** Cleared when left blank, so the widget falls back to the definition's own label. */
+    label?: string | null;
+    /** At most one of these — see AddDashboardItemSourceDto. */
+    viewId?: string | null;
+    linkedViewWidgetId?: string | null;
+}
+
+/**
+ * Edits an analytic widget in place. Only what belongs to the board is editable: the
+ * result type, code and field mapping are the definition the widget was built from, and
+ * changing those would make it a different chart rather than the one that was placed
+ * here. The payload stands for the whole widget, so every source is named every time.
+ */
+export interface UpdateDashboardItemDto {
+    sources: UpdateDashboardItemSourceDto[];
 }
 
 /** Changes what a WidgetTypes.View item's dropdown is currently set to. Persisted on the

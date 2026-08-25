@@ -449,10 +449,6 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                                         <Text size="lg" fw={500} c="dimmed">
                                             No Entries Available
                                         </Text>
-                                        <Text ta="center" c="dimmed">
-                                            Entries will appear here when you
-                                            create them.
-                                        </Text>
                                     </Stack>
                                 </Paper>
                             )}

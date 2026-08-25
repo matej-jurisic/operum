@@ -15,9 +15,11 @@ import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
 import Header from "../../../shared/components/Header";
 import { dashboardController } from "../api/dashboardController";
 import { AddWidgetModal } from "../components/AddWidgetModal";
+import BoardActions from "../components/BoardActions";
 import BoardFormModal from "../components/BoardFormModal";
 import BoardSwitcher from "../components/BoardSwitcher";
 import { DashboardGrid } from "../components/DashboardGrid";
+import { EditWidgetModal } from "../components/EditWidgetModal";
 import { DashboardProvider, useDashboard } from "../context/DashboardContext";
 import { DashboardDto } from "../types/DashboardDto";
 
@@ -48,6 +50,7 @@ function DashboardContent({
         addItemFromAnalytic,
         addQuickAddItem,
         addViewItem,
+        updateItem,
         setViewSelection,
         removeItem,
         saveLayout,
@@ -55,9 +58,16 @@ function DashboardContent({
     const theme = useMantineTheme();
     const [isConfiguring, setIsConfiguring] = useState(false);
     const [isAddOpen, setIsAddOpen] = useState(false);
+    const [editingItemId, setEditingItemId] = useState<string>();
 
-    // The board's name, the way out of arrange mode and the app's own controls all share
-    // one row. On a phone that row only fits if the buttons on it drop their labels.
+    // Stable, because the edit dialog loads the widget it was opened on in an effect keyed
+    // on this: an identity that changed with every render of the board would send it back
+    // for the same widget each time one did.
+    const closeEditing = useCallback(() => setEditingItemId(undefined), []);
+
+    // The board's name, the actions on it, the way out of arrange mode and the app's own
+    // controls all share one row. On a phone that row only fits if the buttons on it drop
+    // their labels and keep just their icons.
     const isMobile = useMediaQuery("(max-width: 48em)");
 
     useEffect(() => {
@@ -79,14 +89,19 @@ function DashboardContent({
                 align="center"
             >
                 {/* Takes whatever the header leaves it, down to nothing: the board
-                    switcher ellipsizes its name rather than pushing the row wider. */}
+                    switcher ellipsizes its name rather than pushing the row wider,
+                    so the buttons beside it keep their full width. */}
                 <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
                     <BoardSwitcher
                         boards={boards}
                         activeBoardId={activeBoard.id}
-                        isConfiguring={isConfiguring}
                         onSelect={onSelectBoard}
                         onCreate={onCreateBoard}
+                    />
+                    <BoardActions
+                        color={color}
+                        isConfiguring={isConfiguring}
+                        isMobile={!!isMobile}
                         onEdit={onEditBoard}
                         onDelete={onDeleteBoard}
                         onAddItem={() => setIsAddOpen(true)}
@@ -128,15 +143,9 @@ function DashboardContent({
                     >
                         <TbLayoutDashboard size={36} />
                     </ThemeIcon>
-                    <Stack align="center" gap={4}>
-                        <Text fw={700} size="xl">
-                            Nothing on this board yet
-                        </Text>
-                        <Text size="sm" c="dimmed">
-                            Add a widget to show analytics from your trackers
-                            here
-                        </Text>
-                    </Stack>
+                    <Text fw={700} size="xl">
+                        Nothing on this board yet
+                    </Text>
                     <Button
                         color={color}
                         leftSection={<FiPlus size={16} />}
@@ -152,7 +161,17 @@ function DashboardContent({
                     isConfiguring={isConfiguring}
                     onLayoutSave={saveLayout}
                     onRemove={removeItem}
+                    onEdit={setEditingItemId}
                     onViewSelect={setViewSelection}
+                />
+            )}
+
+            {editingItemId && (
+                <EditWidgetModal
+                    itemId={editingItemId}
+                    color={color}
+                    onClose={closeEditing}
+                    onSave={updateItem}
                 />
             )}
 
@@ -287,15 +306,9 @@ export default function DashboardPage() {
                     >
                         <TbLayoutDashboard size={36} />
                     </ThemeIcon>
-                    <Stack align="center" gap={4}>
-                        <Text fw={700} size="xl">
-                            No boards yet
-                        </Text>
-                        <Text size="sm" c="dimmed">
-                            Create a board to aggregate analytics from your
-                            trackers
-                        </Text>
-                    </Stack>
+                    <Text fw={700} size="xl">
+                        No boards yet
+                    </Text>
                     <Button
                         leftSection={<FiPlus size={16} />}
                         onClick={() => setIsCreateOpen(true)}

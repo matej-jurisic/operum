@@ -196,18 +196,11 @@ namespace Operum.Tests.Tests.Views
             var viewId = await TestApi.CreateView(client, trackerId, new CreateViewDto
             {
                 Name = "Group then amount",
-                Queries = [new ViewQueryRefDto
-                {
-                    NewQuery = new()
-                    {
-                        Name = "Group then amount",
-                        Sorts =
-                        [
-                            new() { FieldId = groupId },
-                            new() { FieldId = amountId, Descending = true }
-                        ]
-                    }
-                }]
+                Queries =
+                [
+                    new ViewQueryRefDto { NewQuery = TestApi.SortClause(groupId, descending: false) },
+                    new ViewQueryRefDto { NewQuery = TestApi.SortClause(amountId, descending: true) }
+                ]
             });
 
             var entries = await TestApi.ListEntries(client, trackerId, viewId);
@@ -256,8 +249,8 @@ namespace Operum.Tests.Tests.Views
             await TestApi.CreateEntry(client, trackerId, new() { ["Note"] = "walk", ["Amount"] = "10" });
             await TestApi.CreateEntry(client, trackerId, new() { ["Note"] = "walk", ["Amount"] = "1" });
             await TestApi.CreateEntry(client, trackerId, new() { ["Note"] = "run", ["Amount"] = "10" });
-            var walks = await TestApi.CreateFilterQuery(client, trackerId, "Walks", noteId, OperatorTypes.EqualsOperator, "walk");
-            var big = await TestApi.CreateFilterQuery(client, trackerId, "Big", amountId, OperatorTypes.GreaterThan, "5");
+            var walks = await TestApi.CreateFilterQuery(client, trackerId, noteId, OperatorTypes.EqualsOperator, "walk");
+            var big = await TestApi.CreateFilterQuery(client, trackerId, amountId, OperatorTypes.GreaterThan, "5");
             var viewId = await TestApi.CreateViewFromQueries(client, trackerId, "Big walks", walks, big);
 
             var entries = await TestApi.ListEntries(client, trackerId, viewId);
@@ -276,8 +269,8 @@ namespace Operum.Tests.Tests.Views
             var amountId = await TestApi.CreateField(client, trackerId, "Amount", DataTypes.Number);
             foreach (var amount in new[] { "1", "10", "5" })
                 await TestApi.CreateEntry(client, trackerId, new() { ["Amount"] = amount });
-            var descending = await TestApi.CreateSortQuery(client, trackerId, "Biggest first", amountId, descending: true);
-            var ascending = await TestApi.CreateSortQuery(client, trackerId, "Smallest first", amountId, descending: false);
+            var descending = await TestApi.CreateSortQuery(client, trackerId, amountId, descending: true);
+            var ascending = await TestApi.CreateSortQuery(client, trackerId, amountId, descending: false);
 
             var descendingWins = await TestApi.CreateViewFromQueries(client, trackerId, "Descending wins", descending, ascending);
             var ascendingWins = await TestApi.CreateViewFromQueries(client, trackerId, "Ascending wins", ascending, descending);
@@ -294,8 +287,8 @@ namespace Operum.Tests.Tests.Views
             var amountId = await TestApi.CreateField(client, trackerId, "Amount", DataTypes.Number);
             foreach (var amount in new[] { "1", "10", "5", "7" })
                 await TestApi.CreateEntry(client, trackerId, new() { ["Amount"] = amount });
-            var big = await TestApi.CreateFilterQuery(client, trackerId, "Big", amountId, OperatorTypes.GreaterThan, "1");
-            var sorted = await TestApi.CreateSortQuery(client, trackerId, "Biggest first", amountId, descending: true);
+            var big = await TestApi.CreateFilterQuery(client, trackerId, amountId, OperatorTypes.GreaterThan, "1");
+            var sorted = await TestApi.CreateSortQuery(client, trackerId, amountId, descending: true);
             var viewId = await TestApi.CreateViewFromQueries(client, trackerId, "Big, biggest first", big, sorted);
 
             Assert.Equal(["10", "7", "5"], await TestApi.ListValues(client, trackerId, "Amount", viewId));

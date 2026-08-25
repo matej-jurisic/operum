@@ -10,46 +10,49 @@ namespace Operum.Service.Domain.Views
     public static class ViewQueryBuilder
     {
         /// <summary>
-        /// Flattens a view's queries (in order) into a single sort list, using
-        /// first-query-wins: if two queries sort the same field, the earlier query's
-        /// sort takes priority and the later one is skipped.
+        /// Picks a view's sort queries out, in view order, using first-query-wins: if two
+        /// of them sort the same field, the earlier one takes priority and the later one
+        /// is skipped.
         /// </summary>
-        public static List<QuerySort> ResolveSorts(View view)
+        public static List<Query> ResolveSorts(View view)
         {
             var seenFieldIds = new HashSet<string>();
-            var merged = new List<QuerySort>();
+            var merged = new List<Query>();
 
             foreach (var viewQuery in view.ViewQueries.OrderBy(vq => vq.Order))
             {
-                foreach (var sort in viewQuery.Query.Sorts.OrderBy(s => s.Order))
-                {
-                    if (seenFieldIds.Add(sort.FieldId))
-                        merged.Add(sort);
-                }
+                var query = viewQuery.Query;
+                if (query.Kind != QueryKinds.Sort)
+                    continue;
+
+                if (seenFieldIds.Add(query.FieldId))
+                    merged.Add(query);
             }
 
             return merged;
         }
 
         /// <summary>
-        /// Flattens a view's queries into a single filter list, ANDing them all together.
+        /// Picks a view's filter queries out, ANDing them all together.
         /// </summary>
-        public static List<QueryFilter> ResolveFilters(View view)
+        public static List<Query> ResolveFilters(View view)
         {
             return view.ViewQueries
                 .OrderBy(vq => vq.Order)
-                .SelectMany(vq => vq.Query.Filters)
+                .Select(vq => vq.Query)
+                .Where(q => q.Kind == QueryKinds.Filter)
                 .ToList();
         }
 
-        public static IQueryable<Entry> ApplyViewSorting(IQueryable<Entry> query, List<QuerySort> sorts)
+        public static IQueryable<Entry> ApplyViewSorting(IQueryable<Entry> query, List<Query> sorts)
         {
             if (sorts.Count == 0)
                 return query.OrderByDescending(x => x.CreatedAt);
 
             IOrderedQueryable<Entry>? orderedQuery = null;
 
-            foreach (var sort in sorts.OrderBy(s => s.Order))
+            // The list is already in the order the view puts its sorts in.
+            foreach (var sort in sorts)
             {
                 var fieldId = sort.FieldId;
                 var descending = sort.Descending;
@@ -118,7 +121,7 @@ namespace Operum.Service.Domain.Views
             return orderedQuery ?? query.OrderByDescending(x => x.CreatedAt);
         }
 
-        public static IQueryable<Entry> ApplyViewFilters(IQueryable<Entry> query, List<QueryFilter> filters, TimeZoneInfo tz)
+        public static IQueryable<Entry> ApplyViewFilters(IQueryable<Entry> query, List<Query> filters, TimeZoneInfo tz)
         {
             if (filters.Count == 0)
                 return query;
@@ -126,7 +129,7 @@ namespace Operum.Service.Domain.Views
             foreach (var filter in filters)
             {
                 var fieldId = filter.FieldId;
-                var operatorType = filter.Operator;
+                var operatorType = filter.Operator ?? string.Empty;
                 var value = filter.Value;
                 var fieldType = filter.Field.Type.ToLowerInvariant();
 

@@ -5,7 +5,6 @@ import {
     Code,
     FileInput,
     Group,
-    List,
     Modal,
     Stack,
     Text,
@@ -58,16 +57,10 @@ export default function ImportEntriesDialog(props: ImportEntriesDialogProps) {
                 })}
             >
                 <Stack>
-                    <Text size="sm" c="dimmed">
-                        Upload a CSV file to import entries. Make sure header
-                        names match the field names in the tracker.
-                    </Text>
-
                     <Box>
                         <Group justify="space-between" align="center" mb={4}>
                             <Text size="sm" fw={500}>
-                                Expected CSV header format (Order does not
-                                matter):
+                                Expected header (order does not matter)
                             </Text>
                             <Tooltip
                                 label={
@@ -92,47 +85,11 @@ export default function ImportEntriesDialog(props: ImportEntriesDialogProps) {
                         </Code>
                     </Box>
 
-                    <Box>
-                        <Text size="sm" fw={500} mb={8}>
-                            Date & Time Format Requirements:
-                        </Text>
-                        <List size="sm" spacing={4}>
-                            <List.Item>
-                                <Text size="sm">
-                                    <Text span fw={500}>
-                                        Date:
-                                    </Text>{" "}
-                                    Use DD/MM/YYYY format (e.g., 10/01/2004)
-                                </Text>
-                            </List.Item>
-                            <List.Item>
-                                <Text size="sm">
-                                    <Text span fw={500}>
-                                        Time:
-                                    </Text>{" "}
-                                    Use HH:MM:SS format (e.g., 10:32:22)
-                                </Text>
-                            </List.Item>
-                            <List.Item>
-                                <Text size="sm">
-                                    <Text span fw={500}>
-                                        DateTime:
-                                    </Text>{" "}
-                                    Assumes UTC by default (e.g., 10/01/2004
-                                    10:32:22)
-                                </Text>
-                            </List.Item>
-                            <List.Item>
-                                <Text size="sm">
-                                    <Text span fw={500}>
-                                        DateTime with timezone:
-                                    </Text>{" "}
-                                    Add offset like +02:00 or +02 (e.g.,
-                                    10/01/2004 10:32:22 +02:00)
-                                </Text>
-                            </List.Item>
-                        </List>
-                    </Box>
+                    <Text size="xs" c="dimmed">
+                        Dates are DD/MM/YYYY, times HH:MM:SS. A datetime is read
+                        as UTC unless it carries an offset (10/01/2004 10:32:22
+                        +02:00).
+                    </Text>
 
                     <FileInput
                         variant="default"

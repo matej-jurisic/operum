@@ -409,9 +409,6 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
 
             {form.values.valueMode === "Analytic" ? (
                 <Stack gap="md">
-                    <Text size="sm" c="dimmed">
-                        Pick an analytic — the condition in the next step checks its computed result.
-                    </Text>
                     <Select
                         label="Analytic"
                         placeholder="Select a single-value analytic"
@@ -435,11 +432,7 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
                         />
                     ))}
                 </Stack>
-            ) : (
-                <Text size="sm" c="dimmed">
-                    The condition in the next step filters entries directly — the notification fires when new entries match.
-                </Text>
-            )}
+            ) : null}
         </Stack>
     );
 
@@ -469,7 +462,7 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
         return (
             <Stack gap="md" mt="md">
                 {form.values.filters.length === 0 && (
-                    <Text c="dimmed" size="sm">No conditions — always fires on schedule.</Text>
+                    <Text c="dimmed" size="sm">No conditions, fires on schedule.</Text>
                 )}
 
                 {form.values.filters.map((filter, i) => {

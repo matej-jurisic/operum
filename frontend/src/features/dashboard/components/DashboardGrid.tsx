@@ -124,6 +124,7 @@ interface Props {
     layout: DashboardLayoutItemDto[],
   ) => void;
   onRemove?: (itemId: string) => void;
+  onEdit?: (itemId: string) => void;
   onEntryClick?: (entryId: string) => void;
   onViewSelect?: (itemId: string, viewId: string | null) => void;
 }
@@ -134,6 +135,7 @@ export function DashboardGrid({
   isConfiguring,
   onLayoutSave,
   onRemove,
+  onEdit,
   onEntryClick,
   onViewSelect,
 }: Props) {
@@ -211,6 +213,7 @@ export function DashboardGrid({
                 color={color}
                 isConfiguring={isConfiguring}
                 onRemove={onRemove}
+                onEdit={onEdit}
                 onEntryClick={onEntryClick}
                 onViewSelect={onViewSelect}
               />

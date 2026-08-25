@@ -208,9 +208,6 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
                                 <Text fw={700} size="xl">
                                     No shared trackers
                                 </Text>
-                                <Text size="sm" c="dimmed">
-                                    Trackers shared with you will appear here.
-                                </Text>
                             </Stack>
                         ) : (
                             <Stack align="center" gap="md" py={80}>
@@ -222,15 +219,9 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
                                 >
                                     <TbLayoutGrid size={36} />
                                 </ThemeIcon>
-                                <Stack align="center" gap={4}>
-                                    <Text fw={700} size="xl">
-                                        No trackers yet
-                                    </Text>
-                                    <Text size="sm" c="dimmed">
-                                        Create your first tracker to start
-                                        logging data
-                                    </Text>
-                                </Stack>
+                                <Text fw={700} size="xl">
+                                    No trackers yet
+                                </Text>
                                 <Button
                                     leftSection={<FiZap size={16} />}
                                     onClick={() =>

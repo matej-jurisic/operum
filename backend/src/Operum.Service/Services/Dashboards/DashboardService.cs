@@ -139,6 +139,7 @@ namespace Operum.Service.Services.Dashboards
                             TrackerId = viewTracker.Id,
                             TrackerName = viewTracker.Name,
                             Color = viewTracker.Color,
+                            Icon = viewTracker.Icon,
                             ViewId = viewConfig.ViewId,
                             Views = (trackerViews ?? []).Select(v => new ViewOptionDto { Id = v.Id, Name = v.Name }).ToList()
                         };
@@ -169,8 +170,7 @@ namespace Operum.Service.Services.Dashboards
                     if (!string.IsNullOrEmpty(effectiveViewId))
                     {
                         view = await db.Views
-                            .Include(v => v.ViewQueries.OrderBy(vq => vq.Order)).ThenInclude(vq => vq.Query).ThenInclude(q => q.Filters).ThenInclude(f => f.Field)
-                            .Include(v => v.ViewQueries).ThenInclude(vq => vq.Query).ThenInclude(q => q.Sorts).ThenInclude(s => s.Field)
+                            .Include(v => v.ViewQueries.OrderBy(vq => vq.Order)).ThenInclude(vq => vq.Query).ThenInclude(q => q.Field)
                             .FirstOrDefaultAsync(v => v.Id == effectiveViewId && v.TrackerId == source.TrackerId);
                     }
 
@@ -336,16 +336,9 @@ namespace Operum.Service.Services.Dashboards
                         return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("view"));
                 }
 
-                if (!string.IsNullOrEmpty(sourceDto.LinkedViewWidgetId))
-                {
-                    // Looked up in the graph already loaded above rather than queried, since
-                    // the widget being linked to has to be on this same dashboard.
-                    var viewWidgetItem = dashboard.Items.FirstOrDefault(i => i.Id == sourceDto.LinkedViewWidgetId && i.Type == DashboardWidgetTypes.View);
-                    var viewWidgetConfig = viewWidgetItem != null ? TryParseViewConfig(viewWidgetItem.Config) : null;
-
-                    if (viewWidgetConfig == null || viewWidgetConfig.TrackerId != sourceDto.TrackerId)
-                        return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("view widget for this tracker"));
-                }
+                if (!string.IsNullOrEmpty(sourceDto.LinkedViewWidgetId) &&
+                    !IsLinkableViewWidget(dashboard, sourceDto.LinkedViewWidgetId, sourceDto.TrackerId))
+                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("view widget for this tracker"));
 
                 var source = new DashboardItemSource
                 {
@@ -431,6 +424,7 @@ namespace Operum.Service.Services.Dashboards
                     TrackerId = s.TrackerId,
                     TrackerName = trackers.First(t => t.Id == s.TrackerId).Name,
                     ViewId = s.ViewId,
+                    LinkedViewWidgetId = s.LinkedViewWidgetId,
                     Label = s.Label,
                     Order = s.Order
                 }).ToList()
@@ -610,6 +604,66 @@ namespace Operum.Service.Services.Dashboards
             });
         }
 
+        // Edits an analytic widget in place, but only where editing is the board's business:
+        // what the widget is called, and which view each of its sources reads through. The
+        // definition itself (result type, code, field mapping) is deliberately not editable —
+        // changing that turns the widget into a different chart rather than the one that was
+        // placed here, which is what adding a new one is for. Returns the whole board
+        // recomputed, the same as SetViewWidgetSelection, since a changed view changes what
+        // the chart draws.
+        public async Task<Result<List<DashboardWidgetDto>>> UpdateDashboardItem(string dashboardId, string itemId, UpdateDashboardItemDto dto)
+        {
+            var dashboard = await GetUserDashboard(dashboardId);
+            if (dashboard == null)
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
+
+            var item = dashboard.Items.FirstOrDefault(i => i.Id == itemId && i.Type == DashboardWidgetTypes.Analytic);
+            if (item == null)
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("analytic widget"));
+
+            // All-or-nothing, the way reordering a tracker's fields is: the payload stands
+            // for the whole widget, so it has to name every source exactly once before a
+            // label or a view left out of it can mean "cleared" rather than "left alone".
+            var suppliedIds = dto.Sources.Select(s => s.SourceId).ToList();
+            if (suppliedIds.Count != suppliedIds.Distinct().Count() ||
+                !item.Sources.Select(s => s.Id).ToHashSet().SetEquals(suppliedIds))
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.Required("every source of this widget, exactly once"));
+
+            // Validated in full before anything is written, so a rejected edit never leaves
+            // the widget half changed.
+            foreach (var sourceDto in dto.Sources)
+            {
+                var source = item.Sources.First(s => s.Id == sourceDto.SourceId);
+
+                if (!string.IsNullOrEmpty(sourceDto.ViewId))
+                {
+                    var exists = await db.Views.AnyAsync(v => v.Id == sourceDto.ViewId && v.TrackerId == source.TrackerId);
+                    if (!exists)
+                        return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("view"));
+                }
+
+                if (!string.IsNullOrEmpty(sourceDto.LinkedViewWidgetId) &&
+                    !IsLinkableViewWidget(dashboard, sourceDto.LinkedViewWidgetId, source.TrackerId))
+                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("view widget for this tracker"));
+            }
+
+            foreach (var sourceDto in dto.Sources)
+            {
+                var source = item.Sources.First(s => s.Id == sourceDto.SourceId);
+
+                // A name of nothing but whitespace is no name: stored as none at all, so the
+                // widget falls back to the definition's own label rather than showing a blank
+                // title.
+                source.Label = string.IsNullOrWhiteSpace(sourceDto.Label) ? null : sourceDto.Label.Trim();
+                source.ViewId = string.IsNullOrEmpty(sourceDto.ViewId) ? null : sourceDto.ViewId;
+                source.LinkedViewWidgetId = string.IsNullOrEmpty(sourceDto.LinkedViewWidgetId) ? null : sourceDto.LinkedViewWidgetId;
+            }
+
+            await db.SaveChangesAsync();
+
+            return Result.Success(await BuildWidgets(dashboard));
+        }
+
         // Changes what a View widget's dropdown is currently set to and persists it onto the
         // item's own Config, so it's what every future load starts from — not just this
         // session. Returns the whole board recomputed, the same as GetDashboardWidgets,
@@ -746,6 +800,18 @@ namespace Operum.Service.Services.Dashboards
             }
 
             return Result.Success(AnalyticDefinitionList.GetDisplayName(resultType, code, fieldNames));
+        }
+
+        // A source may only follow a View widget that is on this same board and built for the
+        // same tracker the source reads from, otherwise the widget's selection would name a
+        // view that never applies to it. Looked up in the graph already loaded rather than
+        // queried, since the widget has to be on this dashboard to begin with.
+        private static bool IsLinkableViewWidget(Dashboard dashboard, string viewWidgetId, string trackerId)
+        {
+            var viewWidgetItem = dashboard.Items.FirstOrDefault(i => i.Id == viewWidgetId && i.Type == DashboardWidgetTypes.View);
+            var viewWidgetConfig = viewWidgetItem != null ? TryParseViewConfig(viewWidgetItem.Config) : null;
+
+            return viewWidgetConfig != null && viewWidgetConfig.TrackerId == trackerId;
         }
 
         // Purpose -> Field for the mappings that still resolve. Deleting a field cascades its
@@ -949,6 +1015,7 @@ namespace Operum.Service.Services.Dashboards
                 TrackerId = s.TrackerId,
                 TrackerName = s.Tracker.Name,
                 ViewId = s.ViewId,
+                LinkedViewWidgetId = s.LinkedViewWidgetId,
                 Label = s.Label,
                 Order = s.Order
             };

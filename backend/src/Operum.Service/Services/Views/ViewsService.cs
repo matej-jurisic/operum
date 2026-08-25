@@ -122,12 +122,7 @@ namespace Operum.Service.Services.Views
                     .ThenInclude(x => x.ApplicationUserTrackers)
                 .Include(x => x.ViewQueries.OrderBy(vq => vq.Order))
                     .ThenInclude(vq => vq.Query)
-                        .ThenInclude(q => q.Sorts.OrderBy(s => s.Order))
-                            .ThenInclude(s => s.Field)
-                .Include(x => x.ViewQueries)
-                    .ThenInclude(vq => vq.Query)
-                        .ThenInclude(q => q.Filters)
-                            .ThenInclude(f => f.Field)
+                        .ThenInclude(q => q.Field)
                 .FirstOrDefaultAsync(x => x.Id == viewId && x.TrackerId == trackerId);
 
             var hasAccess = userView != null && (userView.Tracker.OwnerId == user.Id || userView.Tracker.ApplicationUserTrackers.Any(x => x.ApplicationUserId == user.Id));
@@ -158,12 +153,7 @@ namespace Operum.Service.Services.Views
             var userViews = await db.Views
                 .Include(x => x.ViewQueries.OrderBy(vq => vq.Order))
                     .ThenInclude(vq => vq.Query)
-                        .ThenInclude(q => q.Filters)
-                            .ThenInclude(f => f.Field)
-                .Include(x => x.ViewQueries)
-                    .ThenInclude(vq => vq.Query)
-                        .ThenInclude(q => q.Sorts.OrderBy(s => s.Order))
-                            .ThenInclude(s => s.Field)
+                        .ThenInclude(q => q.Field)
                 .Where(x => x.TrackerId == trackerId)
                 .OrderBy(x => x.Order)
                 .ToListAsync();
@@ -242,41 +232,35 @@ namespace Operum.Service.Services.Views
             return new QueryDto
             {
                 Id = query.Id,
-                Name = query.Name,
-                Description = query.Description,
-                Sorts = query.Sorts.OrderBy(s => s.Order).Select(s => new QuerySortDto
-                {
-                    Id = s.Id,
-                    Field = mapper.Map<Field, FieldDto>(s.Field),
-                    Order = s.Order,
-                    Descending = s.Descending,
-                }).ToList(),
-                Filters = query.Filters.Select(f => new QueryFilterDto
-                {
-                    Id = f.Id,
-                    Field = mapper.Map<Field, FieldDto>(f.Field),
-                    Operator = f.Operator,
-                    Value = f.Value,
-                }).ToList(),
+                Kind = query.Kind,
+                Field = mapper.Map<Field, FieldDto>(query.Field),
+                Operator = query.Operator,
+                Value = query.Value,
+                Descending = query.Descending,
             };
         }
 
         // Resolves each ordered ViewQueryRefDto to a concrete Query id, validating and
         // building brand-new Query entities for ad-hoc refs along the way (not yet saved).
+        // A view's clauses are counted by kind, so the old per-view filter and sort limits
+        // still hold now that each query carries exactly one of them.
         private async Task<Result<List<(string QueryId, Query? NewQuery)>>> ResolveViewQueries(string trackerId, List<ViewQueryRefDto> queryRefs)
         {
             var resolved = new List<(string QueryId, Query? NewQuery)>();
             var existingQueryCount = await db.Queries.CountAsync(q => q.TrackerId == trackerId);
             var newQueryCount = 0;
+            var filterCount = 0;
+            var sortCount = 0;
 
             foreach (var queryRef in queryRefs)
             {
                 if (queryRef.QueryId != null)
                 {
-                    var exists = await db.Queries.AnyAsync(q => q.Id == queryRef.QueryId && q.TrackerId == trackerId);
-                    if (!exists)
+                    var existing = await db.Queries.FirstOrDefaultAsync(q => q.Id == queryRef.QueryId && q.TrackerId == trackerId);
+                    if (existing == null)
                         return Result.Failure(ResultStatusCodes.BadRequest, Messages.ItemNotFound("query"));
 
+                    if (existing.Kind == QueryKinds.Sort) sortCount++; else filterCount++;
                     resolved.Add((queryRef.QueryId, null));
                 }
                 else if (queryRef.NewQuery != null)
@@ -284,15 +268,22 @@ namespace Operum.Service.Services.Views
                     if (existingQueryCount + newQueryCount >= DataLimits.MaxQueryCount)
                         return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("queries", DataLimits.MaxQueryCount));
 
-                    var validation = await QueryBuilder.ValidateSortsAndFilters(db, trackerId, queryRef.NewQuery.Sorts, queryRef.NewQuery.Filters);
+                    var validation = await QueryBuilder.ValidateClause(db, trackerId, queryRef.NewQuery);
                     if (validation.IsFailure)
                         return Result.Failure(validation.StatusCode, validation.Messages);
+
+                    if (queryRef.NewQuery.Kind == QueryKinds.Sort) sortCount++; else filterCount++;
 
                     var newQuery = QueryBuilder.BuildQueryEntity(trackerId, queryRef.NewQuery);
                     newQueryCount++;
                     resolved.Add((newQuery.Id, newQuery));
                 }
             }
+
+            if (filterCount > DataLimits.MaxFilters)
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("filters", DataLimits.MaxFilters));
+            if (sortCount > DataLimits.MaxSorts)
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("sorts", DataLimits.MaxSorts));
 
             return Result.Success(resolved);
         }

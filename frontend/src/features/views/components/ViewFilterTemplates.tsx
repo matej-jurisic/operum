@@ -14,7 +14,6 @@ import {
 export interface FilterTemplate {
     id: string;
     name: string;
-    description: string;
     icon: React.ReactNode;
     fieldTypes: string[]; // Field types this template works with
     filters: Array<{
@@ -35,7 +34,6 @@ const DATE_FIELD_TYPES = [FieldTypes.Date, FieldTypes.DateTime];
 function periodTemplate(
     id: string,
     name: string,
-    description: string,
     startAnchor: DateAnchor,
     endAnchor: DateAnchor,
     offset: number,
@@ -43,7 +41,6 @@ function periodTemplate(
     return {
         id,
         name,
-        description,
         icon: <FiCalendar size={16} />,
         fieldTypes: DATE_FIELD_TYPES,
         filters: [
@@ -62,14 +59,12 @@ function periodTemplate(
 function lookbackTemplate(
     id: string,
     name: string,
-    description: string,
     prefix: LookbackPrefix,
     n: number,
 ): FilterTemplate {
     return {
         id,
         name,
-        description,
         icon: <CiClock2 size={16} />,
         fieldTypes: DATE_FIELD_TYPES,
         filters: [
@@ -85,7 +80,6 @@ export const filterTemplates: FilterTemplate[] = [
     {
         id: "today",
         name: "Today",
-        description: "Show entries from today",
         icon: <FiCalendar size={16} />,
         fieldTypes: DATE_FIELD_TYPES,
         filters: [
@@ -98,7 +92,6 @@ export const filterTemplates: FilterTemplate[] = [
     {
         id: "yesterday",
         name: "Yesterday",
-        description: "Show entries from yesterday",
         icon: <FiCalendar size={16} />,
         fieldTypes: DATE_FIELD_TYPES,
         filters: [
@@ -111,21 +104,18 @@ export const filterTemplates: FilterTemplate[] = [
     lookbackTemplate(
         "last_7_days",
         "Last 7 Days",
-        "Show entries from the past week",
         LookbackPrefixes.LastNDays,
         7,
     ),
     lookbackTemplate(
         "last_30_days",
         "Last 30 Days",
-        "Show entries from the past 30 days",
         LookbackPrefixes.LastNDays,
         30,
     ),
     periodTemplate(
         "current_week",
         "Current Week",
-        "Show entries from the current week",
         DateAnchors.StartOfWeek,
         DateAnchors.EndOfWeek,
         0,
@@ -133,7 +123,6 @@ export const filterTemplates: FilterTemplate[] = [
     periodTemplate(
         "last_week",
         "Last Week",
-        "Show entries from the previous week only",
         DateAnchors.StartOfWeek,
         DateAnchors.EndOfWeek,
         -1,
@@ -141,7 +130,6 @@ export const filterTemplates: FilterTemplate[] = [
     periodTemplate(
         "current_month",
         "Current Month",
-        "Show entries from the current month",
         DateAnchors.StartOfMonth,
         DateAnchors.EndOfMonth,
         0,
@@ -149,7 +137,6 @@ export const filterTemplates: FilterTemplate[] = [
     periodTemplate(
         "last_month",
         "Last Month",
-        "Show entries from the previous month only",
         DateAnchors.StartOfMonth,
         DateAnchors.EndOfMonth,
         -1,
@@ -157,7 +144,6 @@ export const filterTemplates: FilterTemplate[] = [
     periodTemplate(
         "current_year",
         "Current Year",
-        "Show entries from the current year",
         DateAnchors.StartOfYear,
         DateAnchors.EndOfYear,
         0,
@@ -165,7 +151,6 @@ export const filterTemplates: FilterTemplate[] = [
     periodTemplate(
         "last_year",
         "Last Year",
-        "Show entries from the previous year only",
         DateAnchors.StartOfYear,
         DateAnchors.EndOfYear,
         -1,
@@ -173,7 +158,6 @@ export const filterTemplates: FilterTemplate[] = [
     {
         id: "positive_values",
         name: "Positive Values",
-        description: "Show entries with values above zero",
         icon: <FiTrendingUp size={16} />,
         fieldTypes: [FieldTypes.Number],
         filters: [
@@ -186,7 +170,6 @@ export const filterTemplates: FilterTemplate[] = [
     {
         id: "negative_values",
         name: "Negative Values",
-        description: "Show entries with values below zero",
         icon: <FiTrendingUp size={16} />,
         fieldTypes: [FieldTypes.Number],
         filters: [
@@ -199,7 +182,6 @@ export const filterTemplates: FilterTemplate[] = [
     {
         id: "is_true",
         name: "Is True",
-        description: "Show entries where value is true",
         icon: <FiPlus size={16} />,
         fieldTypes: [FieldTypes.Bool],
         filters: [
@@ -212,7 +194,6 @@ export const filterTemplates: FilterTemplate[] = [
     {
         id: "is_false",
         name: "Is False",
-        description: "Show entries where value is false",
         icon: <FiPlus size={16} />,
         fieldTypes: [FieldTypes.Bool],
         filters: [
@@ -225,7 +206,6 @@ export const filterTemplates: FilterTemplate[] = [
     {
         id: "has_value",
         name: "Has Value",
-        description: "Show entries that are not empty",
         icon: <FiPlus size={16} />,
         fieldTypes: [
             FieldTypes.String,
@@ -243,7 +223,6 @@ export const filterTemplates: FilterTemplate[] = [
     {
         id: "is_empty",
         name: "Is Empty",
-        description: "Show entries that are empty",
         icon: <FiPlus size={16} />,
         fieldTypes: [
             FieldTypes.String,

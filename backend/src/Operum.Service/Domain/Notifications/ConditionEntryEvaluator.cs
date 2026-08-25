@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Operum.Model;
+using Operum.Model.Constants;
 using Operum.Model.Models;
 using Operum.Service.Domain.Views;
 
@@ -17,7 +18,7 @@ namespace Operum.Service.Domain.Notifications
 
             var view = !string.IsNullOrEmpty(notification.ViewId)
                 ? await db.Views
-                    .Include(v => v.ViewQueries.OrderBy(vq => vq.Order)).ThenInclude(vq => vq.Query).ThenInclude(q => q.Filters).ThenInclude(f => f.Field)
+                    .Include(v => v.ViewQueries.OrderBy(vq => vq.Order)).ThenInclude(vq => vq.Query).ThenInclude(q => q.Field)
                     .FirstOrDefaultAsync(v => v.Id == notification.ViewId, ct)
                 : null;
 
@@ -28,11 +29,12 @@ namespace Operum.Service.Domain.Notifications
             if (view != null)
                 entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, ViewQueryBuilder.ResolveFilters(view), tz);
 
-            // Project condition filters to QueryFilter instances for reuse
+            // Project condition filters to filter Queries so the view filter builder can be reused
             var conditionFilters = condition.Filters
                 .Where(f => f.FieldId != null && f.Field != null)
-                .Select(f => new QueryFilter
+                .Select(f => new Query
                 {
+                    Kind = QueryKinds.Filter,
                     FieldId = f.FieldId!,
                     Operator = f.Operator,
                     Value = f.Value,

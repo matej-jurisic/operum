@@ -19,7 +19,7 @@ interface ScatterChartCardProps {
     color: string | undefined;
     isConfiguring: boolean;
     onRemove?: (analyticId: string) => void;
-    onRename?: (analyticId: string) => void;
+    onEdit?: (analyticId: string) => void;
     /** Stretch to fill the height of the container instead of using a fixed one. */
     fillHeight?: boolean;
 }
@@ -29,7 +29,7 @@ export function ScatterChartCard({
     color,
     isConfiguring,
     onRemove,
-    onRename,
+    onEdit,
     fillHeight,
 }: ScatterChartCardProps) {
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
@@ -51,7 +51,7 @@ export function ScatterChartCard({
                     isConfiguring={isConfiguring}
                     analyticId={analytic.id}
                     onRemove={onRemove}
-                    onRename={onRename}
+                    onEdit={onEdit}
                 />
                 <ScatterChart
                     tooltipAnimationDuration={200}

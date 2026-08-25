@@ -20,7 +20,7 @@ namespace Operum.Service.Domain.Notifications
 
             var view = !string.IsNullOrEmpty(notification.ViewId)
                 ? await db.Views
-                    .Include(v => v.ViewQueries.OrderBy(vq => vq.Order)).ThenInclude(vq => vq.Query).ThenInclude(q => q.Filters).ThenInclude(f => f.Field)
+                    .Include(v => v.ViewQueries.OrderBy(vq => vq.Order)).ThenInclude(vq => vq.Query).ThenInclude(q => q.Field)
                     .FirstOrDefaultAsync(v => v.Id == notification.ViewId, ct)
                 : null;
 

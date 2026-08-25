@@ -11,6 +11,7 @@ import {
     DashboardWidgetDto,
     SetViewWidgetSelectionDto,
     UpdateDashboardDto,
+    UpdateDashboardItemDto,
     UpdateDashboardLayoutDto,
 } from "../types/DashboardDto";
 
@@ -70,6 +71,14 @@ export const dashboardController = {
         dto: AddDashboardViewItemDto
     ): Promise<ApiResponse<DashboardItemDto>> => {
         return await api.post(`/dashboard/${dashboardId}/items/view`, dto);
+    },
+
+    updateDashboardItem: async (
+        dashboardId: string,
+        itemId: string,
+        dto: UpdateDashboardItemDto
+    ): Promise<ApiResponse<DashboardWidgetDto[]>> => {
+        return await api.put(`/dashboard/${dashboardId}/items/${itemId}`, dto);
     },
 
     setViewWidgetSelection: async (

@@ -14,9 +14,12 @@ import {
     DashboardWidgetDto,
     LayoutVariant,
     LayoutVariants,
+    UpdateDashboardItemDto,
 } from "../types/DashboardDto";
 
 type DashboardContextType = {
+    /** The board these widgets belong to, for anything that needs to read it back. */
+    dashboardId: string;
     widgets: DashboardWidgetDto[];
     isLoading: boolean;
     refreshWidgets: () => Promise<void>;
@@ -24,6 +27,7 @@ type DashboardContextType = {
     addItemFromAnalytic: (dto: AddDashboardItemFromAnalyticDto) => Promise<void>;
     addQuickAddItem: (dto: AddDashboardQuickAddItemDto) => Promise<void>;
     addViewItem: (dto: AddDashboardViewItemDto) => Promise<void>;
+    updateItem: (itemId: string, dto: UpdateDashboardItemDto) => Promise<void>;
     setViewSelection: (itemId: string, viewId: string | null) => Promise<void>;
     removeItem: (itemId: string) => Promise<void>;
     saveLayout: (
@@ -66,6 +70,18 @@ export const DashboardProvider: React.FC<{
     const addViewItem = async (dto: AddDashboardViewItemDto) => {
         await dashboardController.addViewItem(dashboardId, dto);
         await refreshWidgets();
+    };
+
+    // Renders from the response for the same reason setViewSelection below does: an edit
+    // can change how a widget is filtered, so the server hands back the whole board
+    // recalculated rather than the client guessing at what moved.
+    const updateItem = async (itemId: string, dto: UpdateDashboardItemDto) => {
+        const res = await dashboardController.updateDashboardItem(
+            dashboardId,
+            itemId,
+            dto
+        );
+        setWidgets(res.data ?? []);
     };
 
     // The dropdown's own widget re-renders from the response immediately, same as any other
@@ -124,6 +140,7 @@ export const DashboardProvider: React.FC<{
     return (
         <DashboardContext.Provider
             value={{
+                dashboardId,
                 widgets,
                 isLoading,
                 refreshWidgets,
@@ -131,6 +148,7 @@ export const DashboardProvider: React.FC<{
                 addItemFromAnalytic,
                 addQuickAddItem,
                 addViewItem,
+                updateItem,
                 setViewSelection,
                 removeItem,
                 saveLayout,

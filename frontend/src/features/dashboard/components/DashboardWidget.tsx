@@ -13,6 +13,9 @@ interface Props {
     color: string | undefined;
     isConfiguring: boolean;
     onRemove?: (itemId: string) => void;
+    /** Opens the widget's edit dialog. Analytic widgets only: the other kinds are their
+        own configuration, and a View widget's dropdown is changed on the card itself. */
+    onEdit?: (itemId: string) => void;
     onEntryClick?: (entryId: string) => void;
     onViewSelect?: (itemId: string, viewId: string | null) => void;
 }
@@ -39,6 +42,7 @@ export function DashboardWidget({
     color,
     isConfiguring,
     onRemove,
+    onEdit,
     onEntryClick,
     onViewSelect,
 }: Props) {
@@ -54,6 +58,7 @@ export function DashboardWidget({
                     isConfiguring={isConfiguring}
                     fillHeight
                     onRemove={onRemove}
+                    onEdit={onEdit}
                     onEntryClick={onEntryClick}
                 />
             ) : null;

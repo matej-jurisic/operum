@@ -1,38 +1,26 @@
 import { Button, Menu, useMantineTheme } from "@mantine/core";
 import { createElement } from "react";
-import { CiSettings } from "react-icons/ci";
 import { FiCheck, FiChevronDown, FiPlus } from "react-icons/fi";
-import { MdDelete, MdEdit } from "react-icons/md";
 import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
 import { DashboardDto } from "../types/DashboardDto";
 
 interface Props {
     boards: DashboardDto[];
     activeBoardId: string;
-    isConfiguring: boolean;
     onSelect: (boardId: string) => void;
     onCreate: () => void;
-    onEdit: () => void;
-    onDelete: () => void;
-    onAddItem: () => void;
-    onToggleArrange: () => void;
 }
 
 /**
- * The board's single control: it switches boards and holds every action on the board
- * itself, so the page above the grid stays one row of chrome no matter how many boards
- * exist.
+ * Picks which board is shown, and nothing else: the actions on a board live in
+ * BoardActions next to it. It ellipsizes its name rather than pushing the row wider, so
+ * it is the one control here that gives up width when the viewport is narrow.
  */
 export default function BoardSwitcher({
     boards,
     activeBoardId,
-    isConfiguring,
     onSelect,
     onCreate,
-    onEdit,
-    onDelete,
-    onAddItem,
-    onToggleArrange,
 }: Props) {
     const theme = useMantineTheme();
 
@@ -66,6 +54,7 @@ export default function BoardSwitcher({
                             whiteSpace: "nowrap",
                         },
                         inner: { justifyContent: "space-between" },
+                        section: { flexShrink: 0 },
                     }}
                 >
                     {activeBoard?.name}
@@ -96,31 +85,6 @@ export default function BoardSwitcher({
                     onClick={onCreate}
                 >
                     New board
-                </Menu.Item>
-
-                <Menu.Divider />
-                <Menu.Label>This board</Menu.Label>
-                <Menu.Item
-                    leftSection={<FiPlus size={16} />}
-                    onClick={onAddItem}
-                >
-                    Add widget
-                </Menu.Item>
-                <Menu.Item
-                    leftSection={<CiSettings size={16} />}
-                    onClick={onToggleArrange}
-                >
-                    {isConfiguring ? "Stop arranging" : "Arrange board"}
-                </Menu.Item>
-                <Menu.Item leftSection={<MdEdit size={16} />} onClick={onEdit}>
-                    Edit board
-                </Menu.Item>
-                <Menu.Item
-                    color="red"
-                    leftSection={<MdDelete size={16} />}
-                    onClick={onDelete}
-                >
-                    Delete board
                 </Menu.Item>
             </Menu.Dropdown>
         </Menu>

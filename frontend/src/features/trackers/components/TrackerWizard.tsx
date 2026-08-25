@@ -277,9 +277,6 @@ export default function TrackerWizard({ onClose }: Props) {
                             <Text size="sm" fw={500}>
                                 Quick add
                             </Text>
-                            <Text size="xs" c="dimmed">
-                                Click to add common fields to your tracker
-                            </Text>
                             <Group gap="xs">
                                 {QUICK_FIELDS.map((qf) => (
                                     <Button
@@ -429,7 +426,7 @@ export default function TrackerWizard({ onClose }: Props) {
                                         </Group>
                                     ) : (
                                         <Text size="xs" c="dimmed" mt={4}>
-                                            No fields — you can add them later
+                                            No fields yet, you can add them later
                                         </Text>
                                     )}
                                 </Stack>

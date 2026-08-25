@@ -35,47 +35,46 @@ namespace Operum.Tests.Tests.Views
         private static Task<HttpResponseMessage> PutView(HttpClient client, string trackerId, string viewId, UpdateViewDto view) =>
             client.PutAsJsonAsync($"trackers/{trackerId}/views/{viewId}", view);
 
-        /// <summary>A View made of a single ad-hoc query carrying the given filters/sorts.</summary>
-        private static CreateViewDto OneQuery(string name, string? description = null,
-            List<CreateQueryFilterDto>? filters = null, List<CreateQuerySortDto>? sorts = null) => new()
+        /// <summary>A View made of the given ad-hoc clauses, each of which becomes a Query of its own.</summary>
+        private static CreateViewDto ViewOf(string name, params CreateQueryDto[] clauses) =>
+            ViewOf(name, null, clauses);
+
+        private static CreateViewDto ViewOf(string name, string? description, params CreateQueryDto[] clauses) => new()
         {
             Name = name,
             Description = description,
-            Queries = [new ViewQueryRefDto
-            {
-                NewQuery = new CreateQueryDto
-                {
-                    Name = name,
-                    Filters = filters ?? [],
-                    Sorts = sorts ?? []
-                }
-            }]
+            Queries = [.. clauses.Select(c => new ViewQueryRefDto { NewQuery = c })]
         };
 
         [Fact]
-        public async Task CreateView_StoresItsFiltersAndSorts()
+        public async Task CreateView_StoresOneQueryPerClause()
         {
             var client = await OwnerClient();
             var fixture = await CreateTracker(client, "Create view");
 
-            var response = await TestApi.PostView(client, fixture.TrackerId, OneQuery("Big first", "The heavy ones",
-                filters: [new() { FieldId = fixture.AmountFieldId, Operator = OperatorTypes.GreaterThan, Value = "5" }],
-                sorts: [new() { FieldId = fixture.AmountFieldId, Descending = true }]));
+            var response = await TestApi.PostView(client, fixture.TrackerId, ViewOf("Big first", "The heavy ones",
+                TestApi.FilterClause(fixture.AmountFieldId, OperatorTypes.GreaterThan, "5"),
+                TestApi.SortClause(fixture.AmountFieldId, descending: true)));
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var view = await TestApi.Data(response);
             Assert.Equal("Big first", view.GetProperty("name").GetString());
-            var query = view.GetProperty("queries").EnumerateArray().Single();
-            var filter = query.GetProperty("filters").EnumerateArray().Single();
+            var queries = view.GetProperty("queries").EnumerateArray().ToList();
+            Assert.Equal(2, queries.Count);
+
+            var filter = queries[0];
+            Assert.Equal(QueryKinds.Filter, filter.GetProperty("kind").GetString());
             Assert.Equal(OperatorTypes.GreaterThan, filter.GetProperty("operator").GetString());
             Assert.Equal("5", filter.GetProperty("value").GetString());
             Assert.Equal("Amount", filter.GetProperty("field").GetProperty("name").GetString());
-            var sort = query.GetProperty("sorts").EnumerateArray().Single();
+
+            var sort = queries[1];
+            Assert.Equal(QueryKinds.Sort, sort.GetProperty("kind").GetString());
             Assert.True(sort.GetProperty("descending").GetBoolean());
         }
 
         [Fact]
-        public async Task CreateView_WithoutFiltersOrSorts_IsAccepted()
+        public async Task CreateView_WithoutQueries_IsAccepted()
         {
             var client = await OwnerClient();
             var fixture = await CreateTracker(client, "Plain view");
@@ -87,14 +86,46 @@ namespace Operum.Tests.Tests.Views
         }
 
         [Fact]
+        public async Task CreateView_FromAnExistingQuery_ReusesIt()
+        {
+            var client = await OwnerClient();
+            var fixture = await CreateTracker(client, "Reuse query");
+            var queryId = await TestApi.CreateFilterQuery(client, fixture.TrackerId, fixture.AmountFieldId, OperatorTypes.GreaterThan, "5");
+
+            var viewId = await TestApi.CreateViewFromQueries(client, fixture.TrackerId, "Big", queryId);
+
+            var view = await TestApi.Data(await client.GetAsync($"trackers/{fixture.TrackerId}/views/{viewId}"));
+            var query = view.GetProperty("queries").EnumerateArray().Single();
+            Assert.Equal(queryId, query.GetProperty("id").GetString());
+        }
+
+        [Fact]
+        public async Task CreateView_ReferencingAQueryOfAnotherTracker_ReturnsBadRequest()
+        {
+            var client = await OwnerClient();
+            var fixture = await CreateTracker(client, "Query borrower");
+            var other = await CreateTracker(client, "Query owner");
+            var queryId = await TestApi.CreateFilterQuery(client, other.TrackerId, other.AmountFieldId, OperatorTypes.GreaterThan, "5");
+
+            var response = await TestApi.PostView(client, fixture.TrackerId, new CreateViewDto
+            {
+                Name = "Foreign query",
+                Queries = [new ViewQueryRefDto { QueryId = queryId }]
+            });
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(Messages.ItemNotFound("query"), await TestApi.Messages(response));
+        }
+
+        [Fact]
         public async Task CreateView_FilterOnAFieldOfAnotherTracker_ReturnsBadRequest()
         {
             var client = await OwnerClient();
             var fixture = await CreateTracker(client, "View owner");
             var other = await CreateTracker(client, "Field owner");
 
-            var response = await TestApi.PostView(client, fixture.TrackerId, OneQuery("Foreign filter",
-                filters: [new() { FieldId = other.AmountFieldId, Operator = OperatorTypes.GreaterThan, Value = "5" }]));
+            var response = await TestApi.PostView(client, fixture.TrackerId, ViewOf("Foreign filter",
+                TestApi.FilterClause(other.AmountFieldId, OperatorTypes.GreaterThan, "5")));
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             Assert.Contains(Messages.ItemNotFound("filter field"), await TestApi.Messages(response));
@@ -107,8 +138,8 @@ namespace Operum.Tests.Tests.Views
             var fixture = await CreateTracker(client, "Sort view owner");
             var other = await CreateTracker(client, "Sort field owner");
 
-            var response = await TestApi.PostView(client, fixture.TrackerId, OneQuery("Foreign sort",
-                sorts: [new() { FieldId = other.AmountFieldId }]));
+            var response = await TestApi.PostView(client, fixture.TrackerId, ViewOf("Foreign sort",
+                TestApi.SortClause(other.AmountFieldId, descending: false)));
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             Assert.Contains(Messages.ItemNotFound("sort field"), await TestApi.Messages(response));
@@ -123,8 +154,8 @@ namespace Operum.Tests.Tests.Views
             var client = await OwnerClient();
             var fixture = await CreateTracker(client, $"Bad operator {op}");
 
-            var response = await TestApi.PostView(client, fixture.TrackerId, OneQuery("Wrong operator",
-                filters: [new() { FieldId = fixture.AmountFieldId, Operator = op, Value = "5" }]));
+            var response = await TestApi.PostView(client, fixture.TrackerId, ViewOf("Wrong operator",
+                TestApi.FilterClause(fixture.AmountFieldId, op, "5")));
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
@@ -135,8 +166,8 @@ namespace Operum.Tests.Tests.Views
             var client = await OwnerClient();
             var fixture = await CreateTracker(client, "String ordering");
 
-            var response = await TestApi.PostView(client, fixture.TrackerId, OneQuery("Wrong operator",
-                filters: [new() { FieldId = fixture.NoteFieldId, Operator = OperatorTypes.GreaterThan, Value = "a" }]));
+            var response = await TestApi.PostView(client, fixture.TrackerId, ViewOf("Wrong operator",
+                TestApi.FilterClause(fixture.NoteFieldId, OperatorTypes.GreaterThan, "a")));
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
@@ -147,8 +178,8 @@ namespace Operum.Tests.Tests.Views
             var client = await OwnerClient();
             var fixture = await CreateTracker(client, "Unknown operator");
 
-            var response = await TestApi.PostView(client, fixture.TrackerId, OneQuery("Nonsense",
-                filters: [new() { FieldId = fixture.AmountFieldId, Operator = "Sort of equals", Value = "5" }]));
+            var response = await TestApi.PostView(client, fixture.TrackerId, ViewOf("Nonsense",
+                TestApi.FilterClause(fixture.AmountFieldId, "Sort of equals", "5")));
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
@@ -159,8 +190,8 @@ namespace Operum.Tests.Tests.Views
             var client = await OwnerClient();
             var fixture = await CreateTracker(client, "Bad value");
 
-            var response = await TestApi.PostView(client, fixture.TrackerId, OneQuery("Not a number",
-                filters: [new() { FieldId = fixture.AmountFieldId, Operator = OperatorTypes.EqualsOperator, Value = "lots" }]));
+            var response = await TestApi.PostView(client, fixture.TrackerId, ViewOf("Not a number",
+                TestApi.FilterClause(fixture.AmountFieldId, OperatorTypes.EqualsOperator, "lots")));
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
@@ -171,8 +202,8 @@ namespace Operum.Tests.Tests.Views
             var client = await OwnerClient();
             var fixture = await CreateTracker(client, "Dynamic date");
 
-            var response = await TestApi.PostView(client, fixture.TrackerId, OneQuery("This month",
-                filters: [new() { FieldId = fixture.DayFieldId, Operator = OperatorTypes.GreaterThanOrEqual, Value = "start_of_month" }]));
+            var response = await TestApi.PostView(client, fixture.TrackerId, ViewOf("This month",
+                TestApi.FilterClause(fixture.DayFieldId, OperatorTypes.GreaterThanOrEqual, "start_of_month")));
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
@@ -184,8 +215,8 @@ namespace Operum.Tests.Tests.Views
             var fixture = await CreateTracker(client, "Null filter");
 
             // A null value is how "has no value" is expressed.
-            var response = await TestApi.PostView(client, fixture.TrackerId, OneQuery("Unset",
-                filters: [new() { FieldId = fixture.AmountFieldId, Operator = OperatorTypes.EqualsOperator, Value = null }]));
+            var response = await TestApi.PostView(client, fixture.TrackerId, ViewOf("Unset",
+                TestApi.FilterClause(fixture.AmountFieldId, OperatorTypes.EqualsOperator, null)));
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
@@ -197,32 +228,29 @@ namespace Operum.Tests.Tests.Views
             var fixture = await CreateTracker(client, "Too many sorts");
             var fourth = await TestApi.CreateField(client, fixture.TrackerId, "Extra", DataTypes.String);
 
-            var response = await TestApi.PostView(client, fixture.TrackerId, OneQuery("Sorted to death",
-                sorts:
-                [
-                    new() { FieldId = fixture.AmountFieldId },
-                    new() { FieldId = fixture.NoteFieldId },
-                    new() { FieldId = fixture.DayFieldId },
-                    new() { FieldId = fourth }
-                ]));
+            var response = await TestApi.PostView(client, fixture.TrackerId, ViewOf("Sorted to death",
+                TestApi.SortClause(fixture.AmountFieldId, descending: false),
+                TestApi.SortClause(fixture.NoteFieldId, descending: false),
+                TestApi.SortClause(fixture.DayFieldId, descending: false),
+                TestApi.SortClause(fourth, descending: false)));
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(Messages.MaxNumberReached("sorts", DataLimits.MaxSorts), await TestApi.Messages(response));
         }
 
         [Fact]
-        public async Task CreateView_SameFieldSortedTwice_ReturnsBadRequest()
+        public async Task CreateView_SameFieldSortedTwice_IsAccepted()
         {
             var client = await OwnerClient();
             var fixture = await CreateTracker(client, "Duplicate sort");
 
-            var response = await TestApi.PostView(client, fixture.TrackerId, OneQuery("Twice",
-                sorts:
-                [
-                    new() { FieldId = fixture.AmountFieldId },
-                    new() { FieldId = fixture.AmountFieldId, Descending = true }
-                ]));
+            // Two sorts over one field are no longer a contradiction to reject: the view
+            // merges them first-query-wins, so the second one is simply never reached.
+            var response = await TestApi.PostView(client, fixture.TrackerId, ViewOf("Twice",
+                TestApi.SortClause(fixture.AmountFieldId, descending: false),
+                TestApi.SortClause(fixture.AmountFieldId, descending: true)));
 
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
 
         [Fact]
@@ -232,13 +260,9 @@ namespace Operum.Tests.Tests.Views
             var fixture = await CreateTracker(client, "Too many filters");
 
             var filters = Enumerable.Range(0, DataLimits.MaxFilters + 1)
-                .Select(i => new CreateQueryFilterDto
-                {
-                    FieldId = fixture.AmountFieldId,
-                    Operator = OperatorTypes.GreaterThan,
-                    Value = i.ToString()
-                }).ToList();
-            var response = await TestApi.PostView(client, fixture.TrackerId, OneQuery("Filtered to death", filters: filters));
+                .Select(i => TestApi.FilterClause(fixture.AmountFieldId, OperatorTypes.GreaterThan, i.ToString()))
+                .ToArray();
+            var response = await TestApi.PostView(client, fixture.TrackerId, ViewOf("Filtered to death", filters));
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
@@ -258,25 +282,20 @@ namespace Operum.Tests.Tests.Views
         }
 
         [Fact]
-        public async Task UpdateView_ReplacesTheFiltersAndSorts()
+        public async Task UpdateView_ReplacesItsQueries()
         {
             var client = await OwnerClient();
             var fixture = await CreateTracker(client, "Update view");
-            var viewId = await TestApi.CreateView(client, fixture.TrackerId, OneQuery("Original",
-                filters: [new() { FieldId = fixture.AmountFieldId, Operator = OperatorTypes.GreaterThan, Value = "5" }],
-                sorts: [new() { FieldId = fixture.AmountFieldId }]));
+            var viewId = await TestApi.CreateView(client, fixture.TrackerId, ViewOf("Original",
+                TestApi.FilterClause(fixture.AmountFieldId, OperatorTypes.GreaterThan, "5"),
+                TestApi.SortClause(fixture.AmountFieldId, descending: false)));
 
             var response = await PutView(client, fixture.TrackerId, viewId, new UpdateViewDto
             {
                 Name = "Rewritten",
                 Queries = [new ViewQueryRefDto
                 {
-                    NewQuery = new CreateQueryDto
-                    {
-                        Name = "Rewritten",
-                        Filters = [new() { FieldId = fixture.NoteFieldId, Operator = OperatorTypes.Contains, Value = "walk" }],
-                        Sorts = []
-                    }
+                    NewQuery = TestApi.FilterClause(fixture.NoteFieldId, OperatorTypes.Contains, "walk")
                 }]
             });
 
@@ -284,10 +303,9 @@ namespace Operum.Tests.Tests.Views
             var view = await TestApi.Data(await client.GetAsync($"trackers/{fixture.TrackerId}/views/{viewId}"));
             Assert.Equal("Rewritten", view.GetProperty("name").GetString());
             var query = view.GetProperty("queries").EnumerateArray().Single();
-            Assert.Empty(query.GetProperty("sorts").EnumerateArray());
-            var filter = query.GetProperty("filters").EnumerateArray().Single();
-            Assert.Equal("Note", filter.GetProperty("field").GetProperty("name").GetString());
-            Assert.Equal("walk", filter.GetProperty("value").GetString());
+            Assert.Equal(QueryKinds.Filter, query.GetProperty("kind").GetString());
+            Assert.Equal("Note", query.GetProperty("field").GetProperty("name").GetString());
+            Assert.Equal("walk", query.GetProperty("value").GetString());
         }
 
         [Fact]
@@ -295,27 +313,22 @@ namespace Operum.Tests.Tests.Views
         {
             var client = await OwnerClient();
             var fixture = await CreateTracker(client, "Update rejected");
-            var viewId = await TestApi.CreateView(client, fixture.TrackerId, OneQuery("Original",
-                filters: [new() { FieldId = fixture.AmountFieldId, Operator = OperatorTypes.GreaterThan, Value = "5" }]));
+            var viewId = await TestApi.CreateView(client, fixture.TrackerId, ViewOf("Original",
+                TestApi.FilterClause(fixture.AmountFieldId, OperatorTypes.GreaterThan, "5")));
 
             var response = await PutView(client, fixture.TrackerId, viewId, new UpdateViewDto
             {
                 Name = "Original",
                 Queries = [new ViewQueryRefDto
                 {
-                    NewQuery = new CreateQueryDto
-                    {
-                        Name = "Original",
-                        Filters = [new() { FieldId = fixture.AmountFieldId, Operator = OperatorTypes.Contains, Value = "5" }]
-                    }
+                    NewQuery = TestApi.FilterClause(fixture.AmountFieldId, OperatorTypes.Contains, "5")
                 }]
             });
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             var view = await TestApi.Data(await client.GetAsync($"trackers/{fixture.TrackerId}/views/{viewId}"));
             var query = view.GetProperty("queries").EnumerateArray().Single();
-            Assert.Equal(OperatorTypes.GreaterThan,
-                query.GetProperty("filters").EnumerateArray().Single().GetProperty("operator").GetString());
+            Assert.Equal(OperatorTypes.GreaterThan, query.GetProperty("operator").GetString());
         }
 
         [Fact]
@@ -363,7 +376,7 @@ namespace Operum.Tests.Tests.Views
         {
             var client = await OwnerClient();
             var fixture = await CreateTracker(client, "Delete view keeps query");
-            var queryId = await TestApi.CreateFilterQuery(client, fixture.TrackerId, "Shared", fixture.AmountFieldId, OperatorTypes.GreaterThan, "5");
+            var queryId = await TestApi.CreateFilterQuery(client, fixture.TrackerId, fixture.AmountFieldId, OperatorTypes.GreaterThan, "5");
             var viewId = await TestApi.CreateViewFromQueries(client, fixture.TrackerId, "Uses shared", queryId);
             await TestApi.CreateViewFromQueries(client, fixture.TrackerId, "Also uses shared", queryId);
 
@@ -371,7 +384,7 @@ namespace Operum.Tests.Tests.Views
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var query = await TestApi.Data(await client.GetAsync($"trackers/{fixture.TrackerId}/queries/{queryId}"));
-            Assert.Equal("Shared", query.GetProperty("name").GetString());
+            Assert.Equal("Amount", query.GetProperty("field").GetProperty("name").GetString());
         }
 
         [Fact]

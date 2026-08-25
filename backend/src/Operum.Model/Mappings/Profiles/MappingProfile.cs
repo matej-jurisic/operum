@@ -84,16 +84,6 @@ namespace Operum.Service.Mappings.Profiles
             // ordered ViewQuery join), so only Query itself is registered here.
             mapper.Register<Query, QueryDto>((s, d) =>
             {
-                d.Sorts = mapper.Map<ICollection<QuerySort>, List<QuerySortDto>>(s.Sorts.OrderBy(x => x.Order).ToList());
-                d.Filters = mapper.Map<ICollection<QueryFilter>, List<QueryFilterDto>>(s.Filters);
-            });
-
-            mapper.Register<QuerySort, QuerySortDto>((s, d) =>
-            {
-                d.Field = mapper.Map<Field, FieldDto>(s.Field);
-            });
-            mapper.Register<QueryFilter, QueryFilterDto>((s, d) =>
-            {
                 d.Field = mapper.Map<Field, FieldDto>(s.Field);
             });
 

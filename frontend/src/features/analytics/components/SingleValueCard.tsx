@@ -15,7 +15,7 @@ interface Props {
     color: string | undefined;
     isConfiguring: boolean;
     onRemove?: (analyticId: string) => void;
-    onRename?: (analyticId: string) => void;
+    onEdit?: (analyticId: string) => void;
     onEntryClick?: (entryId: string) => void;
     /** Stretch to fill the height of the container instead of using a fixed one. */
     fillHeight?: boolean;
@@ -32,7 +32,7 @@ export function SingleValueCard({
     color,
     isConfiguring,
     onRemove,
-    onRename,
+    onEdit,
     onEntryClick,
     fillHeight,
 }: Props) {
@@ -70,7 +70,7 @@ export function SingleValueCard({
                     isConfiguring={isConfiguring}
                     analyticId={analytic.id}
                     onRemove={onRemove}
-                    onRename={onRename}
+                    onEdit={onEdit}
                     actions={
                         analytic.entryId &&
                         onEntryClick && (

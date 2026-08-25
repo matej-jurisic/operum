@@ -115,6 +115,19 @@ namespace Operum.Tests.Tests.Dashboards
             return (await Data(addResponse)).GetProperty("id").GetString()!;
         }
 
+        // The sources of an item as the board reports them: an edit has to name every source
+        // id, so this is where a test gets them from.
+        private static async Task<JsonElement> ItemSources(HttpClient client, string dashboardId, string itemId)
+        {
+            var dashboard = await Data(await client.GetAsync($"dashboard/{dashboardId}"));
+            var item = dashboard.GetProperty("items").EnumerateArray()
+                .Single(i => i.GetProperty("id").GetString() == itemId);
+            return item.GetProperty("sources");
+        }
+
+        private static async Task<string> SingleSourceId(HttpClient client, string dashboardId, string itemId)
+            => (await ItemSources(client, dashboardId, itemId))[0].GetProperty("id").GetString()!;
+
         // Creates a "Raw Values" line chart on the tracker itself and hands back its id, so
         // a test can add it to a board the way the widget picker does.
         private static async Task<string> CreateTrackerAnalytic(HttpClient client, CapableTracker tracker)
@@ -464,19 +477,7 @@ namespace Operum.Tests.Tests.Dashboards
                 [
                     new ViewQueryRefDto
                     {
-                        NewQuery = new CreateQueryDto
-                        {
-                            Name = "Strength only",
-                            Filters =
-                            [
-                                new CreateQueryFilterDto
-                                {
-                                    FieldId = tracker.CategoryFieldId,
-                                    Operator = OperatorTypes.EqualsOperator,
-                                    Value = "Strength"
-                                }
-                            ]
-                        }
+                        NewQuery = TestApi.FilterClause(tracker.CategoryFieldId, OperatorTypes.EqualsOperator, "Strength")
                     }
                 ]
             }));
@@ -918,19 +919,7 @@ namespace Operum.Tests.Tests.Dashboards
                 [
                     new ViewQueryRefDto
                     {
-                        NewQuery = new CreateQueryDto
-                        {
-                            Name = "Strength only",
-                            Filters =
-                            [
-                                new CreateQueryFilterDto
-                                {
-                                    FieldId = tracker.CategoryFieldId,
-                                    Operator = OperatorTypes.EqualsOperator,
-                                    Value = "Strength"
-                                }
-                            ]
-                        }
+                        NewQuery = TestApi.FilterClause(tracker.CategoryFieldId, OperatorTypes.EqualsOperator, "Strength")
                     }
                 ]
             }));
@@ -1195,6 +1184,257 @@ namespace Operum.Tests.Tests.Dashboards
             var chartAfter = after[0];
             Assert.Equal(DashboardWidgetTypes.Analytic, chartAfter.GetProperty("type").GetString());
             Assert.Equal(1, Analytic(chartAfter).GetProperty("points").GetArrayLength());
+        }
+        // What an edit is for: the widget's own name, changed without disturbing the chart
+        // it was built to draw.
+        [Fact]
+        public async Task UpdateDashboardItem_RenamesTheWidgetWithoutTouchingItsDefinition()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("itemrename");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+
+            var source = LineSource(tracker);
+            source.Label = "Weight over time";
+            var itemId = (await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+            {
+                ResultType = AnalyticTypes.LineChart,
+                Code = AnalyticCodes.LineChart,
+                Sources = [source]
+            }))).GetProperty("id").GetString()!;
+
+            var sourceId = await SingleSourceId(client, dashboardId, itemId);
+
+            var updateResponse = await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{itemId}", new UpdateDashboardItemDto
+            {
+                Sources = [new UpdateDashboardItemSourceDto { SourceId = sourceId, Label = "Trend" }]
+            });
+            Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+
+            // Renamed in the response the edit hands back, and still drawing the same chart.
+            var updated = (await Data(updateResponse))[0];
+            Assert.Equal("Trend", Analytic(updated).GetProperty("name").GetString());
+            Assert.Equal(AnalyticTypes.LineChart, Analytic(updated).GetProperty("resultType").GetString());
+            Assert.Equal(1, Analytic(updated).GetProperty("points").GetArrayLength());
+
+            var widgets = await Widgets(client, dashboardId);
+            Assert.Equal("Trend", Analytic(widgets[0]).GetProperty("name").GetString());
+        }
+
+        // A name of nothing at all is not a blank title: the widget goes back to reading as
+        // the definition it was built from, the same as one that was never named.
+        [Fact]
+        public async Task UpdateDashboardItem_BlankLabel_FallsBackToTheDefinitionsLabel()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("itemblanklabel");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+
+            var labelled = LineSource(tracker);
+            labelled.Label = "Weight over time";
+            var itemId = (await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+            {
+                ResultType = AnalyticTypes.LineChart,
+                Code = AnalyticCodes.LineChart,
+                Sources = [labelled]
+            }))).GetProperty("id").GetString()!;
+
+            var sourceId = await SingleSourceId(client, dashboardId, itemId);
+
+            // The same chart with no label of its own, to read the fallback name off.
+            var unnamedId = await AddLineItem(client, dashboardId, tracker);
+            var defaultName = Analytic((await Widgets(client, dashboardId)).EnumerateArray()
+                .Single(w => w.GetProperty("id").GetString() == unnamedId)).GetProperty("name").GetString();
+
+            var updateResponse = await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{itemId}", new UpdateDashboardItemDto
+            {
+                Sources = [new UpdateDashboardItemSourceDto { SourceId = sourceId, Label = "   " }]
+            });
+            Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+
+            var renamed = (await Data(updateResponse)).EnumerateArray()
+                .Single(w => w.GetProperty("id").GetString() == itemId);
+            Assert.Equal(defaultName, Analytic(renamed).GetProperty("name").GetString());
+
+            var storedSource = (await ItemSources(client, dashboardId, itemId))[0];
+            Assert.Equal(JsonValueKind.Null, storedSource.GetProperty("label").ValueKind);
+        }
+
+        // The other half of what an edit is for: how the widget is filtered. A fixed view is
+        // swapped for a live link, so the chart follows the board's own dropdown from here on.
+        [Fact]
+        public async Task UpdateDashboardItem_SwapsAFixedViewForAViewWidgetLink()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("itemrelink");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var viewId = await CreateStrengthOnlyView(client, tracker);
+            var dashboardId = await CreateDashboard(client);
+
+            var viewItemId = (await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/view",
+                new AddDashboardViewItemDto { TrackerId = tracker.Id }))).GetProperty("id").GetString()!;
+
+            var filtered = LineSource(tracker);
+            filtered.ViewId = viewId;
+            var itemId = (await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+            {
+                ResultType = AnalyticTypes.LineChart,
+                Code = AnalyticCodes.LineChart,
+                Sources = [filtered]
+            }))).GetProperty("id").GetString()!;
+
+            // Nothing is Strength, so the fixed view keeps the seeded entry out.
+            var before = (await Widgets(client, dashboardId)).EnumerateArray()
+                .Single(w => w.GetProperty("id").GetString() == itemId);
+            Assert.Equal(0, Analytic(before).GetProperty("points").GetArrayLength());
+
+            var sourceId = await SingleSourceId(client, dashboardId, itemId);
+
+            var updateResponse = await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{itemId}", new UpdateDashboardItemDto
+            {
+                Sources = [new UpdateDashboardItemSourceDto { SourceId = sourceId, LinkedViewWidgetId = viewItemId }]
+            });
+            Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+
+            // The fixed view is gone, and the dropdown it now follows is on "All entries".
+            var after = (await Data(updateResponse)).EnumerateArray()
+                .Single(w => w.GetProperty("id").GetString() == itemId);
+            Assert.Equal(1, Analytic(after).GetProperty("points").GetArrayLength());
+
+            var storedSource = (await ItemSources(client, dashboardId, itemId))[0];
+            Assert.Equal(JsonValueKind.Null, storedSource.GetProperty("viewId").ValueKind);
+            Assert.Equal(viewItemId, storedSource.GetProperty("linkedViewWidgetId").GetString());
+
+            // And it really is live now: moving the dropdown re-filters the chart.
+            var selectionResponse = await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{viewItemId}/view-selection",
+                new SetViewWidgetSelectionDto { ViewId = viewId });
+            var linked = (await Data(selectionResponse)).EnumerateArray()
+                .Single(w => w.GetProperty("id").GetString() == itemId);
+            Assert.Equal(0, Analytic(linked).GetProperty("points").GetArrayLength());
+        }
+
+        // The payload stands for the whole widget, so a combined chart that names only one of
+        // its two sources is refused rather than half applied.
+        [Fact]
+        public async Task UpdateDashboardItem_SourcesNotNamedInFull_ReturnsBadRequest()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("itempartial");
+
+            var first = await CreateCapableTracker(client, "Weight");
+            var second = await CreateCapableTracker(client, "Steps");
+            var dashboardId = await CreateDashboard(client);
+
+            var itemId = (await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+            {
+                ResultType = AnalyticTypes.LineChart,
+                Code = AnalyticCodes.LineChart,
+                Sources = [LineSource(first), LineSource(second)]
+            }))).GetProperty("id").GetString()!;
+
+            var sources = await ItemSources(client, dashboardId, itemId);
+            Assert.Equal(2, sources.GetArrayLength());
+
+            var updateResponse = await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{itemId}", new UpdateDashboardItemDto
+            {
+                Sources = [new UpdateDashboardItemSourceDto { SourceId = sources[0].GetProperty("id").GetString()!, Label = "Only one" }]
+            });
+
+            Assert.Equal(HttpStatusCode.BadRequest, updateResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task UpdateDashboardItem_ViewOfAnotherTracker_ReturnsNotFound()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("itemviewmismatch");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var other = await CreateCapableTracker(client, "Steps");
+            var otherViewId = await CreateStrengthOnlyView(client, other);
+            var dashboardId = await CreateDashboard(client);
+
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+            var sourceId = await SingleSourceId(client, dashboardId, itemId);
+
+            var updateResponse = await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{itemId}", new UpdateDashboardItemDto
+            {
+                Sources = [new UpdateDashboardItemSourceDto { SourceId = sourceId, ViewId = otherViewId }]
+            });
+
+            Assert.Equal(HttpStatusCode.NotFound, updateResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task UpdateDashboardItem_LinkedViewWidgetOfAnotherTracker_ReturnsBadRequest()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("itemlinkmismatch");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var other = await CreateCapableTracker(client, "Steps");
+            var dashboardId = await CreateDashboard(client);
+
+            var viewItemId = (await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/view",
+                new AddDashboardViewItemDto { TrackerId = other.Id }))).GetProperty("id").GetString()!;
+
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+            var sourceId = await SingleSourceId(client, dashboardId, itemId);
+
+            var updateResponse = await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{itemId}", new UpdateDashboardItemDto
+            {
+                Sources = [new UpdateDashboardItemSourceDto { SourceId = sourceId, LinkedViewWidgetId = viewItemId }]
+            });
+
+            Assert.Equal(HttpStatusCode.BadRequest, updateResponse.StatusCode);
+        }
+
+        // A widget with no sources has neither a name nor a filter of its own to edit, so it
+        // is not something this endpoint knows about at all.
+        [Fact]
+        public async Task UpdateDashboardItem_WidgetThatIsNotAnAnalytic_ReturnsNotFound()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("itemnotanalytic");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+
+            var quickAddId = (await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/quick-add",
+                new AddDashboardQuickAddItemDto { TrackerId = tracker.Id }))).GetProperty("id").GetString()!;
+
+            var updateResponse = await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{quickAddId}", new UpdateDashboardItemDto
+            {
+                Sources = [new UpdateDashboardItemSourceDto { SourceId = Guid.NewGuid().ToString(), Label = "Nope" }]
+            });
+
+            Assert.Equal(HttpStatusCode.NotFound, updateResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task UpdateDashboardItem_DashboardOfAnotherUser_ReturnsNotFound()
+        {
+            await _factory.SeedDatabaseAsync();
+
+            var owner = await _factory.NewUserClient("itemeditowner");
+            var tracker = await CreateCapableTracker(owner, "Weight");
+            var dashboardId = await CreateDashboard(owner);
+            var itemId = await AddLineItem(owner, dashboardId, tracker);
+            var sourceId = await SingleSourceId(owner, dashboardId, itemId);
+
+            var stranger = await _factory.NewUserClient("itemeditstranger");
+
+            var updateResponse = await stranger.PutAsJsonAsync($"dashboard/{dashboardId}/items/{itemId}", new UpdateDashboardItemDto
+            {
+                Sources = [new UpdateDashboardItemSourceDto { SourceId = sourceId, Label = "Not yours" }]
+            });
+
+            Assert.Equal(HttpStatusCode.NotFound, updateResponse.StatusCode);
         }
     }
 }

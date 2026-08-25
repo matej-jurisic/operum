@@ -166,10 +166,6 @@ export default function Fields(props: FieldsProps) {
                                 <Text size="lg" fw={500} c="dimmed">
                                     No Fields Available
                                 </Text>
-                                <Text ta="center" c="dimmed">
-                                    Fields will appear here once you create
-                                    them.
-                                </Text>
                             </Stack>
                         </Paper>
                     )}

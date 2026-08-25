@@ -7,6 +7,8 @@ import { useFields } from "../../features/fields/context/FieldsContext";
 import { CreateFieldDto } from "../../features/fields/types/CreateFieldDto";
 import { UpdateFieldDto } from "../../features/fields/types/UpdateFieldDto";
 import { useQueries } from "../../features/queries/context/QueriesContext";
+import { CreateQueryDto } from "../../features/queries/types/requests/CreateQueryDto";
+import { UpdateQueryDto } from "../../features/queries/types/requests/UpdateQueryDto";
 import { useTracker } from "../../features/trackers/context/TrackerContext";
 import { useViews } from "../../features/views/context/ViewsContext";
 import { CreateViewDto } from "../../features/views/types/requests/CreateViewDto";
@@ -29,9 +31,10 @@ export const useTrackerOperations = () => {
     const { markAnalyticsDirty, _addAnalytic, _updateAnalytic, _removeAnalytic } =
         useAnalytics();
 
-    const { _createView, _updateView, _deleteView, _updateViewOrder } = useViews();
+    const { refreshViews, _createView, _updateView, _deleteView, _updateViewOrder } =
+        useViews();
 
-    const { markQueriesDirty } = useQueries();
+    const { markQueriesDirty, _createQuery, _updateQuery, _deleteQuery } = useQueries();
 
     const { _setSelectedViewId } = useTracker();
 
@@ -60,6 +63,10 @@ export const useTrackerOperations = () => {
         await _deleteField(fieldId);
         markEntriesDirty();
         markAnalyticsDirty();
+        // A query is a clause over one field, so deleting the field takes its queries
+        // with it and the views built on them read differently afterwards.
+        markQueriesDirty();
+        await refreshViews();
     };
 
     // ========================================
@@ -145,6 +152,28 @@ export const useTrackerOperations = () => {
     };
 
     // ========================================
+    // Query Operations
+    // ========================================
+    const createQuery = async (query: CreateQueryDto) => await _createQuery(query);
+
+    // Editing or deleting a query changes every view built on it, so the cached views
+    // and anything drawn through them have to be re-read.
+    const updateQuery = async (queryId: string, query: UpdateQueryDto) => {
+        const saved = await _updateQuery(queryId, query);
+        await refreshViews();
+        markEntriesDirty();
+        markAnalyticsDirty();
+        return saved;
+    };
+
+    const deleteQuery = async (queryId: string) => {
+        await _deleteQuery(queryId);
+        await refreshViews();
+        markEntriesDirty();
+        markAnalyticsDirty();
+    };
+
+    // ========================================
     // Tracker Operations
     // ========================================
 
@@ -179,6 +208,11 @@ export const useTrackerOperations = () => {
         updateView,
         deleteView,
         updateViewOrder,
+
+        // Query operations
+        createQuery,
+        updateQuery,
+        deleteQuery,
 
         // Tracker operations
         setSelectedView,

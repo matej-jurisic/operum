@@ -43,19 +43,13 @@ export function QuickAddWidgetCard({
 }: Props) {
   const layout = useCardLayout(true);
   const [dialogTracker, setDialogTracker] = useState<TrackerDto>();
-  const [isOpening, setIsOpening] = useState(false);
 
   const trackerColor = tracker?.color || color;
   const Icon = resolveTrackerIcon(tracker?.icon);
 
   const handleOpen = async () => {
-    setIsOpening(true);
-    try {
-      const res = await trackersController.getTracker(config.trackerId);
-      setDialogTracker(res.data);
-    } finally {
-      setIsOpening(false);
-    }
+    const res = await trackersController.getTracker(config.trackerId);
+    setDialogTracker(res.data);
   };
 
   return (
@@ -95,7 +89,6 @@ export function QuickAddWidgetCard({
               style={{
                 pointerEvents: isConfiguring ? "none" : "all",
               }}
-              loading={isOpening}
               leftSection={createElement(Icon, { size: 18 })}
               onClick={handleOpen}
             >

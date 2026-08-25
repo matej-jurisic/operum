@@ -57,10 +57,6 @@ export default function Users() {
                                     <Text size="lg" fw={500} c="dimmed">
                                         No Users Available
                                     </Text>
-                                    <Text ta="center" c="dimmed">
-                                        Users will appear here when they are
-                                        registered.
-                                    </Text>
                                 </Stack>
                             </Paper>
                         )}

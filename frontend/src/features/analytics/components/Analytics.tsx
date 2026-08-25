@@ -101,10 +101,6 @@ export default function Analytics() {
                             <Text size="lg" fw={500} c="dimmed">
                                 No Analytics Available
                             </Text>
-                            <Text ta="center" c="dimmed">
-                                Analytics will appear here once you configure
-                                them and have data entries for your tracker.
-                            </Text>
                         </Stack>
                     </Paper>
                 ) : (
@@ -123,7 +119,7 @@ export default function Analytics() {
                                     isConfiguring={isConfiguring}
                                     onReorder={handleReorder}
                                     onRemove={removeAnalytic}
-                                    onRename={setRenamingAnalyticId}
+                                    onEdit={setRenamingAnalyticId}
                                     onEntryClick={setSelectedEntryId}
                                 />
                             )}
