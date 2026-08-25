@@ -9,6 +9,10 @@ namespace Operum.Model.DTOs.Views.Requests
         public string? Description { get; set; }
 
         public List<ViewQueryRefDto> Queries { get; set; } = [];
+
+        // The fields this view shows, in the order it shows them. Empty means every field,
+        // which is what every view did before columns existed.
+        public List<string> ColumnFieldIds { get; set; } = [];
     }
 
     public class CreateViewDtoValidator : AbstractValidator<CreateViewDto>
@@ -29,6 +33,10 @@ namespace Operum.Model.DTOs.Views.Requests
                 .Must(queries => queries.Where(q => q.QueryId != null).Select(q => q.QueryId).Distinct().Count()
                     == queries.Count(q => q.QueryId != null))
                     .WithMessage("Each existing query can only be added to a view once.");
+
+            RuleFor(x => x.ColumnFieldIds)
+                .Must(ids => ids.Count <= DataLimits.MaxColumns)
+                    .WithMessage((x) => Messages.MaxNumberReached("columns", DataLimits.MaxColumns));
 
             RuleForEach(x => x.Queries)
                 .SetValidator(new ViewQueryRefDtoValidator());

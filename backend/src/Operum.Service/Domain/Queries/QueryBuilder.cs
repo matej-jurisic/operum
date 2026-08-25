@@ -15,12 +15,13 @@ namespace Operum.Service.Domain.Queries
     {
         public static async Task<Result> ValidateClause(OperumContext db, string trackerId, string kind, string fieldId, string? op, string? value)
         {
-            var isSort = kind == QueryKinds.Sort;
             var field = await db.Fields.FindAsync(fieldId);
             if (field == null || field.TrackerId != trackerId)
-                return Result.Failure(ResultStatusCodes.BadRequest, Messages.ItemNotFound(isSort ? "sort field" : "filter field"));
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.ItemNotFound(
+                    kind == QueryKinds.Sort ? "sort field" : "filter field"));
 
-            if (isSort)
+            // A sort is just the field and a direction, so there is nothing else to check.
+            if (kind != QueryKinds.Filter)
                 return Result.Success();
 
             if (!ViewFilterValidator.IsValidOperatorForFieldType(op!, field.Type))
@@ -42,8 +43,8 @@ namespace Operum.Service.Domain.Queries
             return query;
         }
 
-        // The half of the clause the kind doesn't use is blanked rather than kept, so a
-        // query that used to be a filter never drags a stale operator along as a sort.
+        // Whatever the kind doesn't use is blanked rather than kept, so a query that used
+        // to be a filter never drags a stale operator along as a sort.
         public static void ApplyClause(Query query, string kind, string fieldId, string? op, string? value, bool descending)
         {
             query.Kind = kind;

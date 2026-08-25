@@ -66,7 +66,7 @@ function getFormValue(type: string | undefined, storedValue: string | undefined 
     }
 }
 
-/** Create or edit a single query: one filter, or one sort. */
+/** Create or edit a single query: one filter or one sort. */
 export default function QueryFormDialog({
     tracker,
     queryId,
@@ -124,6 +124,7 @@ export default function QueryFormDialog({
 
     const selectedField = getFieldById(form.values.fieldId);
     const isFilter = form.values.kind === QueryKinds.Filter;
+    const isSort = form.values.kind === QueryKinds.Sort;
     const operatorOptions = operatorsForFieldType(selectedField?.type);
 
     const toClause = (values: QueryFormValues): CreateQueryDto => {
@@ -261,7 +262,7 @@ export default function QueryFormDialog({
                                 An empty value matches entries with no value.
                             </Text>
                         </>
-                    ) : (
+                    ) : isSort ? (
                         <SegmentedControl
                             data={[
                                 { value: "asc", label: "Ascending" },
@@ -272,7 +273,7 @@ export default function QueryFormDialog({
                                 form.setFieldValue("descending", v === "desc")
                             }
                         />
-                    )}
+                    ) : null}
 
                     <Paper p="sm" withBorder>
                         <Text size="sm" c={form.values.fieldId ? undefined : "dimmed"}>

@@ -44,6 +44,11 @@ namespace Operum.Service.Domain.Views
                 .ToList();
         }
 
+        // A view's columns have no resolver of their own: they are stored on the view
+        // already deduped and in order (ViewColumn), and are deliberately never applied to
+        // the entries query. Columns are the last step, decided by whatever renders the
+        // entries, so a filter or a sort over a hidden field keeps working exactly as it did.
+
         public static IQueryable<Entry> ApplyViewSorting(IQueryable<Entry> query, List<Query> sorts)
         {
             if (sorts.Count == 0)

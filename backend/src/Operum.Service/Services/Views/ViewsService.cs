@@ -38,6 +38,10 @@ namespace Operum.Service.Services.Views
             if (resolvedQueries.IsFailure)
                 return Result.Failure(resolvedQueries.StatusCode, resolvedQueries.Messages);
 
+            var resolvedColumns = await ResolveViewColumns(trackerId, view.ColumnFieldIds);
+            if (resolvedColumns.IsFailure)
+                return Result.Failure(resolvedColumns.StatusCode, resolvedColumns.Messages);
+
             var userView = new View
             {
                 TrackerId = trackerId,
@@ -52,6 +56,7 @@ namespace Operum.Service.Services.Views
 
             await db.Views.AddAsync(userView);
             await AttachViewQueries(userView.Id, resolvedQueries.Data!);
+            await AttachViewColumns(userView.Id, resolvedColumns.Data!);
 
             await db.SaveChangesAsync();
             var created = await GetView(trackerId, userView.Id);
@@ -77,6 +82,10 @@ namespace Operum.Service.Services.Views
             if (resolvedQueries.IsFailure)
                 return Result.Failure(resolvedQueries.StatusCode, resolvedQueries.Messages);
 
+            var resolvedColumns = await ResolveViewColumns(trackerId, view.ColumnFieldIds);
+            if (resolvedColumns.IsFailure)
+                return Result.Failure(resolvedColumns.StatusCode, resolvedColumns.Messages);
+
             userView.Name = view.Name;
             userView.Description = view.Description;
 
@@ -84,6 +93,10 @@ namespace Operum.Service.Services.Views
             // still be attached to other views, so they're never deleted here.
             await db.ViewQueries.Where(x => x.ViewId == viewId).ExecuteDeleteAsync();
             await AttachViewQueries(viewId, resolvedQueries.Data!);
+
+            // Columns belong to the view alone, so the payload replaces them wholesale.
+            await db.ViewColumns.Where(x => x.ViewId == viewId).ExecuteDeleteAsync();
+            await AttachViewColumns(viewId, resolvedColumns.Data!);
 
             db.Views.Update(userView);
             await db.SaveChangesAsync();
@@ -123,6 +136,7 @@ namespace Operum.Service.Services.Views
                 .Include(x => x.ViewQueries.OrderBy(vq => vq.Order))
                     .ThenInclude(vq => vq.Query)
                         .ThenInclude(q => q.Field)
+                .Include(x => x.ViewColumns.OrderBy(vc => vc.Order))
                 .FirstOrDefaultAsync(x => x.Id == viewId && x.TrackerId == trackerId);
 
             var hasAccess = userView != null && (userView.Tracker.OwnerId == user.Id || userView.Tracker.ApplicationUserTrackers.Any(x => x.ApplicationUserId == user.Id));
@@ -154,6 +168,7 @@ namespace Operum.Service.Services.Views
                 .Include(x => x.ViewQueries.OrderBy(vq => vq.Order))
                     .ThenInclude(vq => vq.Query)
                         .ThenInclude(q => q.Field)
+                .Include(x => x.ViewColumns.OrderBy(vc => vc.Order))
                 .Where(x => x.TrackerId == trackerId)
                 .OrderBy(x => x.Order)
                 .ToListAsync();
@@ -224,6 +239,10 @@ namespace Operum.Service.Services.Views
                     .OrderBy(vq => vq.Order)
                     .Select(vq => MapQueryToDto(vq.Query))
                     .ToList(),
+                ColumnFieldIds = view.ViewColumns
+                    .OrderBy(vc => vc.Order)
+                    .Select(vc => vc.FieldId)
+                    .ToList(),
             };
         }
 
@@ -286,6 +305,51 @@ namespace Operum.Service.Services.Views
                 return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("sorts", DataLimits.MaxSorts));
 
             return Result.Success(resolved);
+        }
+
+        // A column is a field of the tracker and nothing else, so this only has to check
+        // that each id names one and drop repeats: naming the same field twice is a no-op
+        // rather than a conflict, and the first mention decides where the column sits.
+        private async Task<Result<List<string>>> ResolveViewColumns(string trackerId, List<string> columnFieldIds)
+        {
+            if (columnFieldIds.Count == 0)
+                return Result.Success(new List<string>());
+
+            var trackerFieldIds = (await db.Fields
+                .Where(f => f.TrackerId == trackerId)
+                .Select(f => f.Id)
+                .ToListAsync())
+                .ToHashSet();
+
+            var resolved = new List<string>();
+            var seen = new HashSet<string>();
+
+            foreach (var fieldId in columnFieldIds)
+            {
+                if (!trackerFieldIds.Contains(fieldId))
+                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.ItemNotFound("column field"));
+
+                if (seen.Add(fieldId))
+                    resolved.Add(fieldId);
+            }
+
+            if (resolved.Count > DataLimits.MaxColumns)
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("columns", DataLimits.MaxColumns));
+
+            return Result.Success(resolved);
+        }
+
+        private async Task AttachViewColumns(string viewId, List<string> columnFieldIds)
+        {
+            for (int i = 0; i < columnFieldIds.Count; i++)
+            {
+                await db.ViewColumns.AddAsync(new ViewColumn
+                {
+                    ViewId = viewId,
+                    FieldId = columnFieldIds[i],
+                    Order = i,
+                });
+            }
         }
 
         private async Task AttachViewQueries(string viewId, List<(string QueryId, Query? NewQuery)> resolvedQueries)

@@ -5,6 +5,7 @@ import {
     Group,
     Menu,
     Modal,
+    MultiSelect,
     Paper,
     Select,
     Stack,
@@ -52,6 +53,12 @@ interface ViewFormValues {
     name: string;
     description?: string;
     queries: QueryRow[];
+    /**
+     * Fields this view shows, in the order it shows them. Not clauses, so they are picked
+     * as fields rather than listed as rows: a view naming every field would otherwise bury
+     * its filters and sorts under 25 one-line entries.
+     */
+    columnFieldIds: string[];
 }
 
 const MAX_FILTERS = 6;
@@ -93,10 +100,12 @@ export default function ViewFormDialog({
                       key: crypto.randomUUID(),
                       queryId: q.id,
                   })),
+                  columnFieldIds: initialView.columnFieldIds,
               }
             : {
                   name: "",
                   queries: [],
+                  columnFieldIds: [],
               },
         validate: {
             name: (value) =>
@@ -190,6 +199,7 @@ export default function ViewFormDialog({
         const dto = {
             name: values.name,
             description: values.description,
+            columnFieldIds: values.columnFieldIds,
             queries: queryRefs,
         };
 
@@ -455,6 +465,38 @@ export default function ViewFormDialog({
                                 When two sorts cover the same field, the first
                                 one wins.
                             </Text>
+                        </Stack>
+
+                        <Stack gap="md">
+                            <Text fw={500} size="md">
+                                Columns
+                                {form.values.columnFieldIds.length > 0 && (
+                                    <Text span c="dimmed" size="sm" ml="xs">
+                                        ({form.values.columnFieldIds.length}/
+                                        {fields.length})
+                                    </Text>
+                                )}
+                            </Text>
+                            <MultiSelect
+                                placeholder={
+                                    form.values.columnFieldIds.length > 0
+                                        ? undefined
+                                        : "Every field"
+                                }
+                                data={fields.map((f) => ({
+                                    value: f.id,
+                                    label: f.name,
+                                }))}
+                                value={form.values.columnFieldIds}
+                                onChange={(fieldIds) =>
+                                    form.setFieldValue(
+                                        "columnFieldIds",
+                                        fieldIds,
+                                    )
+                                }
+                                searchable
+                                clearable
+                            />
                         </Stack>
 
                         <Button color={tracker.color} type="submit" size="md">

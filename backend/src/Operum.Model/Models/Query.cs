@@ -8,6 +8,8 @@ namespace Operum.Model.Models
     // field of its tracker. Views are composed of one or more Queries (see ViewQuery); a
     // Query can be attached to several Views at once. It has no name of its own - what it
     // does is read off the field, operator and value.
+    //
+    // Which columns a view shows is not a clause and is not stored here (see ViewColumn).
     public class Query
     {
         [Key]

@@ -1,11 +1,11 @@
 import { ActionIcon, Checkbox, Group, Menu, Text } from "@mantine/core";
 import { IoMdEye } from "react-icons/io";
-import { useFields } from "../../fields/context/FieldsContext";
 import { useTracker } from "../../trackers/context/TrackerContext";
+import { ExtraColumns, useVisibleColumns } from "../hooks/useVisibleColumns";
 
 export function ColumnVisibilityMenu() {
     const { tracker } = useTracker();
-    const { visibleColumns, fields, toggleColumn } = useFields();
+    const { fields, isColumnVisible, toggleColumn } = useVisibleColumns();
     return (
         <Menu
             shadow="md"
@@ -42,7 +42,7 @@ export function ColumnVisibilityMenu() {
                             <Checkbox
                                 size="sm"
                                 color={tracker.color}
-                                checked={visibleColumns[field.id] || false}
+                                checked={isColumnVisible(field.id)}
                                 readOnly
                             />
                         </Group>
@@ -51,26 +51,32 @@ export function ColumnVisibilityMenu() {
 
                 <Menu.Divider />
 
-                <Menu.Item onClick={() => toggleColumn("createdAt")} px="xs">
+                <Menu.Item
+                    onClick={() => toggleColumn(ExtraColumns.CreatedAt)}
+                    px="xs"
+                >
                     <Group justify="space-between">
                         <Text size="sm">Created At</Text>
                         <Checkbox
                             size="sm"
                             color={tracker.color}
-                            checked={visibleColumns["createdAt"] || false}
+                            checked={isColumnVisible(ExtraColumns.CreatedAt)}
                             readOnly
                             tabIndex={-1}
                         />
                     </Group>
                 </Menu.Item>
 
-                <Menu.Item onClick={() => toggleColumn("actions")} px="xs">
+                <Menu.Item
+                    onClick={() => toggleColumn(ExtraColumns.Actions)}
+                    px="xs"
+                >
                     <Group justify="space-between">
                         <Text size="sm">Actions</Text>
                         <Checkbox
                             color={tracker.color}
                             size="sm"
-                            checked={visibleColumns["actions"] || false}
+                            checked={isColumnVisible(ExtraColumns.Actions)}
                             readOnly
                             tabIndex={-1}
                         />

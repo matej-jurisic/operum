@@ -61,6 +61,20 @@ namespace Operum.Model
                 .HasForeignKey(vq => vq.QueryId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            builder.Entity<ViewColumn>()
+                .HasOne(vc => vc.View)
+                .WithMany(v => v.ViewColumns)
+                .HasForeignKey(vc => vc.ViewId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // A column is a field and nothing else, so deleting the field drops it from
+            // whichever views showed it, the same way it drops the queries over it.
+            builder.Entity<ViewColumn>()
+                .HasOne(vc => vc.Field)
+                .WithMany()
+                .HasForeignKey(vc => vc.FieldId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             builder.Entity<TrackerConstant>()
                 .HasOne(c => c.Tracker)
                 .WithMany(t => t.TrackerConstants)

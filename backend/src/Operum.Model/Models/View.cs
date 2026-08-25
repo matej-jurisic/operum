@@ -16,7 +16,9 @@ namespace Operum.Model.Models
         public virtual Tracker Tracker { get; set; } = null!;
 
         public virtual List<ViewQuery> ViewQueries { get; set; } = [];
+
+        // The fields this view shows, in the order it shows them. Empty means every field.
+        public virtual List<ViewColumn> ViewColumns { get; set; } = [];
         //public virtual List<ViewGroup> Groups { get; set; } = [];
-        //public virtual List<ViewColumn> Columns { get; set; } = [];
     }
 }

@@ -9,7 +9,7 @@ import {
 } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { MdWarning } from "react-icons/md";
-import { useFields } from "../../fields/context/FieldsContext";
+import { useVisibleColumns } from "../hooks/useVisibleColumns";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { entriesController } from "../api/entriesController";
 import { useEntries } from "../context/EntriesContext";
@@ -24,7 +24,7 @@ interface Props {
 export function NoteView({ onClose }: Props) {
     const { tracker, selectedViewId, canEditData } = useTracker();
     const { totalCount, markEntriesDirty } = useEntries();
-    const { visibleFields } = useFields();
+    const { visibleFields } = useVisibleColumns();
 
     const [text, setText] = useState("");
     const [isLoading, setIsLoading] = useState(true);

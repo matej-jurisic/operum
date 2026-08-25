@@ -56,6 +56,7 @@ export default function SortableViewCard({
     const sortCount = view.queries.filter(
         (q) => q.kind === QueryKinds.Sort,
     ).length;
+    const columnCount = view.columnFieldIds.length;
 
     return (
         <Card ref={setNodeRef} style={style} p="md" radius="md" withBorder>
@@ -101,6 +102,12 @@ export default function SortableViewCard({
                                 <Badge variant="light" color="teal" size="sm">
                                     {sortCount}{" "}
                                     {sortCount === 1 ? "sort" : "sorts"}
+                                </Badge>
+                            )}
+                            {columnCount > 0 && (
+                                <Badge variant="light" color="grape" size="sm">
+                                    {columnCount}{" "}
+                                    {columnCount === 1 ? "column" : "columns"}
                                 </Badge>
                             )}
                         </Group>

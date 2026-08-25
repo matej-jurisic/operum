@@ -5,7 +5,10 @@ import { IoDuplicateOutline } from "react-icons/io5";
 import { MdDelete, MdEdit } from "react-icons/md";
 import { formatDateTimeFromDate } from "../../../shared/utils/formatters/TypeFormatter";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
-import { useFields } from "../../fields/context/FieldsContext";
+import {
+    ExtraColumns,
+    useVisibleColumns,
+} from "../hooks/useVisibleColumns";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { useEntries } from "../context/EntriesContext";
 import { EntryDto } from "../types/EntryDto";
@@ -44,7 +47,7 @@ export function EntriesTable({
         toggleEntrySelection,
     } = useEntries();
     const { tracker, canEditData } = useTracker();
-    const { visibleFields, visibleColumns } = useFields();
+    const { visibleFields, isColumnVisible } = useVisibleColumns();
 
     // Create table headers from visible fields
     const tableHeaders = useMemo(() => {
@@ -83,7 +86,7 @@ export function EntriesTable({
             })),
         );
 
-        if (visibleColumns["createdAt"]) {
+        if (isColumnVisible(ExtraColumns.CreatedAt)) {
             headers.push({
                 id: "createdAt",
                 label: "Created At",
@@ -92,7 +95,7 @@ export function EntriesTable({
             });
         }
 
-        if (visibleColumns["actions"]) {
+        if (isColumnVisible(ExtraColumns.Actions)) {
             headers.push({
                 id: "actions",
                 label: "Actions",
@@ -104,7 +107,7 @@ export function EntriesTable({
         return headers;
     }, [
         visibleFields,
-        visibleColumns,
+        isColumnVisible,
         isSelectMode,
         allEntriesSelected,
         someEntriesSelected,
@@ -143,7 +146,7 @@ export function EntriesTable({
                             </Text>
                         </Table.Td>
                     ))}
-                    {visibleColumns["createdAt"] && (
+                    {isColumnVisible(ExtraColumns.CreatedAt) && (
                         <Table.Td>
                             <Text size="sm" c="dimmed">
                                 {formatDateTimeFromDate(
@@ -152,7 +155,7 @@ export function EntriesTable({
                             </Text>
                         </Table.Td>
                     )}
-                    {visibleColumns["actions"] && (
+                    {isColumnVisible(ExtraColumns.Actions) && (
                         <Table.Td>
                             <Group gap="xs">
                                 <ActionIcon
@@ -196,7 +199,7 @@ export function EntriesTable({
     }, [
         entries,
         visibleFields,
-        visibleColumns,
+        isColumnVisible,
         isSelectMode,
         selectedCount,
         isEntrySelected,

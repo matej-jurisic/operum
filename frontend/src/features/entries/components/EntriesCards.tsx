@@ -12,7 +12,10 @@ import { IoDuplicateOutline } from "react-icons/io5";
 import { MdDelete, MdEdit } from "react-icons/md";
 import { formatDateTimeFromDate } from "../../../shared/utils/formatters/TypeFormatter";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
-import { useFields } from "../../fields/context/FieldsContext";
+import {
+    ExtraColumns,
+    useVisibleColumns,
+} from "../hooks/useVisibleColumns";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { useEntries } from "../context/EntriesContext";
 import { EntryDto } from "../types/EntryDto";
@@ -33,7 +36,7 @@ export function EntriesCards({
     onDelete,
 }: EntriesCardsProps) {
     const { tracker, canEditData } = useTracker();
-    const { fields, visibleFields, visibleColumns } = useFields();
+    const { fields, visibleFields, isColumnVisible } = useVisibleColumns();
     const { isEntrySelected, isSelectMode, toggleEntrySelection } =
         useEntries();
 
@@ -116,10 +119,10 @@ export function EntriesCards({
                             </Grid>
 
                             {/* Created at timestamp and actions */}
-                            {(visibleColumns["createdAt"] ||
-                                visibleColumns["actions"]) && (
+                            {(isColumnVisible(ExtraColumns.CreatedAt) ||
+                                isColumnVisible(ExtraColumns.Actions)) && (
                                 <Group justify="flex-end">
-                                    {visibleColumns["createdAt"] && (
+                                    {isColumnVisible(ExtraColumns.CreatedAt) && (
                                         <Text size="xs" c="dimmed">
                                             Created:{" "}
                                             {formatDateTimeFromDate(
@@ -128,7 +131,7 @@ export function EntriesCards({
                                         </Text>
                                     )}
 
-                                    {visibleColumns["actions"] && (
+                                    {isColumnVisible(ExtraColumns.Actions) && (
                                         <Group gap="xs">
                                             <ActionIcon
                                                 variant="outline"

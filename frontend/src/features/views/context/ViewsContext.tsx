@@ -7,6 +7,8 @@ import { viewsController } from "../api/viewsController";
 
 type ViewsContextType = {
     views: ViewDto[];
+    /** The view the tracker is currently looking through, if any. */
+    selectedView: ViewDto | null;
     refreshViews: () => Promise<void>;
     refreshViewsIfDirty: () => Promise<void>;
     // API methods - internal use only
@@ -24,6 +26,9 @@ export const ViewsProvider: React.FC<{ children: React.ReactNode }> = ({
     const { tracker, selectedViewId, _setSelectedViewId } = useTracker();
     const [views, setViews] = useState<ViewDto[]>([]);
     const [viewsDirty, setViewsDirty] = useState(true);
+
+    const selectedView =
+        views.find((v) => v.id === selectedViewId) ?? null;
 
     const refreshViews = useCallback(async () => {
         const response = await viewsController.getViewList(tracker.id);
@@ -62,6 +67,7 @@ export const ViewsProvider: React.FC<{ children: React.ReactNode }> = ({
         <ViewsContext.Provider
             value={{
                 views,
+                selectedView,
                 refreshViews,
                 refreshViewsIfDirty,
                 _createView,
