@@ -6,7 +6,12 @@ import { trackersController } from "../../trackers/api/trackersController";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { viewsController } from "../../views/api/viewsController";
 import { ViewDto } from "../../views/types/ViewDto";
-import { AddDashboardItemFromAnalyticDto } from "../types/DashboardDto";
+import { useDashboard } from "../context/DashboardContext";
+import { AddDashboardItemFromAnalyticDto, WidgetTypes } from "../types/DashboardDto";
+
+// Prefixes a "Filter by view" option's value so the same Select can offer both a fixed
+// view and a live link to a View widget without the two id spaces colliding.
+const LINK_PREFIX = "link:";
 
 interface Props {
     /** Steps back to the widget type picker. */
@@ -20,12 +25,14 @@ interface Props {
  * analytic is later changed or deleted.
  */
 export function ExistingAnalyticForm({ onBack, onAdd }: Props) {
+    const { widgets } = useDashboard();
     const [trackers, setTrackers] = useState<TrackerDto[]>([]);
     const [trackerId, setTrackerId] = useState<string | null>(null);
     const [analytics, setAnalytics] = useState<AnalyticDto[]>([]);
     const [analyticId, setAnalyticId] = useState<string | null>(null);
     const [views, setViews] = useState<ViewDto[]>([]);
     const [viewId, setViewId] = useState<string | null>(null);
+    const [linkedViewWidgetId, setLinkedViewWidgetId] = useState<string | null>(null);
     const [isLoadingTracker, setIsLoadingTracker] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -40,6 +47,7 @@ export function ExistingAnalyticForm({ onBack, onAdd }: Props) {
         setAnalyticId(null);
         setAnalytics([]);
         setViewId(null);
+        setLinkedViewWidgetId(null);
         setViews([]);
         if (!value) return;
 
@@ -56,8 +64,49 @@ export function ExistingAnalyticForm({ onBack, onAdd }: Props) {
     const handleSubmit = async () => {
         if (!analyticId) return;
         setIsSubmitting(true);
-        await onAdd({ analyticId, viewId });
+        await onAdd({
+            analyticId,
+            viewId: linkedViewWidgetId ? null : viewId,
+            linkedViewWidgetId,
+        });
         setIsSubmitting(false);
+    };
+
+    // The board's own View widgets built for this tracker — the only ones this can link
+    // to. Numbered rather than named since a View widget carries no label of its own.
+    const linkableViewWidgets = trackerId
+        ? widgets
+              .filter((w) => w.type === WidgetTypes.View && w.viewWidget?.trackerId === trackerId)
+              .map((w, index) => ({ id: w.id, label: `View selector ${index + 1}` }))
+        : [];
+
+    const viewSelectData = [
+        { group: "Fixed view", items: views.map((v) => ({ value: v.id, label: v.name })) },
+        ...(linkableViewWidgets.length > 0
+            ? [
+                  {
+                      group: "Follow a view widget",
+                      items: linkableViewWidgets.map((w) => ({
+                          value: `${LINK_PREFIX}${w.id}`,
+                          label: w.label,
+                      })),
+                  },
+              ]
+            : []),
+    ];
+
+    const viewSelectValue = linkedViewWidgetId
+        ? `${LINK_PREFIX}${linkedViewWidgetId}`
+        : viewId;
+
+    const handleViewSelectChange = (value: string | null) => {
+        if (value?.startsWith(LINK_PREFIX)) {
+            setViewId(null);
+            setLinkedViewWidgetId(value.slice(LINK_PREFIX.length));
+        } else {
+            setViewId(value);
+            setLinkedViewWidgetId(null);
+        }
     };
 
     // A name is optional when an analytic is built, so two of a tracker's analytics can
@@ -113,10 +162,10 @@ export function ExistingAnalyticForm({ onBack, onAdd }: Props) {
             <Select
                 label="Filter by view (optional)"
                 placeholder="All entries"
-                data={views.map((v) => ({ value: v.id, label: v.name }))}
-                value={viewId}
-                onChange={setViewId}
-                disabled={!trackerId || views.length === 0}
+                data={viewSelectData}
+                value={viewSelectValue}
+                onChange={handleViewSelectChange}
+                disabled={!trackerId || (views.length === 0 && linkableViewWidgets.length === 0)}
                 clearable
             />
 

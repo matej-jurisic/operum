@@ -47,6 +47,8 @@ function DashboardContent({
         addItem,
         addItemFromAnalytic,
         addQuickAddItem,
+        addViewItem,
+        setViewSelection,
         removeItem,
         saveLayout,
     } = useDashboard();
@@ -150,6 +152,7 @@ function DashboardContent({
                     isConfiguring={isConfiguring}
                     onLayoutSave={saveLayout}
                     onRemove={removeItem}
+                    onViewSelect={setViewSelection}
                 />
             )}
 
@@ -160,6 +163,7 @@ function DashboardContent({
                     onAdd={addItem}
                     onAddFromAnalytic={addItemFromAnalytic}
                     onAddQuickAdd={addQuickAddItem}
+                    onAddView={addViewItem}
                 />
             )}
         </Stack>

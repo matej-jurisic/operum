@@ -7,7 +7,6 @@ import { AnalyticCardHeader } from "./AnalyticCardHeader";
 import {
     cardBodyProps,
     cardShellProps,
-    cardTitle,
     chartHeight,
     useCardLayout,
 } from "./cardSizing";
@@ -94,8 +93,6 @@ export function DonutChartCard({
         };
     }, [fillHeight, isMobile, plot.width, plot.height]);
 
-    const subtitle = `${analytic.nameField.name} - ${analytic.valueField.name}`;
-
     return (
         <Paper
             ref={layout.ref}
@@ -106,7 +103,7 @@ export function DonutChartCard({
         >
             <Stack gap="xs" {...cardBodyProps(fillHeight)}>
                 <AnalyticCardHeader
-                    title={cardTitle(analytic.name, subtitle)}
+                    title={analytic.name}
                     layout={layout}
                     color={color}
                     isConfiguring={isConfiguring}

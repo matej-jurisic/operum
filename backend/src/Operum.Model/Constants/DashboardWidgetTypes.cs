@@ -11,7 +11,13 @@ namespace Operum.Model.Constants
         // analytic definition — just Config, a QuickAddWidgetConfigDto naming the tracker.
         public const string QuickAdd = "quickAdd";
 
-        public static readonly HashSet<string> All = [Analytic, QuickAdd];
+        // A dropdown over one tracker's views. Carries no analytic definition either — just
+        // Config, a ViewWidgetConfigDto naming the tracker and the currently selected view.
+        // Any DashboardItemSource can point its LinkedViewWidgetId at one of these instead of
+        // a fixed ViewId, so changing the dropdown here re-filters every source linked to it.
+        public const string View = "view";
+
+        public static readonly HashSet<string> All = [Analytic, QuickAdd, View];
 
         public static bool IsValid(string type) => All.Contains(type);
     }

@@ -65,16 +65,6 @@ export function useCardLayout(fillHeight?: boolean): CardLayout {
     };
 }
 
-/**
- * What the card leads with: its name, qualified by the fields it was built from.
- *
- * Always the full title — the header renders it as a single line and lets it use the
- * whole row before falling back to an ellipsis, so a card only ever loses the qualifier
- * once the text genuinely does not fit rather than because the card measured small.
- */
-export const cardTitle = (name: string, subtitle?: string): string =>
-    subtitle ? `${name}: ${subtitle}` : name;
-
 /** The card's outer Paper: a column that owns the full height of its cell. */
 export const cardShellProps = (
     fillHeight?: boolean,

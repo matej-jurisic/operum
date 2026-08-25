@@ -10,7 +10,6 @@ import {
 import {
     cardBodyProps,
     cardShellProps,
-    cardTitle,
     chartHeight,
     useCardLayout,
 } from "./cardSizing";
@@ -36,8 +35,6 @@ export function ScatterChartCard({
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
     const layout = useCardLayout(fillHeight);
 
-    const subtitle = `${analytic.xField.name} - ${analytic.yField.name}`;
-
     return (
         <Paper
             ref={layout.ref}
@@ -48,7 +45,7 @@ export function ScatterChartCard({
         >
             <Stack gap="xs" {...cardBodyProps(fillHeight)}>
                 <AnalyticCardHeader
-                    title={cardTitle(analytic.name, subtitle)}
+                    title={analytic.name}
                     layout={layout}
                     color={color}
                     isConfiguring={isConfiguring}

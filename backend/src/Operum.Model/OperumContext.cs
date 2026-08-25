@@ -89,6 +89,14 @@ namespace Operum.Model
                 .HasForeignKey(s => s.DashboardItemId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // Removing the View widget a source follows un-links it rather than taking the
+            // source's own item down with it — the chart just falls back to unfiltered.
+            builder.Entity<DashboardItemSource>()
+                .HasOne(s => s.LinkedViewWidget)
+                .WithMany()
+                .HasForeignKey(s => s.LinkedViewWidgetId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             builder.Entity<DashboardItemSourceField>()
                 .HasOne(f => f.DashboardItemSource)
                 .WithMany(s => s.Fields)

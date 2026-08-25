@@ -6,6 +6,7 @@ import {
     WidgetTypes,
 } from "../types/DashboardDto";
 import { QuickAddWidgetCard } from "./QuickAddWidgetCard";
+import { ViewWidgetCard } from "./ViewWidgetCard";
 
 interface Props {
     widget: DashboardWidgetDto;
@@ -13,6 +14,7 @@ interface Props {
     isConfiguring: boolean;
     onRemove?: (itemId: string) => void;
     onEntryClick?: (entryId: string) => void;
+    onViewSelect?: (itemId: string, viewId: string | null) => void;
 }
 
 // Config is free-form JSON per widget type, so it only ever parses to what the widget
@@ -38,6 +40,7 @@ export function DashboardWidget({
     isConfiguring,
     onRemove,
     onEntryClick,
+    onViewSelect,
 }: Props) {
     switch (widget.type) {
         case WidgetTypes.Analytic:
@@ -67,6 +70,17 @@ export function DashboardWidget({
                 />
             ) : null;
         }
+        case WidgetTypes.View:
+            return (
+                <ViewWidgetCard
+                    widgetId={widget.id}
+                    viewWidget={widget.viewWidget}
+                    color={color}
+                    isConfiguring={isConfiguring}
+                    onRemove={onRemove}
+                    onSelect={onViewSelect ?? (() => {})}
+                />
+            );
         default:
             return (
                 <Paper withBorder p="md" radius="md" h="100%">

@@ -125,6 +125,7 @@ interface Props {
   ) => void;
   onRemove?: (itemId: string) => void;
   onEntryClick?: (entryId: string) => void;
+  onViewSelect?: (itemId: string, viewId: string | null) => void;
 }
 
 export function DashboardGrid({
@@ -134,6 +135,7 @@ export function DashboardGrid({
   onLayoutSave,
   onRemove,
   onEntryClick,
+  onViewSelect,
 }: Props) {
   // Measured before the first render, so the grid never lays itself out at the hook's
   // assumed default width and overflows a narrower container for a frame.
@@ -210,6 +212,7 @@ export function DashboardGrid({
                 isConfiguring={isConfiguring}
                 onRemove={onRemove}
                 onEntryClick={onEntryClick}
+                onViewSelect={onViewSelect}
               />
             </div>
           ))}

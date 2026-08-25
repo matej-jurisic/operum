@@ -14,8 +14,10 @@ namespace Operum.Model.DTOs.Dashboard.Requests
 
         // Optional, and not copied from anywhere: a tracker's analytic is filtered by
         // whichever view the analytics page happens to have applied, so the board has to
-        // be told which one it should keep.
+        // be told which one it should keep. At most one of these — see
+        // DashboardItemSourceRequestDto.
         public string? ViewId { get; set; }
+        public string? LinkedViewWidgetId { get; set; }
     }
 
     public class AddDashboardItemFromAnalyticDtoValidator : AbstractValidator<AddDashboardItemFromAnalyticDto>
@@ -24,6 +26,10 @@ namespace Operum.Model.DTOs.Dashboard.Requests
         {
             RuleFor(x => x.AnalyticId)
                 .NotEmpty().WithMessage(x => Messages.Required("analytic id"));
+
+            RuleFor(x => x)
+                .Must(x => string.IsNullOrEmpty(x.ViewId) || string.IsNullOrEmpty(x.LinkedViewWidgetId))
+                .WithMessage("A source cannot both filter by a fixed view and follow a view widget.");
         }
     }
 }

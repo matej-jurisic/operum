@@ -13,7 +13,15 @@ namespace Operum.Model.Models
         public string Id { get; set; } = Guid.NewGuid().ToString();
         public int Order { get; set; }
         public string? Label { get; set; }
+
+        // A source is filtered at most one way: either a fixed ViewId (unaffected by
+        // anything else on the board), or LinkedViewWidgetId pointing at a
+        // DashboardWidgetTypes.View item whose own selection decides the filter instead —
+        // and can be changed live from the board. AddDashboardItem rejects both being set.
         public string? ViewId { get; set; }
+        public string? LinkedViewWidgetId { get; set; }
+        [ForeignKey(nameof(LinkedViewWidgetId))]
+        public virtual DashboardItem? LinkedViewWidget { get; set; }
 
         public string DashboardItemId { get; set; } = string.Empty;
         [ForeignKey(nameof(DashboardItemId))]

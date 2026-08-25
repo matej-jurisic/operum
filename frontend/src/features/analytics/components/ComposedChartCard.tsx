@@ -8,7 +8,6 @@ import { AnalyticCardHeader } from "./AnalyticCardHeader";
 import {
     cardBodyProps,
     cardShellProps,
-    cardTitle,
     chartHeight,
     useCardLayout,
 } from "./cardSizing";
@@ -70,8 +69,6 @@ export function ComposedChartCard({
         label: s.label,
     }));
 
-    const subtitle = analytic.series.map((s) => s.label).join(" + ");
-
     // Same best-effort caveat as the tooltip: the shared axis is formatted using the
     // first series' field type, which may not hold for every mixed-semantics series.
     const xAxisFormatter = analytic.series[0]?.xField
@@ -88,7 +85,7 @@ export function ComposedChartCard({
         >
             <Stack gap="xs" {...cardBodyProps(fillHeight)}>
                 <AnalyticCardHeader
-                    title={cardTitle(analytic.name, subtitle)}
+                    title={analytic.name}
                     layout={layout}
                     color={color}
                     isConfiguring={isConfiguring}

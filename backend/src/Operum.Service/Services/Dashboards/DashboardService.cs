@@ -58,6 +58,15 @@ namespace Operum.Service.Services.Dashboards
             if (dashboard == null)
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
 
+            return Result.Success(await BuildWidgets(dashboard));
+        }
+
+        // Shared by the plain read (GetDashboardWidgets) and anything that just wrote to the
+        // board and needs it recomputed from the same in-memory graph (SetViewWidgetSelection)
+        // — every source is recalculated on every call today regardless of what changed, so
+        // there is nothing to reconcile between the two.
+        private async Task<List<DashboardWidgetDto>> BuildWidgets(Dashboard dashboard)
+        {
             var items = dashboard.Items.OrderBy(i => i.Order).ToList();
             var results = new List<DashboardWidgetDto>();
 
@@ -84,6 +93,27 @@ namespace Operum.Service.Services.Dashboards
                     })
                 : new Dictionary<string, QuickAddTrackerDto>();
 
+            // View widgets keyed by their own item id — both to resolve their own dropdown
+            // (tracker + its views) and to let an analytic source below resolve what its
+            // LinkedViewWidgetId currently points at without a query per source.
+            var viewConfigsByItemId = items
+                .Where(i => i.Type == DashboardWidgetTypes.View)
+                .Select(i => (ItemId: i.Id, Config: TryParseViewConfig(i.Config)))
+                .Where(x => x.Config != null)
+                .ToDictionary(x => x.ItemId, x => x.Config!);
+
+            var viewTrackerIds = viewConfigsByItemId.Values.Select(c => c.TrackerId).Distinct().ToList();
+
+            var viewTrackers = viewTrackerIds.Count > 0
+                ? await db.Trackers.Where(t => viewTrackerIds.Contains(t.Id)).ToDictionaryAsync(t => t.Id)
+                : new Dictionary<string, Tracker>();
+
+            var viewsByTracker = viewTrackerIds.Count > 0
+                ? (await db.Views.Where(v => viewTrackerIds.Contains(v.TrackerId)).OrderBy(v => v.Order).ToListAsync())
+                    .GroupBy(v => v.TrackerId)
+                    .ToDictionary(g => g.Key, g => g.ToList())
+                : new Dictionary<string, List<View>>();
+
             foreach (var item in items)
             {
                 // A widget that isn't an analytic renders from its own Config alone, so it
@@ -98,7 +128,23 @@ namespace Operum.Service.Services.Dashboards
                             quickAddTrackers.TryGetValue(trackerId, out quickAddTracker);
                     }
 
-                    results.Add(MapToWidgetDto(item, null, quickAddTracker));
+                    ViewWidgetDto? viewWidget = null;
+                    if (item.Type == DashboardWidgetTypes.View &&
+                        viewConfigsByItemId.TryGetValue(item.Id, out var viewConfig) &&
+                        viewTrackers.TryGetValue(viewConfig.TrackerId, out var viewTracker))
+                    {
+                        viewsByTracker.TryGetValue(viewConfig.TrackerId, out var trackerViews);
+                        viewWidget = new ViewWidgetDto
+                        {
+                            TrackerId = viewTracker.Id,
+                            TrackerName = viewTracker.Name,
+                            Color = viewTracker.Color,
+                            ViewId = viewConfig.ViewId,
+                            Views = (trackerViews ?? []).Select(v => new ViewOptionDto { Id = v.Id, Name = v.Name }).ToList()
+                        };
+                    }
+
+                    results.Add(MapToWidgetDto(item, null, quickAddTracker, viewWidget: viewWidget));
                     continue;
                 }
 
@@ -109,13 +155,23 @@ namespace Operum.Service.Services.Dashboards
 
                 foreach (var source in item.Sources.OrderBy(s => s.Order))
                 {
+                    // A linked source's filter comes from whatever its View widget is
+                    // currently set to instead of its own (unset) ViewId — resolved from the
+                    // dictionary above rather than a query per source.
+                    var effectiveViewId = source.ViewId;
+                    if (!string.IsNullOrEmpty(source.LinkedViewWidgetId) &&
+                        viewConfigsByItemId.TryGetValue(source.LinkedViewWidgetId, out var linkedConfig))
+                    {
+                        effectiveViewId = linkedConfig.ViewId;
+                    }
+
                     View? view = null;
-                    if (!string.IsNullOrEmpty(source.ViewId))
+                    if (!string.IsNullOrEmpty(effectiveViewId))
                     {
                         view = await db.Views
                             .Include(v => v.ViewQueries.OrderBy(vq => vq.Order)).ThenInclude(vq => vq.Query).ThenInclude(q => q.Filters).ThenInclude(f => f.Field)
                             .Include(v => v.ViewQueries).ThenInclude(vq => vq.Query).ThenInclude(q => q.Sorts).ThenInclude(s => s.Field)
-                            .FirstOrDefaultAsync(v => v.Id == source.ViewId && v.TrackerId == source.TrackerId);
+                            .FirstOrDefaultAsync(v => v.Id == effectiveViewId && v.TrackerId == source.TrackerId);
                     }
 
                     var entriesQuery = db.Entries
@@ -184,7 +240,7 @@ namespace Operum.Service.Services.Dashboards
                 results.Add(MapToWidgetDto(item, itemResult, trackerColor: trackerColor));
             }
 
-            return Result.Success(results);
+            return results;
         }
 
         public async Task<Result<DashboardDto>> CreateDashboard(CreateDashboardDto dto)
@@ -280,12 +336,24 @@ namespace Operum.Service.Services.Dashboards
                         return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("view"));
                 }
 
+                if (!string.IsNullOrEmpty(sourceDto.LinkedViewWidgetId))
+                {
+                    // Looked up in the graph already loaded above rather than queried, since
+                    // the widget being linked to has to be on this same dashboard.
+                    var viewWidgetItem = dashboard.Items.FirstOrDefault(i => i.Id == sourceDto.LinkedViewWidgetId && i.Type == DashboardWidgetTypes.View);
+                    var viewWidgetConfig = viewWidgetItem != null ? TryParseViewConfig(viewWidgetItem.Config) : null;
+
+                    if (viewWidgetConfig == null || viewWidgetConfig.TrackerId != sourceDto.TrackerId)
+                        return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("view widget for this tracker"));
+                }
+
                 var source = new DashboardItemSource
                 {
                     Order = sources.Count,
                     Label = sourceDto.Label,
                     TrackerId = sourceDto.TrackerId,
-                    ViewId = sourceDto.ViewId
+                    ViewId = sourceDto.ViewId,
+                    LinkedViewWidgetId = sourceDto.LinkedViewWidgetId
                 };
 
                 var fieldsResult = await BuildSourceFields(dto.ResultType, dto.Code, sourceDto, source);
@@ -396,6 +464,7 @@ namespace Operum.Service.Services.Dashboards
                         // back to the definition's own label the way any other item does.
                         Label = string.IsNullOrWhiteSpace(analytic.Name) ? null : analytic.Name,
                         ViewId = dto.ViewId,
+                        LinkedViewWidgetId = dto.LinkedViewWidgetId,
                         AnalyticFields = analytic.AnalyticFields
                             .Select(f => new CreateAnalyticFieldDto { Purpose = f.Purpose, FieldId = f.FieldId })
                             .ToList()
@@ -467,6 +536,107 @@ namespace Operum.Service.Services.Dashboards
                 MatchedValuesOnly = item.MatchedValuesOnly,
                 Sources = []
             });
+        }
+
+        // A dropdown over one tracker's views. Unlike AddDashboardItem this carries no
+        // analytic definition either — access to the tracker, and that the starting
+        // selection (if any) is actually one of its views, is all that needs checking.
+        public async Task<Result<DashboardItemDto>> AddViewItem(string dashboardId, AddDashboardViewItemDto dto)
+        {
+            var dashboard = await GetUserDashboard(dashboardId);
+            if (dashboard == null)
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
+
+            if (dashboard.Items.Count >= DataLimits.MaxDashboardItemCount)
+                return Result.Failure(ResultStatusCodes.Conflict, Messages.MaxNumberReached("dashboard items", DataLimits.MaxDashboardItemCount));
+
+            var user = currentUserService.GetCurrentUser();
+            var tracker = await db.Trackers
+                .Include(t => t.ApplicationUserTrackers)
+                .FirstOrDefaultAsync(t => t.Id == dto.TrackerId);
+
+            var hasAccess = tracker != null &&
+                (tracker.OwnerId == user.Id || tracker.ApplicationUserTrackers.Any(ut => ut.ApplicationUserId == user.Id));
+
+            if (tracker == null || !hasAccess)
+                return Result.Failure(ResultStatusCodes.Forbidden);
+
+            if (!string.IsNullOrEmpty(dto.ViewId))
+            {
+                var exists = await db.Views.AnyAsync(v => v.Id == dto.ViewId && v.TrackerId == dto.TrackerId);
+                if (!exists)
+                    return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("view"));
+            }
+
+            var nextOrder = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.Order) + 1 : 0;
+
+            // Same placement rules as a chart: its own row under everything already on the
+            // board, on both grids at once.
+            var nextRow = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.Y + i.H) : 0;
+            var nextMobileRow = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.MobileY + i.MobileH) : 0;
+            var (width, height) = DashboardGrid.ViewSize;
+
+            var item = new DashboardItem
+            {
+                DashboardId = dashboardId,
+                Order = nextOrder,
+                Type = DashboardWidgetTypes.View,
+                Config = JsonSerializer.Serialize(new ViewWidgetConfigDto { TrackerId = dto.TrackerId, ViewId = dto.ViewId }, ConfigJsonOptions),
+                X = 0,
+                Y = nextRow,
+                W = width,
+                H = height,
+                MobileX = 0,
+                MobileY = nextMobileRow,
+                MobileW = DashboardGrid.MobileColumns,
+                MobileH = height
+            };
+
+            db.DashboardItems.Add(item);
+            await db.SaveChangesAsync();
+
+            return Result.Success(new DashboardItemDto
+            {
+                Id = item.Id,
+                Order = item.Order,
+                Type = item.Type,
+                Layout = MapToLayoutDto(item),
+                MobileLayout = MapToMobileLayoutDto(item),
+                Config = item.Config,
+                ResultType = item.ResultType,
+                Code = item.Code,
+                MatchedValuesOnly = item.MatchedValuesOnly,
+                Sources = []
+            });
+        }
+
+        // Changes what a View widget's dropdown is currently set to and persists it onto the
+        // item's own Config, so it's what every future load starts from — not just this
+        // session. Returns the whole board recomputed, the same as GetDashboardWidgets,
+        // since every source linked to this widget needs to be re-filtered by it.
+        public async Task<Result<List<DashboardWidgetDto>>> SetViewWidgetSelection(string dashboardId, string itemId, SetViewWidgetSelectionDto dto)
+        {
+            var dashboard = await GetUserDashboard(dashboardId);
+            if (dashboard == null)
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
+
+            var item = dashboard.Items.FirstOrDefault(i => i.Id == itemId && i.Type == DashboardWidgetTypes.View);
+            var config = item != null ? TryParseViewConfig(item.Config) : null;
+            if (item == null || config == null)
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("view widget"));
+
+            if (!string.IsNullOrEmpty(dto.ViewId))
+            {
+                var exists = await db.Views.AnyAsync(v => v.Id == dto.ViewId && v.TrackerId == config.TrackerId);
+                if (!exists)
+                    return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("view"));
+            }
+
+            config.ViewId = dto.ViewId;
+            item.Config = JsonSerializer.Serialize(config, ConfigJsonOptions);
+            await db.SaveChangesAsync();
+
+            return Result.Success(await BuildWidgets(dashboard));
         }
 
         public async Task<Result> RemoveDashboardItem(string dashboardId, string itemId)
@@ -721,7 +891,8 @@ namespace Operum.Service.Services.Dashboards
             DashboardItem item,
             AnalyticDto? analytic,
             QuickAddTrackerDto? quickAddTracker = null,
-            string? trackerColor = null) => new()
+            string? trackerColor = null,
+            ViewWidgetDto? viewWidget = null) => new()
         {
             Id = item.Id,
             Type = item.Type,
@@ -730,6 +901,7 @@ namespace Operum.Service.Services.Dashboards
             Config = item.Config,
             Analytic = analytic,
             QuickAddTracker = quickAddTracker,
+            ViewWidget = viewWidget,
             TrackerColor = trackerColor
         };
 
@@ -741,6 +913,21 @@ namespace Operum.Service.Services.Dashboards
             try
             {
                 return JsonSerializer.Deserialize<QuickAddWidgetConfigDto>(config, ConfigJsonOptions);
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+        }
+
+        private static ViewWidgetConfigDto? TryParseViewConfig(string? config)
+        {
+            if (string.IsNullOrEmpty(config))
+                return null;
+
+            try
+            {
+                return JsonSerializer.Deserialize<ViewWidgetConfigDto>(config, ConfigJsonOptions);
             }
             catch (JsonException)
             {

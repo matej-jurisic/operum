@@ -9,6 +9,7 @@ import {
     AddDashboardItemDto,
     AddDashboardItemFromAnalyticDto,
     AddDashboardQuickAddItemDto,
+    AddDashboardViewItemDto,
     DashboardLayoutItemDto,
     DashboardWidgetDto,
     LayoutVariant,
@@ -22,6 +23,8 @@ type DashboardContextType = {
     addItem: (dto: AddDashboardItemDto) => Promise<void>;
     addItemFromAnalytic: (dto: AddDashboardItemFromAnalyticDto) => Promise<void>;
     addQuickAddItem: (dto: AddDashboardQuickAddItemDto) => Promise<void>;
+    addViewItem: (dto: AddDashboardViewItemDto) => Promise<void>;
+    setViewSelection: (itemId: string, viewId: string | null) => Promise<void>;
     removeItem: (itemId: string) => Promise<void>;
     saveLayout: (
         variant: LayoutVariant,
@@ -58,6 +61,22 @@ export const DashboardProvider: React.FC<{
     const addQuickAddItem = async (dto: AddDashboardQuickAddItemDto) => {
         await dashboardController.addQuickAddItem(dashboardId, dto);
         await refreshWidgets();
+    };
+
+    const addViewItem = async (dto: AddDashboardViewItemDto) => {
+        await dashboardController.addViewItem(dashboardId, dto);
+        await refreshWidgets();
+    };
+
+    // The dropdown's own widget re-renders from the response immediately, same as any other
+    // widget update, and so does every widget whose source is linked to it — the selection
+    // is saved server-side (ViewWidgetConfigDto.ViewId), so this is the same "recompute the
+    // whole board" the server already does on every load, not a client-only toggle.
+    const setViewSelection = async (itemId: string, viewId: string | null) => {
+        const res = await dashboardController.setViewWidgetSelection(dashboardId, itemId, {
+            viewId,
+        });
+        setWidgets(res.data ?? []);
     };
 
     const removeItem = async (itemId: string) => {
@@ -111,6 +130,8 @@ export const DashboardProvider: React.FC<{
                 addItem,
                 addItemFromAnalytic,
                 addQuickAddItem,
+                addViewItem,
+                setViewSelection,
                 removeItem,
                 saveLayout,
             }}

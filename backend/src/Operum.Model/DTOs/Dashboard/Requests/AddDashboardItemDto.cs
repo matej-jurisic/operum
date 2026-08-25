@@ -16,7 +16,11 @@ namespace Operum.Model.DTOs.Dashboard.Requests
         // only ever supplies the tracker-specific half of it.
         public List<CreateAnalyticFieldDto> AnalyticFields { get; set; } = [];
 
+        // At most one of these narrows the source's entries: ViewId fixes it,
+        // LinkedViewWidgetId instead follows a DashboardWidgetTypes.View item already on the
+        // board, so the filter changes live with its dropdown.
         public string? ViewId { get; set; }
+        public string? LinkedViewWidgetId { get; set; }
         public string? Label { get; set; }
     }
 
@@ -48,6 +52,10 @@ namespace Operum.Model.DTOs.Dashboard.Requests
             RuleFor(x => x.Label)
                 .MaximumLength(100).WithMessage("Label cannot exceed 100 characters.")
                 .When(x => !string.IsNullOrEmpty(x.Label));
+
+            RuleFor(x => x)
+                .Must(x => string.IsNullOrEmpty(x.ViewId) || string.IsNullOrEmpty(x.LinkedViewWidgetId))
+                .WithMessage("A source cannot both filter by a fixed view and follow a view widget.");
 
             RuleForEach(x => x.AnalyticFields)
                 .SetValidator(new CreateAnalyticFieldDtoValidator());

@@ -39,5 +39,9 @@ namespace Operum.Model.Constants
         // A quick-add button is a single row of chrome, not a chart — it only ever needs
         // room for an icon, a name and a button.
         public static readonly (int Width, int Height) QuickAddSize = (3, 3);
+
+        // A view selector is just a dropdown under a label — the same footprint as a
+        // quick-add button.
+        public static readonly (int Width, int Height) ViewSize = (3, 3);
     }
 }

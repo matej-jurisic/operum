@@ -65,6 +65,18 @@ namespace Operum.API.Controllers
             return GetApiResponse(await dashboardService.AddQuickAddItem(dashboardId, dto));
         }
 
+        [HttpPost("{dashboardId}/items/view")]
+        public async Task<IActionResult> AddViewItem([FromRoute] string dashboardId, [FromBody] AddDashboardViewItemDto dto)
+        {
+            return GetApiResponse(await dashboardService.AddViewItem(dashboardId, dto));
+        }
+
+        [HttpPut("{dashboardId}/items/{itemId}/view-selection")]
+        public async Task<IActionResult> SetViewWidgetSelection([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] SetViewWidgetSelectionDto dto)
+        {
+            return GetApiResponse(await dashboardService.SetViewWidgetSelection(dashboardId, itemId, dto));
+        }
+
         [HttpDelete("{dashboardId}/items/{itemId}")]
         public async Task<IActionResult> RemoveDashboardItem([FromRoute] string dashboardId, [FromRoute] string itemId)
         {

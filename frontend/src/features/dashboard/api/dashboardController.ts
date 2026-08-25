@@ -4,10 +4,12 @@ import {
     AddDashboardItemDto,
     AddDashboardItemFromAnalyticDto,
     AddDashboardQuickAddItemDto,
+    AddDashboardViewItemDto,
     CreateDashboardDto,
     DashboardDto,
     DashboardItemDto,
     DashboardWidgetDto,
+    SetViewWidgetSelectionDto,
     UpdateDashboardDto,
     UpdateDashboardLayoutDto,
 } from "../types/DashboardDto";
@@ -61,6 +63,21 @@ export const dashboardController = {
         dto: AddDashboardQuickAddItemDto
     ): Promise<ApiResponse<DashboardItemDto>> => {
         return await api.post(`/dashboard/${dashboardId}/items/quick-add`, dto);
+    },
+
+    addViewItem: async (
+        dashboardId: string,
+        dto: AddDashboardViewItemDto
+    ): Promise<ApiResponse<DashboardItemDto>> => {
+        return await api.post(`/dashboard/${dashboardId}/items/view`, dto);
+    },
+
+    setViewWidgetSelection: async (
+        dashboardId: string,
+        itemId: string,
+        dto: SetViewWidgetSelectionDto
+    ): Promise<ApiResponse<DashboardWidgetDto[]>> => {
+        return await api.put(`/dashboard/${dashboardId}/items/${itemId}/view-selection`, dto);
     },
 
     removeDashboardItem: async (

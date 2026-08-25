@@ -25,7 +25,12 @@ import { trackersController } from "../../trackers/api/trackersController";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { viewsController } from "../../views/api/viewsController";
 import { ViewDto } from "../../views/types/ViewDto";
-import { AddDashboardItemDto } from "../types/DashboardDto";
+import { useDashboard } from "../context/DashboardContext";
+import { AddDashboardItemDto, WidgetTypes } from "../types/DashboardDto";
+
+// Prefixes a "Filter by view" option's value so the same Select can offer both a fixed
+// view and a live link to a View widget without the two id spaces colliding.
+const LINK_PREFIX = "link:";
 
 interface Props {
     /** Steps back to the widget type picker. */
@@ -38,7 +43,9 @@ interface Props {
 interface TrackerRow {
     trackerId: string | null;
     fieldMappings: Record<string, string>;
+    // At most one of these is set — see the "Filter by view" Select below.
     viewId: string | null;
+    linkedViewWidgetId: string | null;
     // Loaded per tracker
     fields: FieldDto[];
     views: ViewDto[];
@@ -65,6 +72,7 @@ const makeEmptyRow = (): TrackerRow => ({
     trackerId: null,
     fieldMappings: {},
     viewId: null,
+    linkedViewWidgetId: null,
     fields: [],
     views: [],
 });
@@ -74,6 +82,7 @@ const makeEmptyRow = (): TrackerRow => ({
  * owned by the dashboard item, not by any tracker.
  */
 export function CustomAnalyticForm({ onBack, onAdd }: Props) {
+    const { widgets } = useDashboard();
     const [trackers, setTrackers] = useState<TrackerDto[]>([]);
     const [config, setConfig] = useState<AnalyticConfigDto>();
     const [resultType, setResultType] = useState<string | null>(null);
@@ -140,6 +149,7 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
             trackerId,
             fieldMappings: {},
             viewId: null,
+            linkedViewWidgetId: null,
             fields: [],
             views: [],
         });
@@ -154,6 +164,23 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
             views: viewsRes.data ?? [],
         });
     };
+
+    // The board's own View widgets, grouped by the tracker they were built for — the only
+    // ones a row can link to. Numbered rather than named since a View widget carries no
+    // label of its own, only a tracker.
+    const viewWidgetsByTracker = useMemo(() => {
+        const map: Record<string, { id: string; label: string }[]> = {};
+        widgets
+            .filter((w) => w.type === WidgetTypes.View && w.viewWidget)
+            .forEach((w) => {
+                const trackerId = w.viewWidget!.trackerId;
+                (map[trackerId] ??= []).push({
+                    id: w.id,
+                    label: `View selector ${(map[trackerId]?.length ?? 0) + 1}`,
+                });
+            });
+        return map;
+    }, [widgets]);
 
     const addRow = () => setRows((prev) => [...prev, makeEmptyRow()]);
 
@@ -205,7 +232,8 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
                 analyticFields: Object.entries(row.fieldMappings)
                     .filter(([, fieldId]) => !!fieldId)
                     .map(([purpose, fieldId]) => ({ purpose, fieldId })),
-                viewId: row.viewId,
+                viewId: row.linkedViewWidgetId ? null : row.viewId,
+                linkedViewWidgetId: row.linkedViewWidgetId,
                 // Only a single-source item has one calculated result to name; a combined
                 // chart names itself from its series instead, so the label is dropped there.
                 label:
@@ -264,10 +292,44 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
             )}
 
             {rows.map((row, index) => {
-                const viewOptions = row.views.map((v) => ({
-                    value: v.id,
-                    label: v.name,
-                }));
+                const linkableViewWidgets = row.trackerId
+                    ? (viewWidgetsByTracker[row.trackerId] ?? [])
+                    : [];
+
+                // A fixed view and a link to a View widget share one Select: the latter's
+                // values are prefixed so they can't collide with a real view id.
+                const viewSelectData = [
+                    {
+                        group: "Fixed view",
+                        items: row.views.map((v) => ({ value: v.id, label: v.name })),
+                    },
+                    ...(linkableViewWidgets.length > 0
+                        ? [
+                              {
+                                  group: "Follow a view widget",
+                                  items: linkableViewWidgets.map((w) => ({
+                                      value: `${LINK_PREFIX}${w.id}`,
+                                      label: w.label,
+                                  })),
+                              },
+                          ]
+                        : []),
+                ];
+
+                const viewSelectValue = row.linkedViewWidgetId
+                    ? `${LINK_PREFIX}${row.linkedViewWidgetId}`
+                    : row.viewId;
+
+                const handleViewSelectChange = (value: string | null) => {
+                    if (value?.startsWith(LINK_PREFIX)) {
+                        updateRow(index, {
+                            viewId: null,
+                            linkedViewWidgetId: value.slice(LINK_PREFIX.length),
+                        });
+                    } else {
+                        updateRow(index, { viewId: value, linkedViewWidgetId: null });
+                    }
+                };
 
                 return (
                     <Paper key={index} withBorder p="sm" radius="md">
@@ -328,9 +390,9 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
                             <Select
                                 label="Filter by view (optional)"
                                 placeholder="All entries"
-                                data={viewOptions}
-                                value={row.viewId}
-                                onChange={(value) => updateRow(index, { viewId: value })}
+                                data={viewSelectData}
+                                value={viewSelectValue}
+                                onChange={handleViewSelectChange}
                                 disabled={!row.trackerId}
                                 clearable
                             />

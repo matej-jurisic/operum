@@ -5,6 +5,7 @@ import { CreateAnalyticFieldDto } from "../../analytics/types/requests/CreateAna
 export const WidgetTypes = {
     Analytic: "analytic",
     QuickAdd: "quickAdd",
+    View: "view",
 } as const;
 
 /** The Config payload of a WidgetTypes.QuickAdd widget: which tracker its button opens
@@ -20,6 +21,24 @@ export interface QuickAddTrackerDto {
     name: string;
     color?: string;
     icon?: string;
+}
+
+/** One view a View widget's dropdown can be set to. */
+export interface ViewOptionDto {
+    id: string;
+    name: string;
+}
+
+/** What a WidgetTypes.View widget's dropdown needs, resolved server-side the same way
+    quickAddTracker is. viewId is the persisted, current selection — it changes (and is
+    saved) whenever the dropdown does, so it's what every source linked to this widget is
+    filtered by, not just an initial default. */
+export interface ViewWidgetDto {
+    trackerId: string;
+    trackerName: string;
+    color?: string;
+    viewId?: string | null;
+    views: ViewOptionDto[];
 }
 
 /** Placement on one of the dashboard's grids, in that grid's columns. */
@@ -57,6 +76,7 @@ export interface DashboardWidgetDto {
     config?: string;
     analytic?: AnalyticDto;
     quickAddTracker?: QuickAddTrackerDto;
+    viewWidget?: ViewWidgetDto;
     /** The color of the single tracker every source of this widget reads from. Undefined
         when the widget has no single owning tracker (a combined chart spanning more than
         one), so the board falls back to its own color. */
@@ -133,7 +153,11 @@ export interface UpdateDashboardDto {
 export interface AddDashboardItemSourceDto {
     trackerId: string;
     analyticFields: CreateAnalyticFieldDto[];
+    /** At most one of these narrows the source's entries: viewId fixes it,
+        linkedViewWidgetId instead follows a WidgetTypes.View item already on the board, so
+        the filter changes live with its dropdown. */
     viewId?: string | null;
+    linkedViewWidgetId?: string | null;
     label?: string;
 }
 
@@ -144,8 +168,10 @@ export interface AddDashboardItemSourceDto {
  */
 export interface AddDashboardItemFromAnalyticDto {
     analyticId: string;
-    /** Optional: a tracker analytic carries no view of its own, so the board picks one. */
+    /** Optional: a tracker analytic carries no view of its own, so the board picks one. At
+        most one of these — see AddDashboardItemSourceDto. */
     viewId?: string | null;
+    linkedViewWidgetId?: string | null;
 }
 
 export interface AddDashboardItemDto {
@@ -160,4 +186,19 @@ export interface AddDashboardItemDto {
     dialog from the board. */
 export interface AddDashboardQuickAddItemDto {
     trackerId: string;
+}
+
+/** Adds a WidgetTypes.View widget: a dropdown over one tracker's views that other
+    widgets' sources can link to. */
+export interface AddDashboardViewItemDto {
+    trackerId: string;
+    /** The dropdown's starting selection. Left unset to start on "All entries". */
+    viewId?: string | null;
+}
+
+/** Changes what a WidgetTypes.View item's dropdown is currently set to. Persisted on the
+    item itself, so every source linked to it re-filters from here on — not just this
+    browser session. */
+export interface SetViewWidgetSelectionDto {
+    viewId?: string | null;
 }

@@ -8,6 +8,7 @@ import {
     useMantineTheme,
 } from "@mantine/core";
 import { IconType } from "react-icons";
+import { CiFilter } from "react-icons/ci";
 import { FiChevronRight, FiPlusSquare } from "react-icons/fi";
 import { TbChartHistogram, TbLayoutGrid } from "react-icons/tb";
 import { useState } from "react";
@@ -15,10 +16,12 @@ import {
     AddDashboardItemDto,
     AddDashboardItemFromAnalyticDto,
     AddDashboardQuickAddItemDto,
+    AddDashboardViewItemDto,
 } from "../types/DashboardDto";
 import { CustomAnalyticForm } from "./CustomAnalyticForm";
 import { ExistingAnalyticForm } from "./ExistingAnalyticForm";
 import { QuickAddTrackerForm } from "./QuickAddTrackerForm";
+import { ViewWidgetForm } from "./ViewWidgetForm";
 
 interface Props {
     color: string;
@@ -26,9 +29,10 @@ interface Props {
     onAdd: (dto: AddDashboardItemDto) => Promise<void>;
     onAddFromAnalytic: (dto: AddDashboardItemFromAnalyticDto) => Promise<void>;
     onAddQuickAdd: (dto: AddDashboardQuickAddItemDto) => Promise<void>;
+    onAddView: (dto: AddDashboardViewItemDto) => Promise<void>;
 }
 
-type WidgetKind = "existing" | "custom" | "quickAdd";
+type WidgetKind = "existing" | "custom" | "quickAdd" | "view";
 
 interface WidgetKindOption {
     kind: WidgetKind;
@@ -64,6 +68,13 @@ const WIDGET_KINDS: WidgetKindOption[] = [
         icon: FiPlusSquare,
         formTitle: "Add a quick-add button",
     },
+    {
+        kind: "view",
+        title: "View selector",
+        description: "A dropdown other widgets on this tracker can follow live",
+        icon: CiFilter,
+        formTitle: "Add a view selector",
+    },
 ];
 
 export function AddWidgetModal({
@@ -72,6 +83,7 @@ export function AddWidgetModal({
     onAdd,
     onAddFromAnalytic,
     onAddQuickAdd,
+    onAddView,
 }: Props) {
     const theme = useMantineTheme();
     const [kind, setKind] = useState<WidgetKind | null>(null);
@@ -147,6 +159,13 @@ export function AddWidgetModal({
                 <QuickAddTrackerForm
                     onBack={() => setKind(null)}
                     onAdd={submit(onAddQuickAdd)}
+                />
+            )}
+
+            {kind === "view" && (
+                <ViewWidgetForm
+                    onBack={() => setKind(null)}
+                    onAdd={submit(onAddView)}
                 />
             )}
         </Modal>

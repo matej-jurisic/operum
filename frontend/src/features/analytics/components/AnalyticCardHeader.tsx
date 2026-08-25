@@ -4,8 +4,8 @@ import { MdDelete, MdEdit } from "react-icons/md";
 import { CardLayout, CARD_HEADER_CLASS } from "./cardSizing";
 
 interface Props {
-  /** What the card is called, from `cardTitle`. Also used as the hover tooltip, for
-        whenever the row truncates it with an ellipsis. */
+  /** What the card is called — its name, and nothing else. Also used as the hover
+        tooltip, for whenever the row truncates it with an ellipsis. */
   title: string;
   layout: CardLayout;
   color: string | undefined;

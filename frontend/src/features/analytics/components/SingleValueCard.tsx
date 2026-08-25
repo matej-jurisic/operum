@@ -6,7 +6,6 @@ import { AnalyticCardHeader } from "./AnalyticCardHeader";
 import {
     cardBodyProps,
     cardShellProps,
-    cardTitle,
     useCardLayout,
     useSyncedElementSize,
 } from "./cardSizing";
@@ -40,8 +39,6 @@ export function SingleValueCard({
     const layout = useCardLayout(fillHeight);
     const valueBox = useSyncedElementSize<HTMLDivElement>(!!fillHeight);
 
-    const subtitle = analytic.valueField?.name;
-
     const valueFontSize =
         fillHeight && valueBox.width > 0 && valueBox.height > 0
             ? Math.max(
@@ -67,7 +64,7 @@ export function SingleValueCard({
         >
             <Stack gap="xs" {...cardBodyProps(fillHeight)}>
                 <AnalyticCardHeader
-                    title={cardTitle(analytic.name, subtitle)}
+                    title={analytic.name}
                     layout={layout}
                     color={color}
                     isConfiguring={isConfiguring}
