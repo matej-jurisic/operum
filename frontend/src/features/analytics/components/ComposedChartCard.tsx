@@ -24,8 +24,9 @@ interface Props {
     fillHeight?: boolean;
 }
 
-// Cycled per series; the board color is reserved for the first series so a combined
-// chart still leads with the dashboard's own accent color.
+// Fallback only, for a series whose tracker carries no color of its own: cycled per
+// series, with the board color reserved for the first one so a combined chart still leads
+// with the dashboard's own accent color absent anything more specific to draw it with.
 const SERIES_COLORS = ["blue", "orange", "teal", "grape", "yellow", "red", "cyan", "pink"];
 
 export function ComposedChartCard({
@@ -60,7 +61,12 @@ export function ComposedChartCard({
     const chartSeries = analytic.series.map((s, index) => ({
         name: s.key,
         type: s.renderType,
-        color: index === 0 ? color ?? SERIES_COLORS[0] : SERIES_COLORS[index % SERIES_COLORS.length],
+        // Each line/bar is colored like the tracker it came from, so a combined chart
+        // still reads as "which tracker" at a glance. Only a series whose tracker has no
+        // color of its own falls back to the cycling palette.
+        color:
+            s.color ??
+            (index === 0 ? color ?? SERIES_COLORS[0] : SERIES_COLORS[index % SERIES_COLORS.length]),
         label: s.label,
     }));
 

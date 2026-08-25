@@ -52,6 +52,9 @@ export interface ComposedChartSeriesDto {
     xField: FieldDto;
     valueField: FieldDto;
     points: { x: string; y: number }[];
+    /** The color of the tracker this series was calculated from. Undefined falls back to
+        the chart's own cycling palette. */
+    color?: string;
 }
 
 export interface ComposedChartAnalyticDto extends AnalyticDto {

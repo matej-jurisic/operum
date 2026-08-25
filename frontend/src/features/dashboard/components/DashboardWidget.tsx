@@ -44,7 +44,10 @@ export function DashboardWidget({
             return widget.analytic ? (
                 <AnalyticCard
                     analytic={widget.analytic}
-                    color={color}
+                    // A widget backed by a single tracker reads as that tracker; one
+                    // combining several (a composed chart) has no single tracker to take
+                    // the color from, so it keeps the board's own.
+                    color={widget.trackerColor ?? color}
                     isConfiguring={isConfiguring}
                     fillHeight
                     onRemove={onRemove}

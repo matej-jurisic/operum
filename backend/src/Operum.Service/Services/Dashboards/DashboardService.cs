@@ -26,6 +26,7 @@ namespace Operum.Service.Services.Dashboards
         private sealed record ResolvedSource(
             DashboardItemSource Source,
             string TrackerName,
+            string? TrackerColor,
             AnalyticDto Result);
 
         // Config is written by hand rather than through the controller's own JSON
@@ -149,7 +150,7 @@ namespace Operum.Service.Services.Dashboards
                     // calculated field's formula is broken: an explanatory card beats the
                     // widget silently disappearing, which left no way to find and remove it.
                     var data = AnalyticResultBuilder.GetDisplayableAnalyticResult(request);
-                    resolvedSources.Add(new ResolvedSource(source, source.Tracker.Name, data));
+                    resolvedSources.Add(new ResolvedSource(source, source.Tracker.Name, source.Tracker.Color, data));
                 }
 
                 // Only possible if the item somehow ended up with no sources at all — every
@@ -173,7 +174,14 @@ namespace Operum.Service.Services.Dashboards
                 // Use dashboard item ID so frontend can reference it for layout/remove
                 itemResult.Id = item.Id;
                 itemResult.Order = item.Order;
-                results.Add(MapToWidgetDto(item, itemResult));
+
+                // A widget owned by exactly one tracker is colored like that tracker; one
+                // combining more than one falls back to the dashboard's own color, applied
+                // client-side (see TrackerColor on DashboardWidgetDto).
+                var distinctTrackerIds = resolvedSources.Select(r => r.Source.TrackerId).Distinct().ToList();
+                var trackerColor = distinctTrackerIds.Count == 1 ? resolvedSources[0].TrackerColor : null;
+
+                results.Add(MapToWidgetDto(item, itemResult, trackerColor: trackerColor));
             }
 
             return Result.Success(results);
@@ -623,7 +631,8 @@ namespace Operum.Service.Services.Dashboards
                         RenderType = ComposedSeriesRenderTypes.Line,
                         XField = line.XField,
                         ValueField = line.YField,
-                        Points = line.Points.Select(p => new ComposedChartPointDto { X = p.X, Y = p.Y }).ToList()
+                        Points = line.Points.Select(p => new ComposedChartPointDto { X = p.X, Y = p.Y }).ToList(),
+                        Color = resolved.TrackerColor
                     },
                     BarChartAnalyticDto bar => new ComposedChartSeriesDto
                     {
@@ -632,7 +641,8 @@ namespace Operum.Service.Services.Dashboards
                         RenderType = ComposedSeriesRenderTypes.Bar,
                         XField = bar.NameField,
                         ValueField = bar.ValueField ?? new FieldDto { Name = "Count", Type = DataTypes.Number },
-                        Points = bar.Points.Select(p => new ComposedChartPointDto { X = p.Name, Y = p.Value }).ToList()
+                        Points = bar.Points.Select(p => new ComposedChartPointDto { X = p.Name, Y = p.Value }).ToList(),
+                        Color = resolved.TrackerColor
                     },
                     // Defensive only — AddDashboardItem already rejects any other result type
                     // once there's more than one source.
@@ -707,7 +717,11 @@ namespace Operum.Service.Services.Dashboards
             H = i.MobileH
         };
 
-        private static DashboardWidgetDto MapToWidgetDto(DashboardItem item, AnalyticDto? analytic, QuickAddTrackerDto? quickAddTracker = null) => new()
+        private static DashboardWidgetDto MapToWidgetDto(
+            DashboardItem item,
+            AnalyticDto? analytic,
+            QuickAddTrackerDto? quickAddTracker = null,
+            string? trackerColor = null) => new()
         {
             Id = item.Id,
             Type = item.Type,
@@ -715,7 +729,8 @@ namespace Operum.Service.Services.Dashboards
             MobileLayout = MapToMobileLayoutDto(item),
             Config = item.Config,
             Analytic = analytic,
-            QuickAddTracker = quickAddTracker
+            QuickAddTracker = quickAddTracker,
+            TrackerColor = trackerColor
         };
 
         private static QuickAddWidgetConfigDto? TryParseQuickAddConfig(string? config)

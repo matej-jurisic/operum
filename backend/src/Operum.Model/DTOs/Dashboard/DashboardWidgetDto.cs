@@ -37,5 +37,9 @@ namespace Operum.Model.DTOs.Dashboard
         public string? Config { get; set; }
         public AnalyticDto? Analytic { get; set; }
         public QuickAddTrackerDto? QuickAddTracker { get; set; }
+        // The color of the single tracker every source of this widget reads from. Null when
+        // the widget has no single owning tracker — a combined chart spanning more than one —
+        // so the client falls back to the dashboard's own color instead.
+        public string? TrackerColor { get; set; }
     }
 }

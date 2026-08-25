@@ -57,6 +57,10 @@ export interface DashboardWidgetDto {
     config?: string;
     analytic?: AnalyticDto;
     quickAddTracker?: QuickAddTrackerDto;
+    /** The color of the single tracker every source of this widget reads from. Undefined
+        when the widget has no single owning tracker (a combined chart spanning more than
+        one), so the board falls back to its own color. */
+    trackerColor?: string;
 }
 
 export interface DashboardLayoutItemDto extends WidgetLayoutDto {
