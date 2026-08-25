@@ -45,5 +45,41 @@ namespace Operum.Service.Domain.Analytics
 
             return result;
         }
+
+        // For the two places an analytic is rendered for a person to look at (a tracker's own
+        // analytics page and a dashboard widget) rather than evaluated for a notification: a
+        // failure here almost always means a field the analytic depends on is missing or
+        // broken — e.g. deleting a field doesn't clean up a *different* calculated field's
+        // formula that still refers to it by name, so that field quietly stops producing
+        // values. GetAnalyticResult already turns a bad request into an explanatory
+        // single-value card; this also catches a genuine calculation failure (no data,
+        // unsupported code) and an unexpected exception the same way, so a broken analytic
+        // still shows up — and can be edited or deleted — instead of silently vanishing from
+        // the page. Notification evaluation deliberately keeps using GetAnalyticResult
+        // directly: there, IsSuccess == false correctly means "don't fire".
+        public static AnalyticDto GetDisplayableAnalyticResult(AnalyticResultBuilderRequest request)
+        {
+            try
+            {
+                var result = GetAnalyticResult(request);
+                if (result.IsSuccess)
+                    return result.Data;
+
+                return Fallback(request, result.Messages.FirstOrDefault());
+            }
+            catch (Exception ex)
+            {
+                return Fallback(request, $"Could not calculate this analytic: {ex.Message}");
+            }
+        }
+
+        private static AnalyticDto Fallback(AnalyticResultBuilderRequest request, string? message) =>
+            new SingleValueAnalyticDto
+            {
+                Id = request.Analytic.Id,
+                Name = string.IsNullOrWhiteSpace(request.Analytic.Name) ? "" : request.Analytic.Name,
+                Description = request.Analytic.Description,
+                Value = message ?? "Error"
+            };
     }
 }

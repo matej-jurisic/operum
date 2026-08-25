@@ -145,11 +145,15 @@ namespace Operum.Service.Services.Dashboards
                         FieldMap = BuildFieldMap(source)
                     };
 
-                    var calculationResult = AnalyticResultBuilder.GetAnalyticResult(request);
-                    if (calculationResult.IsSuccess)
-                        resolvedSources.Add(new ResolvedSource(source, source.Tracker.Name, calculationResult.Data));
+                    // Always displayable, even when the source's field(s) are missing or a
+                    // calculated field's formula is broken: an explanatory card beats the
+                    // widget silently disappearing, which left no way to find and remove it.
+                    var data = AnalyticResultBuilder.GetDisplayableAnalyticResult(request);
+                    resolvedSources.Add(new ResolvedSource(source, source.Tracker.Name, data));
                 }
 
+                // Only possible if the item somehow ended up with no sources at all — every
+                // source's own calculation now always resolves to something displayable.
                 if (resolvedSources.Count == 0) continue;
 
                 // A single source renders exactly as it always has; combining only kicks in
@@ -567,8 +571,9 @@ namespace Operum.Service.Services.Dashboards
         }
 
         // Purpose -> Field for the mappings that still resolve. Deleting a field cascades its
-        // mapping away, so an incomplete map is possible here; the calculation then fails for
-        // that source and the caller skips it rather than failing the whole dashboard.
+        // mapping away, so an incomplete map is possible here; the builder renders whatever
+        // it can from what's left and GetDisplayableAnalyticResult falls back to an
+        // explanatory placeholder otherwise, rather than the source disappearing.
         private static Dictionary<string, Field> BuildFieldMap(DashboardItemSource source) =>
             source.Fields
                 .Where(f => f.Field != null)

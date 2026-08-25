@@ -450,15 +450,21 @@ namespace Operum.Service.Services.Trackers
                 {
                     Analytic = analytic,
                     Entries = entries,
-                    FieldMap = analytic.AnalyticFields.ToDictionary(f => f.Purpose, f => f.Field)
+                    // A purpose can be left mapped to a field that no longer resolves (e.g. a
+                    // calculated field whose formula referenced a field that has since been
+                    // deleted); guard against a null navigation the same way dashboard
+                    // sources do rather than letting it reach the builder.
+                    FieldMap = analytic.AnalyticFields
+                        .Where(f => f.Field != null)
+                        .ToDictionary(f => f.Purpose, f => f.Field)
                 };
-                var calculationResult = AnalyticResultBuilder.GetAnalyticResult(request);
-                if (calculationResult.IsSuccess)
-                {
-                    calculationResult.Data.Id = analytic.Id;
-                    calculationResult.Data.Order = analytic.Order;
-                    analyticResults.Add(calculationResult.Data);
-                }
+                // Always displayable, even when the analytic's field(s) are missing or a
+                // calculated field's formula is broken: a card explaining why beats the
+                // analytic silently disappearing, which left no way to find and delete it.
+                var data = AnalyticResultBuilder.GetDisplayableAnalyticResult(request);
+                data.Id = analytic.Id;
+                data.Order = analytic.Order;
+                analyticResults.Add(data);
             }
 
             return Result.Success(analyticResults);
