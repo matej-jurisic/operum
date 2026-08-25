@@ -6,6 +6,7 @@ import { AnalyticCardHeader } from "./AnalyticCardHeader";
 import {
     cardBodyProps,
     cardShellProps,
+    cardTitle,
     chartHeight,
     useCardLayout,
 } from "./cardSizing";
@@ -30,6 +31,8 @@ export function LineChartCard({
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
     const layout = useCardLayout(fillHeight);
 
+    const subtitle = `${analytic.xField.name} - ${analytic.yField.name}`;
+
     return (
         <Paper
             ref={layout.ref}
@@ -40,7 +43,8 @@ export function LineChartCard({
         >
             <Stack gap="xs" {...cardBodyProps(fillHeight)}>
                 <AnalyticCardHeader
-                    title={`${analytic.name}: ${analytic.xField.name} - ${analytic.yField.name}`}
+                    title={cardTitle(layout, analytic.name, subtitle)}
+                    fullTitle={`${analytic.name}: ${subtitle}`}
                     layout={layout}
                     color={color}
                     isConfiguring={isConfiguring}

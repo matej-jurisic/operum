@@ -11,8 +11,13 @@
 }
 
 /* A cell has a fixed pixel height, so the card inside it takes all of it and any chart
-   that fills its card scales with the widget rather than overflowing it. */
-.dashboard-grid .react-grid-item > * {
+   that fills its card scales with the widget rather than overflowing it.
+
+   The handles are left out of it. They are floated over the card at a size of their own,
+   and stretching one turns it into a strip down the full edge of the widget: the drag
+   grip covers the card from its top left all the way past the bottom, and the resize
+   corner takes the whole right edge with it. */
+.dashboard-grid .react-grid-item > *:not(.dashboard-drag-handle):not(.react-resizable-handle) {
     height: 100%;
 }
 

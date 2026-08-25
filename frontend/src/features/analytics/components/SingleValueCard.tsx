@@ -7,6 +7,7 @@ import {
     cardBodyProps,
     CARD_HEADER_CLASS,
     cardShellProps,
+    cardTitle,
     useCardLayout,
 } from "./cardSizing";
 
@@ -26,6 +27,11 @@ interface Props {
 const MIN_VALUE_FONT = 18;
 const MAX_VALUE_FONT = 72;
 
+// The value shrinks to whatever the name leaves over, so this card can spend more of its
+// height on a long name than a chart card can: the alternative is an ellipsis on a card
+// that is mostly empty anyway.
+const MAX_TITLE_LINES = 3;
+
 export function SingleValueCard({
     analytic,
     color,
@@ -34,8 +40,11 @@ export function SingleValueCard({
     onEntryClick,
     fillHeight,
 }: Props) {
-    const layout = useCardLayout(fillHeight);
+    const layout = useCardLayout(fillHeight, MAX_TITLE_LINES);
     const valueBox = useElementSize<HTMLDivElement>();
+
+    const subtitle = analytic.valueField?.name;
+    const fullTitle = subtitle ? `${analytic.name}: ${subtitle}` : analytic.name;
 
     const valueFontSize =
         fillHeight && valueBox.width > 0 && valueBox.height > 0
@@ -73,10 +82,14 @@ export function SingleValueCard({
                         c="dimmed"
                         fw={500}
                         lineClamp={layout.titleLineClamp}
+                        // A clamped Text is a -webkit-box, which a flex row will not
+                        // hand its leftover width to on its own: without this the name
+                        // is cut at the width of the icons beside it and the rest of the
+                        // row sits empty.
+                        style={{ flex: 1, minWidth: 0 }}
+                        title={fullTitle}
                     >
-                        {analytic.valueField
-                            ? `${analytic.name}: ${analytic.valueField.name}`
-                            : analytic.name}
+                        {cardTitle(layout, analytic.name, subtitle)}
                     </Text>
                     <Group gap="xs" wrap="nowrap">
                         {analytic.entryId && onEntryClick && (

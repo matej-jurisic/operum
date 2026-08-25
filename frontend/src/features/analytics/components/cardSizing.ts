@@ -24,6 +24,10 @@ const MIN_X_AXIS_HEIGHT = 200;
 const COMPACT_WIDTH = 300;
 const COMPACT_HEIGHT = 240;
 
+// A name gets at most this many lines before it is cut, so that a wrapping one cannot
+// push the card's actual content off the bottom of the widget.
+const DEFAULT_MAX_TITLE_LINES = 2;
+
 /** What its own measured size lets a card draw. */
 export interface CardLayout {
     /** Goes on the card's outer Paper: what the rest of this is measured from. */
@@ -50,7 +54,11 @@ export interface CardLayout {
  * fixed height, and shrinking one because its column happens to be narrow would cost the
  * even grid that the masonry is there to give.
  */
-export function useCardLayout(fillHeight?: boolean): CardLayout {
+export function useCardLayout(
+    fillHeight?: boolean,
+    /** For a card whose content sizes itself to the room the name leaves over. */
+    maxTitleLines: number = DEFAULT_MAX_TITLE_LINES,
+): CardLayout {
     const { ref, width, height } = useElementSize<HTMLDivElement>();
 
     const measured = !!fillHeight && width > 0 && height > 0;
@@ -66,11 +74,25 @@ export function useCardLayout(fillHeight?: boolean): CardLayout {
         titleSize: isCompact ? "xs" : "sm",
         // A name long enough to wrap costs a fixed-height card nothing and a small
         // widget most of its plot.
-        titleLineClamp: measured ? (isCompact ? 1 : 2) : undefined,
+        titleLineClamp: measured ? (isCompact ? 1 : maxTitleLines) : undefined,
         withXAxis: !measured || height >= MIN_X_AXIS_HEIGHT,
         withYAxis: !measured || width >= MIN_Y_AXIS_WIDTH,
     };
 }
+
+/**
+ * What the card leads with: its name, qualified by the fields it was built from wherever
+ * there is room for both.
+ *
+ * The qualifier is the first half to go. A card too small to hold the whole title cuts it
+ * at whatever character it runs out of room at, and `Steps: Da...` names the analytic no
+ * better than `Steps` does while telling the reader less than the name alone.
+ */
+export const cardTitle = (
+    layout: CardLayout,
+    name: string,
+    subtitle?: string,
+): string => (subtitle && !layout.isCompact ? `${name}: ${subtitle}` : name);
 
 /** The card's outer Paper: a column that owns the full height of its cell. */
 export const cardShellProps = (

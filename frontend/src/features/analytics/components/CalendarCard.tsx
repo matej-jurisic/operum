@@ -16,6 +16,7 @@ import { AnalyticCardHeader } from "./AnalyticCardHeader";
 import {
     cardBodyProps,
     cardShellProps,
+    cardTitle,
     chartHeight,
     useCardLayout,
 } from "./cardSizing";
@@ -67,6 +68,8 @@ export function CalendarCard({
         return eventsByDate;
     }, [analytic.points]);
 
+    const subtitle = `${analytic.whenField.name} - ${analytic.whatField.name}`;
+
     // Get events for selected date
     const selectedDateKey = selectedDate ? getDateKey(selectedDate) : "";
     const eventsForSelectedDate = events.get(selectedDateKey) || [];
@@ -81,7 +84,8 @@ export function CalendarCard({
         >
             <Stack gap="xs" {...cardBodyProps(fillHeight)}>
                 <AnalyticCardHeader
-                    title={`${analytic.name}: ${analytic.whenField.name} - ${analytic.whatField.name}`}
+                    title={cardTitle(layout, analytic.name, subtitle)}
+                    fullTitle={`${analytic.name}: ${subtitle}`}
                     layout={layout}
                     color={color}
                     isConfiguring={isConfiguring}

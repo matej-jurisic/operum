@@ -10,6 +10,7 @@ import {
 import {
     cardBodyProps,
     cardShellProps,
+    cardTitle,
     chartHeight,
     useCardLayout,
 } from "./cardSizing";
@@ -47,7 +48,8 @@ export function BarChartCard({
         >
             <Stack gap="xs" {...cardBodyProps(fillHeight)}>
                 <AnalyticCardHeader
-                    title={`${analytic.name}: ${subtitle}`}
+                    title={cardTitle(layout, analytic.name, subtitle)}
+                    fullTitle={`${analytic.name}: ${subtitle}`}
                     layout={layout}
                     color={color}
                     isConfiguring={isConfiguring}

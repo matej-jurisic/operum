@@ -8,6 +8,7 @@ import { AnalyticCardHeader } from "./AnalyticCardHeader";
 import {
     cardBodyProps,
     cardShellProps,
+    cardTitle,
     chartHeight,
     useCardLayout,
 } from "./cardSizing";
@@ -79,7 +80,8 @@ export function ComposedChartCard({
         >
             <Stack gap="xs" {...cardBodyProps(fillHeight)}>
                 <AnalyticCardHeader
-                    title={subtitle}
+                    title={cardTitle(layout, analytic.name, subtitle)}
+                    fullTitle={`${analytic.name}: ${subtitle}`}
                     layout={layout}
                     color={color}
                     isConfiguring={isConfiguring}
