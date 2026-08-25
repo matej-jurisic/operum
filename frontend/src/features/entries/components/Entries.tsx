@@ -50,8 +50,8 @@ enum OpenDialogType {
     NoteView,
 }
 
-const ExportCsv = async (trackerId: string, viewIds?: string[]) => {
-    const response = await entriesController.exportCsv(trackerId, viewIds);
+const ExportCsv = async (trackerId: string, viewId?: string | null) => {
+    const response = await entriesController.exportCsv(trackerId, viewId);
 
     downloadBlob(
         new Blob([response.data]),
@@ -72,7 +72,7 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
     const [selectedEntry, setSelectedEntry] = useState<EntryDto>();
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
 
-    const { tracker, selectedViewIds, canEditData } = useTracker();
+    const { tracker, selectedViewId, canEditData } = useTracker();
     const { refreshFieldsIfDirty, fields } = useFields();
     const {
         entries,
@@ -112,17 +112,14 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
     }, [page, pageSize, totalCount]);
 
     const viewName = useMemo(() => {
-        const activeViews = views.filter((x) => selectedViewIds.includes(x.id));
-        return activeViews.length > 0
-            ? activeViews.map((v) => v.name).join(", ")
-            : undefined;
-    }, [views, selectedViewIds]);
+        return views.find((x) => x.id === selectedViewId)?.name;
+    }, [views, selectedViewId]);
 
     useEffect(() => {
         if (!entriesDirty) return;
         const loadData = async () => {
             setIsLoadingData(true);
-            await refreshEntries(selectedViewIds, 1);
+            await refreshEntries(selectedViewId, 1);
             await refreshFieldsIfDirty();
             setIsLoadingData(false);
         };
@@ -578,7 +575,7 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                     isOpen
                     onClose={() => setOpenDialogType(undefined)}
                     onConfirm={async () => {
-                        await ExportCsv(tracker.id, selectedViewIds);
+                        await ExportCsv(tracker.id, selectedViewId);
                         setOpenDialogType(undefined);
                     }}
                     title="Export data"
@@ -619,7 +616,7 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                 <NoteView
                     onClose={() => {
                         setOpenDialogType(undefined);
-                        refreshEntries(selectedViewIds);
+                        refreshEntries(selectedViewId);
                     }}
                 />
             </Modal>

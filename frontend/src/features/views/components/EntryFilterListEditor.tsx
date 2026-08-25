@@ -16,6 +16,7 @@ import { FiPlus, FiPlusSquare } from "react-icons/fi";
 import { MdDelete } from "react-icons/md";
 import DynamicDateValueInput from "../../../shared/components/DynamicDateValueInput";
 import { operatorTypes } from "../../../shared/constants/DataTypesForSelect";
+import { getPathValue } from "../../../shared/utils/getPathValue";
 import { FieldDto } from "../../fields/types/FieldDto";
 import { FilterTemplate, filterTemplates } from "./ViewFilterTemplates";
 
@@ -38,7 +39,7 @@ export default function EntryFilterListEditor({
     const [selectedFieldForTemplate, setSelectedFieldForTemplate] = useState("");
 
     const filters: Array<{ fieldId: string; operator: string; value?: any }> =
-        (form.values as any)[filtersPath] ?? [];
+        getPathValue(form.values, filtersPath) ?? [];
     const canAdd = filters.length < maxFilters;
 
     const fieldOptions = fields.map((f) => ({ value: f.id, label: f.name }));

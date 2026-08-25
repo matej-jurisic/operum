@@ -1,5 +1,5 @@
-import { Button, Center, Loader, Paper, Stack, Text } from "@mantine/core";
-import { createElement, useEffect, useState } from "react";
+import { Button, Center, Paper, Stack, Text } from "@mantine/core";
+import { createElement, useState } from "react";
 import { AnalyticCardHeader } from "../../analytics/components/AnalyticCardHeader";
 import {
   cardBodyProps,
@@ -10,12 +10,15 @@ import QuickAddEntryDialog from "../../entries/components/QuickAddEntryDialog";
 import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
 import { trackersController } from "../../trackers/api/trackersController";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
-import { QuickAddWidgetConfig } from "../types/DashboardDto";
+import { QuickAddTrackerDto, QuickAddWidgetConfig } from "../types/DashboardDto";
 
 interface Props {
   widgetId: string;
   config: QuickAddWidgetConfig;
-  /** The board's color, used until the tracker itself has loaded. */
+  /** The name/color/icon to render the button with, resolved by the board itself —
+      the card never fetches this just to draw its own button. */
+  tracker: QuickAddTrackerDto | undefined;
+  /** The board's color, used only if the tracker carries none of its own. */
   color: string | undefined;
   isConfiguring: boolean;
   onRemove?: (itemId: string) => void;
@@ -23,40 +26,34 @@ interface Props {
 
 /**
  * A board widget that is a shortcut rather than a chart: pressing it opens the same
- * QuickAddEntryDialog the tracker's own page uses. The widget only carries a tracker id
- * (see QuickAddWidgetConfig), so the tracker — and with it the icon, color and fields the
- * dialog needs — is fetched once the card mounts.
+ * QuickAddEntryDialog the tracker's own page uses. The button itself renders from the
+ * tracker summary the board already fetched; only the fields the dialog needs to build
+ * its form are fetched, and only once the button is actually pressed.
  */
 export function QuickAddWidgetCard({
   widgetId,
   config,
+  tracker,
   color,
   isConfiguring,
   onRemove,
 }: Props) {
   const layout = useCardLayout(true);
-  const [tracker, setTracker] = useState<TrackerDto>();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    setIsLoading(true);
-    trackersController
-      .getTracker(config.trackerId)
-      .then((res) => {
-        if (!cancelled) setTracker(res.data);
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [config.trackerId]);
+  const [dialogTracker, setDialogTracker] = useState<TrackerDto>();
+  const [isOpening, setIsOpening] = useState(false);
 
   const trackerColor = tracker?.color || color;
   const Icon = resolveTrackerIcon(tracker?.icon);
+
+  const handleOpen = async () => {
+    setIsOpening(true);
+    try {
+      const res = await trackersController.getTracker(config.trackerId);
+      setDialogTracker(res.data);
+    } finally {
+      setIsOpening(false);
+    }
+  };
 
   return (
     <Paper
@@ -84,15 +81,14 @@ export function QuickAddWidgetCard({
           compact
         />
         <Center style={{ flex: 1, minHeight: 0 }}>
-          {isLoading ? (
-            <Loader color={trackerColor} size="sm" />
-          ) : tracker ? (
+          {tracker ? (
             <Button
               color={trackerColor}
               variant="light"
               radius="md"
+              loading={isOpening}
               leftSection={createElement(Icon, { size: 18 })}
-              onClick={() => setIsDialogOpen(true)}
+              onClick={handleOpen}
             >
               Add entry
             </Button>
@@ -104,10 +100,10 @@ export function QuickAddWidgetCard({
         </Center>
       </Stack>
 
-      {isDialogOpen && tracker && (
+      {dialogTracker && (
         <QuickAddEntryDialog
-          tracker={tracker}
-          onClose={() => setIsDialogOpen(false)}
+          tracker={dialogTracker}
+          onClose={() => setDialogTracker(undefined)}
         />
       )}
     </Paper>

@@ -4,7 +4,7 @@ namespace Operum.Model.DTOs.Notifications.Requests
     {
         public required string Name { get; set; }
         public bool IsEnabled { get; set; } = true;
-        public List<string> ViewIds { get; set; } = [];
+        public string? ViewId { get; set; }
         public required CreateNotificationEventDto Event { get; set; }
         public required CreateNotificationConditionDto Condition { get; set; }
     }

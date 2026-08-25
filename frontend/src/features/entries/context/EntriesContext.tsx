@@ -24,8 +24,11 @@ type EntriesContextType = {
     page: number;
     pageSize: number;
     totalCount: number;
-    refreshEntries: (viewIds?: string[], pageOverride?: number) => Promise<void>;
-    refreshEntriesIfDirty: (viewIds?: string[]) => Promise<void>;
+    refreshEntries: (
+        viewId?: string | null,
+        pageOverride?: number
+    ) => Promise<void>;
+    refreshEntriesIfDirty: (viewId?: string | null) => Promise<void>;
     goToPage: (page: number) => Promise<void>;
     isEntrySelected: (entryId: string) => boolean;
     toggleEntrySelection: (entryId: string) => void;
@@ -53,7 +56,7 @@ const EntriesContext = createContext<EntriesContextType | undefined>(undefined);
 export const EntriesProvider: React.FC<{ children: React.ReactNode }> = ({
     children,
 }) => {
-    const { tracker, selectedViewIds } = useTracker();
+    const { tracker, selectedViewId } = useTracker();
     const [entries, setEntries] = useState<EntryDto[]>([]);
     const [entriesDirty, setEntriesDirty] = useState(true);
     // In "select all matching" mode these hold the exclusions instead of the picks: the
@@ -84,11 +87,11 @@ export const EntriesProvider: React.FC<{ children: React.ReactNode }> = ({
         !allEntriesSelected && entries.some((e) => isEntrySelected(e.id));
 
     const refreshEntries = useCallback(
-        async (implicitViewIds?: string[], pageOverride?: number) => {
+        async (implicitViewId?: string | null, pageOverride?: number) => {
             const targetPage = pageOverride ?? page;
             const response = await entriesController.getEntries(
                 tracker.id,
-                implicitViewIds ?? selectedViewIds,
+                implicitViewId !== undefined ? implicitViewId : selectedViewId,
                 targetPage,
                 PAGE_SIZE
             );
@@ -97,12 +100,12 @@ export const EntriesProvider: React.FC<{ children: React.ReactNode }> = ({
             setPage(response.data.page);
             setEntriesDirty(false);
         },
-        [tracker.id, selectedViewIds, page]
+        [tracker.id, selectedViewId, page]
     );
 
     const refreshEntriesIfDirty = useCallback(
-        async (viewIds?: string[]) => {
-            if (entriesDirty) await refreshEntries(viewIds);
+        async (viewId?: string | null) => {
+            if (entriesDirty) await refreshEntries(viewId);
         },
         [entriesDirty, refreshEntries]
     );
@@ -162,12 +165,12 @@ export const EntriesProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsSelectMode(false);
     }, [deselectAll]);
 
-    // A selection stated as "everything matching" means something different once the views
-    // change, and explicit picks can drop out of the result set, so start over either way.
+    // A selection stated as "everything matching" means something different once the view
+    // changes, and explicit picks can drop out of the result set, so start over either way.
     useEffect(() => {
         setSelectedEntryIds(new Set());
         setSelectAllMatching(false);
-    }, [selectedViewIds]);
+    }, [selectedViewId]);
 
     const getSelection = useCallback(
         (): EntrySelection =>
@@ -175,16 +178,16 @@ export const EntriesProvider: React.FC<{ children: React.ReactNode }> = ({
                 ? {
                       entryIds: [],
                       selectAllMatching: true,
-                      viewIds: selectedViewIds,
+                      viewId: selectedViewId,
                       excludedEntryIds: Array.from(selectedEntryIds),
                   }
                 : {
                       entryIds: Array.from(selectedEntryIds),
                       selectAllMatching: false,
-                      viewIds: [],
+                      viewId: null,
                       excludedEntryIds: [],
                   },
-        [selectAllMatching, selectedEntryIds, selectedViewIds]
+        [selectAllMatching, selectedEntryIds, selectedViewId]
     );
 
     const _createEntry = async (fieldValues: Record<string, string>) => {

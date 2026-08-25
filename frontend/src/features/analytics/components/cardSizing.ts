@@ -1,5 +1,5 @@
 import { useElementSize } from "@mantine/hooks";
-import { CSSProperties, RefObject } from "react";
+import { CSSProperties, RefObject, useLayoutEffect, useRef, useState } from "react";
 
 /**
  * A card renders at a fixed height inside the masonry on a tracker page, where an even
@@ -100,3 +100,41 @@ export const cardBodyProps = (
 
 export const chartHeight = (fillHeight?: boolean, isMobile?: boolean) =>
     fillHeight ? "100%" : isMobile ? MOBILE_CHART_HEIGHT : CHART_HEIGHT;
+
+/**
+ * Like `useElementSize`, but takes its first measurement synchronously in a layout
+ * effect instead of waiting on a `ResizeObserver` callback. A `ResizeObserver`'s first
+ * notification lands after the browser has already painted the mount frame, so anything
+ * sized off it — a value's font, say — visibly snaps from its unmeasured fallback to the
+ * real size a frame or two into every load. Measuring in `useLayoutEffect` instead lets
+ * React re-render with the real size before that first frame is ever painted.
+ */
+export function useSyncedElementSize<T extends HTMLElement = HTMLDivElement>(
+    enabled = true,
+): { ref: RefObject<T | null>; width: number; height: number } {
+    const ref = useRef<T>(null);
+    const [size, setSize] = useState({ width: 0, height: 0 });
+
+    useLayoutEffect(() => {
+        if (!enabled) return;
+        const el = ref.current;
+        if (!el) return;
+
+        const measure = () => {
+            const rect = el.getBoundingClientRect();
+            setSize((prev) =>
+                prev.width === rect.width && prev.height === rect.height
+                    ? prev
+                    : { width: rect.width, height: rect.height },
+            );
+        };
+
+        measure();
+
+        const observer = new ResizeObserver(measure);
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [enabled]);
+
+    return { ref, width: size.width, height: size.height };
+}

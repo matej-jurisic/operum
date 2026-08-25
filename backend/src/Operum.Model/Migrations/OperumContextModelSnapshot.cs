@@ -321,7 +321,7 @@ namespace Operum.Model.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("ViewIds")
+                    b.Property<string>("ViewId")
                         .HasColumnType("text");
 
                     b.HasKey("Id");
@@ -610,6 +610,86 @@ namespace Operum.Model.Migrations
                     b.ToTable("NotificationTriggeredEntries");
                 });
 
+            modelBuilder.Entity("Operum.Model.Models.Query", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TrackerId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TrackerId");
+
+                    b.ToTable("Queries");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.QueryFilter", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("FieldId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Operator")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("QueryId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Value")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FieldId");
+
+                    b.HasIndex("QueryId");
+
+                    b.ToTable("QueryFilters");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.QuerySort", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Descending")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("FieldId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("QueryId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FieldId");
+
+                    b.HasIndex("QueryId");
+
+                    b.ToTable("QuerySorts");
+                });
+
             modelBuilder.Entity("Operum.Model.Models.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -648,7 +728,7 @@ namespace Operum.Model.Migrations
                     b.Property<string>("Color")
                         .HasColumnType("text");
 
-                    b.Property<string>("DefaultViewIds")
+                    b.Property<string>("DefaultViewId")
                         .HasColumnType("text");
 
                     b.Property<string>("Description")
@@ -783,7 +863,7 @@ namespace Operum.Model.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("ViewIds")
+                    b.Property<string>("ViewId")
                         .HasColumnType("text");
 
                     b.HasKey("Id");
@@ -991,35 +1071,6 @@ namespace Operum.Model.Migrations
                     b.ToTable("ViewColumns");
                 });
 
-            modelBuilder.Entity("Operum.Model.Models.ViewFilter", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
-
-                    b.Property<string>("FieldId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Operator")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Value")
-                        .HasColumnType("text");
-
-                    b.Property<string>("ViewId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FieldId");
-
-                    b.HasIndex("ViewId");
-
-                    b.ToTable("ViewFilters");
-                });
-
             modelBuilder.Entity("Operum.Model.Models.ViewGroup", b =>
                 {
                     b.Property<string>("Id")
@@ -1040,20 +1091,17 @@ namespace Operum.Model.Migrations
                     b.ToTable("ViewGroups");
                 });
 
-            modelBuilder.Entity("Operum.Model.Models.ViewSort", b =>
+            modelBuilder.Entity("Operum.Model.Models.ViewQuery", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("text");
 
-                    b.Property<bool>("Descending")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("FieldId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<int>("Order")
                         .HasColumnType("integer");
+
+                    b.Property<string>("QueryId")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<string>("ViewId")
                         .IsRequired()
@@ -1061,11 +1109,11 @@ namespace Operum.Model.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("FieldId");
+                    b.HasIndex("QueryId");
 
                     b.HasIndex("ViewId");
 
-                    b.ToTable("ViewSorts");
+                    b.ToTable("ViewQueries");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -1328,6 +1376,55 @@ namespace Operum.Model.Migrations
                     b.Navigation("Notification");
                 });
 
+            modelBuilder.Entity("Operum.Model.Models.Query", b =>
+                {
+                    b.HasOne("Operum.Model.Models.Tracker", "Tracker")
+                        .WithMany("Queries")
+                        .HasForeignKey("TrackerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tracker");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.QueryFilter", b =>
+                {
+                    b.HasOne("Operum.Model.Models.Field", "Field")
+                        .WithMany()
+                        .HasForeignKey("FieldId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Operum.Model.Models.Query", "Query")
+                        .WithMany("Filters")
+                        .HasForeignKey("QueryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Field");
+
+                    b.Navigation("Query");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.QuerySort", b =>
+                {
+                    b.HasOne("Operum.Model.Models.Field", "Field")
+                        .WithMany()
+                        .HasForeignKey("FieldId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Operum.Model.Models.Query", "Query")
+                        .WithMany("Sorts")
+                        .HasForeignKey("QueryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Field");
+
+                    b.Navigation("Query");
+                });
+
             modelBuilder.Entity("Operum.Model.Models.RefreshToken", b =>
                 {
                     b.HasOne("Operum.Model.Models.User", "User")
@@ -1452,25 +1549,6 @@ namespace Operum.Model.Migrations
                     b.Navigation("View");
                 });
 
-            modelBuilder.Entity("Operum.Model.Models.ViewFilter", b =>
-                {
-                    b.HasOne("Operum.Model.Models.Field", "Field")
-                        .WithMany()
-                        .HasForeignKey("FieldId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Operum.Model.Models.View", "View")
-                        .WithMany("Filters")
-                        .HasForeignKey("ViewId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Field");
-
-                    b.Navigation("View");
-                });
-
             modelBuilder.Entity("Operum.Model.Models.ViewGroup", b =>
                 {
                     b.HasOne("Operum.Model.Models.View", "View")
@@ -1482,21 +1560,21 @@ namespace Operum.Model.Migrations
                     b.Navigation("View");
                 });
 
-            modelBuilder.Entity("Operum.Model.Models.ViewSort", b =>
+            modelBuilder.Entity("Operum.Model.Models.ViewQuery", b =>
                 {
-                    b.HasOne("Operum.Model.Models.Field", "Field")
+                    b.HasOne("Operum.Model.Models.Query", "Query")
                         .WithMany()
-                        .HasForeignKey("FieldId")
+                        .HasForeignKey("QueryId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Operum.Model.Models.View", "View")
-                        .WithMany("Sorts")
+                        .WithMany("ViewQueries")
                         .HasForeignKey("ViewId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Field");
+                    b.Navigation("Query");
 
                     b.Navigation("View");
                 });
@@ -1540,6 +1618,13 @@ namespace Operum.Model.Migrations
                     b.Navigation("PurposeFields");
                 });
 
+            modelBuilder.Entity("Operum.Model.Models.Query", b =>
+                {
+                    b.Navigation("Filters");
+
+                    b.Navigation("Sorts");
+                });
+
             modelBuilder.Entity("Operum.Model.Models.Tracker", b =>
                 {
                     b.Navigation("Analytics");
@@ -1549,6 +1634,8 @@ namespace Operum.Model.Migrations
                     b.Navigation("Fields");
 
                     b.Navigation("Notifications");
+
+                    b.Navigation("Queries");
 
                     b.Navigation("TrackerConstants");
 
@@ -1583,9 +1670,7 @@ namespace Operum.Model.Migrations
 
             modelBuilder.Entity("Operum.Model.Models.View", b =>
                 {
-                    b.Navigation("Filters");
-
-                    b.Navigation("Sorts");
+                    b.Navigation("ViewQueries");
                 });
 #pragma warning restore 612, 618
         }

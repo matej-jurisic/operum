@@ -13,6 +13,15 @@ export interface QuickAddWidgetConfig {
     trackerId: string;
 }
 
+/** The tracker summary a QuickAdd widget's button is rendered from, resolved server-side
+    so the card never has to fetch its own tracker just to show a name/color/icon. */
+export interface QuickAddTrackerDto {
+    id: string;
+    name: string;
+    color?: string;
+    icon?: string;
+}
+
 /** Placement on one of the dashboard's grids, in that grid's columns. */
 export interface WidgetLayoutDto {
     x: number;
@@ -47,6 +56,7 @@ export interface DashboardWidgetDto {
     mobileLayout: WidgetLayoutDto;
     config?: string;
     analytic?: AnalyticDto;
+    quickAddTracker?: QuickAddTrackerDto;
 }
 
 export interface DashboardLayoutItemDto extends WidgetLayoutDto {
@@ -80,7 +90,7 @@ export interface DashboardItemSourceDto {
     fields: DashboardItemSourceFieldDto[];
     trackerId: string;
     trackerName: string;
-    viewIds: string[];
+    viewId?: string;
     label?: string;
     order: number;
 }
@@ -119,7 +129,7 @@ export interface UpdateDashboardDto {
 export interface AddDashboardItemSourceDto {
     trackerId: string;
     analyticFields: CreateAnalyticFieldDto[];
-    viewIds: string[];
+    viewId?: string | null;
     label?: string;
 }
 
@@ -130,8 +140,8 @@ export interface AddDashboardItemSourceDto {
  */
 export interface AddDashboardItemFromAnalyticDto {
     analyticId: string;
-    /** Optional: a tracker analytic carries no views of its own, so the board picks them. */
-    viewIds?: string[];
+    /** Optional: a tracker analytic carries no view of its own, so the board picks one. */
+    viewId?: string | null;
 }
 
 export interface AddDashboardItemDto {

@@ -1,11 +1,4 @@
-import {
-    Alert,
-    Button,
-    Group,
-    MultiSelect,
-    Select,
-    Stack,
-} from "@mantine/core";
+import { Alert, Button, Group, Select, Stack } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { analyticsController } from "../../analytics/api/analyticsController";
 import { AnalyticDto } from "../../analytics/types/AnalyticDto";
@@ -32,7 +25,7 @@ export function ExistingAnalyticForm({ onBack, onAdd }: Props) {
     const [analytics, setAnalytics] = useState<AnalyticDto[]>([]);
     const [analyticId, setAnalyticId] = useState<string | null>(null);
     const [views, setViews] = useState<ViewDto[]>([]);
-    const [viewIds, setViewIds] = useState<string[]>([]);
+    const [viewId, setViewId] = useState<string | null>(null);
     const [isLoadingTracker, setIsLoadingTracker] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -46,7 +39,7 @@ export function ExistingAnalyticForm({ onBack, onAdd }: Props) {
         setTrackerId(value);
         setAnalyticId(null);
         setAnalytics([]);
-        setViewIds([]);
+        setViewId(null);
         setViews([]);
         if (!value) return;
 
@@ -63,7 +56,7 @@ export function ExistingAnalyticForm({ onBack, onAdd }: Props) {
     const handleSubmit = async () => {
         if (!analyticId) return;
         setIsSubmitting(true);
-        await onAdd({ analyticId, viewIds });
+        await onAdd({ analyticId, viewId });
         setIsSubmitting(false);
     };
 
@@ -117,13 +110,14 @@ export function ExistingAnalyticForm({ onBack, onAdd }: Props) {
                 </Alert>
             )}
 
-            <MultiSelect
-                label="Filter by views (optional)"
+            <Select
+                label="Filter by view (optional)"
                 placeholder="All entries"
                 data={views.map((v) => ({ value: v.id, label: v.name }))}
-                value={viewIds}
-                onChange={setViewIds}
+                value={viewId}
+                onChange={setViewId}
                 disabled={!trackerId || views.length === 0}
+                clearable
             />
 
             <Group justify="flex-end" mt="sm">

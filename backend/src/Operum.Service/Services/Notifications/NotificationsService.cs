@@ -58,11 +58,11 @@ namespace Operum.Service.Services.Notifications
             if (!eventValidation.IsSuccess)
                 return Result.Failure(eventValidation.StatusCode, eventValidation.Messages);
 
-            var conditionValidation = await ValidateCondition(trackerId, dto.ViewIds, dto.Condition);
+            var conditionValidation = await ValidateCondition(trackerId, dto.ViewId, dto.Condition);
             if (!conditionValidation.IsSuccess)
                 return Result.Failure(conditionValidation.StatusCode, conditionValidation.Messages);
 
-            var notification = BuildNotification(trackerId, dto.Name, dto.IsEnabled, dto.ViewIds, dto.Event, dto.Condition);
+            var notification = BuildNotification(trackerId, dto.Name, dto.IsEnabled, dto.ViewId, dto.Event, dto.Condition);
 
             await db.TrackerNotifications.AddAsync(notification);
             await db.SaveChangesAsync();
@@ -113,15 +113,13 @@ namespace Operum.Service.Services.Notifications
             if (!eventValidation.IsSuccess)
                 return Result.Failure(eventValidation.StatusCode, eventValidation.Messages);
 
-            var conditionValidation = await ValidateCondition(trackerId, dto.ViewIds, dto.Condition);
+            var conditionValidation = await ValidateCondition(trackerId, dto.ViewId, dto.Condition);
             if (!conditionValidation.IsSuccess)
                 return Result.Failure(conditionValidation.StatusCode, conditionValidation.Messages);
 
             notification.Name = dto.Name;
             notification.IsEnabled = dto.IsEnabled;
-            notification.ViewIds = dto.ViewIds.Count > 0
-                ? System.Text.Json.JsonSerializer.Serialize(dto.ViewIds)
-                : null;
+            notification.ViewId = dto.ViewId;
             notification.IsTriggered = false;
 
             UpdateEvent(notification.Event, dto.Event);
@@ -262,9 +260,9 @@ namespace Operum.Service.Services.Notifications
             };
         }
 
-        private async Task<Result> ValidateCondition(string trackerId, List<string> viewIds, CreateNotificationConditionDto dto)
+        private async Task<Result> ValidateCondition(string trackerId, string? viewId, CreateNotificationConditionDto dto)
         {
-            foreach (var viewId in viewIds)
+            if (!string.IsNullOrEmpty(viewId))
             {
                 var view = await db.Views.FindAsync(viewId);
                 if (view == null || view.TrackerId != trackerId)
@@ -312,7 +310,7 @@ namespace Operum.Service.Services.Notifications
         }
 
         private static TrackerNotification BuildNotification(
-            string trackerId, string name, bool isEnabled, List<string> viewIds,
+            string trackerId, string name, bool isEnabled, string? viewId,
             CreateNotificationEventDto eventDto, CreateNotificationConditionDto conditionDto)
         {
             return new TrackerNotification
@@ -320,7 +318,7 @@ namespace Operum.Service.Services.Notifications
                 Name = name,
                 IsEnabled = isEnabled,
                 TrackerId = trackerId,
-                ViewIds = viewIds.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(viewIds) : null,
+                ViewId = viewId,
                 Event = BuildEvent(eventDto),
                 Condition = BuildCondition(conditionDto)
             };

@@ -60,13 +60,44 @@ namespace Operum.Service.Services.Dashboards
             var items = dashboard.Items.OrderBy(i => i.Order).ToList();
             var results = new List<DashboardWidgetDto>();
 
+            // QuickAdd widgets only carry a trackerId in Config; resolve every one of them
+            // up front in a single query so the client gets the button's name/color/icon
+            // inline instead of each card fetching its own tracker after mounting.
+            var quickAddTrackerIds = items
+                .Where(i => i.Type == DashboardWidgetTypes.QuickAdd)
+                .Select(i => TryParseQuickAddConfig(i.Config)?.TrackerId)
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Select(id => id!)
+                .Distinct()
+                .ToList();
+
+            var quickAddTrackers = quickAddTrackerIds.Count > 0
+                ? await db.Trackers
+                    .Where(t => quickAddTrackerIds.Contains(t.Id))
+                    .ToDictionaryAsync(t => t.Id, t => new QuickAddTrackerDto
+                    {
+                        Id = t.Id,
+                        Name = t.Name,
+                        Color = t.Color,
+                        Icon = t.Icon
+                    })
+                : new Dictionary<string, QuickAddTrackerDto>();
+
             foreach (var item in items)
             {
                 // A widget that isn't an analytic renders from its own Config alone, so it
                 // never reaches the calculation below.
                 if (item.Type != DashboardWidgetTypes.Analytic)
                 {
-                    results.Add(MapToWidgetDto(item, null));
+                    QuickAddTrackerDto? quickAddTracker = null;
+                    if (item.Type == DashboardWidgetTypes.QuickAdd)
+                    {
+                        var trackerId = TryParseQuickAddConfig(item.Config)?.TrackerId;
+                        if (trackerId != null)
+                            quickAddTrackers.TryGetValue(trackerId, out quickAddTracker);
+                    }
+
+                    results.Add(MapToWidgetDto(item, null, quickAddTracker));
                     continue;
                 }
 
@@ -77,26 +108,23 @@ namespace Operum.Service.Services.Dashboards
 
                 foreach (var source in item.Sources.OrderBy(s => s.Order))
                 {
-                    var viewIds = ParseViewIds(source.ViewIds);
-                    var views = new List<View>();
-
-                    foreach (var viewId in viewIds)
+                    View? view = null;
+                    if (!string.IsNullOrEmpty(source.ViewId))
                     {
-                        var view = await db.Views
-                            .Include(v => v.Filters).ThenInclude(f => f.Field)
-                            .Include(v => v.Sorts).ThenInclude(s => s.Field)
-                            .FirstOrDefaultAsync(v => v.Id == viewId && v.TrackerId == source.TrackerId);
-                        if (view != null) views.Add(view);
+                        view = await db.Views
+                            .Include(v => v.ViewQueries.OrderBy(vq => vq.Order)).ThenInclude(vq => vq.Query).ThenInclude(q => q.Filters).ThenInclude(f => f.Field)
+                            .Include(v => v.ViewQueries).ThenInclude(vq => vq.Query).ThenInclude(q => q.Sorts).ThenInclude(s => s.Field)
+                            .FirstOrDefaultAsync(v => v.Id == source.ViewId && v.TrackerId == source.TrackerId);
                     }
 
                     var entriesQuery = db.Entries
                         .Include(e => e.FieldValues).ThenInclude(fv => fv.Field)
                         .Where(e => e.TrackerId == source.TrackerId);
 
-                    if (views.Count > 0)
+                    if (view != null)
                     {
-                        entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, ViewQueryBuilder.MergeViewFilters(views), currentUserService.GetCurrentUserTimeZone());
-                        entriesQuery = ViewQueryBuilder.ApplyViewSorting(entriesQuery, ViewQueryBuilder.MergeViewSorts(views));
+                        entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, ViewQueryBuilder.ResolveFilters(view), currentUserService.GetCurrentUserTimeZone());
+                        entriesQuery = ViewQueryBuilder.ApplyViewSorting(entriesQuery, ViewQueryBuilder.ResolveSorts(view));
                     }
 
                     var entries = await entriesQuery.ToListAsync();
@@ -233,10 +261,9 @@ namespace Operum.Service.Services.Dashboards
                 if (tracker == null || !hasAccess)
                     return Result.Failure(ResultStatusCodes.Forbidden);
 
-                var viewIds = sourceDto.ViewIds.Where(v => !string.IsNullOrEmpty(v)).ToList();
-                foreach (var viewId in viewIds)
+                if (!string.IsNullOrEmpty(sourceDto.ViewId))
                 {
-                    var exists = await db.Views.AnyAsync(v => v.Id == viewId && v.TrackerId == sourceDto.TrackerId);
+                    var exists = await db.Views.AnyAsync(v => v.Id == sourceDto.ViewId && v.TrackerId == sourceDto.TrackerId);
                     if (!exists)
                         return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("view"));
                 }
@@ -246,7 +273,7 @@ namespace Operum.Service.Services.Dashboards
                     Order = sources.Count,
                     Label = sourceDto.Label,
                     TrackerId = sourceDto.TrackerId,
-                    ViewIds = viewIds.Count > 0 ? string.Join(",", viewIds) : null
+                    ViewId = sourceDto.ViewId
                 };
 
                 var fieldsResult = await BuildSourceFields(dto.ResultType, dto.Code, sourceDto, source);
@@ -323,7 +350,7 @@ namespace Operum.Service.Services.Dashboards
                     }).ToList(),
                     TrackerId = s.TrackerId,
                     TrackerName = trackers.First(t => t.Id == s.TrackerId).Name,
-                    ViewIds = ParseViewIds(s.ViewIds),
+                    ViewId = s.ViewId,
                     Label = s.Label,
                     Order = s.Order
                 }).ToList()
@@ -356,7 +383,7 @@ namespace Operum.Service.Services.Dashboards
                         // Left unset when the analytic was never named, so the widget falls
                         // back to the definition's own label the way any other item does.
                         Label = string.IsNullOrWhiteSpace(analytic.Name) ? null : analytic.Name,
-                        ViewIds = dto.ViewIds,
+                        ViewId = dto.ViewId,
                         AnalyticFields = analytic.AnalyticFields
                             .Select(f => new CreateAnalyticFieldDto { Purpose = f.Purpose, FieldId = f.FieldId })
                             .ToList()
@@ -567,11 +594,6 @@ namespace Operum.Service.Services.Dashboards
                 .FirstOrDefaultAsync(d => d.Id == dashboardId && d.UserId == user.Id);
         }
 
-        private static List<string> ParseViewIds(string? viewIds) =>
-            string.IsNullOrEmpty(viewIds)
-                ? []
-                : viewIds.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
-
         // Merges 2+ per-source results (each computed independently by the same
         // single-tracker pipeline as always) into one multi-series chart. Every source shares
         // the item's result type and code, so the series are always produced the same way;
@@ -680,15 +702,31 @@ namespace Operum.Service.Services.Dashboards
             H = i.MobileH
         };
 
-        private static DashboardWidgetDto MapToWidgetDto(DashboardItem item, AnalyticDto? analytic) => new()
+        private static DashboardWidgetDto MapToWidgetDto(DashboardItem item, AnalyticDto? analytic, QuickAddTrackerDto? quickAddTracker = null) => new()
         {
             Id = item.Id,
             Type = item.Type,
             Layout = MapToLayoutDto(item),
             MobileLayout = MapToMobileLayoutDto(item),
             Config = item.Config,
-            Analytic = analytic
+            Analytic = analytic,
+            QuickAddTracker = quickAddTracker
         };
+
+        private static QuickAddWidgetConfigDto? TryParseQuickAddConfig(string? config)
+        {
+            if (string.IsNullOrEmpty(config))
+                return null;
+
+            try
+            {
+                return JsonSerializer.Deserialize<QuickAddWidgetConfigDto>(config, ConfigJsonOptions);
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+        }
 
         private static DashboardItemSourceDto MapSourceToDto(DashboardItem item, DashboardItemSource s)
         {
@@ -703,7 +741,7 @@ namespace Operum.Service.Services.Dashboards
                     .ToList(),
                 TrackerId = s.TrackerId,
                 TrackerName = s.Tracker.Name,
-                ViewIds = ParseViewIds(s.ViewIds),
+                ViewId = s.ViewId,
                 Label = s.Label,
                 Order = s.Order
             };

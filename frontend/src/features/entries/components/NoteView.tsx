@@ -22,7 +22,7 @@ interface Props {
 }
 
 export function NoteView({ onClose }: Props) {
-    const { tracker, selectedViewIds, canEditData } = useTracker();
+    const { tracker, selectedViewId, canEditData } = useTracker();
     const { totalCount, markEntriesDirty } = useEntries();
     const { visibleFields } = useFields();
 
@@ -41,7 +41,7 @@ export function NoteView({ onClose }: Props) {
         const load = async () => {
             const response = await entriesController.getEntries(
                 tracker.id,
-                selectedViewIds,
+                selectedViewId,
                 1,
                 NOTE_CAP,
             );

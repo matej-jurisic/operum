@@ -8,7 +8,7 @@ namespace Operum.Model.DTOs.Notifications
         public bool IsTriggered { get; set; }
         public DateTime? LastEvaluatedAt { get; set; }
         public DateTime? LastFiredAt { get; set; }
-        public List<string> ViewIds { get; set; } = [];
+        public string? ViewId { get; set; }
         public NotificationEventDto Event { get; set; } = null!;
         public NotificationConditionDto Condition { get; set; } = null!;
     }

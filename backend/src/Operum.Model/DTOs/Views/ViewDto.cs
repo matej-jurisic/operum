@@ -1,4 +1,6 @@
-﻿namespace Operum.Model.DTOs.Views
+using Operum.Model.DTOs.Queries;
+
+namespace Operum.Model.DTOs.Views
 {
     public class ViewDto
     {
@@ -6,7 +8,7 @@
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
 
-        public List<ViewSortDto> Sorts { get; set; } = [];
-        public List<ViewFilterDto> Filters { get; set; } = [];
+        // Ordered: precedence for sort-merge (first-field-wins) and display order.
+        public List<QueryDto> Queries { get; set; } = [];
     }
 }

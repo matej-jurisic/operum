@@ -49,6 +49,12 @@ export default function SortableViewCard({
 
     const { canEditSchema } = useTracker();
 
+    const filterCount = view.queries.reduce(
+        (sum, q) => sum + q.filters.length,
+        0,
+    );
+    const sortCount = view.queries.reduce((sum, q) => sum + q.sorts.length, 0);
+
     return (
         <Card ref={setNodeRef} style={style} p="md" radius="md" withBorder>
             <Group align="flex-start" justify="space-between" wrap="nowrap">
@@ -81,20 +87,26 @@ export default function SortableViewCard({
                     >
                         {view.description || "No description"}
                     </Text>
-                    {(view.filters.length > 0 || view.sorts.length > 0) && (
+                    {(view.queries.length > 0 ||
+                        filterCount > 0 ||
+                        sortCount > 0) && (
                         <Group wrap="wrap">
-                            {view.filters.length > 0 && (
+                            <Badge variant="light" color="gray" size="sm">
+                                {view.queries.length}{" "}
+                                {view.queries.length === 1
+                                    ? "query"
+                                    : "queries"}
+                            </Badge>
+                            {filterCount > 0 && (
                                 <Badge variant="light" color="blue" size="sm">
-                                    {view.filters.length}{" "}
-                                    {view.filters.length === 1
-                                        ? "filter"
-                                        : "filters"}
+                                    {filterCount}{" "}
+                                    {filterCount === 1 ? "filter" : "filters"}
                                 </Badge>
                             )}
-                            {view.sorts.length > 0 && (
+                            {sortCount > 0 && (
                                 <Badge variant="light" color="teal" size="sm">
-                                    {view.sorts.length}{" "}
-                                    {view.sorts.length === 1 ? "sort" : "sorts"}
+                                    {sortCount}{" "}
+                                    {sortCount === 1 ? "sort" : "sorts"}
                                 </Badge>
                             )}
                         </Group>

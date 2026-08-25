@@ -16,7 +16,7 @@ namespace Operum.Model.DTOs.Dashboard
         public List<DashboardItemSourceFieldDto> Fields { get; set; } = [];
         public string TrackerId { get; set; } = string.Empty;
         public string TrackerName { get; set; } = string.Empty;
-        public List<string> ViewIds { get; set; } = [];
+        public string? ViewId { get; set; }
         public string? Label { get; set; }
         public int Order { get; set; }
     }

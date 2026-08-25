@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Operum.Model;
 using Operum.Model.Models;
 using Operum.Service.Domain.Views;
-using System.Text.Json;
 
 namespace Operum.Service.Domain.Notifications
 {
@@ -16,28 +15,23 @@ namespace Operum.Service.Domain.Notifications
         {
             var condition = notification.Condition;
 
-            var viewIds = string.IsNullOrEmpty(notification.ViewIds)
-                ? (List<string>)[]
-                : JsonSerializer.Deserialize<List<string>>(notification.ViewIds) ?? [];
-
-            var views = viewIds.Count > 0
+            var view = !string.IsNullOrEmpty(notification.ViewId)
                 ? await db.Views
-                    .Include(v => v.Filters).ThenInclude(f => f.Field)
-                    .Where(v => viewIds.Contains(v.Id))
-                    .ToListAsync(ct)
-                : (List<View>)[];
+                    .Include(v => v.ViewQueries.OrderBy(vq => vq.Order)).ThenInclude(vq => vq.Query).ThenInclude(q => q.Filters).ThenInclude(f => f.Field)
+                    .FirstOrDefaultAsync(v => v.Id == notification.ViewId, ct)
+                : null;
 
             var entriesQuery = db.Entries
                 .Include(e => e.FieldValues).ThenInclude(fv => fv.Field)
                 .Where(e => e.TrackerId == notification.TrackerId);
 
-            if (views.Count > 0)
-                entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, ViewQueryBuilder.MergeViewFilters(views), tz);
+            if (view != null)
+                entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, ViewQueryBuilder.ResolveFilters(view), tz);
 
-            // Project condition filters to ViewFilter instances for reuse
+            // Project condition filters to QueryFilter instances for reuse
             var conditionFilters = condition.Filters
                 .Where(f => f.FieldId != null && f.Field != null)
-                .Select(f => new ViewFilter
+                .Select(f => new QueryFilter
                 {
                     FieldId = f.FieldId!,
                     Operator = f.Operator,

@@ -8,8 +8,7 @@ namespace Operum.Model.DTOs.Views.Requests
         public required string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
 
-        public List<CreateViewSortDto> Sorts { get; set; } = [];
-        public List<CreateViewFilterDto> Filters { get; set; } = [];
+        public List<ViewQueryRefDto> Queries { get; set; } = [];
     }
 
     public class UpdateViewDtoValidator : AbstractValidator<UpdateViewDto>
@@ -24,22 +23,15 @@ namespace Operum.Model.DTOs.Views.Requests
                .MaximumLength(500).WithMessage("Description cannot exceed 500 characters.")
                .When(x => !string.IsNullOrEmpty(x.Description));
 
-            RuleFor(x => x.Sorts)
-                .Must(sorts => sorts.Count <= DataLimits.MaxSorts)
-                    .WithMessage((x) => Messages.MaxNumberReached("sorts", DataLimits.MaxSorts))
-                .Must(sorts => sorts.Select(s => s.FieldId).Distinct().Count() == sorts.Count)
-                    .WithMessage("Each sort field must be unique.");
+            RuleFor(x => x.Queries)
+                .Must(queries => queries.Count <= DataLimits.MaxQueriesPerView)
+                    .WithMessage((x) => Messages.MaxNumberReached("queries", DataLimits.MaxQueriesPerView))
+                .Must(queries => queries.Where(q => q.QueryId != null).Select(q => q.QueryId).Distinct().Count()
+                    == queries.Count(q => q.QueryId != null))
+                    .WithMessage("Each existing query can only be added to a view once.");
 
-            RuleFor(x => x.Filters)
-                .Must(filters => filters.Count <= DataLimits.MaxFilters)
-                    .WithMessage((x) => Messages.MaxNumberReached("filters", DataLimits.MaxFilters))
-                .Must(filters => filters.Distinct().Count() == filters.Count)
-                    .WithMessage("Each filter must be unique.");
-
-            RuleForEach(x => x.Sorts)
-                .SetValidator(new CreateViewSortDtoValidator());
-            RuleForEach(x => x.Filters)
-                .SetValidator(new CreateViewFilterDtoValidator());
+            RuleForEach(x => x.Queries)
+                .SetValidator(new ViewQueryRefDtoValidator());
         }
     }
 }

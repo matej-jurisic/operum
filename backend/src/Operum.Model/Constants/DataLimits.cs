@@ -9,6 +9,8 @@
         public const int MaxConstantCount = 25;
         public const int MaxConstantValueCount = 6;
         public const int MaxViewCount = 25;
+        public const int MaxQueryCount = 25;
+        public const int MaxQueriesPerView = 5;
         public const int MaxSorts = 3;
         public const int MaxFilters = 6;
         public const int MaxDashboardCount = 20;

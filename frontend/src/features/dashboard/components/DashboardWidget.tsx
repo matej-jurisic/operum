@@ -57,6 +57,7 @@ export function DashboardWidget({
                 <QuickAddWidgetCard
                     widgetId={widget.id}
                     config={config}
+                    tracker={widget.quickAddTracker}
                     color={color}
                     isConfiguring={isConfiguring}
                     onRemove={onRemove}

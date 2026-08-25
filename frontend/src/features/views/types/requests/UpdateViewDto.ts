@@ -1,8 +1,3 @@
-import { CreateViewFilterDto, CreateViewSortDto } from "./CreateViewDto";
+import { CreateViewDto } from "./CreateViewDto";
 
-export interface UpdateViewDto {
-    name: string;
-    description?: string;
-    sorts: CreateViewSortDto[];
-    filters: CreateViewFilterDto[];
-}
+export type UpdateViewDto = CreateViewDto;

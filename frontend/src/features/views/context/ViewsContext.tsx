@@ -21,7 +21,7 @@ const ViewsContext = createContext<ViewsContextType | undefined>(undefined);
 export const ViewsProvider: React.FC<{ children: React.ReactNode }> = ({
     children,
 }) => {
-    const { tracker, selectedViewIds, _setSelectedViewIds } = useTracker();
+    const { tracker, selectedViewId, _setSelectedViewId } = useTracker();
     const [views, setViews] = useState<ViewDto[]>([]);
     const [viewsDirty, setViewsDirty] = useState(true);
 
@@ -47,8 +47,8 @@ export const ViewsProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const _deleteView = async (viewId: string) => {
         await viewsController.deleteView(tracker.id, viewId);
-        if (selectedViewIds.includes(viewId)) {
-            _setSelectedViewIds(selectedViewIds.filter((id) => id !== viewId));
+        if (selectedViewId === viewId) {
+            _setSelectedViewId(null);
         }
         await refreshViews();
     };

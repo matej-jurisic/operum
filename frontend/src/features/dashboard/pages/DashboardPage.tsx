@@ -1,8 +1,6 @@
 import {
     Button,
-    Center,
     Group,
-    Loader,
     Stack,
     Text,
     ThemeIcon,
@@ -115,7 +113,10 @@ function DashboardContent({
                 <Header color={color} />
             </Group>
 
-            {widgets.length === 0 && !isLoading ? (
+            {/* While widgets are (re)loading, the global request loader already
+                covers the wait — rendering nothing here avoids stacking a
+                second, differently-styled spinner on top of it. */}
+            {isLoading ? null : widgets.length === 0 ? (
                 <Stack align="center" gap="md" py={80}>
                     <ThemeIcon
                         size={72}
@@ -142,10 +143,6 @@ function DashboardContent({
                         Get Started
                     </Button>
                 </Stack>
-            ) : isLoading ? (
-                <Center style={{ flex: 1 }}>
-                    <Loader color={color} />
-                </Center>
             ) : (
                 <DashboardGrid
                     widgets={widgets}
@@ -265,12 +262,10 @@ export default function DashboardPage() {
         />
     );
 
+    // The global request loader already covers this fetch; rendering
+    // nothing here avoids a second, differently-styled spinner on top of it.
     if (isLoadingBoards) {
-        return (
-            <Center h="100%">
-                <Loader />
-            </Center>
-        );
+        return null;
     }
 
     if (boards.length === 0) {
@@ -309,13 +304,10 @@ export default function DashboardPage() {
         );
     }
 
-    // The effect above is redirecting to a real board
+    // The effect above is redirecting to a real board; this is a one-frame
+    // gap, not a fetch, so it gets no spinner of its own either.
     if (!activeBoard) {
-        return (
-            <Center h="100%">
-                <Loader />
-            </Center>
-        );
+        return null;
     }
 
     return (

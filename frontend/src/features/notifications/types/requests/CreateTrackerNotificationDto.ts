@@ -31,7 +31,7 @@ export interface CreateNotificationConditionDto {
 export interface CreateTrackerNotificationDto {
     name: string;
     isEnabled: boolean;
-    viewIds: string[];
+    viewId?: string | null;
     event: CreateNotificationEventDto;
     condition: CreateNotificationConditionDto;
 }

@@ -55,7 +55,7 @@ namespace Operum.Tests.Tests.Entries
             var response = await DeleteEntries(client, trackerId, new DeleteEntriesDto
             {
                 SelectAllMatching = true,
-                ViewIds = [viewId]
+                ViewId = viewId
             });
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -93,7 +93,7 @@ namespace Operum.Tests.Tests.Entries
             var response = await DeleteEntries(client, trackerId, new DeleteEntriesDto
             {
                 SelectAllMatching = true,
-                ViewIds = [Guid.NewGuid().ToString()]
+                ViewId = Guid.NewGuid().ToString()
             });
 
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -132,7 +132,7 @@ namespace Operum.Tests.Tests.Entries
             var response = await Recalculate(client, trackerId, new RecalculateEntriesDto
             {
                 SelectAllMatching = true,
-                ViewIds = [viewId]
+                ViewId = viewId
             });
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);

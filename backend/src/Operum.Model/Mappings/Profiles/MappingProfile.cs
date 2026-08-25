@@ -8,6 +8,7 @@ using Operum.Model.DTOs.TrackerConstants.Requests;
 using Operum.Model.DTOs.Trackers;
 using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Model.DTOs.Users;
+using Operum.Model.DTOs.Queries;
 using Operum.Model.DTOs.Views;
 using Operum.Model.DTOs.Views.Requests;
 using Operum.Model.Extensions;
@@ -32,9 +33,7 @@ namespace Operum.Service.Mappings.Profiles
                 d.Fields = mapper.Map<ICollection<Field>, List<FieldDto>>(s.Fields.OrderBy(f => f.Order).ToList());
                 d.OwnerName = s.Owner?.UserName;
                 d.TrackerTypeName = s.TrackerType?.Name;
-                d.DefaultViewIds = s.DefaultViewIds != null
-                    ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(s.DefaultViewIds)
-                    : null;
+                d.DefaultViewId = s.DefaultViewId;
             });
             mapper.Register<TrackerDto, Tracker>();
             mapper.Register<CreateTrackerDto, Tracker>();
@@ -81,17 +80,19 @@ namespace Operum.Service.Mappings.Profiles
                 }
             });
 
-            mapper.Register<View, ViewDto>((s, d) =>
+            // View/ViewDto mapping is hand-rolled in ViewsService (it needs to walk the
+            // ordered ViewQuery join), so only Query itself is registered here.
+            mapper.Register<Query, QueryDto>((s, d) =>
             {
-                d.Sorts = mapper.Map<ICollection<ViewSort>, List<ViewSortDto>>(s.Sorts);
-                d.Filters = mapper.Map<ICollection<ViewFilter>, List<ViewFilterDto>>(s.Filters);
+                d.Sorts = mapper.Map<ICollection<QuerySort>, List<QuerySortDto>>(s.Sorts.OrderBy(x => x.Order).ToList());
+                d.Filters = mapper.Map<ICollection<QueryFilter>, List<QueryFilterDto>>(s.Filters);
             });
 
-            mapper.Register<ViewSort, ViewSortDto>((s, d) =>
+            mapper.Register<QuerySort, QuerySortDto>((s, d) =>
             {
                 d.Field = mapper.Map<Field, FieldDto>(s.Field);
             });
-            mapper.Register<ViewFilter, ViewFilterDto>((s, d) =>
+            mapper.Register<QueryFilter, QueryFilterDto>((s, d) =>
             {
                 d.Field = mapper.Map<Field, FieldDto>(s.Field);
             });
@@ -108,20 +109,6 @@ namespace Operum.Service.Mappings.Profiles
                 d.Filters = mapper.Map<List<TrackerConstantValueFilter>, List<TrackerConstantValueFilterDto>>(s.Filters);
             });
             mapper.Register<TrackerConstantValueFilter, TrackerConstantValueFilterDto>();
-
-            mapper.Register<CreateViewSortDto, ViewSort>();
-            mapper.Register<CreateViewFilterDto, ViewFilter>();
-            mapper.Register<CreateViewDto, View>((s, d) =>
-            {
-                d.Sorts = [.. s.Sorts
-                    .Select((sortDto, index) =>
-                    {
-                        var sort = mapper.Map<CreateViewSortDto, ViewSort>(sortDto);
-                        sort.Order = index;
-                        return sort;
-                    })];
-                d.Filters = mapper.Map<List<CreateViewFilterDto>, List<ViewFilter>>(s.Filters);
-            });
 
             mapper.Register<NotificationConditionFilter, NotificationConditionFilterDto>();
             mapper.Register<NotificationConditionPurposeField, NotificationConditionPurposeFieldDto>();
@@ -144,9 +131,7 @@ namespace Operum.Service.Mappings.Profiles
 
             mapper.Register<TrackerNotification, TrackerNotificationDto>((s, d) =>
             {
-                d.ViewIds = s.ViewIds != null
-                    ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(s.ViewIds) ?? []
-                    : [];
+                d.ViewId = s.ViewId;
                 d.Event = mapper.Map<NotificationEvent, NotificationEventDto>(s.Event);
                 d.Condition = mapper.Map<NotificationCondition, NotificationConditionDto>(s.Condition);
             });

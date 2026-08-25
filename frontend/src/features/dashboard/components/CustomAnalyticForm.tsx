@@ -3,7 +3,6 @@ import {
     Button,
     Checkbox,
     Group,
-    MultiSelect,
     Paper,
     Select,
     Stack,
@@ -39,7 +38,7 @@ interface Props {
 interface TrackerRow {
     trackerId: string | null;
     fieldMappings: Record<string, string>;
-    viewIds: string[];
+    viewId: string | null;
     // Loaded per tracker
     fields: FieldDto[];
     views: ViewDto[];
@@ -65,7 +64,7 @@ const X_AXIS_PURPOSE: Record<string, string> = {
 const makeEmptyRow = (): TrackerRow => ({
     trackerId: null,
     fieldMappings: {},
-    viewIds: [],
+    viewId: null,
     fields: [],
     views: [],
 });
@@ -140,7 +139,7 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
         updateRow(index, {
             trackerId,
             fieldMappings: {},
-            viewIds: [],
+            viewId: null,
             fields: [],
             views: [],
         });
@@ -206,7 +205,7 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
                 analyticFields: Object.entries(row.fieldMappings)
                     .filter(([, fieldId]) => !!fieldId)
                     .map(([purpose, fieldId]) => ({ purpose, fieldId })),
-                viewIds: row.viewIds,
+                viewId: row.viewId,
                 // Only a single-source item has one calculated result to name; a combined
                 // chart names itself from its series instead, so the label is dropped there.
                 label:
@@ -326,13 +325,14 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
                                 />
                             ))}
 
-                            <MultiSelect
-                                label="Filter by views (optional)"
+                            <Select
+                                label="Filter by view (optional)"
                                 placeholder="All entries"
                                 data={viewOptions}
-                                value={row.viewIds}
-                                onChange={(value) => updateRow(index, { viewIds: value })}
+                                value={row.viewId}
+                                onChange={(value) => updateRow(index, { viewId: value })}
                                 disabled={!row.trackerId}
+                                clearable
                             />
                         </Stack>
                     </Paper>

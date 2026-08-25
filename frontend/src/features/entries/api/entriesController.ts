@@ -8,10 +8,10 @@ import { EntrySelection } from "../types/EntrySelection";
 export const entriesController = {
     exportCsv: async (
         trackerId: string,
-        viewIds?: string[]
+        viewId?: string | null
     ): Promise<AxiosResponse<BlobPart>> => {
         const params = new URLSearchParams();
-        viewIds?.forEach((id) => params.append("viewId", id));
+        if (viewId) params.append("viewId", viewId);
         const qs = params.toString();
         return await api.get(
             `/trackers/${trackerId}/entries/export-csv${qs ? `?${qs}` : ""}`,
@@ -26,12 +26,12 @@ export const entriesController = {
     },
     getEntries: async (
         trackerId: string,
-        viewIds?: string[],
+        viewId?: string | null,
         page: number = 1,
         pageSize: number = 50
     ): Promise<ApiResponse<PagedResult<EntryDto>>> => {
         const params = new URLSearchParams();
-        viewIds?.forEach((id) => params.append("viewId", id));
+        if (viewId) params.append("viewId", viewId);
         params.append("page", page.toString());
         params.append("pageSize", pageSize.toString());
         return await api.get(`/trackers/${trackerId}/entries?${params.toString()}`);

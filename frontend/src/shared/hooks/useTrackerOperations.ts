@@ -6,6 +6,7 @@ import { EntrySelection } from "../../features/entries/types/EntrySelection";
 import { useFields } from "../../features/fields/context/FieldsContext";
 import { CreateFieldDto } from "../../features/fields/types/CreateFieldDto";
 import { UpdateFieldDto } from "../../features/fields/types/UpdateFieldDto";
+import { useQueries } from "../../features/queries/context/QueriesContext";
 import { useTracker } from "../../features/trackers/context/TrackerContext";
 import { useViews } from "../../features/views/context/ViewsContext";
 import { CreateViewDto } from "../../features/views/types/requests/CreateViewDto";
@@ -30,7 +31,9 @@ export const useTrackerOperations = () => {
 
     const { _createView, _updateView, _deleteView, _updateViewOrder } = useViews();
 
-    const { _setSelectedViewIds } = useTracker();
+    const { markQueriesDirty } = useQueries();
+
+    const { _setSelectedViewId } = useTracker();
 
     // ========================================
     // Field Operations
@@ -118,12 +121,17 @@ export const useTrackerOperations = () => {
     // ========================================
     const createView = async (view: CreateViewDto) => {
         await _createView(view);
+        // Creating a view can also create brand-new ad-hoc queries, so the
+        // cached queries list needs refreshing before it's trusted again.
+        markQueriesDirty();
     };
 
     const updateView = async (viewId: string, view: UpdateViewDto) => {
         await _updateView(viewId, view);
         markEntriesDirty();
         markAnalyticsDirty();
+        // Same as above — editing a view can create new ad-hoc queries.
+        markQueriesDirty();
     };
 
     const deleteView = async (viewId: string) => {
@@ -140,8 +148,8 @@ export const useTrackerOperations = () => {
     // Tracker Operations
     // ========================================
 
-    const setSelectedViews = async (viewIds: string[]) => {
-        _setSelectedViewIds(viewIds);
+    const setSelectedView = async (viewId: string | null) => {
+        _setSelectedViewId(viewId);
         markEntriesDirty();
         markAnalyticsDirty();
     };
@@ -173,6 +181,6 @@ export const useTrackerOperations = () => {
         updateViewOrder,
 
         // Tracker operations
-        setSelectedViews,
+        setSelectedView,
     };
 };

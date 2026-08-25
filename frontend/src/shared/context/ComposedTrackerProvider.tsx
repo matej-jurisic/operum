@@ -4,6 +4,7 @@ import { ConstantsProvider } from "../../features/constants/context/ConstantsCon
 import { EntriesProvider } from "../../features/entries/context/EntriesContext";
 import { FieldsProvider } from "../../features/fields/context/FieldsContext";
 import { NotificationsProvider } from "../../features/notifications/context/NotificationsContext";
+import { QueriesProvider } from "../../features/queries/context/QueriesContext";
 import { TrackerProvider } from "../../features/trackers/context/TrackerContext";
 import { TrackerDto } from "../../features/trackers/types/TrackerDto";
 import { ViewsProvider } from "../../features/views/context/ViewsContext";
@@ -18,9 +19,11 @@ export const ComposedTrackerProvider: React.FC<{
                 <ConstantsProvider>
                     <EntriesProvider>
                         <AnalyticsProvider>
-                            <ViewsProvider>
-                                <NotificationsProvider>{children}</NotificationsProvider>
-                            </ViewsProvider>
+                            <QueriesProvider>
+                                <ViewsProvider>
+                                    <NotificationsProvider>{children}</NotificationsProvider>
+                                </ViewsProvider>
+                            </QueriesProvider>
                         </AnalyticsProvider>
                     </EntriesProvider>
                 </ConstantsProvider>

@@ -10,17 +10,18 @@ namespace Operum.Service.Domain.Views
     public static class ViewQueryBuilder
     {
         /// <summary>
-        /// Merges sorts from multiple views using first-view-wins: if two views sort
-        /// the same field, the first view's sort takes priority and the later one is skipped.
+        /// Flattens a view's queries (in order) into a single sort list, using
+        /// first-query-wins: if two queries sort the same field, the earlier query's
+        /// sort takes priority and the later one is skipped.
         /// </summary>
-        public static List<ViewSort> MergeViewSorts(List<View> views)
+        public static List<QuerySort> ResolveSorts(View view)
         {
             var seenFieldIds = new HashSet<string>();
-            var merged = new List<ViewSort>();
+            var merged = new List<QuerySort>();
 
-            foreach (var view in views)
+            foreach (var viewQuery in view.ViewQueries.OrderBy(vq => vq.Order))
             {
-                foreach (var sort in view.Sorts.OrderBy(s => s.Order))
+                foreach (var sort in viewQuery.Query.Sorts.OrderBy(s => s.Order))
                 {
                     if (seenFieldIds.Add(sort.FieldId))
                         merged.Add(sort);
@@ -31,14 +32,17 @@ namespace Operum.Service.Domain.Views
         }
 
         /// <summary>
-        /// Merges filters from multiple views by ANDing them all together.
+        /// Flattens a view's queries into a single filter list, ANDing them all together.
         /// </summary>
-        public static List<ViewFilter> MergeViewFilters(List<View> views)
+        public static List<QueryFilter> ResolveFilters(View view)
         {
-            return views.SelectMany(v => v.Filters).ToList();
+            return view.ViewQueries
+                .OrderBy(vq => vq.Order)
+                .SelectMany(vq => vq.Query.Filters)
+                .ToList();
         }
 
-        public static IQueryable<Entry> ApplyViewSorting(IQueryable<Entry> query, List<ViewSort> sorts)
+        public static IQueryable<Entry> ApplyViewSorting(IQueryable<Entry> query, List<QuerySort> sorts)
         {
             if (sorts.Count == 0)
                 return query.OrderByDescending(x => x.CreatedAt);
@@ -114,7 +118,7 @@ namespace Operum.Service.Domain.Views
             return orderedQuery ?? query.OrderByDescending(x => x.CreatedAt);
         }
 
-        public static IQueryable<Entry> ApplyViewFilters(IQueryable<Entry> query, List<ViewFilter> filters, TimeZoneInfo tz)
+        public static IQueryable<Entry> ApplyViewFilters(IQueryable<Entry> query, List<QueryFilter> filters, TimeZoneInfo tz)
         {
             if (filters.Count == 0)
                 return query;

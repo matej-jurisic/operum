@@ -7,8 +7,8 @@ using System.Net;
 namespace Operum.Tests.Tests.Views
 {
     /// <summary>
-    /// What a view actually does to the entry list: the filters and sorts it carries are
-    /// translated into the query, and several views combine into one.
+    /// What a view actually does to the entry list: the filters and sorts its queries carry
+    /// are translated into the query, and several queries within one view combine.
     /// </summary>
     public class ViewFilteringTests(CustomWebApplicationFactory factory) : IClassFixture<CustomWebApplicationFactory>
     {
@@ -196,11 +196,18 @@ namespace Operum.Tests.Tests.Views
             var viewId = await TestApi.CreateView(client, trackerId, new CreateViewDto
             {
                 Name = "Group then amount",
-                Sorts =
-                [
-                    new() { FieldId = groupId },
-                    new() { FieldId = amountId, Descending = true }
-                ]
+                Queries = [new ViewQueryRefDto
+                {
+                    NewQuery = new()
+                    {
+                        Name = "Group then amount",
+                        Sorts =
+                        [
+                            new() { FieldId = groupId },
+                            new() { FieldId = amountId, Descending = true }
+                        ]
+                    }
+                }]
             });
 
             var entries = await TestApi.ListEntries(client, trackerId, viewId);
@@ -240,7 +247,7 @@ namespace Operum.Tests.Tests.Views
         }
 
         [Fact]
-        public async Task TwoViews_FiltersAreAndedTogether()
+        public async Task TwoQueries_FiltersAreAndedTogether()
         {
             var client = await OwnerClient();
             var trackerId = await TestApi.CreateTracker(client, "Two filters");
@@ -249,44 +256,49 @@ namespace Operum.Tests.Tests.Views
             await TestApi.CreateEntry(client, trackerId, new() { ["Note"] = "walk", ["Amount"] = "10" });
             await TestApi.CreateEntry(client, trackerId, new() { ["Note"] = "walk", ["Amount"] = "1" });
             await TestApi.CreateEntry(client, trackerId, new() { ["Note"] = "run", ["Amount"] = "10" });
-            var walks = await TestApi.CreateFilterView(client, trackerId, "Walks", noteId, OperatorTypes.EqualsOperator, "walk");
-            var big = await TestApi.CreateFilterView(client, trackerId, "Big", amountId, OperatorTypes.GreaterThan, "5");
+            var walks = await TestApi.CreateFilterQuery(client, trackerId, "Walks", noteId, OperatorTypes.EqualsOperator, "walk");
+            var big = await TestApi.CreateFilterQuery(client, trackerId, "Big", amountId, OperatorTypes.GreaterThan, "5");
+            var viewId = await TestApi.CreateViewFromQueries(client, trackerId, "Big walks", walks, big);
 
-            var entries = await TestApi.ListEntries(client, trackerId, walks, big);
+            var entries = await TestApi.ListEntries(client, trackerId, viewId);
 
-            // Applying both views narrows the list rather than widening it.
+            // Combining both queries in one view narrows the list rather than widening it.
             Assert.Single(entries);
             Assert.Equal("walk", TestApi.ValueOf(entries[0], "Note")!.Value.GetString());
             Assert.Equal(10, TestApi.ValueOf(entries[0], "Amount")!.Value.GetDouble());
         }
 
         [Fact]
-        public async Task TwoViews_TheFirstOneWinsWhenBothSortTheSameField()
+        public async Task TwoQueries_TheFirstOneWinsWhenBothSortTheSameField()
         {
             var client = await OwnerClient();
             var trackerId = await TestApi.CreateTracker(client, "Competing sorts");
             var amountId = await TestApi.CreateField(client, trackerId, "Amount", DataTypes.Number);
             foreach (var amount in new[] { "1", "10", "5" })
                 await TestApi.CreateEntry(client, trackerId, new() { ["Amount"] = amount });
-            var descending = await TestApi.CreateSortView(client, trackerId, "Biggest first", amountId, descending: true);
-            var ascending = await TestApi.CreateSortView(client, trackerId, "Smallest first", amountId, descending: false);
+            var descending = await TestApi.CreateSortQuery(client, trackerId, "Biggest first", amountId, descending: true);
+            var ascending = await TestApi.CreateSortQuery(client, trackerId, "Smallest first", amountId, descending: false);
 
-            Assert.Equal(["10", "5", "1"], await TestApi.ListValues(client, trackerId, "Amount", descending, ascending));
-            Assert.Equal(["1", "5", "10"], await TestApi.ListValues(client, trackerId, "Amount", ascending, descending));
+            var descendingWins = await TestApi.CreateViewFromQueries(client, trackerId, "Descending wins", descending, ascending);
+            var ascendingWins = await TestApi.CreateViewFromQueries(client, trackerId, "Ascending wins", ascending, descending);
+
+            Assert.Equal(["10", "5", "1"], await TestApi.ListValues(client, trackerId, "Amount", descendingWins));
+            Assert.Equal(["1", "5", "10"], await TestApi.ListValues(client, trackerId, "Amount", ascendingWins));
         }
 
         [Fact]
-        public async Task TwoViews_AFilterAndASortAreBothApplied()
+        public async Task TwoQueries_AFilterAndASortAreBothApplied()
         {
             var client = await OwnerClient();
             var trackerId = await TestApi.CreateTracker(client, "Filter and sort");
             var amountId = await TestApi.CreateField(client, trackerId, "Amount", DataTypes.Number);
             foreach (var amount in new[] { "1", "10", "5", "7" })
                 await TestApi.CreateEntry(client, trackerId, new() { ["Amount"] = amount });
-            var big = await TestApi.CreateFilterView(client, trackerId, "Big", amountId, OperatorTypes.GreaterThan, "1");
-            var sorted = await TestApi.CreateSortView(client, trackerId, "Biggest first", amountId, descending: true);
+            var big = await TestApi.CreateFilterQuery(client, trackerId, "Big", amountId, OperatorTypes.GreaterThan, "1");
+            var sorted = await TestApi.CreateSortQuery(client, trackerId, "Biggest first", amountId, descending: true);
+            var viewId = await TestApi.CreateViewFromQueries(client, trackerId, "Big, biggest first", big, sorted);
 
-            Assert.Equal(["10", "7", "5"], await TestApi.ListValues(client, trackerId, "Amount", big, sorted));
+            Assert.Equal(["10", "7", "5"], await TestApi.ListValues(client, trackerId, "Amount", viewId));
         }
 
         [Fact]

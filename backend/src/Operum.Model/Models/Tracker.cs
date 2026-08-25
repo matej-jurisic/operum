@@ -20,11 +20,12 @@ namespace Operum.Model.Models
         [ForeignKey(nameof(OwnerId))]
         public virtual User Owner { get; set; } = null!;
 
-        public string? DefaultViewIds { get; set; }
+        public string? DefaultViewId { get; set; }
         public int? Order { get; set; }
 
         public virtual List<Field> Fields { get; set; } = [];
         public virtual List<View> Views { get; set; } = [];
+        public virtual List<Query> Queries { get; set; } = [];
         public virtual List<UserTracker> ApplicationUserTrackers { get; set; } = [];
         public virtual List<Analytic> Analytics { get; set; } = [];
         public virtual List<TrackerConstant> TrackerConstants { get; set; } = [];

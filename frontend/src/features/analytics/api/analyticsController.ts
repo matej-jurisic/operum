@@ -19,10 +19,10 @@ export const analyticsController = {
     },
     getTrackerAnalytics: async (
         trackerId: string,
-        viewIds?: string[]
+        viewId?: string | null
     ): Promise<ApiResponse<AnalyticDto[]>> => {
         const params = new URLSearchParams();
-        viewIds?.forEach((id) => params.append("viewId", id));
+        if (viewId) params.append("viewId", viewId);
         const qs = params.toString();
         return await api.get(
             `/trackers/${trackerId}/analytics${qs ? `?${qs}` : ""}`

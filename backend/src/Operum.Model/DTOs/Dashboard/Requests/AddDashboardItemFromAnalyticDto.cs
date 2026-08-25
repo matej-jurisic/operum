@@ -13,9 +13,9 @@ namespace Operum.Model.DTOs.Dashboard.Requests
         public string AnalyticId { get; set; } = string.Empty;
 
         // Optional, and not copied from anywhere: a tracker's analytic is filtered by
-        // whichever views the analytics page happens to have applied, so the board has to
-        // be told which ones it should keep.
-        public List<string> ViewIds { get; set; } = [];
+        // whichever view the analytics page happens to have applied, so the board has to
+        // be told which one it should keep.
+        public string? ViewId { get; set; }
     }
 
     public class AddDashboardItemFromAnalyticDtoValidator : AbstractValidator<AddDashboardItemFromAnalyticDto>

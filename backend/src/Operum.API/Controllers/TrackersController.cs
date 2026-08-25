@@ -50,9 +50,9 @@ namespace Operum.API.Controllers
         }
 
         [HttpPut("{trackerId}/default-view")]
-        public async Task<IActionResult> UpdateDefaultView([FromRoute] string trackerId, [FromBody] List<string>? viewIds)
+        public async Task<IActionResult> UpdateDefaultView([FromRoute] string trackerId, [FromBody] string? viewId)
         {
-            return GetApiResponse(await trackerService.UpdateDefaultView(trackerId, viewIds));
+            return GetApiResponse(await trackerService.UpdateDefaultView(trackerId, viewId));
         }
 
         [HttpDelete("{trackerId}")]
@@ -62,7 +62,7 @@ namespace Operum.API.Controllers
         }
 
         [HttpGet("{trackerId}/analytics")]
-        public async Task<IActionResult> GetTrackerAnalytics([FromRoute] string trackerId, [FromQuery] List<string> viewId)
+        public async Task<IActionResult> GetTrackerAnalytics([FromRoute] string trackerId, [FromQuery] string? viewId)
         {
             return GetApiResponse(await trackerService.GetTrackerAnalytics(trackerId, viewId));
         }

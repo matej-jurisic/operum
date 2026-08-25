@@ -36,7 +36,7 @@ export interface TrackerNotificationDto {
     isTriggered: boolean;
     lastEvaluatedAt?: string | null;
     lastFiredAt?: string | null;
-    viewIds: string[];
+    viewId?: string | null;
     event: NotificationEventDto;
     condition: NotificationConditionDto;
 }

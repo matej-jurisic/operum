@@ -5,6 +5,7 @@ using Operum.Model.DTOs.Analytics.Requests;
 using Operum.Model.DTOs.Dashboard.Requests;
 using Operum.Model.DTOs.Entries.Requests;
 using Operum.Model.DTOs.Fields.Requests;
+using Operum.Model.DTOs.Queries.Requests;
 using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Model.DTOs.Views.Requests;
 using Operum.Tests.Extensions;
@@ -459,13 +460,23 @@ namespace Operum.Tests.Tests.Dashboards
             var view = await Data(await client.PostAsJsonAsync($"trackers/{tracker.Id}/views", new CreateViewDto
             {
                 Name = "Strength only",
-                Filters =
+                Queries =
                 [
-                    new CreateViewFilterDto
+                    new ViewQueryRefDto
                     {
-                        FieldId = tracker.CategoryFieldId,
-                        Operator = OperatorTypes.EqualsOperator,
-                        Value = "Strength"
+                        NewQuery = new CreateQueryDto
+                        {
+                            Name = "Strength only",
+                            Filters =
+                            [
+                                new CreateQueryFilterDto
+                                {
+                                    FieldId = tracker.CategoryFieldId,
+                                    Operator = OperatorTypes.EqualsOperator,
+                                    Value = "Strength"
+                                }
+                            ]
+                        }
                     }
                 ]
             }));
@@ -474,7 +485,7 @@ namespace Operum.Tests.Tests.Dashboards
                 new AddDashboardItemFromAnalyticDto
                 {
                     AnalyticId = analyticId,
-                    ViewIds = [view.GetProperty("id").GetString()!]
+                    ViewId = view.GetProperty("id").GetString()!
                 });
             Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
 
@@ -851,6 +862,12 @@ namespace Operum.Tests.Tests.Dashboards
 
             var config = JsonDocument.Parse(widgets[0].GetProperty("config").GetString()!).RootElement;
             Assert.Equal(tracker.Id, config.GetProperty("trackerId").GetString());
+
+            // The tracker is resolved server-side so the card can render its button
+            // without fetching the tracker itself once it mounts.
+            var quickAddTracker = widgets[0].GetProperty("quickAddTracker");
+            Assert.Equal(tracker.Id, quickAddTracker.GetProperty("id").GetString());
+            Assert.Equal("Weight", quickAddTracker.GetProperty("name").GetString());
         }
 
         // A quick-add button is still a way to reach a tracker's entries, so it must not

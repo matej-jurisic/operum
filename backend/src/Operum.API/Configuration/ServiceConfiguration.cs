@@ -19,6 +19,7 @@ using Operum.Service.Services.Dashboards;
 using Operum.Service.Services.Notifications;
 using Operum.Service.Services.Push;
 using Operum.Service.Services.Views;
+using Operum.Service.Services.Queries;
 
 namespace Operum.API.Configuration
 {
@@ -49,6 +50,7 @@ namespace Operum.API.Configuration
             services.AddScoped<IFieldsService, FieldsService>();
             services.AddScoped<IEntriesService, EntriesService>();
             services.AddScoped<IViewsService, ViewsService>();
+            services.AddScoped<IQueriesService, QueriesService>();
             services.AddScoped<IGoogleAuthService, GoogleAuthService>();
             services.AddScoped<IAnalyticsService, AnalyticsService>();
             services.AddScoped<ITrackerConstantsService, TrackerConstantsService>();

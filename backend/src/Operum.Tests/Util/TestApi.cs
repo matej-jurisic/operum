@@ -1,5 +1,6 @@
 using Operum.Model.DTOs.Entries.Requests;
 using Operum.Model.DTOs.Fields.Requests;
+using Operum.Model.DTOs.Queries.Requests;
 using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Model.DTOs.Views.Requests;
 using System.Net.Http.Json;
@@ -80,20 +81,20 @@ namespace Operum.Tests.Util
         public static async Task<double?> NumberValueOf(HttpClient client, string trackerId, string entryId, string fieldName) =>
             ValueOf(await GetEntry(client, trackerId, entryId), fieldName)?.GetDouble();
 
-        public static string EntriesUrl(string trackerId, params string[] viewIds) =>
-            $"trackers/{trackerId}/entries" + (viewIds.Length == 0 ? "" : "?" + string.Join("&", viewIds.Select(v => $"viewId={v}")));
+        public static string EntriesUrl(string trackerId, string? viewId = null) =>
+            $"trackers/{trackerId}/entries" + (viewId == null ? "" : $"?viewId={viewId}");
 
-        /// <summary>The entries a tracker returns, in the order the given views sort them.</summary>
-        public static async Task<List<JsonElement>> ListEntries(HttpClient client, string trackerId, params string[] viewIds)
+        /// <summary>The entries a tracker returns, in the order the given view sorts them.</summary>
+        public static async Task<List<JsonElement>> ListEntries(HttpClient client, string trackerId, string? viewId = null)
         {
-            var data = await Data(await client.GetAsync(EntriesUrl(trackerId, viewIds)));
+            var data = await Data(await client.GetAsync(EntriesUrl(trackerId, viewId)));
             return [.. data.GetProperty("items").EnumerateArray()];
         }
 
         /// <summary>One named field's value for every entry, which is what an ordering assertion reads.</summary>
-        public static async Task<List<string?>> ListValues(HttpClient client, string trackerId, string fieldName, params string[] viewIds)
+        public static async Task<List<string?>> ListValues(HttpClient client, string trackerId, string fieldName, string? viewId = null)
         {
-            var entries = await ListEntries(client, trackerId, viewIds);
+            var entries = await ListEntries(client, trackerId, viewId);
             return [.. entries.Select(e => ValueOf(e, fieldName)?.ToString())];
         }
 
@@ -103,20 +104,64 @@ namespace Operum.Tests.Util
         public static async Task<string> CreateView(HttpClient client, string trackerId, CreateViewDto view) =>
             await IdOf(await PostView(client, trackerId, view));
 
-        /// <summary>A single-filter view, the shape most filtering tests need.</summary>
+        public static Task<HttpResponseMessage> PostQuery(HttpClient client, string trackerId, CreateQueryDto query) =>
+            client.PostAsJsonAsync($"trackers/{trackerId}/queries", query);
+
+        public static async Task<string> CreateQuery(HttpClient client, string trackerId, CreateQueryDto query) =>
+            await IdOf(await PostQuery(client, trackerId, query));
+
+        /// <summary>A single-filter query.</summary>
+        public static Task<string> CreateFilterQuery(HttpClient client, string trackerId, string name, string fieldId, string op, string? value) =>
+            CreateQuery(client, trackerId, new CreateQueryDto
+            {
+                Name = name,
+                Filters = [new CreateQueryFilterDto { FieldId = fieldId, Operator = op, Value = value }]
+            });
+
+        /// <summary>A single-sort query.</summary>
+        public static Task<string> CreateSortQuery(HttpClient client, string trackerId, string name, string fieldId, bool descending) =>
+            CreateQuery(client, trackerId, new CreateQueryDto
+            {
+                Name = name,
+                Sorts = [new CreateQuerySortDto { FieldId = fieldId, Descending = descending }]
+            });
+
+        /// <summary>A view built from one ad-hoc filter, the shape most filtering tests need.</summary>
         public static Task<string> CreateFilterView(HttpClient client, string trackerId, string name, string fieldId, string op, string? value) =>
             CreateView(client, trackerId, new CreateViewDto
             {
                 Name = name,
-                Filters = [new CreateViewFilterDto { FieldId = fieldId, Operator = op, Value = value }]
+                Queries = [new ViewQueryRefDto
+                {
+                    NewQuery = new CreateQueryDto
+                    {
+                        Name = name,
+                        Filters = [new CreateQueryFilterDto { FieldId = fieldId, Operator = op, Value = value }]
+                    }
+                }]
             });
 
-        /// <summary>A single-sort view.</summary>
+        /// <summary>A view built from one ad-hoc sort.</summary>
         public static Task<string> CreateSortView(HttpClient client, string trackerId, string name, string fieldId, bool descending) =>
             CreateView(client, trackerId, new CreateViewDto
             {
                 Name = name,
-                Sorts = [new CreateViewSortDto { FieldId = fieldId, Descending = descending }]
+                Queries = [new ViewQueryRefDto
+                {
+                    NewQuery = new CreateQueryDto
+                    {
+                        Name = name,
+                        Sorts = [new CreateQuerySortDto { FieldId = fieldId, Descending = descending }]
+                    }
+                }]
+            });
+
+        /// <summary>A view composed of existing queries, in the given order (order decides sort precedence).</summary>
+        public static Task<string> CreateViewFromQueries(HttpClient client, string trackerId, string name, params string[] queryIds) =>
+            CreateView(client, trackerId, new CreateViewDto
+            {
+                Name = name,
+                Queries = [.. queryIds.Select(id => new ViewQueryRefDto { QueryId = id })]
             });
     }
 }

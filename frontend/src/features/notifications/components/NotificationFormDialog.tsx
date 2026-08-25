@@ -73,7 +73,7 @@ interface FilterRow {
 interface FormValues {
     name: string;
     isEnabled: boolean;
-    viewIds: string[];
+    viewId: string | null;
 
     // Event
     eventType: string;
@@ -155,7 +155,7 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
         if (!initialNotification) return {
             name: "",
             isEnabled: true,
-            viewIds: [],
+            viewId: null,
             eventType: "Triggered",
             timeOfDay: "09:00",
             intervalDays: 1,
@@ -177,7 +177,7 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
         return {
             name: initialNotification.name,
             isEnabled: initialNotification.isEnabled,
-            viewIds: initialNotification.viewIds ?? [],
+            viewId: initialNotification.viewId ?? null,
             eventType: ev.eventType ?? "Triggered",
             timeOfDay: ev.timeOfDay ?? "09:00",
             intervalDays: ev.intervalDays ?? 1,
@@ -239,7 +239,7 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
     }), [returnType]);
 
     const handleSubmit = (values: FormValues) => {
-        const viewIds = values.viewIds;
+        const viewId = values.viewId;
 
         const purposeFields = selectedCode?.purposes.map((p) => ({
             fieldId: values.fieldMappings[p.name] ?? "",
@@ -268,7 +268,7 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
         const dto: CreateTrackerNotificationDto = {
             name: values.name,
             isEnabled: values.isEnabled,
-            viewIds,
+            viewId,
             event: {
                 eventType: values.eventType,
                 timeOfDay: values.eventType !== "Triggered" ? values.timeOfDay : null,
@@ -552,11 +552,11 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
                         color={tracker.color}
                     />
 
-                    <MultiSelect
-                        label="Scope to Views"
+                    <Select
+                        label="Scope to View"
                         placeholder="All entries (no filter)"
                         data={views.map((v) => ({ value: v.id, label: v.name }))}
-                        {...form.getInputProps("viewIds")}
+                        {...form.getInputProps("viewId")}
                         clearable
                     />
 

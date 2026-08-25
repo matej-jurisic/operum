@@ -1,10 +1,15 @@
 import { ActionIcon, Box, Paper, Stack, Text } from "@mantine/core";
-import { useElementSize } from "@mantine/hooks";
 import { MdLink } from "react-icons/md";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 import { SingleValueAnalyticDto } from "../types/AnalyticDto";
 import { AnalyticCardHeader } from "./AnalyticCardHeader";
-import { cardBodyProps, cardShellProps, cardTitle, useCardLayout } from "./cardSizing";
+import {
+    cardBodyProps,
+    cardShellProps,
+    cardTitle,
+    useCardLayout,
+    useSyncedElementSize,
+} from "./cardSizing";
 
 interface Props {
     analytic: SingleValueAnalyticDto;
@@ -33,7 +38,7 @@ export function SingleValueCard({
     fillHeight,
 }: Props) {
     const layout = useCardLayout(fillHeight);
-    const valueBox = useElementSize<HTMLDivElement>();
+    const valueBox = useSyncedElementSize<HTMLDivElement>(!!fillHeight);
 
     const subtitle = analytic.valueField?.name;
 

@@ -1,4 +1,3 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -16,8 +15,7 @@ namespace Operum.Model.Models
         [ForeignKey(nameof(TrackerId))]
         public virtual Tracker Tracker { get; set; } = null!;
 
-        public virtual List<ViewFilter> Filters { get; set; } = [];
-        public virtual List<ViewSort> Sorts { get; set; } = [];
+        public virtual List<ViewQuery> ViewQueries { get; set; } = [];
         //public virtual List<ViewGroup> Groups { get; set; } = [];
         //public virtual List<ViewColumn> Columns { get; set; } = [];
     }

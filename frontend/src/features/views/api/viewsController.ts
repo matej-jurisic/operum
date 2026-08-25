@@ -14,11 +14,11 @@ export const viewsController = {
     getViewList: async (trackerId: string): Promise<ApiResponse<ViewDto[]>> => {
         return await api.get(`trackers/${trackerId}/views`);
     },
-    setDefaultViews: async (
+    setDefaultView: async (
         trackerId: string,
-        viewIds: string[]
+        viewId: string | null
     ): Promise<ApiResponse> => {
-        return await api.put(`/trackers/${trackerId}/default-view`, viewIds);
+        return await api.put(`/trackers/${trackerId}/default-view`, viewId);
     },
     createView: async (
         trackerId: string,

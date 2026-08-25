@@ -33,6 +33,26 @@ namespace Operum.Model
                 .HasForeignKey(v => v.TrackerId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            builder.Entity<Query>()
+                .HasOne(q => q.Tracker)
+                .WithMany(t => t.Queries)
+                .HasForeignKey(q => q.TrackerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<ViewQuery>()
+                .HasOne(vq => vq.View)
+                .WithMany(v => v.ViewQueries)
+                .HasForeignKey(vq => vq.ViewId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // A Query is independent of any View: deleting it should just drop it from
+            // whichever Views used it, never cascade back into deleting the Query itself.
+            builder.Entity<ViewQuery>()
+                .HasOne(vq => vq.Query)
+                .WithMany()
+                .HasForeignKey(vq => vq.QueryId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             builder.Entity<TrackerConstant>()
                 .HasOne(c => c.Tracker)
                 .WithMany(t => t.TrackerConstants)
@@ -147,8 +167,10 @@ namespace Operum.Model
         public DbSet<Entry> Entries { get; set; }
         public DbSet<FieldValue> FieldValues { get; set; }
         public DbSet<View> Views { get; set; }
-        public DbSet<ViewSort> ViewSorts { get; set; }
-        public DbSet<ViewFilter> ViewFilters { get; set; }
+        public DbSet<ViewQuery> ViewQueries { get; set; }
+        public DbSet<Query> Queries { get; set; }
+        public DbSet<QuerySort> QuerySorts { get; set; }
+        public DbSet<QueryFilter> QueryFilters { get; set; }
         public DbSet<ViewGroup> ViewGroups { get; set; }
         public DbSet<ViewColumn> ViewColumns { get; set; }
         public DbSet<TrackerType> TrackerTypes { get; set; }

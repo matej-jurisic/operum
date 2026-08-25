@@ -1,18 +1,18 @@
-﻿using FluentValidation;
+using FluentValidation;
 using Operum.Model.Constants;
 
-namespace Operum.Model.DTOs.Views.Requests
+namespace Operum.Model.DTOs.Queries.Requests
 {
-    public class CreateViewFilterDto
+    public class CreateQueryFilterDto
     {
         public required string FieldId { get; set; } = string.Empty;
         public required string Operator { get; set; } = string.Empty;
         public string? Value { get; set; }
     }
 
-    public class CreateViewFilterDtoValidator : AbstractValidator<CreateViewFilterDto>
+    public class CreateQueryFilterDtoValidator : AbstractValidator<CreateQueryFilterDto>
     {
-        public CreateViewFilterDtoValidator()
+        public CreateQueryFilterDtoValidator()
         {
             RuleFor(x => x.FieldId)
                 .NotEmpty().WithMessage((x) => Messages.Required("field id"));

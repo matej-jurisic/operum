@@ -12,7 +12,7 @@ namespace Operum.Model.Models
         public bool IsTriggered { get; set; } = false;
         public DateTime? LastEvaluatedAt { get; set; }
         public DateTime? LastFiredAt { get; set; }
-        public string? ViewIds { get; set; }
+        public string? ViewId { get; set; }
 
         public string TrackerId { get; set; } = string.Empty;
         [ForeignKey(nameof(TrackerId))]

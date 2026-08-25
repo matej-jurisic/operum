@@ -16,7 +16,7 @@ namespace Operum.Model.DTOs.Dashboard.Requests
         // only ever supplies the tracker-specific half of it.
         public List<CreateAnalyticFieldDto> AnalyticFields { get; set; } = [];
 
-        public List<string> ViewIds { get; set; } = [];
+        public string? ViewId { get; set; }
         public string? Label { get; set; }
     }
 

@@ -10,9 +10,21 @@ namespace Operum.Model.DTOs.Dashboard
         public int H { get; set; }
     }
 
+    // The tracker summary a QuickAdd widget's button needs — resolved server-side from
+    // Config's trackerId so the client can render the button immediately instead of
+    // fetching the tracker itself once the card mounts.
+    public class QuickAddTrackerDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string? Color { get; set; }
+        public string? Icon { get; set; }
+    }
+
     // One item of a dashboard as the client renders it: where it sits on each of the two
     // grids, what kind of widget it is, and the payload that kind needs. An analytic widget
-    // carries the chart calculated for it; another type would carry its own Config instead.
+    // carries the chart calculated for it; a QuickAdd widget carries the tracker its button
+    // opens instead.
     public class DashboardWidgetDto
     {
         public string Id { get; set; } = string.Empty;
@@ -24,5 +36,6 @@ namespace Operum.Model.DTOs.Dashboard
         public DashboardWidgetLayoutDto MobileLayout { get; set; } = new();
         public string? Config { get; set; }
         public AnalyticDto? Analytic { get; set; }
+        public QuickAddTrackerDto? QuickAddTracker { get; set; }
     }
 }

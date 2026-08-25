@@ -65,9 +65,9 @@ export default function NotificationCard({
 }: Props) {
     const { _toggleEnabled } = useNotifications();
 
-    const scopedViewNames = notification.viewIds
-        .map((id) => viewNames[id])
-        .filter(Boolean);
+    const scopedViewName = notification.viewId
+        ? viewNames[notification.viewId]
+        : undefined;
 
     return (
         <Card p="md" radius="md" withBorder>
@@ -85,12 +85,10 @@ export default function NotificationCard({
                                 Triggered
                             </Badge>
                         )}
-                        {scopedViewNames.length > 0 ? (
-                            scopedViewNames.map((name) => (
-                                <Badge key={name} variant="light" color={color} size="sm">
-                                    {name}
-                                </Badge>
-                            ))
+                        {scopedViewName ? (
+                            <Badge variant="light" color={color} size="sm">
+                                {scopedViewName}
+                            </Badge>
                         ) : (
                             <Badge variant="light" color="gray" size="sm">
                                 All entries

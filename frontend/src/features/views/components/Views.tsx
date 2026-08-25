@@ -64,8 +64,8 @@ export default function Views(props: Props) {
     const { fields } = useFields();
     const { deleteView, updateViewOrder } = useTrackerOperations();
 
-    const [defaultViewIds, setDefaultViewIds] = useState<string[]>(
-        tracker.defaultViewIds ?? [],
+    const [defaultViewId, setDefaultViewId] = useState<string | null>(
+        tracker.defaultViewId ?? null,
     );
 
     const sensors = useSensors(
@@ -162,27 +162,28 @@ export default function Views(props: Props) {
                                         </ActionIcon>
                                     </Menu.Target>
                                     <Menu.Dropdown>
-                                        <Menu.Label>Default Views</Menu.Label>
+                                        <Menu.Label>Default View</Menu.Label>
                                         <Menu.Divider />
                                         <Menu.Item
                                             onClick={async () => {
-                                                const prev = defaultViewIds;
-                                                setDefaultViewIds([]);
+                                                const prev = defaultViewId;
+                                                setDefaultViewId(null);
                                                 try {
-                                                    await viewsController.setDefaultViews(
+                                                    await viewsController.setDefaultView(
                                                         tracker.id,
-                                                        [],
+                                                        null,
                                                     );
                                                     setTracker((t) => ({
                                                         ...t,
-                                                        defaultViewIds: [],
+                                                        defaultViewId:
+                                                            undefined,
                                                     }));
                                                 } catch {
-                                                    setDefaultViewIds(prev);
+                                                    setDefaultViewId(prev);
                                                 }
                                             }}
                                             rightSection={
-                                                defaultViewIds.length === 0 ? (
+                                                defaultViewId === null ? (
                                                     <MdCheck size={16} />
                                                 ) : null
                                             }
@@ -193,36 +194,25 @@ export default function Views(props: Props) {
                                         </Menu.Item>
                                         {sortedViews.map((v) => {
                                             const isDefault =
-                                                defaultViewIds.includes(v.id);
+                                                defaultViewId === v.id;
                                             return (
                                                 <Menu.Item
-                                                    closeMenuOnClick={false}
                                                     onClick={async () => {
                                                         const prev =
-                                                            defaultViewIds;
-                                                        const next = isDefault
-                                                            ? defaultViewIds.filter(
-                                                                  (id) =>
-                                                                      id !==
-                                                                      v.id,
-                                                              )
-                                                            : [
-                                                                  ...defaultViewIds,
-                                                                  v.id,
-                                                              ];
-                                                        setDefaultViewIds(next);
+                                                            defaultViewId;
+                                                        setDefaultViewId(v.id);
                                                         try {
-                                                            await viewsController.setDefaultViews(
+                                                            await viewsController.setDefaultView(
                                                                 tracker.id,
-                                                                next,
+                                                                v.id,
                                                             );
                                                             setTracker((t) => ({
                                                                 ...t,
-                                                                defaultViewIds:
-                                                                    next,
+                                                                defaultViewId:
+                                                                    v.id,
                                                             }));
                                                         } catch {
-                                                            setDefaultViewIds(
+                                                            setDefaultViewId(
                                                                 prev,
                                                             );
                                                         }

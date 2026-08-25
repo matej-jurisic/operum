@@ -1,13 +1,15 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Operum.Model;
 using Operum.Model.Common;
 using Operum.Model.Constants;
+using Operum.Model.Enums;
+using Operum.Model.DTOs.Fields;
+using Operum.Model.DTOs.Queries;
 using Operum.Model.DTOs.Views;
 using Operum.Model.DTOs.Views.Requests;
-using Operum.Model.Enums;
 using Operum.Model.Models;
-using Operum.Service.Domain.Views;
+using Operum.Service.Domain.Queries;
 using Operum.Service.Interfaces;
 using Operum.Service.Mappings.Mapper;
 
@@ -32,30 +34,16 @@ namespace Operum.Service.Services.Views
             if (viewCount >= DataLimits.MaxViewCount)
                 return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("views", DataLimits.MaxViewCount));
 
-            foreach (var sort in view.Sorts)
+            var resolvedQueries = await ResolveViewQueries(trackerId, view.Queries);
+            if (resolvedQueries.IsFailure)
+                return Result.Failure(resolvedQueries.StatusCode, resolvedQueries.Messages);
+
+            var userView = new View
             {
-                var field = await db.Fields.FindAsync(sort.FieldId);
-                if (field == null || field.TrackerId != trackerId)
-                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.ItemNotFound("sort field"));
-            }
-
-            foreach (var filter in view.Filters)
-            {
-                var field = await db.Fields.FindAsync(filter.FieldId);
-                if (field == null || field.TrackerId != trackerId)
-                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.ItemNotFound("filter field"));
-
-                // Validate operator is valid for the field type
-                if (!ViewFilterValidator.IsValidOperatorForFieldType(filter.Operator, field.Type))
-                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid($"operator '{filter.Operator}' for field type '{field.Type}'"));
-
-                // Validate field value
-                if (filter.Value != null && !ViewFilterValidator.IsValidFieldValue(filter.Value, field.Type))
-                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid($"value '{filter.Value}' for field type '{field.Type}'"));
-            }
-
-            var userView = mapper.Map<CreateViewDto, View>(view);
-            userView.TrackerId = trackerId;
+                TrackerId = trackerId,
+                Name = view.Name,
+                Description = view.Description,
+            };
 
             var maxOrder = await db.Views
                 .Where(x => x.TrackerId == trackerId)
@@ -63,6 +51,8 @@ namespace Operum.Service.Services.Views
             userView.Order = maxOrder + 1;
 
             await db.Views.AddAsync(userView);
+            await AttachViewQueries(userView.Id, resolvedQueries.Data!);
+
             await db.SaveChangesAsync();
             var created = await GetView(trackerId, userView.Id);
             return Result.Success(created.Data);
@@ -83,49 +73,18 @@ namespace Operum.Service.Services.Views
                 return Result.Failure(ResultStatusCodes.NotFound);
             }
 
-            foreach (var sort in view.Sorts)
-            {
-                var field = await db.Fields.FindAsync(sort.FieldId);
-                if (field == null || field.TrackerId != trackerId)
-                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.ItemNotFound("sort field"));
-            }
-
-            foreach (var filter in view.Filters)
-            {
-                var field = await db.Fields.FindAsync(filter.FieldId);
-                if (field == null || field.TrackerId != trackerId)
-                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.ItemNotFound("filter field"));
-
-                if (!ViewFilterValidator.IsValidOperatorForFieldType(filter.Operator, field.Type))
-                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid($"operator '{filter.Operator}' for field type '{field.Type}'"));
-
-                if (filter.Value != null && !ViewFilterValidator.IsValidFieldValue(filter.Value, field.Type))
-                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid($"value '{filter.Value}' for field type '{field.Type}'"));
-            }
+            var resolvedQueries = await ResolveViewQueries(trackerId, view.Queries);
+            if (resolvedQueries.IsFailure)
+                return Result.Failure(resolvedQueries.StatusCode, resolvedQueries.Messages);
 
             userView.Name = view.Name;
             userView.Description = view.Description;
 
-            await db.ViewSorts.Where(x => x.ViewId == viewId).ExecuteDeleteAsync();
-            await db.ViewFilters.Where(x => x.ViewId == viewId).ExecuteDeleteAsync();
+            // Only the join rows go away — the underlying Queries are independent and may
+            // still be attached to other views, so they're never deleted here.
+            await db.ViewQueries.Where(x => x.ViewId == viewId).ExecuteDeleteAsync();
+            await AttachViewQueries(viewId, resolvedQueries.Data!);
 
-            var newSorts = view.Sorts.Select((s, i) =>
-            {
-                var sort = mapper.Map<CreateViewSortDto, ViewSort>(s);
-                sort.ViewId = viewId;
-                sort.Order = i;
-                return sort;
-            }).ToList();
-
-            var newFilters = view.Filters.Select(f =>
-            {
-                var filter = mapper.Map<CreateViewFilterDto, ViewFilter>(f);
-                filter.ViewId = viewId;
-                return filter;
-            }).ToList();
-
-            await db.ViewSorts.AddRangeAsync(newSorts);
-            await db.ViewFilters.AddRangeAsync(newFilters);
             db.Views.Update(userView);
             await db.SaveChangesAsync();
 
@@ -147,6 +106,8 @@ namespace Operum.Service.Services.Views
                 return Result.Failure(ResultStatusCodes.NotFound);
             }
 
+            // Deleting a View only removes its ViewQuery links (DB cascade); the Queries
+            // it referenced are independent and keep existing.
             await db.Views.Where(x => x.Id == viewId && x.TrackerId == trackerId).ExecuteDeleteAsync();
 
             return Result.Success();
@@ -159,10 +120,14 @@ namespace Operum.Service.Services.Views
             var userView = await db.Views
                 .Include(x => x.Tracker)
                     .ThenInclude(x => x.ApplicationUserTrackers)
-                .Include(x => x.Sorts.OrderBy(s => s.Order))
-                    .ThenInclude(x => x.Field)
-                .Include(x => x.Filters)
-                    .ThenInclude(x => x.Field)
+                .Include(x => x.ViewQueries.OrderBy(vq => vq.Order))
+                    .ThenInclude(vq => vq.Query)
+                        .ThenInclude(q => q.Sorts.OrderBy(s => s.Order))
+                            .ThenInclude(s => s.Field)
+                .Include(x => x.ViewQueries)
+                    .ThenInclude(vq => vq.Query)
+                        .ThenInclude(q => q.Filters)
+                            .ThenInclude(f => f.Field)
                 .FirstOrDefaultAsync(x => x.Id == viewId && x.TrackerId == trackerId);
 
             var hasAccess = userView != null && (userView.Tracker.OwnerId == user.Id || userView.Tracker.ApplicationUserTrackers.Any(x => x.ApplicationUserId == user.Id));
@@ -172,7 +137,7 @@ namespace Operum.Service.Services.Views
                 return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
-            return Result.Success(mapper.Map<View, ViewDto>(userView));
+            return Result.Success(MapViewToDto(userView));
         }
 
         public async Task<Result<List<ViewDto>>> GetViewList(string trackerId)
@@ -191,16 +156,19 @@ namespace Operum.Service.Services.Views
             }
 
             var userViews = await db.Views
-                .Include(x => x.Tracker)
-                .Include(x => x.Filters)
-                    .ThenInclude(x => x.Field)
-                .Include(x => x.Sorts.OrderBy(s => s.Order))
-                    .ThenInclude(x => x.Field)
+                .Include(x => x.ViewQueries.OrderBy(vq => vq.Order))
+                    .ThenInclude(vq => vq.Query)
+                        .ThenInclude(q => q.Filters)
+                            .ThenInclude(f => f.Field)
+                .Include(x => x.ViewQueries)
+                    .ThenInclude(vq => vq.Query)
+                        .ThenInclude(q => q.Sorts.OrderBy(s => s.Order))
+                            .ThenInclude(s => s.Field)
                 .Where(x => x.TrackerId == trackerId)
                 .OrderBy(x => x.Order)
                 .ToListAsync();
 
-            return Result.Success(mapper.Map<List<View>, List<ViewDto>>(userViews));
+            return Result.Success(userViews.Select(MapViewToDto).ToList());
         }
 
         public async Task<Result> ReorderViews(string trackerId, ReorderViewsDto reorderViews)
@@ -252,6 +220,97 @@ namespace Operum.Service.Services.Views
                 await transaction.RollbackAsync();
                 logger.LogError(ex, "Exception occurred while reordering views.");
                 return Result.Failure(ResultStatusCodes.Error);
+            }
+        }
+
+        private ViewDto MapViewToDto(View view)
+        {
+            return new ViewDto
+            {
+                Id = view.Id,
+                Name = view.Name,
+                Description = view.Description,
+                Queries = view.ViewQueries
+                    .OrderBy(vq => vq.Order)
+                    .Select(vq => MapQueryToDto(vq.Query))
+                    .ToList(),
+            };
+        }
+
+        private QueryDto MapQueryToDto(Query query)
+        {
+            return new QueryDto
+            {
+                Id = query.Id,
+                Name = query.Name,
+                Description = query.Description,
+                Sorts = query.Sorts.OrderBy(s => s.Order).Select(s => new QuerySortDto
+                {
+                    Id = s.Id,
+                    Field = mapper.Map<Field, FieldDto>(s.Field),
+                    Order = s.Order,
+                    Descending = s.Descending,
+                }).ToList(),
+                Filters = query.Filters.Select(f => new QueryFilterDto
+                {
+                    Id = f.Id,
+                    Field = mapper.Map<Field, FieldDto>(f.Field),
+                    Operator = f.Operator,
+                    Value = f.Value,
+                }).ToList(),
+            };
+        }
+
+        // Resolves each ordered ViewQueryRefDto to a concrete Query id, validating and
+        // building brand-new Query entities for ad-hoc refs along the way (not yet saved).
+        private async Task<Result<List<(string QueryId, Query? NewQuery)>>> ResolveViewQueries(string trackerId, List<ViewQueryRefDto> queryRefs)
+        {
+            var resolved = new List<(string QueryId, Query? NewQuery)>();
+            var existingQueryCount = await db.Queries.CountAsync(q => q.TrackerId == trackerId);
+            var newQueryCount = 0;
+
+            foreach (var queryRef in queryRefs)
+            {
+                if (queryRef.QueryId != null)
+                {
+                    var exists = await db.Queries.AnyAsync(q => q.Id == queryRef.QueryId && q.TrackerId == trackerId);
+                    if (!exists)
+                        return Result.Failure(ResultStatusCodes.BadRequest, Messages.ItemNotFound("query"));
+
+                    resolved.Add((queryRef.QueryId, null));
+                }
+                else if (queryRef.NewQuery != null)
+                {
+                    if (existingQueryCount + newQueryCount >= DataLimits.MaxQueryCount)
+                        return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("queries", DataLimits.MaxQueryCount));
+
+                    var validation = await QueryBuilder.ValidateSortsAndFilters(db, trackerId, queryRef.NewQuery.Sorts, queryRef.NewQuery.Filters);
+                    if (validation.IsFailure)
+                        return Result.Failure(validation.StatusCode, validation.Messages);
+
+                    var newQuery = QueryBuilder.BuildQueryEntity(trackerId, queryRef.NewQuery);
+                    newQueryCount++;
+                    resolved.Add((newQuery.Id, newQuery));
+                }
+            }
+
+            return Result.Success(resolved);
+        }
+
+        private async Task AttachViewQueries(string viewId, List<(string QueryId, Query? NewQuery)> resolvedQueries)
+        {
+            for (int i = 0; i < resolvedQueries.Count; i++)
+            {
+                var (queryId, newQuery) = resolvedQueries[i];
+                if (newQuery != null)
+                    await db.Queries.AddAsync(newQuery);
+
+                await db.ViewQueries.AddAsync(new ViewQuery
+                {
+                    ViewId = viewId,
+                    QueryId = queryId,
+                    Order = i,
+                });
             }
         }
     }

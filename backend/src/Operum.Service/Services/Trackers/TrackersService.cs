@@ -39,9 +39,13 @@ namespace Operum.Service.Services.Trackers
                 templateTracker = await db.Trackers
                     .Include(t => t.Fields)
                     .Include(t => t.Views)
-                        .ThenInclude(v => v.Sorts)
+                        .ThenInclude(v => v.ViewQueries.OrderBy(vq => vq.Order))
+                            .ThenInclude(vq => vq.Query)
+                                .ThenInclude(q => q.Sorts)
                     .Include(t => t.Views)
-                        .ThenInclude(v => v.Filters)
+                        .ThenInclude(v => v.ViewQueries)
+                            .ThenInclude(vq => vq.Query)
+                                .ThenInclude(q => q.Filters)
                     .Include(t => t.Analytics)
                         .ThenInclude(a => a.AnalyticFields)
                     .FirstOrDefaultAsync(t => t.Id == tracker.TemplateTrackerId);
@@ -91,11 +95,11 @@ namespace Operum.Service.Services.Trackers
                 fieldIdMapping[templateField.Id] = newField.Id;
                 await db.Fields.AddAsync(newField);
             }
-            // Save fields first so they exist for view references
+            // Save fields first so they exist for view/query references
             await db.SaveChangesAsync();
             // Dictionary to map old view IDs to new view IDs
             var viewIdMapping = new Dictionary<string, string>();
-            // Copy views
+            // Copy views (shells only — their Queries are copied and linked below)
             foreach (var templateView in templateTracker.Views)
             {
                 var newView = new View
@@ -108,44 +112,88 @@ namespace Operum.Service.Services.Trackers
                 viewIdMapping[templateView.Id] = newView.Id;
                 await db.Views.AddAsync(newView);
             }
-            // Save views first so they exist for sort/filter references
-            await db.SaveChangesAsync();
-            // Copy view sorts
-            foreach (var templateView in templateTracker.Views)
+
+            // Copy every Query referenced by the template's views (a Query is only ever
+            // touched once here even if several template views share it).
+            var templateQueries = templateTracker.Views
+                .SelectMany(v => v.ViewQueries.Select(vq => vq.Query))
+                .DistinctBy(q => q.Id)
+                .ToList();
+
+            var queryIdMapping = new Dictionary<string, string>();
+            foreach (var templateQuery in templateQueries)
             {
-                foreach (var templateSort in templateView.Sorts)
+                var newQuery = new Query
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Name = templateQuery.Name,
+                    Description = templateQuery.Description,
+                    TrackerId = newTracker.Id
+                };
+                queryIdMapping[templateQuery.Id] = newQuery.Id;
+                await db.Queries.AddAsync(newQuery);
+            }
+
+            // Save views and queries first so they exist for sort/filter/link references
+            await db.SaveChangesAsync();
+
+            // Copy query sorts/filters and the view <-> query links
+            foreach (var templateQuery in templateQueries)
+            {
+                if (!queryIdMapping.TryGetValue(templateQuery.Id, out var newQueryId))
+                    continue;
+
+                foreach (var templateSort in templateQuery.Sorts)
                 {
                     // Only create sort if the field was copied
-                    if (fieldIdMapping.TryGetValue(templateSort.FieldId, out var newFieldId) &&
-                        viewIdMapping.TryGetValue(templateView.Id, out var newViewId))
+                    if (fieldIdMapping.TryGetValue(templateSort.FieldId, out var newFieldId))
                     {
-                        var newSort = new ViewSort
+                        var newSort = new QuerySort
                         {
                             Id = Guid.NewGuid().ToString(),
-                            ViewId = newViewId,
+                            QueryId = newQueryId,
                             FieldId = newFieldId,
                             Order = templateSort.Order,
                             Descending = templateSort.Descending
                         };
-                        await db.ViewSorts.AddAsync(newSort);
+                        await db.QuerySorts.AddAsync(newSort);
                     }
                 }
-                foreach (var templateFilter in templateView.Filters)
+                foreach (var templateFilter in templateQuery.Filters)
                 {
                     // Only create filter if the field was copied
-                    if (fieldIdMapping.TryGetValue(templateFilter.FieldId, out var newFieldId) &&
-                        viewIdMapping.TryGetValue(templateView.Id, out var newViewId))
+                    if (fieldIdMapping.TryGetValue(templateFilter.FieldId, out var newFieldId))
                     {
-                        var newFilter = new ViewFilter
+                        var newFilter = new QueryFilter
                         {
                             Id = Guid.NewGuid().ToString(),
-                            ViewId = newViewId,
+                            QueryId = newQueryId,
                             FieldId = newFieldId,
                             Operator = templateFilter.Operator,
                             Value = templateFilter.Value
                         };
-                        await db.ViewFilters.AddAsync(newFilter);
+                        await db.QueryFilters.AddAsync(newFilter);
                     }
+                }
+            }
+
+            foreach (var templateView in templateTracker.Views)
+            {
+                if (!viewIdMapping.TryGetValue(templateView.Id, out var newViewId))
+                    continue;
+
+                foreach (var templateViewQuery in templateView.ViewQueries)
+                {
+                    if (!queryIdMapping.TryGetValue(templateViewQuery.QueryId, out var newQueryId))
+                        continue;
+
+                    await db.ViewQueries.AddAsync(new ViewQuery
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        ViewId = newViewId,
+                        QueryId = newQueryId,
+                        Order = templateViewQuery.Order
+                    });
                 }
             }
 
@@ -348,7 +396,7 @@ namespace Operum.Service.Services.Trackers
             return Result.Success(updatedTracker.Data);
         }
 
-        public async Task<Result<List<AnalyticDto>>> GetTrackerAnalytics(string trackerId, List<string> viewIds)
+        public async Task<Result<List<AnalyticDto>>> GetTrackerAnalytics(string trackerId, string? viewId)
         {
             var user = currentUserService.GetCurrentUser();
             var tracker = await db.Trackers
@@ -362,20 +410,16 @@ namespace Operum.Service.Services.Trackers
                 return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
-            var views = new List<View>();
-            foreach (var viewId in viewIds)
+            View? view = null;
+            if (!string.IsNullOrEmpty(viewId))
             {
-                var view = await db.Views
-                    .Include(v => v.Filters)
-                    .ThenInclude(v => v.Field)
-                    .Include(v => v.Sorts)
-                    .ThenInclude(s => s.Field)
+                view = await db.Views
+                    .Include(v => v.ViewQueries.OrderBy(vq => vq.Order)).ThenInclude(vq => vq.Query).ThenInclude(q => q.Filters).ThenInclude(f => f.Field)
+                    .Include(v => v.ViewQueries).ThenInclude(vq => vq.Query).ThenInclude(q => q.Sorts).ThenInclude(s => s.Field)
                     .FirstOrDefaultAsync(v => v.Id == viewId && v.TrackerId == trackerId);
 
                 if (view == null)
                     return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("view"));
-
-                views.Add(view);
             }
 
             var entriesQuery = db.Entries
@@ -383,10 +427,10 @@ namespace Operum.Service.Services.Trackers
                 .ThenInclude(x => x.Field)
                 .Where(x => x.TrackerId == trackerId);
 
-            if (views.Count > 0)
+            if (view != null)
             {
-                entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, ViewQueryBuilder.MergeViewFilters(views), currentUserService.GetCurrentUserTimeZone());
-                entriesQuery = ViewQueryBuilder.ApplyViewSorting(entriesQuery, ViewQueryBuilder.MergeViewSorts(views));
+                entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, ViewQueryBuilder.ResolveFilters(view), currentUserService.GetCurrentUserTimeZone());
+                entriesQuery = ViewQueryBuilder.ApplyViewSorting(entriesQuery, ViewQueryBuilder.ResolveSorts(view));
             }
 
             var entries = await entriesQuery.ToListAsync();
@@ -420,7 +464,7 @@ namespace Operum.Service.Services.Trackers
             return Result.Success(analyticResults);
         }
 
-        public async Task<Result> UpdateDefaultView(string trackerId, List<string>? viewIds)
+        public async Task<Result> UpdateDefaultView(string trackerId, string? viewId)
         {
             var user = currentUserService.GetCurrentUser();
 
@@ -433,18 +477,12 @@ namespace Operum.Service.Services.Trackers
                 return Result.Failure(ResultStatusCodes.NotFound);
             }
 
-            if (viewIds != null && viewIds.Count > 0)
+            if (!string.IsNullOrEmpty(viewId) && tracker.Views.All(v => v.Id != viewId))
             {
-                var trackerViewIds = tracker.Views.Select(v => v.Id).ToHashSet();
-                if (!viewIds.All(id => trackerViewIds.Contains(id)))
-                {
-                    return Result.Failure(ResultStatusCodes.BadRequest);
-                }
+                return Result.Failure(ResultStatusCodes.BadRequest);
             }
 
-            tracker.DefaultViewIds = viewIds != null && viewIds.Count > 0
-                ? System.Text.Json.JsonSerializer.Serialize(viewIds)
-                : null;
+            tracker.DefaultViewId = viewId;
 
             db.Update(tracker);
             await db.SaveChangesAsync();
