@@ -1,141 +1,92 @@
 import {
-    Button,
-    Group,
-    Modal,
-    Radio,
-    ScrollArea,
-    Stack,
-    Text,
-    UnstyledButton,
+  Button,
+  Combobox,
+  Group,
+  Popover,
+  Text,
+  useCombobox,
 } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { CiFilter } from "react-icons/ci";
+
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { useViews } from "../context/ViewsContext";
 
 export default function SelectViewMenu() {
-    const { selectedViewId, tracker } = useTracker();
-    const { setSelectedView } = useTrackerOperations();
-    const { views, refreshViewsIfDirty } = useViews();
+  const { selectedViewId, tracker } = useTracker();
+  const { setSelectedView } = useTrackerOperations();
+  const { views, refreshViewsIfDirty } = useViews();
 
-    const [opened, setOpened] = useState(false);
-    const [draftViewId, setDraftViewId] = useState<string | null>(
-        selectedViewId,
-    );
+  const [opened, setOpened] = useState(false);
 
-    useEffect(() => {
-        refreshViewsIfDirty();
-    }, []);
+  const combobox = useCombobox({
+    onDropdownClose: () => combobox.resetSelectedOption(),
+  });
 
-    const openModal = () => {
-        setDraftViewId(selectedViewId);
-        setOpened(true);
-    };
+  useEffect(() => {
+    refreshViewsIfDirty();
+  }, []);
 
-    const handleApply = async () => {
-        setOpened(false);
-        await setSelectedView(draftViewId);
-    };
+  return (
+    <Popover
+      opened={opened}
+      onChange={setOpened}
+      position="bottom-end"
+      withArrow
+      shadow="md"
+      width={280}
+    >
+      <Popover.Target>
+        <Button
+          variant={selectedViewId ? "filled" : "outline"}
+          color={tracker.color}
+          onClick={() => {
+            setOpened((current) => !current);
+            combobox.toggleDropdown();
+          }}
+        >
+          <CiFilter size={16} />
+        </Button>
+      </Popover.Target>
 
-    return (
-        <>
-            <Button
-                variant={selectedViewId ? "filled" : "outline"}
-                color={tracker.color}
-                onClick={openModal}
-            >
-                <CiFilter size={16} />
-            </Button>
+      <Popover.Dropdown p={0}>
+        <Combobox
+          store={combobox}
+          onOptionSubmit={async (value) => {
+            await setSelectedView(value || null);
 
-            <Modal
-                opened={opened}
-                centered
-                onClose={() => setOpened(false)}
-                title="Active View"
-                size="md"
-            >
-                <Stack gap="lg">
-                    {views.length > 0 ? (
-                        <ScrollArea.Autosize mah={360}>
-                            <Radio.Group
-                                value={draftViewId ?? ""}
-                                onChange={(value) =>
-                                    setDraftViewId(value || null)
-                                }
-                            >
-                                <Stack gap="xs">
-                                    <UnstyledButton
-                                        onClick={() => setDraftViewId(null)}
-                                        px="xs"
-                                        py={6}
-                                    >
-                                        <Group justify="space-between" wrap="nowrap">
-                                            <Text
-                                                size="sm"
-                                                c="dimmed"
-                                                fs="italic"
-                                            >
-                                                None (every entry)
-                                            </Text>
-                                            <Radio value="" readOnly tabIndex={-1} />
-                                        </Group>
-                                    </UnstyledButton>
-                                    {views.map((view) => (
-                                        <UnstyledButton
-                                            key={view.id}
-                                            onClick={() =>
-                                                setDraftViewId(view.id)
-                                            }
-                                            px="xs"
-                                            py={6}
-                                        >
-                                            <Group
-                                                justify="space-between"
-                                                wrap="nowrap"
-                                            >
-                                                <Text
-                                                    size="sm"
-                                                    style={{
-                                                        overflow: "hidden",
-                                                        textOverflow:
-                                                            "ellipsis",
-                                                        whiteSpace: "nowrap",
-                                                    }}
-                                                >
-                                                    {view.name}
-                                                </Text>
-                                                <Radio
-                                                    value={view.id}
-                                                    color={tracker.color}
-                                                    readOnly
-                                                    tabIndex={-1}
-                                                />
-                                            </Group>
-                                        </UnstyledButton>
-                                    ))}
-                                </Stack>
-                            </Radio.Group>
-                        </ScrollArea.Autosize>
-                    ) : (
-                        <Text size="sm" c="dimmed" ta="center">
-                            No views available.
-                        </Text>
-                    )}
+            setOpened(false);
+            combobox.closeDropdown();
+          }}
+        >
+          <Combobox.Options>
+            <Combobox.Option value="">
+              <Group justify="space-between">
+                <Text size="sm" c="dimmed" fs="italic">
+                  None
+                </Text>
 
-                    <Group justify="flex-end">
-                        <Button
-                            variant="default"
-                            onClick={() => setOpened(false)}
-                        >
-                            Cancel
-                        </Button>
-                        <Button color={tracker.color} onClick={handleApply}>
-                            Apply
-                        </Button>
-                    </Group>
-                </Stack>
-            </Modal>
-        </>
-    );
+                {selectedViewId === null && <Text c={tracker.color}>✓</Text>}
+              </Group>
+            </Combobox.Option>
+
+            {views.map((view) => (
+              <Combobox.Option key={view.id} value={view.id}>
+                <Group justify="space-between">
+                  <Text size="sm" truncate>
+                    {view.name}
+                  </Text>
+
+                  {selectedViewId === view.id && (
+                    <Text c={tracker.color}>✓</Text>
+                  )}
+                </Group>
+              </Combobox.Option>
+            ))}
+          </Combobox.Options>
+        </Combobox>
+      </Popover.Dropdown>
+    </Popover>
+  );
 }
