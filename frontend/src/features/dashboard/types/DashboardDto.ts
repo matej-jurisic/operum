@@ -8,7 +8,16 @@ export const WidgetTypes = {
     QuickAdd: "quickAdd",
     View: "view",
     Entries: "entries",
+    Header: "header",
+    Divider: "divider",
+    Note: "note",
 } as const;
+
+/** The Config payload shared by WidgetTypes.Header and WidgetTypes.Note: both are nothing
+    but user-entered text. WidgetTypes.Divider carries no config at all. */
+export interface TextWidgetConfig {
+    text: string;
+}
 
 /** The Config payload of a WidgetTypes.QuickAdd widget: which tracker its button opens
     the quick-add entry dialog for. */
@@ -225,6 +234,16 @@ export interface AddDashboardEntriesItemDto {
     linkedViewWidgetId?: string | null;
 }
 
+/** Adds a WidgetTypes.Header widget: a short line of text read as a section title. */
+export interface AddDashboardHeaderItemDto {
+    text: string;
+}
+
+/** Adds a WidgetTypes.Note widget: a free-form block of text. */
+export interface AddDashboardNoteItemDto {
+    text: string;
+}
+
 /**
  * One source of an analytic widget as the board is allowed to change it after the fact:
  * what the series is called, and which view narrows the entries it reads.
@@ -253,4 +272,10 @@ export interface UpdateDashboardItemDto {
     browser session. */
 export interface SetViewWidgetSelectionDto {
     viewId?: string | null;
+}
+
+/** Changes what a WidgetTypes.Header or WidgetTypes.Note widget's text reads. Persisted the
+    same way SetViewWidgetSelectionDto is. */
+export interface SetTextWidgetContentDto {
+    text: string;
 }

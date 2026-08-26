@@ -696,6 +696,103 @@ namespace Operum.Service.Services.Dashboards
             });
         }
 
+        // A short line of text read as a section title. Unlike every other Add*Item this
+        // carries no tracker at all — there is nothing to check but the board's own item
+        // limit before it is placed.
+        public async Task<Result<DashboardItemDto>> AddHeaderItem(string dashboardId, AddDashboardHeaderItemDto dto)
+        {
+            return await AddTextItem(dashboardId, DashboardWidgetTypes.Header, DashboardGrid.HeaderSize, dto.Text);
+        }
+
+        // A free-form block of text. Same shape as AddHeaderItem, just a different type and
+        // a card-sized footprint instead of a full row.
+        public async Task<Result<DashboardItemDto>> AddNoteItem(string dashboardId, AddDashboardNoteItemDto dto)
+        {
+            return await AddTextItem(dashboardId, DashboardWidgetTypes.Note, DashboardGrid.NoteSize, dto.Text);
+        }
+
+        // A bare visual rule. Carries no Config at all — there is nothing about it to
+        // configure — so it needs even less than AddTextItem checks for.
+        public async Task<Result<DashboardItemDto>> AddDividerItem(string dashboardId)
+        {
+            var dashboard = await GetUserDashboard(dashboardId);
+            if (dashboard == null)
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
+
+            if (dashboard.Items.Count >= DataLimits.MaxDashboardItemCount)
+                return Result.Failure(ResultStatusCodes.Conflict, Messages.MaxNumberReached("dashboard items", DataLimits.MaxDashboardItemCount));
+
+            var item = BuildLayoutItem(dashboard, dashboardId, DashboardWidgetTypes.Divider, DashboardGrid.DividerSize, config: null);
+
+            db.DashboardItems.Add(item);
+            await db.SaveChangesAsync();
+
+            return Result.Success(MapToPlainItemDto(item));
+        }
+
+        // Shared by AddHeaderItem and AddNoteItem: both are nothing but a tracker-less
+        // widget holding one string of Config, placed the same way a QuickAdd or View
+        // widget is — its own row under everything already on the board, on both grids at
+        // once.
+        private async Task<Result<DashboardItemDto>> AddTextItem(string dashboardId, string type, (int Width, int Height) size, string text)
+        {
+            var dashboard = await GetUserDashboard(dashboardId);
+            if (dashboard == null)
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
+
+            if (dashboard.Items.Count >= DataLimits.MaxDashboardItemCount)
+                return Result.Failure(ResultStatusCodes.Conflict, Messages.MaxNumberReached("dashboard items", DataLimits.MaxDashboardItemCount));
+
+            var config = JsonSerializer.Serialize(new TextWidgetConfigDto { Text = text }, ConfigJsonOptions);
+            var item = BuildLayoutItem(dashboard, dashboardId, type, size, config);
+
+            db.DashboardItems.Add(item);
+            await db.SaveChangesAsync();
+
+            return Result.Success(MapToPlainItemDto(item));
+        }
+
+        // The placement rules every non-analytic widget shares: its own row under
+        // everything already on the board, at the size its kind reads well at, on both
+        // grids at once.
+        private static DashboardItem BuildLayoutItem(Dashboard dashboard, string dashboardId, string type, (int Width, int Height) size, string? config)
+        {
+            var nextOrder = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.Order) + 1 : 0;
+            var nextRow = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.Y + i.H) : 0;
+            var nextMobileRow = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.MobileY + i.MobileH) : 0;
+            var (width, height) = size;
+
+            return new DashboardItem
+            {
+                DashboardId = dashboardId,
+                Order = nextOrder,
+                Type = type,
+                Config = config,
+                X = 0,
+                Y = nextRow,
+                W = width,
+                H = height,
+                MobileX = 0,
+                MobileY = nextMobileRow,
+                MobileW = DashboardGrid.MobileColumns,
+                MobileH = height
+            };
+        }
+
+        private static DashboardItemDto MapToPlainItemDto(DashboardItem item) => new()
+        {
+            Id = item.Id,
+            Order = item.Order,
+            Type = item.Type,
+            Layout = MapToLayoutDto(item),
+            MobileLayout = MapToMobileLayoutDto(item),
+            Config = item.Config,
+            ResultType = item.ResultType,
+            Code = item.Code,
+            MatchedValuesOnly = item.MatchedValuesOnly,
+            Sources = []
+        };
+
         // Edits an analytic widget in place, but only where editing is the board's business:
         // what the widget is called, and which view each of its sources reads through. The
         // definition itself (result type, code, field mapping) is deliberately not editable —
@@ -783,6 +880,36 @@ namespace Operum.Service.Services.Dashboards
             await db.SaveChangesAsync();
 
             return Result.Success(await BuildWidgets(dashboard));
+        }
+
+        // Changes what a Header or Note widget's text reads, persisted the same way a View
+        // widget's selection is. Unlike that one, nothing else on the board ever depends on
+        // this widget's Config, so there's no need to recompute the whole board back — the
+        // one item that changed is all the caller needs.
+        public async Task<Result<DashboardItemDto>> SetTextWidgetContent(string dashboardId, string itemId, SetTextWidgetContentDto dto)
+        {
+            var dashboard = await GetUserDashboard(dashboardId);
+            if (dashboard == null)
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
+
+            var item = dashboard.Items.FirstOrDefault(i =>
+                i.Id == itemId && (i.Type == DashboardWidgetTypes.Header || i.Type == DashboardWidgetTypes.Note));
+            if (item == null)
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("text widget"));
+
+            // The two widgets share this endpoint but not their length cap — a header stays
+            // short, a note gets a paragraph's worth of room.
+            var maxLength = item.Type == DashboardWidgetTypes.Header
+                ? DataLimits.MaxHeaderTextLength
+                : DataLimits.MaxNoteTextLength;
+
+            if (dto.Text.Length > maxLength)
+                return Result.Failure(ResultStatusCodes.BadRequest, $"Text cannot exceed {maxLength} characters.");
+
+            item.Config = JsonSerializer.Serialize(new TextWidgetConfigDto { Text = dto.Text }, ConfigJsonOptions);
+            await db.SaveChangesAsync();
+
+            return Result.Success(MapToPlainItemDto(item));
         }
 
         public async Task<Result> RemoveDashboardItem(string dashboardId, string itemId)

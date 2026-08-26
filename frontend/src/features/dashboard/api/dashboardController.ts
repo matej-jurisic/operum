@@ -2,14 +2,17 @@ import api from "../../../shared/api/api";
 import { ApiResponse } from "../../../shared/types/ApiResponse";
 import {
     AddDashboardEntriesItemDto,
+    AddDashboardHeaderItemDto,
     AddDashboardItemDto,
     AddDashboardItemFromAnalyticDto,
+    AddDashboardNoteItemDto,
     AddDashboardQuickAddItemDto,
     AddDashboardViewItemDto,
     CreateDashboardDto,
     DashboardDto,
     DashboardItemDto,
     DashboardWidgetDto,
+    SetTextWidgetContentDto,
     SetViewWidgetSelectionDto,
     UpdateDashboardDto,
     UpdateDashboardItemDto,
@@ -81,6 +84,26 @@ export const dashboardController = {
         return await api.post(`/dashboard/${dashboardId}/items/entries`, dto);
     },
 
+    addHeaderItem: async (
+        dashboardId: string,
+        dto: AddDashboardHeaderItemDto
+    ): Promise<ApiResponse<DashboardItemDto>> => {
+        return await api.post(`/dashboard/${dashboardId}/items/header`, dto);
+    },
+
+    addDividerItem: async (
+        dashboardId: string
+    ): Promise<ApiResponse<DashboardItemDto>> => {
+        return await api.post(`/dashboard/${dashboardId}/items/divider`);
+    },
+
+    addNoteItem: async (
+        dashboardId: string,
+        dto: AddDashboardNoteItemDto
+    ): Promise<ApiResponse<DashboardItemDto>> => {
+        return await api.post(`/dashboard/${dashboardId}/items/note`, dto);
+    },
+
     updateDashboardItem: async (
         dashboardId: string,
         itemId: string,
@@ -95,6 +118,14 @@ export const dashboardController = {
         dto: SetViewWidgetSelectionDto
     ): Promise<ApiResponse<DashboardWidgetDto[]>> => {
         return await api.put(`/dashboard/${dashboardId}/items/${itemId}/view-selection`, dto);
+    },
+
+    setTextWidgetContent: async (
+        dashboardId: string,
+        itemId: string,
+        dto: SetTextWidgetContentDto
+    ): Promise<ApiResponse<DashboardItemDto>> => {
+        return await api.put(`/dashboard/${dashboardId}/items/${itemId}/text`, dto);
     },
 
     removeDashboardItem: async (

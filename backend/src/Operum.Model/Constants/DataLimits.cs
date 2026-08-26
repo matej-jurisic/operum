@@ -20,5 +20,10 @@
         public const int MaxDashboardCount = 20;
         public const int MaxDashboardItemCount = 30;
         public const int MaxDashboardItemSourceCount = 5;
+        // A header reads as a section title, so it stays short — the same length a
+        // tracker or field name is allowed.
+        public const int MaxHeaderTextLength = 100;
+        // A note is read as a paragraph, so it's given the same room a description gets.
+        public const int MaxNoteTextLength = 500;
     }
 }

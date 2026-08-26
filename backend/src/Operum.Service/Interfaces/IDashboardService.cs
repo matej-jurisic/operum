@@ -18,8 +18,12 @@ namespace Operum.Service.Interfaces
         Task<Result<DashboardItemDto>> AddQuickAddItem(string dashboardId, AddDashboardQuickAddItemDto dto);
         Task<Result<DashboardItemDto>> AddViewItem(string dashboardId, AddDashboardViewItemDto dto);
         Task<Result<DashboardItemDto>> AddEntriesItem(string dashboardId, AddDashboardEntriesItemDto dto);
+        Task<Result<DashboardItemDto>> AddHeaderItem(string dashboardId, AddDashboardHeaderItemDto dto);
+        Task<Result<DashboardItemDto>> AddDividerItem(string dashboardId);
+        Task<Result<DashboardItemDto>> AddNoteItem(string dashboardId, AddDashboardNoteItemDto dto);
         Task<Result<List<DashboardWidgetDto>>> UpdateDashboardItem(string dashboardId, string itemId, UpdateDashboardItemDto dto);
         Task<Result<List<DashboardWidgetDto>>> SetViewWidgetSelection(string dashboardId, string itemId, SetViewWidgetSelectionDto dto);
+        Task<Result<DashboardItemDto>> SetTextWidgetContent(string dashboardId, string itemId, SetTextWidgetContentDto dto);
         Task<Result> RemoveDashboardItem(string dashboardId, string itemId);
         Task<Result> UpdateDashboardLayout(string dashboardId, UpdateDashboardLayoutDto dto);
     }

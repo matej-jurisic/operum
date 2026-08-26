@@ -19,11 +19,24 @@ import BoardActions from "../components/BoardActions";
 import BoardFormModal from "../components/BoardFormModal";
 import BoardSwitcher from "../components/BoardSwitcher";
 import { DashboardGrid } from "../components/DashboardGrid";
+import { EditTextWidgetModal } from "../components/EditTextWidgetModal";
 import { EditWidgetModal } from "../components/EditWidgetModal";
 import { DashboardProvider, useDashboard } from "../context/DashboardContext";
-import { DashboardDto } from "../types/DashboardDto";
+import { DashboardDto, TextWidgetConfig, WidgetTypes } from "../types/DashboardDto";
 
 const LAST_BOARD_KEY = "operum.lastBoardId";
+
+// Shared by Header and Note, whose Config is nothing but this one string. Never trusted
+// further than the shape it parses to.
+function parseTextConfig(config: string | undefined): TextWidgetConfig | null {
+    if (!config) return null;
+    try {
+        const parsed = JSON.parse(config);
+        return typeof parsed?.text === "string" ? parsed : null;
+    } catch {
+        return null;
+    }
+}
 
 interface ContentProps {
     boards: DashboardDto[];
@@ -51,8 +64,12 @@ function DashboardContent({
         addQuickAddItem,
         addViewItem,
         addEntriesItem,
+        addHeaderItem,
+        addDividerItem,
+        addNoteItem,
         updateItem,
         setViewSelection,
+        setTextContent,
         removeItem,
         saveLayout,
     } = useDashboard();
@@ -60,6 +77,7 @@ function DashboardContent({
     const [isConfiguring, setIsConfiguring] = useState(false);
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [editingItemId, setEditingItemId] = useState<string>();
+    const editingWidget = widgets.find((w) => w.id === editingItemId);
 
     // Stable, because the edit dialog loads the widget it was opened on in an effect keyed
     // on this: an identity that changed with every render of the board would send it back
@@ -167,14 +185,42 @@ function DashboardContent({
                 />
             )}
 
-            {editingItemId && (
-                <EditWidgetModal
+            {/* A Header/Note widget's text lives in the widget the board already holds, so
+                its edit dialog needs no fetch of its own; every other editable kind
+                (Analytic today) still goes through EditWidgetModal's own load. */}
+            {editingItemId && editingWidget && editingWidget.type === WidgetTypes.Header && (
+                <EditTextWidgetModal
                     itemId={editingItemId}
+                    kind="header"
+                    initialText={parseTextConfig(editingWidget.config)?.text ?? ""}
                     color={color}
                     onClose={closeEditing}
-                    onSave={updateItem}
+                    onSave={setTextContent}
                 />
             )}
+
+            {editingItemId && editingWidget && editingWidget.type === WidgetTypes.Note && (
+                <EditTextWidgetModal
+                    itemId={editingItemId}
+                    kind="note"
+                    initialText={parseTextConfig(editingWidget.config)?.text ?? ""}
+                    color={color}
+                    onClose={closeEditing}
+                    onSave={setTextContent}
+                />
+            )}
+
+            {editingItemId &&
+                editingWidget &&
+                editingWidget.type !== WidgetTypes.Header &&
+                editingWidget.type !== WidgetTypes.Note && (
+                    <EditWidgetModal
+                        itemId={editingItemId}
+                        color={color}
+                        onClose={closeEditing}
+                        onSave={updateItem}
+                    />
+                )}
 
             {isAddOpen && (
                 <AddWidgetModal
@@ -185,6 +231,9 @@ function DashboardContent({
                     onAddQuickAdd={addQuickAddItem}
                     onAddView={addViewItem}
                     onAddEntries={addEntriesItem}
+                    onAddHeader={addHeaderItem}
+                    onAddDivider={addDividerItem}
+                    onAddNote={addNoteItem}
                 />
             )}
         </Stack>

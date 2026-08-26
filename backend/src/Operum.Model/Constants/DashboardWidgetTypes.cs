@@ -23,7 +23,21 @@ namespace Operum.Model.Constants
         // DashboardItemSource has.
         public const string Entries = "entries";
 
-        public static readonly HashSet<string> All = [Analytic, QuickAdd, View, Entries];
+        // A short line of user-entered text that reads as a section title rather than a
+        // chart. Carries no tracker or analytic — just Config, a TextWidgetConfigDto.
+        public const string Header = "header";
+
+        // A bare visual rule with no config at all. The grid already lets widgets leave
+        // deliberate empty space; this is what turns a gap into something that reads as a
+        // dividing line instead of unfinished layout.
+        public const string Divider = "divider";
+
+        // A free-form block of user-entered text, for context that isn't any tracker's
+        // data. Shares its Config shape (TextWidgetConfigDto) with Header.
+        public const string Note = "note";
+
+        public static readonly HashSet<string> All =
+            [Analytic, QuickAdd, View, Entries, Header, Divider, Note];
 
         public static bool IsValid(string type) => All.Contains(type);
     }

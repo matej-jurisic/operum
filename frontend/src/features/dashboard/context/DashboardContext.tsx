@@ -7,8 +7,10 @@ import React, {
 import { dashboardController } from "../api/dashboardController";
 import {
     AddDashboardEntriesItemDto,
+    AddDashboardHeaderItemDto,
     AddDashboardItemDto,
     AddDashboardItemFromAnalyticDto,
+    AddDashboardNoteItemDto,
     AddDashboardQuickAddItemDto,
     AddDashboardViewItemDto,
     DashboardLayoutItemDto,
@@ -29,8 +31,12 @@ type DashboardContextType = {
     addQuickAddItem: (dto: AddDashboardQuickAddItemDto) => Promise<void>;
     addViewItem: (dto: AddDashboardViewItemDto) => Promise<void>;
     addEntriesItem: (dto: AddDashboardEntriesItemDto) => Promise<void>;
+    addHeaderItem: (dto: AddDashboardHeaderItemDto) => Promise<void>;
+    addDividerItem: () => Promise<void>;
+    addNoteItem: (dto: AddDashboardNoteItemDto) => Promise<void>;
     updateItem: (itemId: string, dto: UpdateDashboardItemDto) => Promise<void>;
     setViewSelection: (itemId: string, viewId: string | null) => Promise<void>;
+    setTextContent: (itemId: string, text: string) => Promise<void>;
     removeItem: (itemId: string) => Promise<void>;
     saveLayout: (
         variant: LayoutVariant,
@@ -79,6 +85,21 @@ export const DashboardProvider: React.FC<{
         await refreshWidgets();
     };
 
+    const addHeaderItem = async (dto: AddDashboardHeaderItemDto) => {
+        await dashboardController.addHeaderItem(dashboardId, dto);
+        await refreshWidgets();
+    };
+
+    const addDividerItem = async () => {
+        await dashboardController.addDividerItem(dashboardId);
+        await refreshWidgets();
+    };
+
+    const addNoteItem = async (dto: AddDashboardNoteItemDto) => {
+        await dashboardController.addNoteItem(dashboardId, dto);
+        await refreshWidgets();
+    };
+
     // Renders from the response for the same reason setViewSelection below does: an edit
     // can change how a widget is filtered, so the server hands back the whole board
     // recalculated rather than the client guessing at what moved.
@@ -100,6 +121,21 @@ export const DashboardProvider: React.FC<{
             viewId,
         });
         setWidgets(res.data ?? []);
+    };
+
+    // Unlike updateItem/setViewSelection, nothing else on the board ever depends on a text
+    // widget's own content, so the response (just that one item) is patched into place
+    // rather than the whole board being recomputed and re-rendered from scratch.
+    const setTextContent = async (itemId: string, text: string) => {
+        const res = await dashboardController.setTextWidgetContent(dashboardId, itemId, {
+            text,
+        });
+        if (!res.data) return;
+
+        const config = res.data.config;
+        setWidgets((current) =>
+            current.map((widget) => (widget.id === itemId ? { ...widget, config } : widget))
+        );
     };
 
     const removeItem = async (itemId: string) => {
@@ -156,8 +192,12 @@ export const DashboardProvider: React.FC<{
                 addQuickAddItem,
                 addViewItem,
                 addEntriesItem,
+                addHeaderItem,
+                addDividerItem,
+                addNoteItem,
                 updateItem,
                 setViewSelection,
+                setTextContent,
                 removeItem,
                 saveLayout,
             }}

@@ -77,6 +77,24 @@ namespace Operum.API.Controllers
             return GetApiResponse(await dashboardService.AddEntriesItem(dashboardId, dto));
         }
 
+        [HttpPost("{dashboardId}/items/header")]
+        public async Task<IActionResult> AddHeaderItem([FromRoute] string dashboardId, [FromBody] AddDashboardHeaderItemDto dto)
+        {
+            return GetApiResponse(await dashboardService.AddHeaderItem(dashboardId, dto));
+        }
+
+        [HttpPost("{dashboardId}/items/divider")]
+        public async Task<IActionResult> AddDividerItem([FromRoute] string dashboardId)
+        {
+            return GetApiResponse(await dashboardService.AddDividerItem(dashboardId));
+        }
+
+        [HttpPost("{dashboardId}/items/note")]
+        public async Task<IActionResult> AddNoteItem([FromRoute] string dashboardId, [FromBody] AddDashboardNoteItemDto dto)
+        {
+            return GetApiResponse(await dashboardService.AddNoteItem(dashboardId, dto));
+        }
+
         // Only the widget's name and how each of its sources is filtered — the definition it
         // was built from stays as it was placed.
         [HttpPut("{dashboardId}/items/{itemId}")]
@@ -89,6 +107,12 @@ namespace Operum.API.Controllers
         public async Task<IActionResult> SetViewWidgetSelection([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] SetViewWidgetSelectionDto dto)
         {
             return GetApiResponse(await dashboardService.SetViewWidgetSelection(dashboardId, itemId, dto));
+        }
+
+        [HttpPut("{dashboardId}/items/{itemId}/text")]
+        public async Task<IActionResult> SetTextWidgetContent([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] SetTextWidgetContentDto dto)
+        {
+            return GetApiResponse(await dashboardService.SetTextWidgetContent(dashboardId, itemId, dto));
         }
 
         [HttpDelete("{dashboardId}/items/{itemId}")]

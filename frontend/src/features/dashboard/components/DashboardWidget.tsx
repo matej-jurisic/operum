@@ -3,9 +3,13 @@ import { AnalyticCard } from "../../analytics/components/AnalyticCard";
 import {
     DashboardWidgetDto,
     QuickAddWidgetConfig,
+    TextWidgetConfig,
     WidgetTypes,
 } from "../types/DashboardDto";
+import { DividerWidgetCard } from "./DividerWidgetCard";
 import { EntriesWidgetCard } from "./EntriesWidgetCard";
+import { HeaderWidgetCard } from "./HeaderWidgetCard";
+import { NoteWidgetCard } from "./NoteWidgetCard";
 import { QuickAddWidgetCard } from "./QuickAddWidgetCard";
 import { ViewWidgetCard } from "./ViewWidgetCard";
 
@@ -14,8 +18,9 @@ interface Props {
     color: string | undefined;
     isConfiguring: boolean;
     onRemove?: (itemId: string) => void;
-    /** Opens the widget's edit dialog. Analytic widgets only: the other kinds are their
-        own configuration, and a View widget's dropdown is changed on the card itself. */
+    /** Opens the widget's edit dialog. Analytic, Header and Note widgets only: a View
+        widget's dropdown and a QuickAdd widget's tracker are instead fixed at add time or
+        changed on the card itself, and a Divider has nothing to edit at all. */
     onEdit?: (itemId: string) => void;
     onEntryClick?: (entryId: string) => void;
     onViewSelect?: (itemId: string, viewId: string | null) => void;
@@ -28,6 +33,17 @@ function parseQuickAddConfig(config: string | undefined): QuickAddWidgetConfig |
     try {
         const parsed = JSON.parse(config);
         return typeof parsed?.trackerId === "string" ? parsed : null;
+    } catch {
+        return null;
+    }
+}
+
+// Shared by Header and Note, whose Config is nothing but this one string.
+function parseTextConfig(config: string | undefined): TextWidgetConfig | null {
+    if (!config) return null;
+    try {
+        const parsed = JSON.parse(config);
+        return typeof parsed?.text === "string" ? parsed : null;
     } catch {
         return null;
     }
@@ -95,6 +111,37 @@ export function DashboardWidget({
                     color={color}
                     isConfiguring={isConfiguring}
                     onRemove={onRemove}
+                />
+            );
+        case WidgetTypes.Header:
+            return (
+                <HeaderWidgetCard
+                    widgetId={widget.id}
+                    config={parseTextConfig(widget.config)}
+                    color={color}
+                    isConfiguring={isConfiguring}
+                    onRemove={onRemove}
+                    onEdit={onEdit}
+                />
+            );
+        case WidgetTypes.Divider:
+            return (
+                <DividerWidgetCard
+                    widgetId={widget.id}
+                    color={color}
+                    isConfiguring={isConfiguring}
+                    onRemove={onRemove}
+                />
+            );
+        case WidgetTypes.Note:
+            return (
+                <NoteWidgetCard
+                    widgetId={widget.id}
+                    config={parseTextConfig(widget.config)}
+                    color={color}
+                    isConfiguring={isConfiguring}
+                    onRemove={onRemove}
+                    onEdit={onEdit}
                 />
             );
         default:

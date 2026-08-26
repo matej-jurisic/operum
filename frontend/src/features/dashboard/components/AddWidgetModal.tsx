@@ -10,18 +10,23 @@ import {
 import { IconType } from "react-icons";
 import { CiFilter } from "react-icons/ci";
 import { FiChevronRight, FiPlusSquare } from "react-icons/fi";
-import { TbChartHistogram, TbLayoutGrid, TbTable } from "react-icons/tb";
+import { MdOutlineHorizontalRule } from "react-icons/md";
+import { TbChartHistogram, TbHeading, TbLayoutGrid, TbNote, TbTable } from "react-icons/tb";
 import { useState } from "react";
 import {
     AddDashboardEntriesItemDto,
+    AddDashboardHeaderItemDto,
     AddDashboardItemDto,
     AddDashboardItemFromAnalyticDto,
+    AddDashboardNoteItemDto,
     AddDashboardQuickAddItemDto,
     AddDashboardViewItemDto,
 } from "../types/DashboardDto";
 import { CustomAnalyticForm } from "./CustomAnalyticForm";
 import { EntriesWidgetForm } from "./EntriesWidgetForm";
 import { ExistingAnalyticForm } from "./ExistingAnalyticForm";
+import { HeaderWidgetForm } from "./HeaderWidgetForm";
+import { NoteWidgetForm } from "./NoteWidgetForm";
 import { QuickAddTrackerForm } from "./QuickAddTrackerForm";
 import { ViewWidgetForm } from "./ViewWidgetForm";
 
@@ -33,18 +38,28 @@ interface Props {
     onAddQuickAdd: (dto: AddDashboardQuickAddItemDto) => Promise<void>;
     onAddView: (dto: AddDashboardViewItemDto) => Promise<void>;
     onAddEntries: (dto: AddDashboardEntriesItemDto) => Promise<void>;
+    onAddHeader: (dto: AddDashboardHeaderItemDto) => Promise<void>;
+    onAddDivider: () => Promise<void>;
+    onAddNote: (dto: AddDashboardNoteItemDto) => Promise<void>;
 }
 
-type WidgetKind = "existing" | "custom" | "quickAdd" | "view" | "entries";
+type WidgetKind =
+    | "existing"
+    | "custom"
+    | "quickAdd"
+    | "view"
+    | "entries"
+    | "header"
+    | "divider"
+    | "note";
 
 interface WidgetKindOption {
     kind: WidgetKind;
     title: string;
-    /** Only when the title alone does not say what the widget does. */
-    description?: string;
     icon: IconType;
-    /** Modal title once this kind is being configured. */
-    formTitle: string;
+    /** Modal title once this kind is being configured. Unused by a kind (Divider) that
+        never reaches a form of its own. */
+    formTitle?: string;
 }
 
 // The board's menu of widget kinds. Everything a dashboard can hold is listed here, so a
@@ -78,9 +93,26 @@ const WIDGET_KINDS: WidgetKindOption[] = [
     {
         kind: "entries",
         title: "Entries table",
-        description: "A read-only list of one tracker's entries",
         icon: TbTable,
         formTitle: "Add an entries table",
+    },
+    {
+        kind: "header",
+        title: "Header",
+        icon: TbHeading,
+        formTitle: "Add a header",
+    },
+    {
+        kind: "divider",
+        title: "Divider",
+        icon: MdOutlineHorizontalRule,
+        // Nothing to configure, so this never opens a form — see handleSelect below.
+    },
+    {
+        kind: "note",
+        title: "Note",
+        icon: TbNote,
+        formTitle: "Add a note",
     },
 ];
 
@@ -92,9 +124,13 @@ export function AddWidgetModal({
     onAddQuickAdd,
     onAddView,
     onAddEntries,
+    onAddHeader,
+    onAddDivider,
+    onAddNote,
 }: Props) {
     const theme = useMantineTheme();
     const [kind, setKind] = useState<WidgetKind | null>(null);
+    const [isAddingDivider, setIsAddingDivider] = useState(false);
 
     const selected = WIDGET_KINDS.find((option) => option.kind === kind);
 
@@ -106,6 +142,23 @@ export function AddWidgetModal({
             await handler(dto);
             onClose();
         };
+
+    // A Divider has nothing to configure, so picking it adds it immediately instead of
+    // stepping into a form with nothing in it.
+    const handleSelect = async (option: WidgetKindOption) => {
+        if (option.kind !== "divider") {
+            setKind(option.kind);
+            return;
+        }
+
+        setIsAddingDivider(true);
+        try {
+            await onAddDivider();
+            onClose();
+        } finally {
+            setIsAddingDivider(false);
+        }
+    };
 
     return (
         <Modal
@@ -120,7 +173,8 @@ export function AddWidgetModal({
                     {WIDGET_KINDS.map((option) => (
                         <UnstyledButton
                             key={option.kind}
-                            onClick={() => setKind(option.kind)}
+                            onClick={() => handleSelect(option)}
+                            disabled={option.kind === "divider" && isAddingDivider}
                             p="md"
                             style={{
                                 borderRadius: theme.radius.md,
@@ -136,14 +190,9 @@ export function AddWidgetModal({
                                 >
                                     <option.icon size={22} />
                                 </ThemeIcon>
-                                <Stack gap={2} style={{ flex: 1 }}>
-                                    <Text fw={600}>{option.title}</Text>
-                                    {option.description && (
-                                        <Text size="sm" c="dimmed">
-                                            {option.description}
-                                        </Text>
-                                    )}
-                                </Stack>
+                                <Text fw={600} style={{ flex: 1 }}>
+                                    {option.title}
+                                </Text>
                                 <FiChevronRight size={18} />
                             </Group>
                         </UnstyledButton>
@@ -183,6 +232,20 @@ export function AddWidgetModal({
                 <EntriesWidgetForm
                     onBack={() => setKind(null)}
                     onAdd={submit(onAddEntries)}
+                />
+            )}
+
+            {kind === "header" && (
+                <HeaderWidgetForm
+                    onBack={() => setKind(null)}
+                    onAdd={submit(onAddHeader)}
+                />
+            )}
+
+            {kind === "note" && (
+                <NoteWidgetForm
+                    onBack={() => setKind(null)}
+                    onAdd={submit(onAddNote)}
                 />
             )}
         </Modal>

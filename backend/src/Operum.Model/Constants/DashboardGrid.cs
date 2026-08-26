@@ -47,5 +47,18 @@ namespace Operum.Model.Constants
         // An entries table wants the same room a chart does: enough width for a few
         // columns and enough height to show more than a couple of rows.
         public static readonly (int Width, int Height) EntriesSize = (6, 6);
+
+        // A header is one short line of text, but it reads as dividing the board into
+        // sections only if it spans the row it sits in rather than sitting in a column of
+        // its own.
+        public static readonly (int Width, int Height) HeaderSize = (Columns, 2);
+
+        // A divider needs even less height than a header — just enough for a bare line to
+        // read as a deliberate gap rather than unfinished layout — but the same full width.
+        public static readonly (int Width, int Height) DividerSize = (Columns, 1);
+
+        // A note is read a paragraph at a time, so it gets a card-sized footprint rather
+        // than a full row.
+        public static readonly (int Width, int Height) NoteSize = (4, 4);
     }
 }
