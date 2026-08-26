@@ -6,6 +6,7 @@ import React, {
 } from "react";
 import { dashboardController } from "../api/dashboardController";
 import {
+    AddDashboardEntriesItemDto,
     AddDashboardItemDto,
     AddDashboardItemFromAnalyticDto,
     AddDashboardQuickAddItemDto,
@@ -27,6 +28,7 @@ type DashboardContextType = {
     addItemFromAnalytic: (dto: AddDashboardItemFromAnalyticDto) => Promise<void>;
     addQuickAddItem: (dto: AddDashboardQuickAddItemDto) => Promise<void>;
     addViewItem: (dto: AddDashboardViewItemDto) => Promise<void>;
+    addEntriesItem: (dto: AddDashboardEntriesItemDto) => Promise<void>;
     updateItem: (itemId: string, dto: UpdateDashboardItemDto) => Promise<void>;
     setViewSelection: (itemId: string, viewId: string | null) => Promise<void>;
     removeItem: (itemId: string) => Promise<void>;
@@ -69,6 +71,11 @@ export const DashboardProvider: React.FC<{
 
     const addViewItem = async (dto: AddDashboardViewItemDto) => {
         await dashboardController.addViewItem(dashboardId, dto);
+        await refreshWidgets();
+    };
+
+    const addEntriesItem = async (dto: AddDashboardEntriesItemDto) => {
+        await dashboardController.addEntriesItem(dashboardId, dto);
         await refreshWidgets();
     };
 
@@ -148,6 +155,7 @@ export const DashboardProvider: React.FC<{
                 addItemFromAnalytic,
                 addQuickAddItem,
                 addViewItem,
+                addEntriesItem,
                 updateItem,
                 setViewSelection,
                 removeItem,

@@ -1,4 +1,5 @@
 using Operum.Model.DTOs.Analytics;
+using Operum.Model.DTOs.Fields;
 
 namespace Operum.Model.DTOs.Dashboard
 {
@@ -43,10 +44,26 @@ namespace Operum.Model.DTOs.Dashboard
         public List<ViewOptionDto> Views { get; set; } = [];
     }
 
+    // What a DashboardWidgetTypes.Entries widget's table needs — resolved server-side the
+    // same way ViewWidgetDto is: the tracker it reads from, the view it's currently filtered
+    // by (ViewId — fixed, or resolved from a linked View widget the same way an analytic
+    // source's LinkedViewWidgetId is), and the columns that view wants shown, in its order.
+    // A view naming none shows every field, the same fallback the tracker page uses.
+    public class EntriesWidgetDto
+    {
+        public string TrackerId { get; set; } = string.Empty;
+        public string TrackerName { get; set; } = string.Empty;
+        public string? Color { get; set; }
+        public string? Icon { get; set; }
+        public string? ViewId { get; set; }
+        public List<FieldDto> Columns { get; set; } = [];
+    }
+
     // One item of a dashboard as the client renders it: where it sits on each of the two
     // grids, what kind of widget it is, and the payload that kind needs. An analytic widget
     // carries the chart calculated for it; a QuickAdd widget carries the tracker its button
-    // opens instead; a View widget carries its dropdown's tracker, options and selection.
+    // opens instead; a View widget carries its dropdown's tracker, options and selection; an
+    // Entries widget carries its table's tracker, columns and current view.
     public class DashboardWidgetDto
     {
         public string Id { get; set; } = string.Empty;
@@ -60,6 +77,7 @@ namespace Operum.Model.DTOs.Dashboard
         public AnalyticDto? Analytic { get; set; }
         public QuickAddTrackerDto? QuickAddTracker { get; set; }
         public ViewWidgetDto? ViewWidget { get; set; }
+        public EntriesWidgetDto? EntriesWidget { get; set; }
         // The color of the single tracker every source of this widget reads from. Null when
         // the widget has no single owning tracker — a combined chart spanning more than one —
         // so the client falls back to the dashboard's own color instead.

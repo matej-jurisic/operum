@@ -17,7 +17,13 @@ namespace Operum.Model.Constants
         // a fixed ViewId, so changing the dropdown here re-filters every source linked to it.
         public const string View = "view";
 
-        public static readonly HashSet<string> All = [Analytic, QuickAdd, View];
+        // A read-only table of one tracker's entries. Carries no analytic definition either
+        // — just Config, an EntriesWidgetConfigDto naming the tracker and, at most one of, a
+        // fixed ViewId or a LinkedViewWidgetId to follow instead, the same duality a
+        // DashboardItemSource has.
+        public const string Entries = "entries";
+
+        public static readonly HashSet<string> All = [Analytic, QuickAdd, View, Entries];
 
         public static bool IsValid(string type) => All.Contains(type);
     }

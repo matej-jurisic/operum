@@ -1,11 +1,13 @@
 import { AnalyticDto } from "../../analytics/types/AnalyticDto";
 import { CreateAnalyticFieldDto } from "../../analytics/types/requests/CreateAnalyticDto";
+import { FieldDto } from "../../fields/types/FieldDto";
 
 /** The kinds of widget a dashboard item can be. */
 export const WidgetTypes = {
     Analytic: "analytic",
     QuickAdd: "quickAdd",
     View: "view",
+    Entries: "entries",
 } as const;
 
 /** The Config payload of a WidgetTypes.QuickAdd widget: which tracker its button opens
@@ -40,6 +42,20 @@ export interface ViewWidgetDto {
     icon?: string;
     viewId?: string | null;
     views: ViewOptionDto[];
+}
+
+/** What a WidgetTypes.Entries widget's table needs, resolved server-side the same way
+    viewWidget is: the tracker it reads from, the view it's currently filtered by (fixed,
+    or followed live from a View widget the same way a source's linkedViewWidgetId is),
+    and the columns that view wants shown, in its order. A view naming none shows every
+    field. */
+export interface EntriesWidgetDto {
+    trackerId: string;
+    trackerName: string;
+    color?: string;
+    icon?: string;
+    viewId?: string | null;
+    columns: FieldDto[];
 }
 
 /** Placement on one of the dashboard's grids, in that grid's columns. */
@@ -78,6 +94,7 @@ export interface DashboardWidgetDto {
     analytic?: AnalyticDto;
     quickAddTracker?: QuickAddTrackerDto;
     viewWidget?: ViewWidgetDto;
+    entriesWidget?: EntriesWidgetDto;
     /** The color of the single tracker every source of this widget reads from. Undefined
         when the widget has no single owning tracker (a combined chart spanning more than
         one), so the board falls back to its own color. */
@@ -198,6 +215,14 @@ export interface AddDashboardViewItemDto {
     trackerId: string;
     /** The dropdown's starting selection. Left unset to start on "All entries". */
     viewId?: string | null;
+}
+
+/** Adds a WidgetTypes.Entries widget: a read-only table of one tracker's entries. At most
+    one of these narrows what it shows — see AddDashboardItemSourceDto. */
+export interface AddDashboardEntriesItemDto {
+    trackerId: string;
+    viewId?: string | null;
+    linkedViewWidgetId?: string | null;
 }
 
 /**

@@ -10,15 +10,17 @@ import {
 import { IconType } from "react-icons";
 import { CiFilter } from "react-icons/ci";
 import { FiChevronRight, FiPlusSquare } from "react-icons/fi";
-import { TbChartHistogram, TbLayoutGrid } from "react-icons/tb";
+import { TbChartHistogram, TbLayoutGrid, TbTable } from "react-icons/tb";
 import { useState } from "react";
 import {
+    AddDashboardEntriesItemDto,
     AddDashboardItemDto,
     AddDashboardItemFromAnalyticDto,
     AddDashboardQuickAddItemDto,
     AddDashboardViewItemDto,
 } from "../types/DashboardDto";
 import { CustomAnalyticForm } from "./CustomAnalyticForm";
+import { EntriesWidgetForm } from "./EntriesWidgetForm";
 import { ExistingAnalyticForm } from "./ExistingAnalyticForm";
 import { QuickAddTrackerForm } from "./QuickAddTrackerForm";
 import { ViewWidgetForm } from "./ViewWidgetForm";
@@ -30,9 +32,10 @@ interface Props {
     onAddFromAnalytic: (dto: AddDashboardItemFromAnalyticDto) => Promise<void>;
     onAddQuickAdd: (dto: AddDashboardQuickAddItemDto) => Promise<void>;
     onAddView: (dto: AddDashboardViewItemDto) => Promise<void>;
+    onAddEntries: (dto: AddDashboardEntriesItemDto) => Promise<void>;
 }
 
-type WidgetKind = "existing" | "custom" | "quickAdd" | "view";
+type WidgetKind = "existing" | "custom" | "quickAdd" | "view" | "entries";
 
 interface WidgetKindOption {
     kind: WidgetKind;
@@ -72,6 +75,13 @@ const WIDGET_KINDS: WidgetKindOption[] = [
         icon: CiFilter,
         formTitle: "Add a view selector",
     },
+    {
+        kind: "entries",
+        title: "Entries table",
+        description: "A read-only list of one tracker's entries",
+        icon: TbTable,
+        formTitle: "Add an entries table",
+    },
 ];
 
 export function AddWidgetModal({
@@ -81,6 +91,7 @@ export function AddWidgetModal({
     onAddFromAnalytic,
     onAddQuickAdd,
     onAddView,
+    onAddEntries,
 }: Props) {
     const theme = useMantineTheme();
     const [kind, setKind] = useState<WidgetKind | null>(null);
@@ -165,6 +176,13 @@ export function AddWidgetModal({
                 <ViewWidgetForm
                     onBack={() => setKind(null)}
                     onAdd={submit(onAddView)}
+                />
+            )}
+
+            {kind === "entries" && (
+                <EntriesWidgetForm
+                    onBack={() => setKind(null)}
+                    onAdd={submit(onAddEntries)}
                 />
             )}
         </Modal>

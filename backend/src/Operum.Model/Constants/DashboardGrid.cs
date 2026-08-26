@@ -43,5 +43,9 @@ namespace Operum.Model.Constants
         // A view selector is just a dropdown under a label — the same footprint as a
         // quick-add button.
         public static readonly (int Width, int Height) ViewSize = (3, 3);
+
+        // An entries table wants the same room a chart does: enough width for a few
+        // columns and enough height to show more than a couple of rows.
+        public static readonly (int Width, int Height) EntriesSize = (6, 6);
     }
 }

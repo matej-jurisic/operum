@@ -1,6 +1,7 @@
 import { LineChart } from "@mantine/charts";
 import { em, Paper, Stack } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
+import { useRef } from "react";
 import { LineChartAnalyticDto } from "../types/AnalyticDto";
 import { AnalyticCardHeader } from "./AnalyticCardHeader";
 import {
@@ -31,6 +32,7 @@ export function LineChartCard({
 }: LineChartCardProps) {
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
     const layout = useCardLayout(fillHeight);
+    const chartRef = useRef<HTMLDivElement>(null);
 
     return (
         <Paper
@@ -51,6 +53,7 @@ export function LineChartCard({
                     onEdit={onEdit}
                 />
                 <LineChart
+                    ref={chartRef}
                     tooltipAnimationDuration={200}
                     gridAxis="x"
                     data={analytic.points}
@@ -76,7 +79,11 @@ export function LineChartCard({
                         tickFormatter: getAxisFormatter(analytic.yField.type),
                     }}
                     tooltipProps={{
-                        content: createTooltipContent(analytic, color ?? "blue"),
+                        content: createTooltipContent(
+                            analytic,
+                            color ?? "blue",
+                            chartRef,
+                        ),
                     }}
                 />
             </Stack>

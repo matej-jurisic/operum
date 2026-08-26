@@ -5,6 +5,7 @@ import {
     QuickAddWidgetConfig,
     WidgetTypes,
 } from "../types/DashboardDto";
+import { EntriesWidgetCard } from "./EntriesWidgetCard";
 import { QuickAddWidgetCard } from "./QuickAddWidgetCard";
 import { ViewWidgetCard } from "./ViewWidgetCard";
 
@@ -84,6 +85,16 @@ export function DashboardWidget({
                     isConfiguring={isConfiguring}
                     onRemove={onRemove}
                     onSelect={onViewSelect ?? (() => {})}
+                />
+            );
+        case WidgetTypes.Entries:
+            return (
+                <EntriesWidgetCard
+                    widgetId={widget.id}
+                    entriesWidget={widget.entriesWidget}
+                    color={color}
+                    isConfiguring={isConfiguring}
+                    onRemove={onRemove}
                 />
             );
         default:

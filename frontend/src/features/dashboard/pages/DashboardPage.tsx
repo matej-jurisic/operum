@@ -50,6 +50,7 @@ function DashboardContent({
         addItemFromAnalytic,
         addQuickAddItem,
         addViewItem,
+        addEntriesItem,
         updateItem,
         setViewSelection,
         removeItem,
@@ -183,6 +184,7 @@ function DashboardContent({
                     onAddFromAnalytic={addItemFromAnalytic}
                     onAddQuickAdd={addQuickAddItem}
                     onAddView={addViewItem}
+                    onAddEntries={addEntriesItem}
                 />
             )}
         </Stack>
