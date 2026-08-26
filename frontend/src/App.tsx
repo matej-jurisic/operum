@@ -45,6 +45,7 @@ const TermsOfService = lazy(() => import("./features/legal/pages/TermsOfService"
 const ProfilePage = lazy(() => import("./features/profile/pages/ProfilePage"));
 const Trackers = lazy(() => import("./features/trackers/components/Trackers"));
 const Tracker = lazy(() => import("./features/trackers/pages/Tracker"));
+const WidgetsPage = lazy(() => import("./features/widgets/pages/WidgetsPage"));
 const ConfirmEmail = lazy(() =>
     import("./features/users/pages/ConfirmEmail").then((m) => ({
         default: m.ConfirmEmail,
@@ -111,6 +112,10 @@ const App = observer(() => {
                             <Route
                                 path="dashboard/:dashboardId"
                                 element={<PrivateRoute page={<DashboardPage />} />}
+                            />
+                            <Route
+                                path="widgets"
+                                element={<PrivateRoute page={<WidgetsPage />} />}
                             />
                             <Route
                                 path="admin-panel"

@@ -5,7 +5,10 @@
         public const int MaxFieldCount = 25;
         public const int MaxEntryCount = 1000;
         public const int MaxTrackerCount = 20;
-        public const int MaxAnalyticCount = 10;
+        // Per-owner cap across the Widget Library (charts + Entries widgets combined). A
+        // widget can now serve many dashboards at once, unlike the old per-tracker
+        // MaxAnalyticCount this replaces -- see Widgets/WidgetsService.
+        public const int MaxWidgetCount = 30;
         public const int MaxConstantCount = 25;
         public const int MaxConstantValueCount = 6;
         public const int MaxViewCount = 25;

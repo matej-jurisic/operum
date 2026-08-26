@@ -48,15 +48,18 @@ namespace Operum.API.Controllers
         }
 
         [HttpPost("{dashboardId}/items")]
-        public async Task<IActionResult> AddDashboardItem([FromRoute] string dashboardId, [FromBody] AddDashboardItemDto dto)
+        public async Task<IActionResult> CreateAndPlaceWidget([FromRoute] string dashboardId, [FromBody] CreateAndPlaceWidgetDto dto)
         {
-            return GetApiResponse(await dashboardService.AddDashboardItem(dashboardId, dto));
+            return GetApiResponse(await dashboardService.CreateAndPlaceWidget(dashboardId, dto));
         }
 
-        [HttpPost("{dashboardId}/items/from-analytic")]
-        public async Task<IActionResult> AddDashboardItemFromAnalytic([FromRoute] string dashboardId, [FromBody] AddDashboardItemFromAnalyticDto dto)
+        // Places an existing Widget Library chart by reference -- see PlaceWidgetDto. The
+        // widget keeps rendering here if it's edited or deleted from the Library, unlike the
+        // old copy-on-add "from-analytic" path this replaces.
+        [HttpPost("{dashboardId}/items/place-widget")]
+        public async Task<IActionResult> PlaceWidget([FromRoute] string dashboardId, [FromBody] PlaceWidgetDto dto)
         {
-            return GetApiResponse(await dashboardService.AddDashboardItemFromAnalytic(dashboardId, dto));
+            return GetApiResponse(await dashboardService.PlaceWidget(dashboardId, dto));
         }
 
         [HttpPost("{dashboardId}/items/quick-add")]
@@ -72,9 +75,17 @@ namespace Operum.API.Controllers
         }
 
         [HttpPost("{dashboardId}/items/entries")]
-        public async Task<IActionResult> AddEntriesItem([FromRoute] string dashboardId, [FromBody] AddDashboardEntriesItemDto dto)
+        public async Task<IActionResult> CreateAndPlaceEntriesWidget([FromRoute] string dashboardId, [FromBody] CreateAndPlaceEntriesWidgetDto dto)
         {
-            return GetApiResponse(await dashboardService.AddEntriesItem(dashboardId, dto));
+            return GetApiResponse(await dashboardService.CreateAndPlaceEntriesWidget(dashboardId, dto));
+        }
+
+        // Places an existing Widget Library Entries table by reference -- see
+        // PlaceEntriesWidgetDto.
+        [HttpPost("{dashboardId}/items/place-entries-widget")]
+        public async Task<IActionResult> PlaceEntriesWidget([FromRoute] string dashboardId, [FromBody] PlaceEntriesWidgetDto dto)
+        {
+            return GetApiResponse(await dashboardService.PlaceEntriesWidget(dashboardId, dto));
         }
 
         [HttpPost("{dashboardId}/items/header")]

@@ -119,16 +119,59 @@ namespace Operum.Model
                 .HasForeignKey(s => s.LinkedViewWidgetId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            builder.Entity<DashboardItemSourceField>()
-                .HasOne(f => f.DashboardItemSource)
-                .WithMany(s => s.Fields)
-                .HasForeignKey(f => f.DashboardItemSourceId)
+            builder.Entity<Widget>()
+                .HasOne(w => w.Owner)
+                .WithMany()
+                .HasForeignKey(w => w.OwnerId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            builder.Entity<DashboardItemSourceField>()
+            builder.Entity<WidgetSource>()
+                .HasOne(s => s.Widget)
+                .WithMany(w => w.Sources)
+                .HasForeignKey(s => s.WidgetId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<WidgetSourceField>()
+                .HasOne(f => f.WidgetSource)
+                .WithMany(s => s.Fields)
+                .HasForeignKey(f => f.WidgetSourceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // A widget's field mapping is the whole of what a Field deletion should be
+            // able to take down -- the widget itself survives on every dashboard it's
+            // placed on and falls back to a degraded render (see AnalyticResultBuilder).
+            builder.Entity<WidgetSourceField>()
                 .HasOne(f => f.Field)
                 .WithMany()
                 .HasForeignKey(f => f.FieldId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<EntriesWidget>()
+                .HasOne(w => w.Owner)
+                .WithMany()
+                .HasForeignKey(w => w.OwnerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // A placement can't render without its shared definition, so deleting the
+            // Widget/EntriesWidget takes every placement of it down too -- the sharpest
+            // edge of the reuse model, surfaced to the user before deleting from the
+            // library.
+            builder.Entity<DashboardItem>()
+                .HasOne(i => i.Widget)
+                .WithMany()
+                .HasForeignKey(i => i.WidgetId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<DashboardItem>()
+                .HasOne(i => i.EntriesWidget)
+                .WithMany()
+                .HasForeignKey(i => i.EntriesWidgetId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<DashboardItemSource>()
+                .HasOne(s => s.WidgetSource)
+                .WithMany()
+                .HasForeignKey(s => s.WidgetSourceId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.Entity<TrackerNotification>()
@@ -203,15 +246,16 @@ namespace Operum.Model
         public DbSet<ViewColumn> ViewColumns { get; set; }
         public DbSet<TrackerType> TrackerTypes { get; set; }
         public DbSet<UserTracker> UserTrackers { get; set; }
-        public DbSet<Analytic> Analytics { get; set; }
-        public DbSet<AnalyticField> AnalyticFields { get; set; }
         public DbSet<TrackerConstant> TrackerConstants { get; set; }
         public DbSet<TrackerConstantValue> TrackerConstantValues { get; set; }
         public DbSet<TrackerConstantValueFilter> TrackerConstantValueFilters { get; set; }
         public DbSet<Dashboard> Dashboards { get; set; }
         public DbSet<DashboardItem> DashboardItems { get; set; }
         public DbSet<DashboardItemSource> DashboardItemSources { get; set; }
-        public DbSet<DashboardItemSourceField> DashboardItemSourceFields { get; set; }
+        public DbSet<Widget> Widgets { get; set; }
+        public DbSet<WidgetSource> WidgetSources { get; set; }
+        public DbSet<WidgetSourceField> WidgetSourceFields { get; set; }
+        public DbSet<EntriesWidget> EntriesWidgets { get; set; }
         public DbSet<TrackerNotification> TrackerNotifications { get; set; }
         public DbSet<NotificationEvent> NotificationEvents { get; set; }
         public DbSet<NotificationCondition> NotificationConditions { get; set; }

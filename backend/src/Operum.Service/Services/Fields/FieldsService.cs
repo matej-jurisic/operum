@@ -67,8 +67,6 @@ namespace Operum.Service.Services.Fields
         {
             var user = currentUserService.GetCurrentUser();
             var field = await db.Fields
-                .Include(x => x.AnalyticFields)
-                    .ThenInclude(af => af.Analytic)
                 .Include(x => x.Tracker)
                     .ThenInclude(t => t.ApplicationUserTrackers)
                 .FirstOrDefaultAsync(x => x.Id == fieldId && x.TrackerId == trackerId);
@@ -80,16 +78,12 @@ namespace Operum.Service.Services.Fields
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("field"));
             }
 
-            // Queries run no-tracking, so a field serving two purposes of the same analytic
-            // materialises that analytic once per purpose. Handing both instances to the change
-            // tracker is an identity conflict, so delete by id and leave the dependent rows
-            // (analytic fields, field values, view filters and sorts) to the database cascade.
-            var analyticIds = field.AnalyticFields.Select(x => x.AnalyticId).Distinct().ToList();
-            if (analyticIds.Count > 0)
-            {
-                await db.Analytics.Where(x => analyticIds.Contains(x.Id)).ExecuteDeleteAsync();
-            }
-
+            // Every dependent row (widget source field mappings, field values, view filters
+            // and sorts) cascades away at the database level. A widget survives losing one
+            // field mapping and falls back to a degraded render (see WidgetSourceField's FK
+            // config in OperumContext and AnalyticResultBuilder.GetDisplayableAnalyticResult)
+            // rather than disappearing, unlike the old tracker Analytic this used to also
+            // hard-delete.
             await db.Fields.Where(x => x.Id == fieldId).ExecuteDeleteAsync();
 
             await ReorderFieldsAfterDeletion(trackerId, field.Order);

@@ -20,6 +20,7 @@ using Operum.Service.Services.Notifications;
 using Operum.Service.Services.Push;
 using Operum.Service.Services.Views;
 using Operum.Service.Services.Queries;
+using Operum.Service.Services.Widgets;
 
 namespace Operum.API.Configuration
 {
@@ -56,6 +57,7 @@ namespace Operum.API.Configuration
             services.AddScoped<ITrackerConstantsService, TrackerConstantsService>();
             services.AddScoped<IFormulaEvaluationService, FormulaEvaluationService>();
             services.AddScoped<IDashboardService, DashboardService>();
+            services.AddScoped<IWidgetsService, WidgetsService>();
             services.AddScoped<INotificationsService, NotificationsService>();
             services.AddScoped<IWebPushService, WebPushService>();
 

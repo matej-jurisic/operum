@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Operum.API.Controllers.Base;
 using Operum.Model.Constants;
-using Operum.Model.DTOs.Analytics.Requests;
 using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Service.Interfaces;
 
@@ -61,12 +60,6 @@ namespace Operum.API.Controllers
             return GetApiResponse(await trackerService.DeleteTracker(trackerId));
         }
 
-        [HttpGet("{trackerId}/analytics")]
-        public async Task<IActionResult> GetTrackerAnalytics([FromRoute] string trackerId, [FromQuery] string? viewId)
-        {
-            return GetApiResponse(await trackerService.GetTrackerAnalytics(trackerId, viewId));
-        }
-
         [HttpPost("{trackerId}/users")]
         public async Task<IActionResult> AddUserToTracker([FromRoute] string trackerId, [FromBody] AddUserToTrackerDto request)
         {
@@ -89,30 +82,6 @@ namespace Operum.API.Controllers
         public async Task<IActionResult> UpdateCollaboratorPermissions([FromRoute] string trackerId, [FromBody] UpdateCollaboratorPermissionsDto request)
         {
             return GetApiResponse(await trackerService.UpdateCollaboratorPermissions(trackerId, request));
-        }
-
-        [HttpPost("{trackerId}/analytics")]
-        public async Task<IActionResult> AddTrackerAnalytic([FromRoute] string trackerId, [FromBody] CreateAnalyticDto request)
-        {
-            return GetApiResponse(await trackerService.AddAnalytic(trackerId, request));
-        }
-
-        [HttpPut("{trackerId}/analytics/{trackerAnalyticId}")]
-        public async Task<IActionResult> UpdateTrackerAnalytic([FromRoute] string trackerId, [FromRoute] string trackerAnalyticId, [FromBody] UpdateAnalyticDto request)
-        {
-            return GetApiResponse(await trackerService.UpdateAnalytic(trackerId, trackerAnalyticId, request));
-        }
-
-        [HttpDelete("{trackerId}/analytics/{trackerAnalyticId}")]
-        public async Task<IActionResult> RemoveTrackerAnalytic([FromRoute] string trackerId, [FromRoute] string trackerAnalyticId)
-        {
-            return GetApiResponse(await trackerService.RemoveAnalytic(trackerId, trackerAnalyticId));
-        }
-
-        [HttpPut("{trackerId}/analytics/reorder")]
-        public async Task<IActionResult> ReorderTrackerAnalytics([FromRoute] string trackerId, [FromBody] ReorderAnalyticsDto reorderAnalyticsDto)
-        {
-            return GetApiResponse(await trackerService.ReorderAnalytics(trackerId, reorderAnalyticsDto));
         }
 
         [HttpPut("reorder")]

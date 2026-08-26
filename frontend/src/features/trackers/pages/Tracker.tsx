@@ -8,13 +8,11 @@ import {
     CiHashtag,
     CiUser,
     CiViewList,
-    CiWavePulse1,
 } from "react-icons/ci";
 import { useNavigate, useParams } from "react-router-dom";
 import Header from "../../../shared/components/Header";
 import { ComposedTrackerProvider } from "../../../shared/context/ComposedTrackerProvider";
 import globalStore from "../../../shared/stores/GlobalStore";
-import AnalyiticsList from "../../analytics/components/Analytics";
 import Constants from "../../constants/components/Constants";
 import Entries from "../../entries/components/Entries";
 import Fields from "../../fields/components/Fields";
@@ -37,9 +35,11 @@ export default function Tracker() {
     // Queries no longer have a tab of their own, so a bookmarked /queries url lands on the
     // Views tab with the Queries sub-tab open.
     const requestedTab = rawTab === "queries" ? "views" : rawTab;
-    // A bookmarked /notifications url must not land on a tab that no longer exists.
+    // A bookmarked /notifications or /analytics url must not land on a tab that no longer
+    // exists -- the latter moved to the Widget Library.
     const activeTab =
-        requestedTab === "notifications" && !areNotificationsEnabled
+        (requestedTab === "notifications" && !areNotificationsEnabled) ||
+        requestedTab === "analytics"
             ? "entries"
             : requestedTab;
     const action = urlParts[1];
@@ -145,18 +145,6 @@ export default function Tracker() {
                                 {(!isMobile || activeTab === "views") &&
                                     "Views"}
                             </Tabs.Tab>
-                            <Tabs.Tab
-                                value="analytics"
-                                px={isMobile ? "xs" : undefined}
-                                leftSection={
-                                    isMobile ? (
-                                        <CiWavePulse1 size={18} />
-                                    ) : undefined
-                                }
-                            >
-                                {(!isMobile || activeTab === "analytics") &&
-                                    "Analytics"}
-                            </Tabs.Tab>
                             {areNotificationsEnabled && (
                                 <Tabs.Tab
                                     value="notifications"
@@ -230,9 +218,6 @@ export default function Tracker() {
                             </Tabs.Panel>
                             <Tabs.Panel value="fields" h="100%">
                                 <Fields tracker={tracker} />
-                            </Tabs.Panel>
-                            <Tabs.Panel value="analytics" h="100%">
-                                <AnalyiticsList />
                             </Tabs.Panel>
                             {areNotificationsEnabled && (
                                 <Tabs.Panel value="notifications" h="100%">

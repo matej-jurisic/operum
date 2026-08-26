@@ -11,7 +11,7 @@ interface Props {
  * The two checkboxes every Analytic/Entries widget's create/edit form offers: whether the
  * widget collapses to a button that opens the real thing in a modal, set independently for
  * the wide grid and the narrow one a phone renders. Shared rather than repeated across
- * CustomAnalyticForm, ExistingAnalyticForm, EntriesWidgetForm and EditWidgetModal, which
+ * CustomAnalyticForm, PlaceFromLibraryForm, EntriesWidgetForm and EditWidgetModal, which
  * otherwise differ in everything else about how the widget is built.
  */
 export function ExpandableOptionFields({

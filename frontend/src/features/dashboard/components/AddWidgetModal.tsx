@@ -14,30 +14,32 @@ import { MdOutlineHorizontalRule } from "react-icons/md";
 import { TbChartHistogram, TbHeading, TbLayoutGrid, TbNote, TbTable } from "react-icons/tb";
 import { useState } from "react";
 import {
-    AddDashboardEntriesItemDto,
     AddDashboardHeaderItemDto,
-    AddDashboardItemDto,
-    AddDashboardItemFromAnalyticDto,
     AddDashboardNoteItemDto,
     AddDashboardQuickAddItemDto,
     AddDashboardViewItemDto,
+    CreateAndPlaceEntriesWidgetDto,
+    CreateAndPlaceWidgetDto,
+    PlaceEntriesWidgetDto,
+    PlaceWidgetDto,
 } from "../types/DashboardDto";
 import { CustomAnalyticForm } from "./CustomAnalyticForm";
 import { EntriesWidgetForm } from "./EntriesWidgetForm";
-import { ExistingAnalyticForm } from "./ExistingAnalyticForm";
 import { HeaderWidgetForm } from "./HeaderWidgetForm";
 import { NoteWidgetForm } from "./NoteWidgetForm";
+import { PlaceFromLibraryForm } from "./PlaceFromLibraryForm";
 import { QuickAddTrackerForm } from "./QuickAddTrackerForm";
 import { ViewWidgetForm } from "./ViewWidgetForm";
 
 interface Props {
     color: string;
     onClose: () => void;
-    onAdd: (dto: AddDashboardItemDto) => Promise<void>;
-    onAddFromAnalytic: (dto: AddDashboardItemFromAnalyticDto) => Promise<void>;
+    onCreateAndPlaceWidget: (dto: CreateAndPlaceWidgetDto) => Promise<void>;
+    onPlaceWidget: (dto: PlaceWidgetDto) => Promise<void>;
     onAddQuickAdd: (dto: AddDashboardQuickAddItemDto) => Promise<void>;
     onAddView: (dto: AddDashboardViewItemDto) => Promise<void>;
-    onAddEntries: (dto: AddDashboardEntriesItemDto) => Promise<void>;
+    onCreateAndPlaceEntriesWidget: (dto: CreateAndPlaceEntriesWidgetDto) => Promise<void>;
+    onPlaceEntriesWidget: (dto: PlaceEntriesWidgetDto) => Promise<void>;
     onAddHeader: (dto: AddDashboardHeaderItemDto) => Promise<void>;
     onAddDivider: () => Promise<void>;
     onAddNote: (dto: AddDashboardNoteItemDto) => Promise<void>;
@@ -68,9 +70,9 @@ interface WidgetKindOption {
 const WIDGET_KINDS: WidgetKindOption[] = [
     {
         kind: "existing",
-        title: "Existing analytic",
+        title: "From Widget Library",
         icon: TbLayoutGrid,
-        formTitle: "Add an existing analytic",
+        formTitle: "Add from the Widget Library",
     },
     {
         kind: "custom",
@@ -119,11 +121,12 @@ const WIDGET_KINDS: WidgetKindOption[] = [
 export function AddWidgetModal({
     color,
     onClose,
-    onAdd,
-    onAddFromAnalytic,
+    onCreateAndPlaceWidget,
+    onPlaceWidget,
     onAddQuickAdd,
     onAddView,
-    onAddEntries,
+    onCreateAndPlaceEntriesWidget,
+    onPlaceEntriesWidget,
     onAddHeader,
     onAddDivider,
     onAddNote,
@@ -201,16 +204,17 @@ export function AddWidgetModal({
             )}
 
             {kind === "existing" && (
-                <ExistingAnalyticForm
+                <PlaceFromLibraryForm
                     onBack={() => setKind(null)}
-                    onAdd={submit(onAddFromAnalytic)}
+                    onPlaceWidget={submit(onPlaceWidget)}
+                    onPlaceEntriesWidget={submit(onPlaceEntriesWidget)}
                 />
             )}
 
             {kind === "custom" && (
                 <CustomAnalyticForm
                     onBack={() => setKind(null)}
-                    onAdd={submit(onAdd)}
+                    onAdd={submit(onCreateAndPlaceWidget)}
                 />
             )}
 
@@ -231,7 +235,7 @@ export function AddWidgetModal({
             {kind === "entries" && (
                 <EntriesWidgetForm
                     onBack={() => setKind(null)}
-                    onAdd={submit(onAddEntries)}
+                    onAdd={submit(onCreateAndPlaceEntriesWidget)}
                 />
             )}
 

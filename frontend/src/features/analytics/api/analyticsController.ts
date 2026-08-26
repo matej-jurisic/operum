@@ -1,55 +1,12 @@
 import api from "../../../shared/api/api";
 import { ApiResponse } from "../../../shared/types/ApiResponse";
 import { AnalyticConfigDto } from "../types/AnalyticConfigDto";
-import { AnalyticDto } from "../types/AnalyticDto";
-import { CreateAnalyticDto } from "../types/requests/CreateAnalyticDto";
-import { UpdateAnalyticDto } from "../types/requests/UpdateAnalyticDto";
 
+// Everything else that used to live here (tracker-scoped analytic CRUD) moved to the
+// Widget Library -- see features/widgets/api/widgetsController.ts. This catalog lookup
+// (result types -> codes -> purposes) is tracker-agnostic and stayed as-is.
 export const analyticsController = {
     getAnalyticsConfig: async (): Promise<ApiResponse<AnalyticConfigDto>> => {
         return await api.get("/analytics");
-    },
-    updateAnalyticsOrder: async (
-        trackerId: string,
-        analyticIds: string[]
-    ): Promise<ApiResponse> => {
-        return await api.put(`/trackers/${trackerId}/analytics/reorder`, {
-            analyticIds,
-        });
-    },
-    getTrackerAnalytics: async (
-        trackerId: string,
-        viewId?: string | null
-    ): Promise<ApiResponse<AnalyticDto[]>> => {
-        const params = new URLSearchParams();
-        if (viewId) params.append("viewId", viewId);
-        const qs = params.toString();
-        return await api.get(
-            `/trackers/${trackerId}/analytics${qs ? `?${qs}` : ""}`
-        );
-    },
-    addAnalytic: async (
-        trackerId: string,
-        addAnalytic: CreateAnalyticDto
-    ): Promise<ApiResponse> => {
-        return await api.post(`/trackers/${trackerId}/analytics`, addAnalytic);
-    },
-    updateAnalytic: async (
-        trackerId: string,
-        analyticId: string,
-        updateAnalytic: UpdateAnalyticDto
-    ): Promise<ApiResponse> => {
-        return await api.put(
-            `/trackers/${trackerId}/analytics/${analyticId}`,
-            updateAnalytic
-        );
-    },
-    removeAnalytic: async (
-        trackerId: string,
-        analyticId: string
-    ): Promise<ApiResponse> => {
-        return await api.delete(
-            `/trackers/${trackerId}/analytics/${analyticId}`
-        );
     },
 };

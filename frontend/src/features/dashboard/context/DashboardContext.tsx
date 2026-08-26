@@ -6,17 +6,18 @@ import React, {
 } from "react";
 import { dashboardController } from "../api/dashboardController";
 import {
-    AddDashboardEntriesItemDto,
     AddDashboardHeaderItemDto,
-    AddDashboardItemDto,
-    AddDashboardItemFromAnalyticDto,
     AddDashboardNoteItemDto,
     AddDashboardQuickAddItemDto,
     AddDashboardViewItemDto,
+    CreateAndPlaceEntriesWidgetDto,
+    CreateAndPlaceWidgetDto,
     DashboardLayoutItemDto,
     DashboardWidgetDto,
     LayoutVariant,
     LayoutVariants,
+    PlaceEntriesWidgetDto,
+    PlaceWidgetDto,
     UpdateDashboardEntriesItemDto,
     UpdateDashboardItemDto,
 } from "../types/DashboardDto";
@@ -27,11 +28,12 @@ type DashboardContextType = {
     widgets: DashboardWidgetDto[];
     isLoading: boolean;
     refreshWidgets: () => Promise<void>;
-    addItem: (dto: AddDashboardItemDto) => Promise<void>;
-    addItemFromAnalytic: (dto: AddDashboardItemFromAnalyticDto) => Promise<void>;
+    createAndPlaceWidget: (dto: CreateAndPlaceWidgetDto) => Promise<void>;
+    placeWidget: (dto: PlaceWidgetDto) => Promise<void>;
     addQuickAddItem: (dto: AddDashboardQuickAddItemDto) => Promise<void>;
     addViewItem: (dto: AddDashboardViewItemDto) => Promise<void>;
-    addEntriesItem: (dto: AddDashboardEntriesItemDto) => Promise<void>;
+    createAndPlaceEntriesWidget: (dto: CreateAndPlaceEntriesWidgetDto) => Promise<void>;
+    placeEntriesWidget: (dto: PlaceEntriesWidgetDto) => Promise<void>;
     addHeaderItem: (dto: AddDashboardHeaderItemDto) => Promise<void>;
     addDividerItem: () => Promise<void>;
     addNoteItem: (dto: AddDashboardNoteItemDto) => Promise<void>;
@@ -62,13 +64,13 @@ export const DashboardProvider: React.FC<{
         setIsLoading(false);
     }, [dashboardId]);
 
-    const addItem = async (dto: AddDashboardItemDto) => {
-        await dashboardController.addDashboardItem(dashboardId, dto);
+    const createAndPlaceWidget = async (dto: CreateAndPlaceWidgetDto) => {
+        await dashboardController.createAndPlaceWidget(dashboardId, dto);
         await refreshWidgets();
     };
 
-    const addItemFromAnalytic = async (dto: AddDashboardItemFromAnalyticDto) => {
-        await dashboardController.addDashboardItemFromAnalytic(dashboardId, dto);
+    const placeWidget = async (dto: PlaceWidgetDto) => {
+        await dashboardController.placeWidget(dashboardId, dto);
         await refreshWidgets();
     };
 
@@ -82,8 +84,13 @@ export const DashboardProvider: React.FC<{
         await refreshWidgets();
     };
 
-    const addEntriesItem = async (dto: AddDashboardEntriesItemDto) => {
-        await dashboardController.addEntriesItem(dashboardId, dto);
+    const createAndPlaceEntriesWidget = async (dto: CreateAndPlaceEntriesWidgetDto) => {
+        await dashboardController.createAndPlaceEntriesWidget(dashboardId, dto);
+        await refreshWidgets();
+    };
+
+    const placeEntriesWidget = async (dto: PlaceEntriesWidgetDto) => {
+        await dashboardController.placeEntriesWidget(dashboardId, dto);
         await refreshWidgets();
     };
 
@@ -198,11 +205,12 @@ export const DashboardProvider: React.FC<{
                 widgets,
                 isLoading,
                 refreshWidgets,
-                addItem,
-                addItemFromAnalytic,
+                createAndPlaceWidget,
+                placeWidget,
                 addQuickAddItem,
                 addViewItem,
-                addEntriesItem,
+                createAndPlaceEntriesWidget,
+                placeEntriesWidget,
                 addHeaderItem,
                 addDividerItem,
                 addNoteItem,

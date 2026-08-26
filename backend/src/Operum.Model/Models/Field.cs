@@ -22,6 +22,5 @@ namespace Operum.Model.Models
         public virtual Tracker Tracker { get; set; } = null!;
 
         public virtual List<FieldValue> FieldValues { get; set; } = [];
-        public virtual List<AnalyticField> AnalyticFields { get; set; } = [];
     }
 }

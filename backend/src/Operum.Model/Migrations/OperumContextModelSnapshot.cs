@@ -154,67 +154,6 @@ namespace Operum.Model.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Operum.Model.Models.Analytic", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int?>("Order")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("ResultType")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("TrackerId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TrackerId");
-
-                    b.ToTable("Analytics");
-                });
-
-            modelBuilder.Entity("Operum.Model.Models.AnalyticField", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
-
-                    b.Property<string>("AnalyticId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("FieldId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Purpose")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AnalyticId");
-
-                    b.HasIndex("FieldId");
-
-                    b.ToTable("AnalyticFields");
-                });
-
             modelBuilder.Entity("Operum.Model.Models.Dashboard", b =>
                 {
                     b.Property<string>("Id")
@@ -246,10 +185,6 @@ namespace Operum.Model.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("text");
 
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("Config")
                         .HasColumnType("text");
 
@@ -257,14 +192,14 @@ namespace Operum.Model.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("EntriesWidgetId")
+                        .HasColumnType("text");
+
                     b.Property<bool>("Expandable")
                         .HasColumnType("boolean");
 
                     b.Property<int>("H")
                         .HasColumnType("integer");
-
-                    b.Property<bool>("MatchedValuesOnly")
-                        .HasColumnType("boolean");
 
                     b.Property<bool>("MobileExpandable")
                         .HasColumnType("boolean");
@@ -284,16 +219,15 @@ namespace Operum.Model.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("integer");
 
-                    b.Property<string>("ResultType")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<int>("W")
                         .HasColumnType("integer");
+
+                    b.Property<string>("WidgetId")
+                        .HasColumnType("text");
 
                     b.Property<int>("X")
                         .HasColumnType("integer");
@@ -304,6 +238,10 @@ namespace Operum.Model.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DashboardId");
+
+                    b.HasIndex("EntriesWidgetId");
+
+                    b.HasIndex("WidgetId");
 
                     b.ToTable("DashboardItems");
                 });
@@ -326,11 +264,11 @@ namespace Operum.Model.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("integer");
 
-                    b.Property<string>("TrackerId")
-                        .IsRequired()
+                    b.Property<string>("ViewId")
                         .HasColumnType("text");
 
-                    b.Property<string>("ViewId")
+                    b.Property<string>("WidgetSourceId")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("Id");
@@ -339,35 +277,35 @@ namespace Operum.Model.Migrations
 
                     b.HasIndex("LinkedViewWidgetId");
 
-                    b.HasIndex("TrackerId");
+                    b.HasIndex("WidgetSourceId");
 
                     b.ToTable("DashboardItemSources");
                 });
 
-            modelBuilder.Entity("Operum.Model.Models.DashboardItemSourceField", b =>
+            modelBuilder.Entity("Operum.Model.Models.EntriesWidget", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("text");
 
-                    b.Property<string>("DashboardItemSourceId")
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("FieldId")
+                    b.Property<string>("OwnerId")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Purpose")
+                    b.Property<string>("TrackerId")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DashboardItemSourceId");
+                    b.HasIndex("OwnerId");
 
-                    b.HasIndex("FieldId");
+                    b.HasIndex("TrackerId");
 
-                    b.ToTable("DashboardItemSourceFields");
+                    b.ToTable("EntriesWidgets");
                 });
 
             modelBuilder.Entity("Operum.Model.Models.Entry", b =>
@@ -1084,6 +1022,92 @@ namespace Operum.Model.Migrations
                     b.ToTable("ViewQueries");
                 });
 
+            modelBuilder.Entity("Operum.Model.Models.Widget", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("MatchedValuesOnly")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ResultType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId");
+
+                    b.ToTable("Widgets");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.WidgetSource", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TrackerId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("WidgetId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TrackerId");
+
+                    b.HasIndex("WidgetId");
+
+                    b.ToTable("WidgetSources");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.WidgetSourceField", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("FieldId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("WidgetSourceId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FieldId");
+
+                    b.HasIndex("WidgetSourceId");
+
+                    b.ToTable("WidgetSourceFields");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -1135,36 +1159,6 @@ namespace Operum.Model.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Operum.Model.Models.Analytic", b =>
-                {
-                    b.HasOne("Operum.Model.Models.Tracker", "Tracker")
-                        .WithMany("Analytics")
-                        .HasForeignKey("TrackerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Tracker");
-                });
-
-            modelBuilder.Entity("Operum.Model.Models.AnalyticField", b =>
-                {
-                    b.HasOne("Operum.Model.Models.Analytic", "Analytic")
-                        .WithMany("AnalyticFields")
-                        .HasForeignKey("AnalyticId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Operum.Model.Models.Field", "Field")
-                        .WithMany("AnalyticFields")
-                        .HasForeignKey("FieldId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Analytic");
-
-                    b.Navigation("Field");
-                });
-
             modelBuilder.Entity("Operum.Model.Models.Dashboard", b =>
                 {
                     b.HasOne("Operum.Model.Models.User", "User")
@@ -1184,7 +1178,21 @@ namespace Operum.Model.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Operum.Model.Models.EntriesWidget", "EntriesWidget")
+                        .WithMany()
+                        .HasForeignKey("EntriesWidgetId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Operum.Model.Models.Widget", "Widget")
+                        .WithMany()
+                        .HasForeignKey("WidgetId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
                     b.Navigation("Dashboard");
+
+                    b.Navigation("EntriesWidget");
+
+                    b.Navigation("Widget");
                 });
 
             modelBuilder.Entity("Operum.Model.Models.DashboardItemSource", b =>
@@ -1200,9 +1208,9 @@ namespace Operum.Model.Migrations
                         .HasForeignKey("LinkedViewWidgetId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("Operum.Model.Models.Tracker", "Tracker")
+                    b.HasOne("Operum.Model.Models.WidgetSource", "WidgetSource")
                         .WithMany()
-                        .HasForeignKey("TrackerId")
+                        .HasForeignKey("WidgetSourceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1210,26 +1218,26 @@ namespace Operum.Model.Migrations
 
                     b.Navigation("LinkedViewWidget");
 
-                    b.Navigation("Tracker");
+                    b.Navigation("WidgetSource");
                 });
 
-            modelBuilder.Entity("Operum.Model.Models.DashboardItemSourceField", b =>
+            modelBuilder.Entity("Operum.Model.Models.EntriesWidget", b =>
                 {
-                    b.HasOne("Operum.Model.Models.DashboardItemSource", "DashboardItemSource")
-                        .WithMany("Fields")
-                        .HasForeignKey("DashboardItemSourceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Operum.Model.Models.Field", "Field")
+                    b.HasOne("Operum.Model.Models.User", "Owner")
                         .WithMany()
-                        .HasForeignKey("FieldId")
+                        .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("DashboardItemSource");
+                    b.HasOne("Operum.Model.Models.Tracker", "Tracker")
+                        .WithMany()
+                        .HasForeignKey("TrackerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.Navigation("Field");
+                    b.Navigation("Owner");
+
+                    b.Navigation("Tracker");
                 });
 
             modelBuilder.Entity("Operum.Model.Models.Entry", b =>
@@ -1532,9 +1540,53 @@ namespace Operum.Model.Migrations
                     b.Navigation("View");
                 });
 
-            modelBuilder.Entity("Operum.Model.Models.Analytic", b =>
+            modelBuilder.Entity("Operum.Model.Models.Widget", b =>
                 {
-                    b.Navigation("AnalyticFields");
+                    b.HasOne("Operum.Model.Models.User", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.WidgetSource", b =>
+                {
+                    b.HasOne("Operum.Model.Models.Tracker", "Tracker")
+                        .WithMany()
+                        .HasForeignKey("TrackerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Operum.Model.Models.Widget", "Widget")
+                        .WithMany("Sources")
+                        .HasForeignKey("WidgetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tracker");
+
+                    b.Navigation("Widget");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.WidgetSourceField", b =>
+                {
+                    b.HasOne("Operum.Model.Models.Field", "Field")
+                        .WithMany()
+                        .HasForeignKey("FieldId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Operum.Model.Models.WidgetSource", "WidgetSource")
+                        .WithMany("Fields")
+                        .HasForeignKey("WidgetSourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Field");
+
+                    b.Navigation("WidgetSource");
                 });
 
             modelBuilder.Entity("Operum.Model.Models.Dashboard", b =>
@@ -1547,11 +1599,6 @@ namespace Operum.Model.Migrations
                     b.Navigation("Sources");
                 });
 
-            modelBuilder.Entity("Operum.Model.Models.DashboardItemSource", b =>
-                {
-                    b.Navigation("Fields");
-                });
-
             modelBuilder.Entity("Operum.Model.Models.Entry", b =>
                 {
                     b.Navigation("FieldValues");
@@ -1559,8 +1606,6 @@ namespace Operum.Model.Migrations
 
             modelBuilder.Entity("Operum.Model.Models.Field", b =>
                 {
-                    b.Navigation("AnalyticFields");
-
                     b.Navigation("FieldValues");
                 });
 
@@ -1573,8 +1618,6 @@ namespace Operum.Model.Migrations
 
             modelBuilder.Entity("Operum.Model.Models.Tracker", b =>
                 {
-                    b.Navigation("Analytics");
-
                     b.Navigation("ApplicationUserTrackers");
 
                     b.Navigation("Fields");
@@ -1619,6 +1662,16 @@ namespace Operum.Model.Migrations
                     b.Navigation("ViewColumns");
 
                     b.Navigation("ViewQueries");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.Widget", b =>
+                {
+                    b.Navigation("Sources");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.WidgetSource", b =>
+                {
+                    b.Navigation("Fields");
                 });
 #pragma warning restore 612, 618
         }

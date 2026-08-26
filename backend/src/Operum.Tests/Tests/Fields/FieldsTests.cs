@@ -3,6 +3,7 @@ using Operum.Model.Constants.Analytics;
 using Operum.Model.Constants.Fields;
 using Operum.Model.DTOs.Analytics.Requests;
 using Operum.Model.DTOs.Fields.Requests;
+using Operum.Model.DTOs.Widgets.Requests;
 using Operum.Tests.Util;
 using System.Net;
 using System.Net.Http.Json;
@@ -302,30 +303,38 @@ namespace Operum.Tests.Tests.Fields
             Assert.Equal(["First", "Third"], await FieldNames(client, trackerId));
         }
 
+        // A field's mapping into a Widget is the whole of what deleting the field can take
+        // down -- the widget itself survives (across every dashboard placing it) and falls
+        // back to a degraded render, unlike the old tracker Analytic this used to also
+        // hard-delete.
         [Fact]
-        public async Task DeleteField_UsedForTwoPurposesOfOneAnalytic_StillDeletesIt()
+        public async Task DeleteField_UsedByAWidget_WidgetSurvivesWithADegradedFieldMapping()
         {
             var client = await OwnerClient();
-            var trackerId = await TestApi.CreateTracker(client, "Delete field of an analytic");
+            var trackerId = await TestApi.CreateTracker(client, "Delete field of a widget");
             var amountId = await TestApi.CreateField(client, trackerId, "Amount", DataTypes.Number);
-            await client.PostAsJsonAsync($"trackers/{trackerId}/analytics", new CreateAnalyticDto
+
+            var widgetId = await TestApi.IdOf(await client.PostAsJsonAsync("widgets", new CreateWidgetDto
             {
-                Code = AnalyticCodes.AggregatedSumLineChart,
-                Type = AnalyticTypes.LineChart,
-                AnalyticFields =
+                ResultType = AnalyticTypes.SingleValue,
+                Code = AnalyticCodes.Average,
+                Sources =
                 [
-                    new CreateAnalyticFieldDto { FieldId = amountId, Purpose = AnalyticPurposes.Xaxis },
-                    new CreateAnalyticFieldDto { FieldId = amountId, Purpose = AnalyticPurposes.Yaxis }
+                    new CreateWidgetSourceRequestDto
+                    {
+                        TrackerId = trackerId,
+                        Fields = [new CreateAnalyticFieldDto { FieldId = amountId, Purpose = AnalyticPurposes.Value }]
+                    }
                 ]
-            });
+            }));
 
             var response = await client.DeleteAsync($"trackers/{trackerId}/fields/{amountId}");
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Empty(await FieldNames(client, trackerId));
-            // The analytic the field carried goes with it.
-            var analytics = await TestApi.Data(await client.GetAsync($"trackers/{trackerId}/analytics"));
-            Assert.Equal(0, analytics.GetArrayLength());
+
+            var widget = await TestApi.Data(await client.GetAsync($"widgets/{widgetId}"));
+            Assert.Empty(widget.GetProperty("sources")[0].GetProperty("fields").EnumerateArray());
         }
 
         [Fact]

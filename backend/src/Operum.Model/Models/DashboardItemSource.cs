@@ -3,10 +3,9 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Operum.Model.Models
 {
-    // One tracker's contribution to a dashboard item: which tracker to read entries from,
-    // which of its fields fill the purposes required by the item's ResultType/Code, and
-    // which view (if any) narrows the entries first. The definition only exists here, so
-    // it never shows up among the tracker's own analytics and disappears with the item.
+    // One WidgetSource's placement on a board: how this board filters and labels it. Which
+    // tracker it reads from and which fields fill its purposes are the shared definition and
+    // live on the WidgetSource itself instead -- see WidgetSourceId below.
     public class DashboardItemSource
     {
         [Key]
@@ -17,7 +16,7 @@ namespace Operum.Model.Models
         // A source is filtered at most one way: either a fixed ViewId (unaffected by
         // anything else on the board), or LinkedViewWidgetId pointing at a
         // DashboardWidgetTypes.View item whose own selection decides the filter instead —
-        // and can be changed live from the board. AddDashboardItem rejects both being set.
+        // and can be changed live from the board. PlaceWidget rejects both being set.
         public string? ViewId { get; set; }
         public string? LinkedViewWidgetId { get; set; }
         [ForeignKey(nameof(LinkedViewWidgetId))]
@@ -27,10 +26,9 @@ namespace Operum.Model.Models
         [ForeignKey(nameof(DashboardItemId))]
         public virtual DashboardItem DashboardItem { get; set; } = null!;
 
-        public virtual List<DashboardItemSourceField> Fields { get; set; } = [];
-
-        public string TrackerId { get; set; } = string.Empty;
-        [ForeignKey(nameof(TrackerId))]
-        public virtual Tracker Tracker { get; set; } = null!;
+        // The shared widget source this placement's field mapping and tracker come from.
+        public string WidgetSourceId { get; set; } = string.Empty;
+        [ForeignKey(nameof(WidgetSourceId))]
+        public virtual WidgetSource WidgetSource { get; set; } = null!;
     }
 }

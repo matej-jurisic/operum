@@ -1,5 +1,4 @@
 import React from "react";
-import { AnalyticsProvider } from "../../features/analytics/context/AnalyticsContext";
 import { ConstantsProvider } from "../../features/constants/context/ConstantsContext";
 import { EntriesProvider } from "../../features/entries/context/EntriesContext";
 import { FieldsProvider } from "../../features/fields/context/FieldsContext";
@@ -18,13 +17,11 @@ export const ComposedTrackerProvider: React.FC<{
             <FieldsProvider>
                 <ConstantsProvider>
                     <EntriesProvider>
-                        <AnalyticsProvider>
-                            <QueriesProvider>
-                                <ViewsProvider>
-                                    <NotificationsProvider>{children}</NotificationsProvider>
-                                </ViewsProvider>
-                            </QueriesProvider>
-                        </AnalyticsProvider>
+                        <QueriesProvider>
+                            <ViewsProvider>
+                                <NotificationsProvider>{children}</NotificationsProvider>
+                            </ViewsProvider>
+                        </QueriesProvider>
                     </EntriesProvider>
                 </ConstantsProvider>
             </FieldsProvider>

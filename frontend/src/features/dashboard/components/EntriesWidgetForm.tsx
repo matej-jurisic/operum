@@ -1,29 +1,31 @@
-import { Button, Group, Select, Stack } from "@mantine/core";
+import { Button, Group, Select, Stack, TextInput } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { trackersController } from "../../trackers/api/trackersController";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { viewsController } from "../../views/api/viewsController";
 import { ViewDto } from "../../views/types/ViewDto";
 import { useDashboard } from "../context/DashboardContext";
-import { AddDashboardEntriesItemDto } from "../types/DashboardDto";
+import { CreateAndPlaceEntriesWidgetDto } from "../types/DashboardDto";
 import { ExpandableOptionFields } from "./ExpandableOptionFields";
 import { linkableViewWidgets, SourceViewSelect } from "./SourceViewSelect";
 
 interface Props {
     /** Steps back to the widget type picker. */
     onBack: () => void;
-    onAdd: (dto: AddDashboardEntriesItemDto) => Promise<void>;
+    onAdd: (dto: CreateAndPlaceEntriesWidgetDto) => Promise<void>;
 }
 
 /**
- * Picks the tracker an Entries widget's table reads from, and how it's filtered: one of
- * the tracker's own views, or a View widget already on the board whose dropdown it
- * follows instead — the same choice a chart's source gets from CustomAnalyticForm.
+ * Defines a new Widget Library Entries table and places it on this board in one step: the
+ * tracker it reads from, and how this placement is filtered -- one of the tracker's own
+ * views, or a View widget already on the board whose dropdown it follows instead, the same
+ * choice a chart's source gets from CustomAnalyticForm.
  */
 export function EntriesWidgetForm({ onBack, onAdd }: Props) {
     const { widgets } = useDashboard();
     const [trackers, setTrackers] = useState<TrackerDto[]>([]);
     const [trackerId, setTrackerId] = useState<string | null>(null);
+    const [name, setName] = useState("");
     const [views, setViews] = useState<ViewDto[]>([]);
     const [viewId, setViewId] = useState<string | null>(null);
     const [linkedViewWidgetId, setLinkedViewWidgetId] = useState<string | null>(null);
@@ -54,7 +56,14 @@ export function EntriesWidgetForm({ onBack, onAdd }: Props) {
     const handleSubmit = async () => {
         if (!trackerId) return;
         setIsSubmitting(true);
-        await onAdd({ trackerId, viewId, linkedViewWidgetId, expandable, mobileExpandable });
+        await onAdd({
+            trackerId,
+            name: name.trim() || undefined,
+            viewId,
+            linkedViewWidgetId,
+            expandable,
+            mobileExpandable,
+        });
         setIsSubmitting(false);
     };
 
@@ -69,6 +78,15 @@ export function EntriesWidgetForm({ onBack, onAdd }: Props) {
                 value={trackerId}
                 onChange={handleTrackerChange}
                 searchable
+            />
+
+            <TextInput
+                label="Name"
+                description="Shown in the Widget Library"
+                placeholder="Optional"
+                maxLength={100}
+                value={name}
+                onChange={(event) => setName(event.currentTarget.value)}
             />
 
             <SourceViewSelect

@@ -15,18 +15,18 @@ interface Props {
 }
 
 interface EntriesWidgetConfig {
-    trackerId: string;
     viewId?: string | null;
     linkedViewWidgetId?: string | null;
 }
 
 // The widget's own Config is already sitting in the board the context holds — same as a
-// QuickAdd or View widget's — so there's nothing to fetch before this can read it.
+// QuickAdd or View widget's — so there's nothing to fetch before this can read it. Which
+// tracker the table reads from isn't part of Config at all -- it's fixed on the shared
+// EntriesWidget definition and comes from the rendered entriesWidget field instead.
 function parseEntriesConfig(config: string | undefined): EntriesWidgetConfig | null {
     if (!config) return null;
     try {
-        const parsed = JSON.parse(config);
-        return typeof parsed?.trackerId === "string" ? parsed : null;
+        return JSON.parse(config);
     } catch {
         return null;
     }
@@ -53,7 +53,8 @@ export function EditEntriesWidgetModal({ itemId, color, onClose, onSave }: Props
     const [mobileExpandable, setMobileExpandable] = useState(widget?.mobileLayout.expandable ?? false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const trackerId = config?.trackerId;
+    const trackerId =
+        widget?.type === WidgetTypes.Entries ? widget.entriesWidget?.trackerId : undefined;
 
     useEffect(() => {
         if (!trackerId) {

@@ -25,14 +25,14 @@ import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { viewsController } from "../../views/api/viewsController";
 import { ViewDto } from "../../views/types/ViewDto";
 import { useDashboard } from "../context/DashboardContext";
-import { AddDashboardItemDto } from "../types/DashboardDto";
+import { CreateAndPlaceWidgetDto } from "../types/DashboardDto";
 import { ExpandableOptionFields } from "./ExpandableOptionFields";
 import { linkableViewWidgets, SourceViewSelect } from "./SourceViewSelect";
 
 interface Props {
     /** Steps back to the widget type picker. */
     onBack: () => void;
-    onAdd: (dto: AddDashboardItemDto) => Promise<void>;
+    onAdd: (dto: CreateAndPlaceWidgetDto) => Promise<void>;
 }
 
 // One tracker's contribution to the item. The chart type and calculation are picked once
@@ -75,8 +75,10 @@ const makeEmptyRow = (): TrackerRow => ({
 });
 
 /**
- * Builds a chart from scratch over one or more trackers. The definition it produces is
- * owned by the dashboard item, not by any tracker.
+ * Builds a chart from scratch over one or more trackers and places it on this board in
+ * one step. The definition it produces is a first-class Widget Library entry, not owned by
+ * this dashboard item or any tracker -- it can be placed on other boards afterwards from
+ * the Library, and editing it there updates every placement, this one included.
  */
 export function CustomAnalyticForm({ onBack, onAdd }: Props) {
     const { widgets } = useDashboard();
@@ -206,24 +208,19 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
         if (!canSubmit) return;
         setIsSubmitting(true);
         await onAdd({
+            name: name.trim() || undefined,
             resultType: resultType!,
             code: code!,
             matchedValuesOnly: rows.length > 1 && matchedValuesOnly,
             expandable,
             mobileExpandable,
-            sources: rows.map((row, index) => ({
+            sources: rows.map((row) => ({
                 trackerId: row.trackerId!,
                 analyticFields: Object.entries(row.fieldMappings)
                     .filter(([, fieldId]) => !!fieldId)
                     .map(([purpose, fieldId]) => ({ purpose, fieldId })),
                 viewId: row.linkedViewWidgetId ? null : row.viewId,
                 linkedViewWidgetId: row.linkedViewWidgetId,
-                // Only a single-source item has one calculated result to name; a combined
-                // chart names itself from its series instead, so the label is dropped there.
-                label:
-                    index === 0 && rows.length === 1 && name.trim()
-                        ? name.trim()
-                        : undefined,
             })),
         });
         setIsSubmitting(false);
@@ -259,15 +256,15 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
                 disabled={!resultType}
             />
 
-            {rows.length === 1 && (
-                <TextInput
-                    label="Name"
-                    placeholder={selectedCode?.name}
-                    maxLength={100}
-                    value={name}
-                    onChange={(event) => setName(event.currentTarget.value)}
-                />
-            )}
+            <TextInput
+                label="Name"
+                description="Shown in the Widget Library, and on every dashboard placing this widget
+                    that doesn't override it with its own label"
+                placeholder={selectedCode?.name}
+                maxLength={100}
+                value={name}
+                onChange={(event) => setName(event.currentTarget.value)}
+            />
 
             {rows.map((row, index) => {
                 // The board's own View widgets built for this row's tracker are the only

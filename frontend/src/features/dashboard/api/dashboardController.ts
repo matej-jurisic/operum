@@ -1,17 +1,18 @@
 import api from "../../../shared/api/api";
 import { ApiResponse } from "../../../shared/types/ApiResponse";
 import {
-    AddDashboardEntriesItemDto,
     AddDashboardHeaderItemDto,
-    AddDashboardItemDto,
-    AddDashboardItemFromAnalyticDto,
     AddDashboardNoteItemDto,
     AddDashboardQuickAddItemDto,
     AddDashboardViewItemDto,
+    CreateAndPlaceEntriesWidgetDto,
+    CreateAndPlaceWidgetDto,
     CreateDashboardDto,
     DashboardDto,
     DashboardItemDto,
     DashboardWidgetDto,
+    PlaceEntriesWidgetDto,
+    PlaceWidgetDto,
     SetTextWidgetContentDto,
     SetViewWidgetSelectionDto,
     UpdateDashboardDto,
@@ -50,18 +51,18 @@ export const dashboardController = {
         return await api.delete(`/dashboard/${dashboardId}`);
     },
 
-    addDashboardItem: async (
+    createAndPlaceWidget: async (
         dashboardId: string,
-        dto: AddDashboardItemDto
+        dto: CreateAndPlaceWidgetDto
     ): Promise<ApiResponse<DashboardItemDto>> => {
         return await api.post(`/dashboard/${dashboardId}/items`, dto);
     },
 
-    addDashboardItemFromAnalytic: async (
+    placeWidget: async (
         dashboardId: string,
-        dto: AddDashboardItemFromAnalyticDto
+        dto: PlaceWidgetDto
     ): Promise<ApiResponse<DashboardItemDto>> => {
-        return await api.post(`/dashboard/${dashboardId}/items/from-analytic`, dto);
+        return await api.post(`/dashboard/${dashboardId}/items/place-widget`, dto);
     },
 
     addQuickAddItem: async (
@@ -78,11 +79,18 @@ export const dashboardController = {
         return await api.post(`/dashboard/${dashboardId}/items/view`, dto);
     },
 
-    addEntriesItem: async (
+    createAndPlaceEntriesWidget: async (
         dashboardId: string,
-        dto: AddDashboardEntriesItemDto
+        dto: CreateAndPlaceEntriesWidgetDto
     ): Promise<ApiResponse<DashboardItemDto>> => {
         return await api.post(`/dashboard/${dashboardId}/items/entries`, dto);
+    },
+
+    placeEntriesWidget: async (
+        dashboardId: string,
+        dto: PlaceEntriesWidgetDto
+    ): Promise<ApiResponse<DashboardItemDto>> => {
+        return await api.post(`/dashboard/${dashboardId}/items/place-entries-widget`, dto);
     },
 
     addHeaderItem: async (

@@ -8,6 +8,7 @@ using Operum.Model.DTOs.Fields.Requests;
 using Operum.Model.DTOs.Queries.Requests;
 using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Model.DTOs.Views.Requests;
+using Operum.Model.DTOs.Widgets.Requests;
 using Operum.Tests.Extensions;
 using Operum.Tests.Util;
 using System.Net;
@@ -67,7 +68,7 @@ namespace Operum.Tests.Tests.Dashboards
 
         // The "Raw Values" line chart source for a tracker, mapping the given field to the
         // x-axis (Day unless a test wants a differently typed axis) and Amount to the y-axis.
-        private static DashboardItemSourceRequestDto LineSource(CapableTracker tracker, string? xFieldId = null) => new()
+        private static CreateAndPlaceWidgetSourceDto LineSource(CapableTracker tracker, string? xFieldId = null) => new()
         {
             TrackerId = tracker.Id,
             AnalyticFields =
@@ -79,7 +80,7 @@ namespace Operum.Tests.Tests.Dashboards
 
         // The "Count per Category" bar chart source for a tracker — Name is the only purpose
         // that code requires.
-        private static DashboardItemSourceRequestDto BarSource(CapableTracker tracker) => new()
+        private static CreateAndPlaceWidgetSourceDto BarSource(CapableTracker tracker) => new()
         {
             TrackerId = tracker.Id,
             AnalyticFields = [new CreateAnalyticFieldDto { FieldId = tracker.CategoryFieldId, Purpose = AnalyticPurposes.Name }]
@@ -102,10 +103,11 @@ namespace Operum.Tests.Tests.Dashboards
 
         private static JsonElement MobileLayout(JsonElement widget) => widget.GetProperty("mobileLayout");
 
-        // Adds the "Raw Values" line chart of a tracker and hands back the item's id.
+        // Defines a new "Raw Values" line chart Widget and places it on the board in one
+        // call, and hands back the placement's item id.
         private static async Task<string> AddLineItem(HttpClient client, string dashboardId, CapableTracker tracker)
         {
-            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
             {
                 ResultType = AnalyticTypes.LineChart,
                 Code = AnalyticCodes.LineChart,
@@ -128,28 +130,35 @@ namespace Operum.Tests.Tests.Dashboards
         private static async Task<string> SingleSourceId(HttpClient client, string dashboardId, string itemId)
             => (await ItemSources(client, dashboardId, itemId))[0].GetProperty("id").GetString()!;
 
-        // Creates a "Raw Values" line chart on the tracker itself and hands back its id, so
-        // a test can add it to a board the way the widget picker does.
-        private static async Task<string> CreateTrackerAnalytic(HttpClient client, CapableTracker tracker)
+        // Creates a "Raw Values" line chart Widget in the Library and hands back its full
+        // definition (including WidgetSource ids), so a test can place it on a board the
+        // way the widget picker does.
+        private static async Task<JsonElement> CreateWidget(HttpClient client, CapableTracker tracker, string? name = null)
         {
-            var createResponse = await client.PostAsJsonAsync($"trackers/{tracker.Id}/analytics", new CreateAnalyticDto
+            var response = await client.PostAsJsonAsync("widgets", new CreateWidgetDto
             {
-                Type = AnalyticTypes.LineChart,
+                Name = name,
+                ResultType = AnalyticTypes.LineChart,
                 Code = AnalyticCodes.LineChart,
-                AnalyticFields =
+                Sources =
                 [
-                    new CreateAnalyticFieldDto { FieldId = tracker.DayFieldId, Purpose = AnalyticPurposes.Xaxis },
-                    new CreateAnalyticFieldDto { FieldId = tracker.AmountFieldId, Purpose = AnalyticPurposes.Yaxis }
+                    new CreateWidgetSourceRequestDto
+                    {
+                        TrackerId = tracker.Id,
+                        Fields =
+                        [
+                            new CreateAnalyticFieldDto { FieldId = tracker.DayFieldId, Purpose = AnalyticPurposes.Xaxis },
+                            new CreateAnalyticFieldDto { FieldId = tracker.AmountFieldId, Purpose = AnalyticPurposes.Yaxis }
+                        ]
+                    }
                 ]
             });
-            Assert.Equal(HttpStatusCode.OK, createResponse.StatusCode);
-
-            var analytics = await Data(await client.GetAsync($"trackers/{tracker.Id}/analytics"));
-            return analytics[analytics.GetArrayLength() - 1].GetProperty("id").GetString()!;
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            return await Data(response);
         }
 
         [Fact]
-        public async Task AddDashboardItem_SingleSource_ReturnsNativeChartTypeUnchanged()
+        public async Task CreateAndPlaceWidget_SingleSource_ReturnsNativeChartTypeUnchanged()
         {
             var client = _factory.CreateClientWithCookies();
             await _factory.SeedDatabaseAsync();
@@ -158,7 +167,7 @@ namespace Operum.Tests.Tests.Dashboards
             var tracker = await CreateCapableTracker(client, "Workouts");
             var dashboardId = await CreateDashboard(client);
 
-            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
             {
                 ResultType = AnalyticTypes.BarChart,
                 Code = AnalyticCodes.CountBarChart,
@@ -173,7 +182,7 @@ namespace Operum.Tests.Tests.Dashboards
         }
 
         [Fact]
-        public async Task AddDashboardItem_TwoSources_MergesIntoComposedChart()
+        public async Task CreateAndPlaceWidget_TwoSources_MergesIntoComposedChart()
         {
             var client = _factory.CreateClientWithCookies();
             await _factory.SeedDatabaseAsync();
@@ -183,7 +192,7 @@ namespace Operum.Tests.Tests.Dashboards
             var steps = await CreateCapableTracker(client, "Steps");
             var dashboardId = await CreateDashboard(client);
 
-            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
             {
                 ResultType = AnalyticTypes.LineChart,
                 Code = AnalyticCodes.LineChart,
@@ -205,7 +214,7 @@ namespace Operum.Tests.Tests.Dashboards
         // Sharing a definition still leaves one thing sources can disagree on: the data type
         // of the field on the x-axis, which the combined chart has to render on one axis.
         [Fact]
-        public async Task AddDashboardItem_SourcesWithDifferentXAxisTypes_WarnsWithoutRejecting()
+        public async Task CreateAndPlaceWidget_SourcesWithDifferentXAxisTypes_WarnsWithoutRejecting()
         {
             var client = _factory.CreateClientWithCookies();
             await _factory.SeedDatabaseAsync();
@@ -215,7 +224,7 @@ namespace Operum.Tests.Tests.Dashboards
             var byCategory = await CreateCapableTracker(client, "Steps");
             var dashboardId = await CreateDashboard(client);
 
-            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
             {
                 ResultType = AnalyticTypes.LineChart,
                 Code = AnalyticCodes.LineChart,
@@ -229,7 +238,7 @@ namespace Operum.Tests.Tests.Dashboards
         }
 
         [Fact]
-        public async Task AddDashboardItem_MultipleSourcesForANonCombinableType_ReturnsBadRequest()
+        public async Task CreateAndPlaceWidget_MultipleSourcesForANonCombinableType_ReturnsBadRequest()
         {
             var client = _factory.CreateClientWithCookies();
             await _factory.SeedDatabaseAsync();
@@ -239,13 +248,13 @@ namespace Operum.Tests.Tests.Dashboards
             var steps = await CreateCapableTracker(client, "Steps");
             var dashboardId = await CreateDashboard(client);
 
-            DashboardItemSourceRequestDto CountSource(CapableTracker tracker) => new()
+            CreateAndPlaceWidgetSourceDto CountSource(CapableTracker tracker) => new()
             {
                 TrackerId = tracker.Id,
                 AnalyticFields = [new CreateAnalyticFieldDto { FieldId = tracker.CategoryFieldId, Purpose = AnalyticPurposes.Value }]
             };
 
-            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
             {
                 ResultType = AnalyticTypes.SingleValue,
                 Code = AnalyticCodes.Count,
@@ -256,7 +265,7 @@ namespace Operum.Tests.Tests.Dashboards
         }
 
         [Fact]
-        public async Task AddDashboardItem_CodeDoesNotBelongToResultType_ReturnsBadRequest()
+        public async Task CreateAndPlaceWidget_CodeDoesNotBelongToResultType_ReturnsBadRequest()
         {
             var client = _factory.CreateClientWithCookies();
             await _factory.SeedDatabaseAsync();
@@ -265,7 +274,7 @@ namespace Operum.Tests.Tests.Dashboards
             var tracker = await CreateCapableTracker(client, "Weight");
             var dashboardId = await CreateDashboard(client);
 
-            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
             {
                 ResultType = AnalyticTypes.LineChart,
                 // A bar chart code, which the line chart definition knows nothing about.
@@ -293,7 +302,7 @@ namespace Operum.Tests.Tests.Dashboards
 
             for (var i = 0; i < 2; i++)
             {
-                var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+                var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
                 {
                     ResultType = AnalyticTypes.BarChart,
                     Code = AnalyticCodes.CountBarChart,
@@ -321,7 +330,7 @@ namespace Operum.Tests.Tests.Dashboards
             string? firstItemId = null;
             for (var i = 0; i < 2; i++)
             {
-                var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+                var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
                 {
                     ResultType = AnalyticTypes.BarChart,
                     Code = AnalyticCodes.CountBarChart,
@@ -335,17 +344,23 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(HttpStatusCode.OK, removeResponse.StatusCode);
         }
 
+        // Building a chart inline from a dashboard still creates a first-class Widget Library
+        // entry behind the scenes -- there's no such thing as a dashboard-only chart
+        // definition any more, the way there was no way to reach a tracker's own analytics
+        // page in the old model.
         [Fact]
-        public async Task AddDashboardItem_Source_RendersWithoutCreatingATrackerAnalytic()
+        public async Task CreateAndPlaceWidget_Source_CreatesAReusableLibraryWidgetInsteadOfATrackerAnalytic()
         {
-            var client = _factory.CreateClientWithCookies();
             await _factory.SeedDatabaseAsync();
-            await client.Authenticate(DefaultUsers.TestUserData);
+            // A fresh user, not the shared DefaultUsers.TestUserData: the widget-count
+            // assertion below reads every widget this user owns, and the class shares one
+            // database across every test authenticated as the default user.
+            var client = await _factory.NewUserClient("inlinewidgetreuse");
 
             var tracker = await CreateCapableTracker(client, "Weight");
             var dashboardId = await CreateDashboard(client);
 
-            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
             {
                 ResultType = AnalyticTypes.LineChart,
                 Code = AnalyticCodes.LineChart,
@@ -357,14 +372,14 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(1, results.GetArrayLength());
             Assert.Equal(AnalyticTypes.LineChart, Analytic(results[0]).GetProperty("resultType").GetString());
 
-            // The whole point: the definition stays on the dashboard and never shows up
-            // among the tracker's own analytics.
-            var trackerAnalytics = await Data(await client.GetAsync($"trackers/{tracker.Id}/analytics"));
-            Assert.Equal(0, trackerAnalytics.GetArrayLength());
+            // It shows up in the Widget Library, ready to be placed elsewhere -- there's no
+            // separate tracker-owned analytics list any more for it to *not* show up in.
+            var libraryWidgets = await Data(await client.GetAsync("widgets"));
+            Assert.Equal(1, libraryWidgets.GetArrayLength());
         }
 
         [Fact]
-        public async Task AddDashboardItem_SourceMissingARequiredPurpose_ReturnsBadRequest()
+        public async Task CreateAndPlaceWidget_SourceMissingARequiredPurpose_ReturnsBadRequest()
         {
             var client = _factory.CreateClientWithCookies();
             await _factory.SeedDatabaseAsync();
@@ -373,13 +388,13 @@ namespace Operum.Tests.Tests.Dashboards
             var tracker = await CreateCapableTracker(client, "Weight");
             var dashboardId = await CreateDashboard(client);
 
-            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
             {
                 ResultType = AnalyticTypes.LineChart,
                 Code = AnalyticCodes.LineChart,
                 Sources =
                 [
-                    new DashboardItemSourceRequestDto
+                    new CreateAndPlaceWidgetSourceDto
                     {
                         TrackerId = tracker.Id,
                         // Y-axis left unmapped.
@@ -394,7 +409,7 @@ namespace Operum.Tests.Tests.Dashboards
         // A dashboard spans trackers, so a source must not be able to reach a field that
         // belongs to a different tracker than the one it reads entries from.
         [Fact]
-        public async Task AddDashboardItem_SourceFieldFromAnotherTracker_ReturnsNotFound()
+        public async Task CreateAndPlaceWidget_SourceFieldFromAnotherTracker_ReturnsNotFound()
         {
             var client = _factory.CreateClientWithCookies();
             await _factory.SeedDatabaseAsync();
@@ -406,13 +421,13 @@ namespace Operum.Tests.Tests.Dashboards
 
             Assert.NotEqual(tracker.Id, other.Id);
 
-            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
             {
                 ResultType = AnalyticTypes.LineChart,
                 Code = AnalyticCodes.LineChart,
                 Sources =
                 [
-                    new DashboardItemSourceRequestDto
+                    new CreateAndPlaceWidgetSourceDto
                     {
                         TrackerId = tracker.Id,
                         AnalyticFields =
@@ -427,22 +442,21 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(HttpStatusCode.NotFound, addResponse.StatusCode);
         }
 
-
-        // Adding an existing analytic copies its definition onto the board: the widget keeps
-        // rendering after the tracker's own analytic is deleted, which is what makes the item
-        // a copy rather than a reference.
+        // Placing a widget is a reference, never a copy: there is nothing left on the
+        // placement itself once the definition it points at is gone.
         [Fact]
-        public async Task AddDashboardItemFromAnalytic_CopiesTheDefinitionInsteadOfReferencingIt()
+        public async Task PlaceWidget_ReferencesTheWidgetInsteadOfCopyingIt()
         {
             await _factory.SeedDatabaseAsync();
-            var client = await _factory.NewUserClient("analyticcopy");
+            var client = await _factory.NewUserClient("widgetreference");
 
             var tracker = await CreateCapableTracker(client, "Weight");
-            var analyticId = await CreateTrackerAnalytic(client, tracker);
+            var widget = await CreateWidget(client, tracker);
+            var widgetId = widget.GetProperty("id").GetString()!;
             var dashboardId = await CreateDashboard(client);
 
-            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/from-analytic",
-                new AddDashboardItemFromAnalyticDto { AnalyticId = analyticId });
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/place-widget",
+                new PlaceWidgetDto { WidgetId = widgetId });
             Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
 
             var item = await Data(addResponse);
@@ -451,22 +465,52 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(1, item.GetProperty("sources").GetArrayLength());
             Assert.Equal(2, item.GetProperty("sources")[0].GetProperty("fields").GetArrayLength());
 
-            var removeResponse = await client.DeleteAsync($"trackers/{tracker.Id}/analytics/{analyticId}");
-            Assert.Equal(HttpStatusCode.OK, removeResponse.StatusCode);
+            // The whole point: deleting the widget from the Library takes the placement
+            // down with it, because there was never a copy to fall back to.
+            var deleteResponse = await client.DeleteAsync($"widgets/{widgetId}");
+            Assert.Equal(HttpStatusCode.OK, deleteResponse.StatusCode);
 
             var widgets = await Widgets(client, dashboardId);
-            Assert.Equal(1, widgets.GetArrayLength());
-            Assert.Equal(AnalyticTypes.LineChart, Analytic(widgets[0]).GetProperty("resultType").GetString());
+            Assert.Equal(0, widgets.GetArrayLength());
+        }
+
+        // The core promise of the new model: a placement without its own label reads
+        // whatever the shared widget is named right now, everywhere it's placed.
+        [Fact]
+        public async Task PlaceWidget_RenamingTheWidgetInTheLibrary_UpdatesEveryPlacement()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("widgetrename");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var widget = await CreateWidget(client, tracker);
+            var widgetId = widget.GetProperty("id").GetString()!;
+
+            var dashboardA = await CreateDashboard(client);
+            var dashboardB = await CreateDashboard(client);
+
+            await client.PostAsJsonAsync($"dashboard/{dashboardA}/items/place-widget", new PlaceWidgetDto { WidgetId = widgetId });
+            await client.PostAsJsonAsync($"dashboard/{dashboardB}/items/place-widget", new PlaceWidgetDto { WidgetId = widgetId });
+
+            var renameResponse = await client.PutAsJsonAsync($"widgets/{widgetId}", new UpdateWidgetDto { Name = "Renamed everywhere" });
+            Assert.Equal(HttpStatusCode.OK, renameResponse.StatusCode);
+
+            var widgetsA = await Widgets(client, dashboardA);
+            var widgetsB = await Widgets(client, dashboardB);
+            Assert.Equal("Renamed everywhere", Analytic(widgetsA[0]).GetProperty("name").GetString());
+            Assert.Equal("Renamed everywhere", Analytic(widgetsB[0]).GetProperty("name").GetString());
         }
 
         [Fact]
-        public async Task AddDashboardItemFromAnalytic_ViewIdsNarrowTheWidget()
+        public async Task PlaceWidget_ViewIdsNarrowTheWidget()
         {
             await _factory.SeedDatabaseAsync();
-            var client = await _factory.NewUserClient("analyticview");
+            var client = await _factory.NewUserClient("widgetview");
 
             var tracker = await CreateCapableTracker(client, "Weight");
-            var analyticId = await CreateTrackerAnalytic(client, tracker);
+            var widget = await CreateWidget(client, tracker);
+            var widgetId = widget.GetProperty("id").GetString()!;
+            var sourceId = widget.GetProperty("sources")[0].GetProperty("id").GetString()!;
             var dashboardId = await CreateDashboard(client);
 
             // Nothing has a category of "Strength", so the view filters the single entry out.
@@ -482,11 +526,11 @@ namespace Operum.Tests.Tests.Dashboards
                 ]
             }));
 
-            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/from-analytic",
-                new AddDashboardItemFromAnalyticDto
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/place-widget",
+                new PlaceWidgetDto
                 {
-                    AnalyticId = analyticId,
-                    ViewId = view.GetProperty("id").GetString()!
+                    WidgetId = widgetId,
+                    SourceOverrides = [new PlaceWidgetSourceOverrideDto { WidgetSourceId = sourceId, ViewId = view.GetProperty("id").GetString()! }]
                 });
             Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
 
@@ -495,52 +539,57 @@ namespace Operum.Tests.Tests.Dashboards
         }
 
         [Fact]
-        public async Task AddDashboardItemFromAnalytic_UnknownAnalytic_ReturnsNotFound()
+        public async Task PlaceWidget_UnknownWidget_ReturnsNotFound()
         {
             await _factory.SeedDatabaseAsync();
-            var client = await _factory.NewUserClient("analyticmissing");
+            var client = await _factory.NewUserClient("widgetmissing");
 
             var dashboardId = await CreateDashboard(client);
 
-            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/from-analytic",
-                new AddDashboardItemFromAnalyticDto { AnalyticId = Guid.NewGuid().ToString() });
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/place-widget",
+                new PlaceWidgetDto { WidgetId = Guid.NewGuid().ToString() });
 
             Assert.Equal(HttpStatusCode.NotFound, addResponse.StatusCode);
         }
 
-        // The shortcut must not become a way around tracker access: an analytic id is enough
-        // to name a tracker, so the normal add path still has to answer for it.
+        // A widget is only ever placeable by its own owner today -- there is no sharing
+        // model yet -- so a stranger's widget id simply doesn't resolve, the same as any
+        // other id that names nothing of theirs.
         [Fact]
-        public async Task AddDashboardItemFromAnalytic_AnalyticOfAnotherUsersTracker_ReturnsForbidden()
+        public async Task PlaceWidget_WidgetOwnedByAnotherUser_ReturnsNotFound()
         {
             await _factory.SeedDatabaseAsync();
 
-            var owner = await _factory.NewUserClient("analyticowner");
+            var owner = await _factory.NewUserClient("widgetowner");
             var tracker = await CreateCapableTracker(owner, "Weight");
-            var analyticId = await CreateTrackerAnalytic(owner, tracker);
+            var widget = await CreateWidget(owner, tracker);
+            var widgetId = widget.GetProperty("id").GetString()!;
 
-            var stranger = await _factory.NewUserClient("analyticstranger");
+            var stranger = await _factory.NewUserClient("widgetstranger");
             var dashboardId = await CreateDashboard(stranger);
 
-            var addResponse = await stranger.PostAsJsonAsync($"dashboard/{dashboardId}/items/from-analytic",
-                new AddDashboardItemFromAnalyticDto { AnalyticId = analyticId });
+            var addResponse = await stranger.PostAsJsonAsync($"dashboard/{dashboardId}/items/place-widget",
+                new PlaceWidgetDto { WidgetId = widgetId });
 
-            Assert.Equal(HttpStatusCode.Forbidden, addResponse.StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, addResponse.StatusCode);
         }
 
-        // Removing the dashboard item is the only lifecycle a source definition has — it must
-        // take its source and field mappings with it rather than leaving orphans.
+        // Removing a placement is not the same as deleting the widget: the shared
+        // definition created alongside it survives in the Library, unlike the old model
+        // where a dashboard item's definition only ever existed on that one item.
         [Fact]
-        public async Task RemoveDashboardItem_RemovesTheDefinitionToo()
+        public async Task RemoveDashboardItem_LeavesTheSharedWidgetInPlace()
         {
-            var client = _factory.CreateClientWithCookies();
             await _factory.SeedDatabaseAsync();
-            await client.Authenticate(DefaultUsers.TestUserData);
+            // A fresh user, not the shared DefaultUsers.TestUserData: the widget-count
+            // assertion below reads every widget this user owns, and the class shares one
+            // database across every test authenticated as the default user.
+            var client = await _factory.NewUserClient("removeitemwidget");
 
             var tracker = await CreateCapableTracker(client, "Weight");
             var dashboardId = await CreateDashboard(client);
 
-            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
             {
                 ResultType = AnalyticTypes.LineChart,
                 Code = AnalyticCodes.LineChart,
@@ -553,12 +602,59 @@ namespace Operum.Tests.Tests.Dashboards
 
             var fetched = await Data(await client.GetAsync($"dashboard/{dashboardId}"));
             Assert.Equal(0, fetched.GetProperty("items").GetArrayLength());
+
+            // The widget itself is untouched -- it just isn't placed anywhere right now.
+            var libraryWidgets = await Data(await client.GetAsync("widgets"));
+            Assert.Equal(1, libraryWidgets.GetArrayLength());
+        }
+
+        [Fact]
+        public async Task CreateAndPlaceEntriesWidget_AddsAnEntriesWidget()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("entriescreate");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/entries",
+                new CreateAndPlaceEntriesWidgetDto { TrackerId = tracker.Id });
+            Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
+
+            var widgets = await Widgets(client, dashboardId);
+            Assert.Equal(1, widgets.GetArrayLength());
+            Assert.Equal(DashboardWidgetTypes.Entries, widgets[0].GetProperty("type").GetString());
+            Assert.Equal(tracker.Id, widgets[0].GetProperty("entriesWidget").GetProperty("trackerId").GetString());
+        }
+
+        // The Entries equivalent of PlaceWidget_ReferencesTheWidgetInsteadOfCopyingIt.
+        [Fact]
+        public async Task PlaceEntriesWidget_ReferencesTheEntriesWidgetInsteadOfCopyingIt()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("entriesreference");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var entriesWidgetId = (await Data(await client.PostAsJsonAsync("widgets/entries",
+                new CreateEntriesWidgetDto { TrackerId = tracker.Id }))).GetProperty("id").GetString()!;
+
+            var dashboardId = await CreateDashboard(client);
+
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/place-entries-widget",
+                new PlaceEntriesWidgetDto { EntriesWidgetId = entriesWidgetId });
+            Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
+
+            var deleteResponse = await client.DeleteAsync($"widgets/entries/{entriesWidgetId}");
+            Assert.Equal(HttpStatusCode.OK, deleteResponse.StatusCode);
+
+            var widgets = await Widgets(client, dashboardId);
+            Assert.Equal(0, widgets.GetArrayLength());
         }
 
         // A widget the user has not placed yet still has to land somewhere sensible, which
         // means below what is already on the board rather than on top of it.
         [Fact]
-        public async Task AddDashboardItem_PlacesTheWidgetUnderTheOnesAlreadyOnTheBoard()
+        public async Task CreateAndPlaceWidget_PlacesTheWidgetUnderTheOnesAlreadyOnTheBoard()
         {
             var client = _factory.CreateClientWithCookies();
             await _factory.SeedDatabaseAsync();
@@ -663,7 +759,7 @@ namespace Operum.Tests.Tests.Dashboards
         // somewhere sensible on the other. The narrow grid has no room beside anything, so
         // a new widget takes the full width of it and stacks under what is already there.
         [Fact]
-        public async Task AddDashboardItem_PlacesTheWidgetOnBothGrids()
+        public async Task CreateAndPlaceWidget_PlacesTheWidgetOnBothGrids()
         {
             await _factory.SeedDatabaseAsync();
             var client = await _factory.NewUserClient("bothgrids");
@@ -908,8 +1004,8 @@ namespace Operum.Tests.Tests.Dashboards
 
         // Nothing has a category of "Strength", so a source (or a View widget) filtered by
         // this view keeps zero of the tracker's one seeded entry — the same shape
-        // AddDashboardItemFromAnalytic_ViewIdsNarrowTheWidget uses, factored out for the
-        // View widget tests below.
+        // PlaceWidget_ViewIdsNarrowTheWidget uses, factored out for the View widget tests
+        // below.
         private static async Task<string> CreateStrengthOnlyView(HttpClient client, CapableTracker tracker)
         {
             var view = await Data(await client.PostAsJsonAsync($"trackers/{tracker.Id}/views", new CreateViewDto
@@ -984,13 +1080,13 @@ namespace Operum.Tests.Tests.Dashboards
             var viewItemId = (await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/view",
                 new AddDashboardViewItemDto { TrackerId = tracker.Id }))).GetProperty("id").GetString()!;
 
-            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
             {
                 ResultType = AnalyticTypes.LineChart,
                 Code = AnalyticCodes.LineChart,
                 Sources =
                 [
-                    new DashboardItemSourceRequestDto
+                    new CreateAndPlaceWidgetSourceDto
                     {
                         TrackerId = tracker.Id,
                         AnalyticFields =
@@ -1065,7 +1161,7 @@ namespace Operum.Tests.Tests.Dashboards
         // A source is filtered at most one way: a fixed view and a live link are mutually
         // exclusive, so a request naming both is rejected up front rather than picking one.
         [Fact]
-        public async Task AddDashboardItem_SourceWithBothViewIdAndLinkedViewWidget_ReturnsBadRequest()
+        public async Task CreateAndPlaceWidget_SourceWithBothViewIdAndLinkedViewWidget_ReturnsBadRequest()
         {
             await _factory.SeedDatabaseAsync();
             var client = await _factory.NewUserClient("viewwidgetboth");
@@ -1077,13 +1173,13 @@ namespace Operum.Tests.Tests.Dashboards
             var viewItemId = (await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/view",
                 new AddDashboardViewItemDto { TrackerId = tracker.Id }))).GetProperty("id").GetString()!;
 
-            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
             {
                 ResultType = AnalyticTypes.LineChart,
                 Code = AnalyticCodes.LineChart,
                 Sources =
                 [
-                    new DashboardItemSourceRequestDto
+                    new CreateAndPlaceWidgetSourceDto
                     {
                         TrackerId = tracker.Id,
                         AnalyticFields =
@@ -1103,7 +1199,7 @@ namespace Operum.Tests.Tests.Dashboards
         // A source can only link to a View widget built for the same tracker it reads from —
         // otherwise the widget's selection would name a view that never applies to it.
         [Fact]
-        public async Task AddDashboardItem_LinkedViewWidgetOfAnotherTracker_ReturnsBadRequest()
+        public async Task CreateAndPlaceWidget_LinkedViewWidgetOfAnotherTracker_ReturnsBadRequest()
         {
             await _factory.SeedDatabaseAsync();
             var client = await _factory.NewUserClient("viewwidgetcross");
@@ -1115,13 +1211,13 @@ namespace Operum.Tests.Tests.Dashboards
             var viewItemId = (await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/view",
                 new AddDashboardViewItemDto { TrackerId = other.Id }))).GetProperty("id").GetString()!;
 
-            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
             {
                 ResultType = AnalyticTypes.LineChart,
                 Code = AnalyticCodes.LineChart,
                 Sources =
                 [
-                    new DashboardItemSourceRequestDto
+                    new CreateAndPlaceWidgetSourceDto
                     {
                         TrackerId = tracker.Id,
                         AnalyticFields =
@@ -1152,13 +1248,13 @@ namespace Operum.Tests.Tests.Dashboards
             var viewItemId = (await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/view",
                 new AddDashboardViewItemDto { TrackerId = tracker.Id, ViewId = viewId }))).GetProperty("id").GetString()!;
 
-            await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+            await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
             {
                 ResultType = AnalyticTypes.LineChart,
                 Code = AnalyticCodes.LineChart,
                 Sources =
                 [
-                    new DashboardItemSourceRequestDto
+                    new CreateAndPlaceWidgetSourceDto
                     {
                         TrackerId = tracker.Id,
                         AnalyticFields =
@@ -1198,7 +1294,7 @@ namespace Operum.Tests.Tests.Dashboards
 
             var source = LineSource(tracker);
             source.Label = "Weight over time";
-            var itemId = (await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+            var itemId = (await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
             {
                 ResultType = AnalyticTypes.LineChart,
                 Code = AnalyticCodes.LineChart,
@@ -1236,7 +1332,7 @@ namespace Operum.Tests.Tests.Dashboards
 
             var labelled = LineSource(tracker);
             labelled.Label = "Weight over time";
-            var itemId = (await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+            var itemId = (await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
             {
                 ResultType = AnalyticTypes.LineChart,
                 Code = AnalyticCodes.LineChart,
@@ -1281,7 +1377,7 @@ namespace Operum.Tests.Tests.Dashboards
 
             var filtered = LineSource(tracker);
             filtered.ViewId = viewId;
-            var itemId = (await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+            var itemId = (await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
             {
                 ResultType = AnalyticTypes.LineChart,
                 Code = AnalyticCodes.LineChart,
@@ -1330,7 +1426,7 @@ namespace Operum.Tests.Tests.Dashboards
             var second = await CreateCapableTracker(client, "Steps");
             var dashboardId = await CreateDashboard(client);
 
-            var itemId = (await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new AddDashboardItemDto
+            var itemId = (await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
             {
                 ResultType = AnalyticTypes.LineChart,
                 Code = AnalyticCodes.LineChart,

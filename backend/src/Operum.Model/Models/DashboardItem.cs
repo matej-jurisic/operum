@@ -13,13 +13,13 @@ namespace Operum.Model.Models
         // the grid placement below whenever the layout is saved.
         public int Order { get; set; }
 
-        // What this item renders. Only DashboardWidgetTypes.Analytic exists today, so the
-        // analytic definition below is always filled in; a widget type that isn't a chart
-        // would leave it empty and configure itself through Config instead.
+        // What this item renders: Analytic/Entries place a shared Widget/EntriesWidget (see
+        // below); every other type configures itself entirely through Config instead.
         public string Type { get; set; } = DashboardWidgetTypes.Analytic;
 
-        // Widget settings as JSON, for widget types whose configuration isn't an analytic
-        // definition. Null for analytic widgets.
+        // Widget settings as JSON, for widget types whose configuration isn't a placed
+        // definition. Null for Analytic widgets; for Entries, just the placement-only
+        // filter (see EntriesWidgetConfigDto) since the tracker lives on EntriesWidget.
         public string? Config { get; set; }
 
         // Where the item sits on the wide grid, in DashboardGrid.Columns columns.
@@ -46,20 +46,22 @@ namespace Operum.Model.Models
         public bool Expandable { get; set; }
         public bool MobileExpandable { get; set; }
 
-        // The analytic definition every source of this item is calculated with. It lives
-        // on the item rather than on each source so a multi-tracker chart can only ever
-        // combine series that were produced the same way.
-        public string ResultType { get; set; } = string.Empty;
-        public string Code { get; set; } = string.Empty;
-
-        // Combined charts only: restricts the chart to the x-axis values every source has a
-        // point for, so the series are compared over the same range instead of each source
-        // trailing off wherever its own data stops. Ignored by a single-source item.
-        public bool MatchedValuesOnly { get; set; }
-
         public string DashboardId { get; set; } = string.Empty;
         [ForeignKey(nameof(DashboardId))]
         public virtual Dashboard Dashboard { get; set; } = null!;
+
+        // The shared chart definition this Analytic-type item places on the board. Deleting
+        // the Widget takes every placement of it with it (see OperumContext) -- a placement
+        // can't render without a definition.
+        public string? WidgetId { get; set; }
+        [ForeignKey(nameof(WidgetId))]
+        public virtual Widget? Widget { get; set; }
+
+        // The shared Entries definition this Entries-type item places -- the Entries
+        // equivalent of WidgetId above.
+        public string? EntriesWidgetId { get; set; }
+        [ForeignKey(nameof(EntriesWidgetId))]
+        public virtual EntriesWidget? EntriesWidget { get; set; }
 
         public virtual List<DashboardItemSource> Sources { get; set; } = [];
     }

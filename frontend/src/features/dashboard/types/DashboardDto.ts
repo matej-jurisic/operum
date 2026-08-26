@@ -187,10 +187,13 @@ export interface UpdateDashboardDto {
 }
 
 /**
- * The tracker-specific half of an item: which tracker to read entries from and which
- * of its fields fill the purposes the item's result type + code require.
+ * The tracker-specific half of a new widget's source: which tracker to read entries from
+ * and which of its fields fill the purposes the widget's result type + code require, plus
+ * this placement's own filter/label -- the same fields AddDashboardItemSourceDto used to
+ * carry, just renamed to make clear they define AND place in one call (see
+ * CreateAndPlaceWidgetDto).
  */
-export interface AddDashboardItemSourceDto {
+export interface CreateAndPlaceWidgetSourceDto {
     trackerId: string;
     analyticFields: CreateAnalyticFieldDto[];
     /** At most one of these narrows the source's entries: viewId fixes it,
@@ -202,23 +205,15 @@ export interface AddDashboardItemSourceDto {
 }
 
 /**
- * Adds a widget by copying a tracker's own analytic instead of defining one inline. The
- * copy is taken at add time, so editing the tracker's analytic afterwards leaves the
- * board as it was.
+ * Defines a new Widget Library chart and places it on this board in one call -- the
+ * single-round-trip convenience CustomAnalyticForm relies on. Splits server-side into a
+ * Widget (the definition) plus a placement, so the widget this creates is exactly as
+ * reusable afterwards as one built from the Library directly.
  */
-export interface AddDashboardItemFromAnalyticDto {
-    analyticId: string;
-    /** Optional: a tracker analytic carries no view of its own, so the board picks one. At
-        most one of these — see AddDashboardItemSourceDto. */
-    viewId?: string | null;
-    linkedViewWidgetId?: string | null;
-    /** Whether the widget draws as a small button that opens the chart in a modal instead
-        of inline, independently on each of the board's two grids. */
-    expandable?: boolean;
-    mobileExpandable?: boolean;
-}
-
-export interface AddDashboardItemDto {
+export interface CreateAndPlaceWidgetDto {
+    /** Optional: left unset, the widget falls back to its definition's own label. */
+    name?: string;
+    description?: string;
     resultType: string;
     code: string;
     /** Combined charts only: keep just the x-axis values every source has a point for. */
@@ -227,7 +222,30 @@ export interface AddDashboardItemDto {
         of inline, independently on each of the board's two grids. */
     expandable?: boolean;
     mobileExpandable?: boolean;
-    sources: AddDashboardItemSourceDto[];
+    sources: CreateAndPlaceWidgetSourceDto[];
+}
+
+/** One WidgetSource's placement-only settings when placing an existing Widget Library
+    chart: how this board filters and labels it. */
+export interface PlaceWidgetSourceOverrideDto {
+    widgetSourceId: string;
+    label?: string;
+    viewId?: string | null;
+    linkedViewWidgetId?: string | null;
+}
+
+/**
+ * Places an existing Widget Library chart onto this dashboard by reference: unlike the
+ * old copy-on-add, nothing is duplicated. Editing the widget afterwards -- in the Library,
+ * or from any other dashboard placing it -- changes what this placement draws too.
+ */
+export interface PlaceWidgetDto {
+    widgetId: string;
+    expandable?: boolean;
+    mobileExpandable?: boolean;
+    /** A WidgetSource not named here is placed with no label or view override: the
+        widget's own display name, unfiltered. */
+    sourceOverrides: PlaceWidgetSourceOverrideDto[];
 }
 
 /** Adds a WidgetTypes.QuickAdd widget: a button that opens a tracker's quick-add entry
@@ -244,14 +262,26 @@ export interface AddDashboardViewItemDto {
     viewId?: string | null;
 }
 
-/** Adds a WidgetTypes.Entries widget: a read-only table of one tracker's entries. At most
-    one of these narrows what it shows — see AddDashboardItemSourceDto. */
-export interface AddDashboardEntriesItemDto {
+/** Defines a new Widget Library Entries table and places it on this board in one call --
+    the single-round-trip convenience EntriesWidgetForm relies on. See
+    CreateAndPlaceWidgetDto for the equivalent on a chart. */
+export interface CreateAndPlaceEntriesWidgetDto {
     trackerId: string;
+    name?: string;
     viewId?: string | null;
     linkedViewWidgetId?: string | null;
     /** Whether the widget draws as a small button that opens the table in a modal instead
         of inline, independently on each of the board's two grids. */
+    expandable?: boolean;
+    mobileExpandable?: boolean;
+}
+
+/** Places an existing Widget Library Entries table onto this board by reference -- see
+    PlaceWidgetDto for the equivalent on a chart. */
+export interface PlaceEntriesWidgetDto {
+    entriesWidgetId: string;
+    viewId?: string | null;
+    linkedViewWidgetId?: string | null;
     expandable?: boolean;
     mobileExpandable?: boolean;
 }
@@ -274,7 +304,7 @@ export interface UpdateDashboardItemSourceDto {
     sourceId: string;
     /** Cleared when left blank, so the widget falls back to the definition's own label. */
     label?: string | null;
-    /** At most one of these — see AddDashboardItemSourceDto. */
+    /** At most one of these — see CreateAndPlaceWidgetSourceDto. */
     viewId?: string | null;
     linkedViewWidgetId?: string | null;
 }

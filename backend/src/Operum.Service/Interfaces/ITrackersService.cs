@@ -1,6 +1,4 @@
-﻿using Operum.Model.Common;
-using Operum.Model.DTOs.Analytics;
-using Operum.Model.DTOs.Analytics.Requests;
+using Operum.Model.Common;
 using Operum.Model.DTOs.Trackers;
 using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Model.DTOs.Users;
@@ -18,15 +16,10 @@ namespace Operum.Service.Interfaces
         public Task<Result<TrackerDto>> UpdateTracker(string id, UpdateTrackerDto tracker);
         public Task<Result> UpdateDefaultView(string id, string? viewId);
         public Task<Result> DeleteTracker(string id);
-        public Task<Result<List<AnalyticDto>>> GetTrackerAnalytics(string trackerId, string? viewId);
         public Task<Result<List<TrackerCollaboratorDto>>> GetApplicationUserTrackerList(string trackerId);
         public Task<Result> AddUserToTracker(string trackerId, AddUserToTrackerDto addUserToTracker);
         public Task<Result> RemoveUserFromTracker(string trackerId, RemoveUserFromTrackerDto addUserToTracker);
         public Task<Result> UpdateCollaboratorPermissions(string trackerId, UpdateCollaboratorPermissionsDto dto);
-        public Task<Result> AddAnalytic(string trackerId, CreateAnalyticDto addTrackerAnalytic);
-        public Task<Result> UpdateAnalytic(string trackerId, string trackerAnalyticId, UpdateAnalyticDto updateAnalytic);
-        public Task<Result> RemoveAnalytic(string trackerId, string trackerAnalyticId);
-        public Task<Result> ReorderAnalytics(string trackerId, ReorderAnalyticsDto reorderAnalyticsDto);
         public Task<Result> ReorderTrackers(ReorderTrackersDto dto);
     }
 }

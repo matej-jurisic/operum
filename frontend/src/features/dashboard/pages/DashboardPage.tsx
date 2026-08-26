@@ -22,6 +22,7 @@ import { DashboardGrid } from "../components/DashboardGrid";
 import { EditEntriesWidgetModal } from "../components/EditEntriesWidgetModal";
 import { EditTextWidgetModal } from "../components/EditTextWidgetModal";
 import { EditWidgetModal } from "../components/EditWidgetModal";
+import { WidgetsProvider } from "../../widgets/context/WidgetsContext";
 import { DashboardProvider, useDashboard } from "../context/DashboardContext";
 import { DashboardDto, TextWidgetConfig, WidgetTypes } from "../types/DashboardDto";
 
@@ -60,11 +61,12 @@ function DashboardContent({
         widgets,
         isLoading,
         refreshWidgets,
-        addItem,
-        addItemFromAnalytic,
+        createAndPlaceWidget,
+        placeWidget,
         addQuickAddItem,
         addViewItem,
-        addEntriesItem,
+        createAndPlaceEntriesWidget,
+        placeEntriesWidget,
         addHeaderItem,
         addDividerItem,
         addNoteItem,
@@ -239,11 +241,12 @@ function DashboardContent({
                 <AddWidgetModal
                     color={color}
                     onClose={() => setIsAddOpen(false)}
-                    onAdd={addItem}
-                    onAddFromAnalytic={addItemFromAnalytic}
+                    onCreateAndPlaceWidget={createAndPlaceWidget}
+                    onPlaceWidget={placeWidget}
                     onAddQuickAdd={addQuickAddItem}
                     onAddView={addViewItem}
-                    onAddEntries={addEntriesItem}
+                    onCreateAndPlaceEntriesWidget={createAndPlaceEntriesWidget}
+                    onPlaceEntriesWidget={placeEntriesWidget}
                     onAddHeader={addHeaderItem}
                     onAddDivider={addDividerItem}
                     onAddNote={addNoteItem}
@@ -393,19 +396,23 @@ export default function DashboardPage() {
 
     return (
         <>
-            <DashboardProvider
-                key={activeBoard.id}
-                dashboardId={activeBoard.id}
-            >
-                <DashboardContent
-                    boards={boards}
-                    activeBoard={activeBoard}
-                    onSelectBoard={(id) => navigate(`/dashboard/${id}`)}
-                    onCreateBoard={() => setIsCreateOpen(true)}
-                    onEditBoard={() => setIsEditOpen(true)}
-                    onDeleteBoard={() => setIsDeleteOpen(true)}
-                />
-            </DashboardProvider>
+            {/* Widgets so AddWidgetModal's "From Widget Library" step can list them without
+                a fetch of its own -- see PlaceFromLibraryForm. */}
+            <WidgetsProvider>
+                <DashboardProvider
+                    key={activeBoard.id}
+                    dashboardId={activeBoard.id}
+                >
+                    <DashboardContent
+                        boards={boards}
+                        activeBoard={activeBoard}
+                        onSelectBoard={(id) => navigate(`/dashboard/${id}`)}
+                        onCreateBoard={() => setIsCreateOpen(true)}
+                        onEditBoard={() => setIsEditOpen(true)}
+                        onDeleteBoard={() => setIsDeleteOpen(true)}
+                    />
+                </DashboardProvider>
+            </WidgetsProvider>
 
             {createModal}
 
