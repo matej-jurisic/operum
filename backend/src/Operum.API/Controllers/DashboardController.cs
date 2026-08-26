@@ -109,6 +109,14 @@ namespace Operum.API.Controllers
             return GetApiResponse(await dashboardService.SetViewWidgetSelection(dashboardId, itemId, dto));
         }
 
+        // Only how an Entries widget is filtered, and whether it collapses to a button — the
+        // tracker it reads from stays as it was placed.
+        [HttpPut("{dashboardId}/items/{itemId}/entries")]
+        public async Task<IActionResult> UpdateEntriesItem([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] UpdateDashboardEntriesItemDto dto)
+        {
+            return GetApiResponse(await dashboardService.UpdateEntriesItem(dashboardId, itemId, dto));
+        }
+
         [HttpPut("{dashboardId}/items/{itemId}/text")]
         public async Task<IActionResult> SetTextWidgetContent([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] SetTextWidgetContentDto dto)
         {

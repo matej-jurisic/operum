@@ -17,6 +17,7 @@ import {
     DashboardWidgetDto,
     LayoutVariant,
     LayoutVariants,
+    UpdateDashboardEntriesItemDto,
     UpdateDashboardItemDto,
 } from "../types/DashboardDto";
 
@@ -35,6 +36,7 @@ type DashboardContextType = {
     addDividerItem: () => Promise<void>;
     addNoteItem: (dto: AddDashboardNoteItemDto) => Promise<void>;
     updateItem: (itemId: string, dto: UpdateDashboardItemDto) => Promise<void>;
+    updateEntriesItem: (itemId: string, dto: UpdateDashboardEntriesItemDto) => Promise<void>;
     setViewSelection: (itemId: string, viewId: string | null) => Promise<void>;
     setTextContent: (itemId: string, text: string) => Promise<void>;
     removeItem: (itemId: string) => Promise<void>;
@@ -112,6 +114,14 @@ export const DashboardProvider: React.FC<{
         setWidgets(res.data ?? []);
     };
 
+    // Same shape as updateItem: the tracker an Entries widget reads from is fixed, so only
+    // its filter and its expandable flags can change, but a changed filter still changes
+    // what the table shows, so the whole board comes back recomputed.
+    const updateEntriesItem = async (itemId: string, dto: UpdateDashboardEntriesItemDto) => {
+        const res = await dashboardController.updateEntriesItem(dashboardId, itemId, dto);
+        setWidgets(res.data ?? []);
+    };
+
     // The dropdown's own widget re-renders from the response immediately, same as any other
     // widget update, and so does every widget whose source is linked to it — the selection
     // is saved server-side (ViewWidgetConfigDto.ViewId), so this is the same "recompute the
@@ -164,6 +174,7 @@ export const DashboardProvider: React.FC<{
                     ? {
                           ...widget,
                           [key]: {
+                              ...widget[key],
                               x: placement.x,
                               y: placement.y,
                               w: placement.w,
@@ -196,6 +207,7 @@ export const DashboardProvider: React.FC<{
                 addDividerItem,
                 addNoteItem,
                 updateItem,
+                updateEntriesItem,
                 setViewSelection,
                 setTextContent,
                 removeItem,

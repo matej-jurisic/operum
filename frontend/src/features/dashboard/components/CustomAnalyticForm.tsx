@@ -6,7 +6,6 @@ import {
     Paper,
     Select,
     Stack,
-    Text,
     TextInput,
 } from "@mantine/core";
 import { useEffect, useMemo, useState } from "react";
@@ -260,20 +259,14 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
                 disabled={!resultType}
             />
 
-            {rows.length === 1 ? (
+            {rows.length === 1 && (
                 <TextInput
                     label="Name"
-                    description="Shown on the card instead of the calculation's default label"
                     placeholder={selectedCode?.name}
                     maxLength={100}
                     value={name}
                     onChange={(event) => setName(event.currentTarget.value)}
                 />
-            ) : (
-                <Text size="xs" c="dimmed">
-                    Combining trackers names the chart from its series instead of a name
-                    typed here.
-                </Text>
             )}
 
             {rows.map((row, index) => {
@@ -288,10 +281,7 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
                     <Paper key={index} withBorder p="sm" radius="md">
                         <Stack gap="sm">
                             {index > 0 && (
-                                <Group justify="space-between">
-                                    <Text size="xs" c="dimmed">
-                                        Combined with the tracker above
-                                    </Text>
+                                <Group justify="flex-end">
                                     <ActionIcon
                                         size="sm"
                                         variant="subtle"

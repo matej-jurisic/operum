@@ -109,7 +109,6 @@ export default function AnalyticFormDialog({
 
                     <TextInput
                         label="Name"
-                        description="Shown on the card instead of the calculation's default label"
                         placeholder={code.name}
                         maxLength={100}
                         {...form.getInputProps("name")}

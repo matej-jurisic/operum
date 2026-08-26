@@ -19,6 +19,7 @@ import BoardActions from "../components/BoardActions";
 import BoardFormModal from "../components/BoardFormModal";
 import BoardSwitcher from "../components/BoardSwitcher";
 import { DashboardGrid } from "../components/DashboardGrid";
+import { EditEntriesWidgetModal } from "../components/EditEntriesWidgetModal";
 import { EditTextWidgetModal } from "../components/EditTextWidgetModal";
 import { EditWidgetModal } from "../components/EditWidgetModal";
 import { DashboardProvider, useDashboard } from "../context/DashboardContext";
@@ -68,6 +69,7 @@ function DashboardContent({
         addDividerItem,
         addNoteItem,
         updateItem,
+        updateEntriesItem,
         setViewSelection,
         setTextContent,
         removeItem,
@@ -185,9 +187,10 @@ function DashboardContent({
                 />
             )}
 
-            {/* A Header/Note widget's text lives in the widget the board already holds, so
-                its edit dialog needs no fetch of its own; every other editable kind
-                (Analytic today) still goes through EditWidgetModal's own load. */}
+            {/* A Header/Note widget's text and an Entries widget's own settings both live in
+                the widget the board already holds, so neither edit dialog needs a fetch of
+                its own; an Analytic widget's sources still go through EditWidgetModal's own
+                load, since those aren't part of the board's widget list. */}
             {editingItemId && editingWidget && editingWidget.type === WidgetTypes.Header && (
                 <EditTextWidgetModal
                     itemId={editingItemId}
@@ -210,10 +213,20 @@ function DashboardContent({
                 />
             )}
 
+            {editingItemId && editingWidget && editingWidget.type === WidgetTypes.Entries && (
+                <EditEntriesWidgetModal
+                    itemId={editingItemId}
+                    color={color}
+                    onClose={closeEditing}
+                    onSave={updateEntriesItem}
+                />
+            )}
+
             {editingItemId &&
                 editingWidget &&
                 editingWidget.type !== WidgetTypes.Header &&
-                editingWidget.type !== WidgetTypes.Note && (
+                editingWidget.type !== WidgetTypes.Note &&
+                editingWidget.type !== WidgetTypes.Entries && (
                     <EditWidgetModal
                         itemId={editingItemId}
                         color={color}

@@ -1,4 +1,4 @@
-import { Checkbox, Stack } from "@mantine/core";
+import { Checkbox, Stack, Text } from "@mantine/core";
 
 interface Props {
     expandable: boolean;
@@ -22,15 +22,16 @@ export function ExpandableOptionFields({
 }: Props) {
     return (
         <Stack gap="xs">
+            <Text size="sm" c="dimmed">
+                Show as a small button that opens the full widget in a popup
+            </Text>
             <Checkbox
                 label="Expandable on desktop"
-                description="Show as a small button that opens the full widget in a popup"
                 checked={expandable}
                 onChange={(event) => onExpandableChange(event.currentTarget.checked)}
             />
             <Checkbox
                 label="Expandable on mobile"
-                description="Show as a small button that opens the full widget in a popup"
                 checked={mobileExpandable}
                 onChange={(event) => onMobileExpandableChange(event.currentTarget.checked)}
             />

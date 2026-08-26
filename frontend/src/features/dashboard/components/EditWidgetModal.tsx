@@ -136,9 +136,7 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
                             <TextInput
                                 label={isCombined ? "Series name" : "Name"}
                                 description={
-                                    isCombined
-                                        ? "Names this series in the chart's legend"
-                                        : "Shown on the card instead of the calculation's default label"
+                                    isCombined ? "Names this series in the chart's legend" : undefined
                                 }
                                 placeholder={row.source.name}
                                 maxLength={100}

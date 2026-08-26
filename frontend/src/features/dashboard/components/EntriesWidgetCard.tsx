@@ -19,6 +19,9 @@ interface Props {
     color: string | undefined;
     isConfiguring: boolean;
     onRemove?: (itemId: string) => void;
+    /** Opens the widget's own edit dialog — which view it reads through, and whether it's
+        expandable. The rows it shows stay read-only regardless. */
+    onEdit?: (itemId: string) => void;
 }
 
 // A board widget is a window onto the tracker, not the tracker's own paginated table — this
@@ -28,7 +31,8 @@ const ENTRIES_LIMIT = 25;
 /**
  * A read-only table of one tracker's entries. Everything the tracker page's own entries
  * table does — editing, selecting, deleting — is deliberately left out: this card is a
- * window onto the data, not another place to change it.
+ * window onto the data, not another place to change it. onEdit is the widget's own
+ * settings instead (its view, its expandable flags) — see EditEntriesWidgetModal.
  *
  * Which columns to show comes from the board (entriesWidget.columns, following the view
  * the same way its filter does); only the rows themselves are fetched here, through the
@@ -40,6 +44,7 @@ export function EntriesWidgetCard({
     color,
     isConfiguring,
     onRemove,
+    onEdit,
 }: Props) {
     const layout = useCardLayout(true);
     const [entries, setEntries] = useState<EntryDto[]>([]);
@@ -89,6 +94,7 @@ export function EntriesWidgetCard({
                     isConfiguring={isConfiguring}
                     analyticId={widgetId}
                     onRemove={onRemove}
+                    onEdit={onEdit}
                 />
 
                 {!entriesWidget ? (

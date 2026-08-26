@@ -293,6 +293,18 @@ export interface UpdateDashboardItemDto {
     sources: UpdateDashboardItemSourceDto[];
 }
 
+/**
+ * Edits an Entries widget in place: only how it's filtered, and whether it collapses to a
+ * button on each grid. The tracker it reads from is fixed at add time — see
+ * UpdateDashboardItemDto for the equivalent rule on Analytic widgets.
+ */
+export interface UpdateDashboardEntriesItemDto {
+    viewId?: string | null;
+    linkedViewWidgetId?: string | null;
+    expandable: boolean;
+    mobileExpandable: boolean;
+}
+
 /** Changes what a WidgetTypes.View item's dropdown is currently set to. Persisted on the
     item itself, so every source linked to it re-filters from here on — not just this
     browser session. */

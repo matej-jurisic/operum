@@ -26,9 +26,9 @@ interface Props {
     color: string | undefined;
     isConfiguring: boolean;
     onRemove?: (itemId: string) => void;
-    /** Opens the widget's edit dialog. Analytic, Header and Note widgets only: a View
-        widget's dropdown and a QuickAdd widget's tracker are instead fixed at add time or
-        changed on the card itself, and a Divider has nothing to edit at all. */
+    /** Opens the widget's edit dialog. Analytic, Entries, Header and Note widgets only: a
+        View widget's dropdown and a QuickAdd widget's tracker are instead fixed at add time
+        or changed on the card itself, and a Divider has nothing to edit at all. */
     onEdit?: (itemId: string) => void;
     onEntryClick?: (entryId: string) => void;
     onViewSelect?: (itemId: string, viewId: string | null) => void;
@@ -158,6 +158,7 @@ export function DashboardWidget({
                         color={entriesColor}
                         isConfiguring={isConfiguring}
                         onRemove={onRemove}
+                        onEdit={onEdit}
                         renderExpanded={() => (
                             // EntriesWidgetCard always fills its container's height; the
                             // grid cell normally supplies that, so the modal has to here.
@@ -181,6 +182,7 @@ export function DashboardWidget({
                     color={color}
                     isConfiguring={isConfiguring}
                     onRemove={onRemove}
+                    onEdit={onEdit}
                 />
             );
         }

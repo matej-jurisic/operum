@@ -891,6 +891,44 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(await BuildWidgets(dashboard));
         }
 
+        // Edits an Entries widget in place: only how it's filtered, and whether it collapses
+        // to a button on each grid — the tracker it reads from is fixed at add time, the same
+        // as an Analytic widget's definition is (see UpdateDashboardItem). Returns the whole
+        // board recomputed, the same as SetViewWidgetSelection, since a changed view changes
+        // what the table shows.
+        public async Task<Result<List<DashboardWidgetDto>>> UpdateEntriesItem(string dashboardId, string itemId, UpdateDashboardEntriesItemDto dto)
+        {
+            var dashboard = await GetUserDashboard(dashboardId);
+            if (dashboard == null)
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
+
+            var item = dashboard.Items.FirstOrDefault(i => i.Id == itemId && i.Type == DashboardWidgetTypes.Entries);
+            var config = item != null ? TryParseEntriesConfig(item.Config) : null;
+            if (item == null || config == null)
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("entries widget"));
+
+            if (!string.IsNullOrEmpty(dto.ViewId))
+            {
+                var exists = await db.Views.AnyAsync(v => v.Id == dto.ViewId && v.TrackerId == config.TrackerId);
+                if (!exists)
+                    return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("view"));
+            }
+
+            if (!string.IsNullOrEmpty(dto.LinkedViewWidgetId) &&
+                !IsLinkableViewWidget(dashboard, dto.LinkedViewWidgetId, config.TrackerId))
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("view widget for this tracker"));
+
+            config.ViewId = string.IsNullOrEmpty(dto.ViewId) ? null : dto.ViewId;
+            config.LinkedViewWidgetId = string.IsNullOrEmpty(dto.LinkedViewWidgetId) ? null : dto.LinkedViewWidgetId;
+            item.Config = JsonSerializer.Serialize(config, ConfigJsonOptions);
+            item.Expandable = dto.Expandable;
+            item.MobileExpandable = dto.MobileExpandable;
+
+            await db.SaveChangesAsync();
+
+            return Result.Success(await BuildWidgets(dashboard));
+        }
+
         // Changes what a Header or Note widget's text reads, persisted the same way a View
         // widget's selection is. Unlike that one, nothing else on the board ever depends on
         // this widget's Config, so there's no need to recompute the whole board back — the
@@ -1078,10 +1116,7 @@ namespace Operum.Service.Services.Dashboards
         // as a warning rather than rejected.
         private static ComposedChartAnalyticDto BuildComposedResult(List<ResolvedSource> resolvedSources, bool matchedValuesOnly)
         {
-            var composed = new ComposedChartAnalyticDto
-            {
-                Name = "Combined chart"
-            };
+            var composed = new ComposedChartAnalyticDto();
 
             foreach (var resolved in resolvedSources)
             {
@@ -1115,6 +1150,10 @@ namespace Operum.Service.Services.Dashboards
 
                 if (series != null) composed.Series.Add(series);
             }
+
+            // No name of its own: the chart is titled from its series, in the same order
+            // they're plotted, so renaming a source's series also renames the widget.
+            composed.Name = string.Join(" - ", composed.Series.Select(s => s.Label));
 
             var hasMismatchedXTypes = composed.Series.Select(s => s.XField.Type).Distinct().Count() > 1;
             if (hasMismatchedXTypes)
