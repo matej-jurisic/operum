@@ -10,6 +10,7 @@ import QuickAddEntryDialog from "../../entries/components/QuickAddEntryDialog";
 import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
 import { trackersController } from "../../trackers/api/trackersController";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
+import { useDashboard } from "../context/DashboardContext";
 import {
   QuickAddTrackerDto,
   QuickAddWidgetConfig,
@@ -43,6 +44,7 @@ export function QuickAddWidgetCard({
 }: Props) {
   const layout = useCardLayout(true);
   const [dialogTracker, setDialogTracker] = useState<TrackerDto>();
+  const { refreshWidgets } = useDashboard();
 
   const trackerColor = tracker?.color || color;
   const Icon = resolveTrackerIcon(tracker?.icon);
@@ -106,6 +108,7 @@ export function QuickAddWidgetCard({
         <QuickAddEntryDialog
           tracker={dialogTracker}
           onClose={() => setDialogTracker(undefined)}
+          onCreated={refreshWidgets}
         />
       )}
     </Paper>

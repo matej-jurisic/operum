@@ -10,6 +10,46 @@ const GAP = 12;
 const VIEWPORT_MARGIN = 8;
 
 /**
+ * One axis of the tooltip's placement: decides whether the box sits before or after the
+ * point, then clamps it to fit the window.
+ *
+ * Whichever side the point has *more* room on wins the tie-break when neither side has a
+ * full `size` of space -- that keeps the box anchored near the point it's describing. The
+ * alternative (always trying one side first, falling back to the other, then clamping
+ * whatever comes out to the window bounds) is what let a wide box -- a long category name,
+ * say -- get flipped to a heavily negative position and then clamped all the way across to
+ * the opposite edge of the screen instead of just sliding over enough to fit.
+ */
+function pickPosition({
+    point,
+    size,
+    gap,
+    margin,
+    windowSize,
+    preferBefore = false,
+}: {
+    point: number;
+    size: number;
+    gap: number;
+    margin: number;
+    windowSize: number;
+    preferBefore?: boolean;
+}): number {
+    const spaceBefore = point - gap - margin;
+    const spaceAfter = windowSize - point - gap - margin;
+
+    const useBefore = preferBefore
+        ? spaceBefore >= size || spaceAfter < size
+        : spaceAfter < size && spaceBefore >= spaceAfter;
+
+    const raw = useBefore ? point - gap - size : point + gap;
+    return Math.min(
+        Math.max(raw, margin),
+        Math.max(margin, windowSize - size - margin),
+    );
+}
+
+/**
  * A chart tooltip normally lives inside the chart's own DOM, absolutely positioned and
  * clamped to stay within the chart's box. Dashboard widgets clip overflow (DashboardGrid.css)
  * so a card smaller than the tooltip needs chops off whatever spills past the widget's edge
@@ -46,25 +86,23 @@ export function PortalTooltip({
         const pointX = containerRect.left + coordinate.x;
         const pointY = containerRect.top + coordinate.y;
 
-        // Anchor to whichever side of the point still has room, so the box grows away
-        // from the nearest window edge instead of off it.
-        let left = pointX + GAP;
-        if (left + width + VIEWPORT_MARGIN > window.innerWidth) {
-            left = pointX - GAP - width;
-        }
-        left = Math.min(
-            Math.max(left, VIEWPORT_MARGIN),
-            Math.max(VIEWPORT_MARGIN, window.innerWidth - width - VIEWPORT_MARGIN),
-        );
-
-        let top = pointY - height - GAP;
-        if (top < VIEWPORT_MARGIN) {
-            top = pointY + GAP;
-        }
-        top = Math.min(
-            Math.max(top, VIEWPORT_MARGIN),
-            Math.max(VIEWPORT_MARGIN, window.innerHeight - height - VIEWPORT_MARGIN),
-        );
+        const left = pickPosition({
+            point: pointX,
+            size: width,
+            gap: GAP,
+            margin: VIEWPORT_MARGIN,
+            windowSize: window.innerWidth,
+        });
+        const top = pickPosition({
+            point: pointY,
+            size: height,
+            gap: GAP,
+            margin: VIEWPORT_MARGIN,
+            windowSize: window.innerHeight,
+            // Vertically the tooltip prefers sitting above the point (like a speech
+            // bubble), only dropping below it when there's more room that way.
+            preferBefore: true,
+        });
 
         setStyle({
             position: "fixed",

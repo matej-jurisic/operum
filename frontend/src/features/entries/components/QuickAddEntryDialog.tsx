@@ -8,9 +8,12 @@ import { GetStringValue } from "./EntryFormDialog";
 interface Props {
     tracker: TrackerDto;
     onClose: () => void;
+    /** Fired after the entry is actually created, separately from onClose so callers can
+        tell a successful add apart from the dialog just being dismissed. */
+    onCreated?: () => void;
 }
 
-export default function QuickAddEntryDialog({ tracker, onClose }: Props) {
+export default function QuickAddEntryDialog({ tracker, onClose, onCreated }: Props) {
     const inputtableFields = tracker.fields.filter((f) => !f.isCalculated);
 
     const form = useForm<{ [key: string]: unknown }>({ initialValues: {} });
@@ -22,6 +25,7 @@ export default function QuickAddEntryDialog({ tracker, onClose }: Props) {
         });
         await entriesController.createEntry(tracker.id, fieldValues);
         form.reset();
+        onCreated?.();
         onClose();
     };
 
