@@ -39,6 +39,13 @@ namespace Operum.Model.Models
         public int MobileW { get; set; }
         public int MobileH { get; set; }
 
+        // Whether this item renders as a small button on the wide grid that opens the real
+        // widget in a modal instead of drawing it inline. Analytic/Entries widgets only —
+        // kept apart from the narrow grid's copy below the same way every other layout
+        // property is, so a chart can be collapsed on the phone but drawn in full on desktop.
+        public bool Expandable { get; set; }
+        public bool MobileExpandable { get; set; }
+
         // The analytic definition every source of this item is calculated with. It lives
         // on the item rather than on each source so a multi-tracker chart can only ever
         // combine series that were produced the same way.

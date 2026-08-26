@@ -6,6 +6,7 @@ import { viewsController } from "../../views/api/viewsController";
 import { ViewDto } from "../../views/types/ViewDto";
 import { useDashboard } from "../context/DashboardContext";
 import { AddDashboardEntriesItemDto } from "../types/DashboardDto";
+import { ExpandableOptionFields } from "./ExpandableOptionFields";
 import { linkableViewWidgets, SourceViewSelect } from "./SourceViewSelect";
 
 interface Props {
@@ -26,6 +27,8 @@ export function EntriesWidgetForm({ onBack, onAdd }: Props) {
     const [views, setViews] = useState<ViewDto[]>([]);
     const [viewId, setViewId] = useState<string | null>(null);
     const [linkedViewWidgetId, setLinkedViewWidgetId] = useState<string | null>(null);
+    const [expandable, setExpandable] = useState(false);
+    const [mobileExpandable, setMobileExpandable] = useState(false);
     const [isLoadingTracker, setIsLoadingTracker] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -51,7 +54,7 @@ export function EntriesWidgetForm({ onBack, onAdd }: Props) {
     const handleSubmit = async () => {
         if (!trackerId) return;
         setIsSubmitting(true);
-        await onAdd({ trackerId, viewId, linkedViewWidgetId });
+        await onAdd({ trackerId, viewId, linkedViewWidgetId, expandable, mobileExpandable });
         setIsSubmitting(false);
     };
 
@@ -78,6 +81,13 @@ export function EntriesWidgetForm({ onBack, onAdd }: Props) {
                 }}
                 disabled={!trackerId || isLoadingTracker}
                 placeholder={isLoadingTracker ? "Loading..." : "All entries"}
+            />
+
+            <ExpandableOptionFields
+                expandable={expandable}
+                mobileExpandable={mobileExpandable}
+                onExpandableChange={setExpandable}
+                onMobileExpandableChange={setMobileExpandable}
             />
 
             <Group justify="flex-end" mt="sm">

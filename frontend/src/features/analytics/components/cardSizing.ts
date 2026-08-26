@@ -92,6 +92,16 @@ export const chartHeight = (fillHeight?: boolean, isMobile?: boolean) =>
     fillHeight ? "100%" : isMobile ? MOBILE_CHART_HEIGHT : CHART_HEIGHT;
 
 /**
+ * On a touchscreen, Recharts treats a scroll-past `touchmove` the same as a mouse hover
+ * and pops the tooltip up mid-scroll — annoying on a dashboard where most charts are just
+ * being scrolled past. Tapping a chart still fires a real `click` event, so switching the
+ * trigger to "click" on mobile keeps that deliberate tap working while dropping the
+ * incidental one from a scroll gesture. Desktop keeps the hover its mouse affords.
+ */
+export const chartTooltipTrigger = (isMobile?: boolean) =>
+    isMobile ? "click" : "hover";
+
+/**
  * Like `useElementSize`, but takes its first measurement synchronously in a layout
  * effect instead of waiting on a `ResizeObserver` callback. A `ResizeObserver`'s first
  * notification lands after the browser has already painted the mount frame, so anything

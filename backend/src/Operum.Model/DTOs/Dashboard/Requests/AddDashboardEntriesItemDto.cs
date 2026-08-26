@@ -12,6 +12,11 @@ namespace Operum.Model.DTOs.Dashboard.Requests
         public string TrackerId { get; set; } = string.Empty;
         public string? ViewId { get; set; }
         public string? LinkedViewWidgetId { get; set; }
+
+        // Whether the widget draws as a small button that opens the table in a modal
+        // instead of inline, independently on each of the board's two grids.
+        public bool Expandable { get; set; }
+        public bool MobileExpandable { get; set; }
     }
 
     public class AddDashboardEntriesItemDtoValidator : AbstractValidator<AddDashboardEntriesItemDto>

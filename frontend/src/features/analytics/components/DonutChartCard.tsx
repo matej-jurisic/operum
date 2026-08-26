@@ -1,13 +1,14 @@
 import { DonutChart } from "@mantine/charts";
 import { Box, em, Paper, Stack, Text, Tooltip } from "@mantine/core";
 import { useElementSize, useMediaQuery } from "@mantine/hooks";
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { DonutChartAnaylticDto } from "../types/AnalyticDto";
 import { AnalyticCardHeader } from "./AnalyticCardHeader";
 import {
     cardBodyProps,
     cardShellProps,
     chartHeight,
+    chartTooltipTrigger,
     useCardLayout,
 } from "./cardSizing";
 import { createDonutTooltipContent } from "./ChartFormatters";
@@ -47,7 +48,6 @@ export function DonutChartCard({
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
     const layout = useCardLayout(fillHeight);
     const plot = useElementSize<HTMLDivElement>();
-    const chartRef = useRef<HTMLDivElement>(null);
 
     const { positivePoints, excludedPoints } = useMemo(() => {
         const positive = analytic.points.filter((x) => (x.value ?? 0) > 0);
@@ -157,7 +157,6 @@ export function DonutChartCard({
                         }}
                     >
                         <DonutChart
-                            ref={chartRef}
                             withLabelsLine={donut.withLabels}
                             w={"100%"}
                             withLabels={donut.withLabels}
@@ -166,10 +165,8 @@ export function DonutChartCard({
                             paddingAngle={2}
                             tooltipDataSource="segment"
                             tooltipProps={{
-                                content: createDonutTooltipContent(
-                                    analytic,
-                                    chartRef,
-                                ),
+                                trigger: chartTooltipTrigger(isMobile),
+                                content: createDonutTooltipContent(analytic),
                             }}
                             labelsType="percent"
                             tooltipAnimationDuration={200}

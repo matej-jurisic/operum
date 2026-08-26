@@ -27,6 +27,11 @@ namespace Operum.Model.DTOs.Dashboard.Requests
     // rather than the one the user put there — that is what adding a new widget is for.
     public class UpdateDashboardItemDto
     {
+        // Whether the widget draws as a small button that opens the chart in a modal
+        // instead of inline, independently on each of the board's two grids.
+        public bool Expandable { get; set; }
+        public bool MobileExpandable { get; set; }
+
         // Every source of the item, named once each: the payload is the whole widget, so a
         // label or a view left out means "cleared" rather than "unchanged", the same way an
         // entry's payload is the whole entry.

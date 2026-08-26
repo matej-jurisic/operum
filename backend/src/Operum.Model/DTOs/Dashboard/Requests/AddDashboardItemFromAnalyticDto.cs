@@ -18,6 +18,11 @@ namespace Operum.Model.DTOs.Dashboard.Requests
         // DashboardItemSourceRequestDto.
         public string? ViewId { get; set; }
         public string? LinkedViewWidgetId { get; set; }
+
+        // Whether the widget draws as a small button that opens the chart in a modal
+        // instead of inline, independently on each of the board's two grids.
+        public bool Expandable { get; set; }
+        public bool MobileExpandable { get; set; }
     }
 
     public class AddDashboardItemFromAnalyticDtoValidator : AbstractValidator<AddDashboardItemFromAnalyticDto>

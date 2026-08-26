@@ -397,6 +397,8 @@ namespace Operum.Service.Services.Dashboards
                 ResultType = dto.ResultType,
                 Code = dto.Code,
                 MatchedValuesOnly = dto.MatchedValuesOnly,
+                Expandable = dto.Expandable,
+                MobileExpandable = dto.MobileExpandable,
                 Sources = sources
             };
 
@@ -460,6 +462,8 @@ namespace Operum.Service.Services.Dashboards
             {
                 ResultType = analytic.ResultType,
                 Code = analytic.Code,
+                Expandable = dto.Expandable,
+                MobileExpandable = dto.MobileExpandable,
                 Sources =
                 [
                     new DashboardItemSourceRequestDto
@@ -675,7 +679,9 @@ namespace Operum.Service.Services.Dashboards
                 MobileX = 0,
                 MobileY = nextMobileRow,
                 MobileW = DashboardGrid.MobileColumns,
-                MobileH = height
+                MobileH = height,
+                Expandable = dto.Expandable,
+                MobileExpandable = dto.MobileExpandable
             };
 
             db.DashboardItems.Add(item);
@@ -847,6 +853,9 @@ namespace Operum.Service.Services.Dashboards
                 source.ViewId = string.IsNullOrEmpty(sourceDto.ViewId) ? null : sourceDto.ViewId;
                 source.LinkedViewWidgetId = string.IsNullOrEmpty(sourceDto.LinkedViewWidgetId) ? null : sourceDto.LinkedViewWidgetId;
             }
+
+            item.Expandable = dto.Expandable;
+            item.MobileExpandable = dto.MobileExpandable;
 
             await db.SaveChangesAsync();
 
@@ -1161,7 +1170,8 @@ namespace Operum.Service.Services.Dashboards
             X = i.X,
             Y = i.Y,
             W = i.W,
-            H = i.H
+            H = i.H,
+            Expandable = i.Expandable
         };
 
         private static DashboardWidgetLayoutDto MapToMobileLayoutDto(DashboardItem i) => new()
@@ -1169,7 +1179,8 @@ namespace Operum.Service.Services.Dashboards
             X = i.MobileX,
             Y = i.MobileY,
             W = i.MobileW,
-            H = i.MobileH
+            H = i.MobileH,
+            Expandable = i.MobileExpandable
         };
 
         private static DashboardWidgetDto MapToWidgetDto(

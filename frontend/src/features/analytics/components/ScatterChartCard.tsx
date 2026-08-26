@@ -1,7 +1,6 @@
 import { ScatterChart } from "@mantine/charts";
 import { em, Paper, Stack } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { useRef } from "react";
 import { ScatterChartAnalyticDto } from "../types/AnalyticDto";
 import { AnalyticCardHeader } from "./AnalyticCardHeader";
 import {
@@ -12,6 +11,7 @@ import {
     cardBodyProps,
     cardShellProps,
     chartHeight,
+    chartTooltipTrigger,
     useCardLayout,
 } from "./cardSizing";
 
@@ -35,7 +35,6 @@ export function ScatterChartCard({
 }: ScatterChartCardProps) {
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
     const layout = useCardLayout(fillHeight);
-    const chartRef = useRef<HTMLDivElement>(null);
 
     return (
         <Paper
@@ -56,7 +55,6 @@ export function ScatterChartCard({
                     onEdit={onEdit}
                 />
                 <ScatterChart
-                    ref={chartRef}
                     tooltipAnimationDuration={200}
                     gridAxis="x"
                     data={[
@@ -77,10 +75,10 @@ export function ScatterChartCard({
                         tickFormatter: getAxisFormatter(analytic.yField.type),
                     }}
                     tooltipProps={{
+                        trigger: chartTooltipTrigger(isMobile),
                         content: createScatterTooltipContent(
                             analytic,
                             color ?? "blue",
-                            chartRef,
                         ),
                     }}
                     dataKey={{ x: "x", y: "y" }}

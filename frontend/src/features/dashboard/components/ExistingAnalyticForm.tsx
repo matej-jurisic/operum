@@ -8,6 +8,7 @@ import { viewsController } from "../../views/api/viewsController";
 import { ViewDto } from "../../views/types/ViewDto";
 import { useDashboard } from "../context/DashboardContext";
 import { AddDashboardItemFromAnalyticDto } from "../types/DashboardDto";
+import { ExpandableOptionFields } from "./ExpandableOptionFields";
 import { linkableViewWidgets, SourceViewSelect } from "./SourceViewSelect";
 
 interface Props {
@@ -30,6 +31,8 @@ export function ExistingAnalyticForm({ onBack, onAdd }: Props) {
     const [views, setViews] = useState<ViewDto[]>([]);
     const [viewId, setViewId] = useState<string | null>(null);
     const [linkedViewWidgetId, setLinkedViewWidgetId] = useState<string | null>(null);
+    const [expandable, setExpandable] = useState(false);
+    const [mobileExpandable, setMobileExpandable] = useState(false);
     const [isLoadingTracker, setIsLoadingTracker] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -65,6 +68,8 @@ export function ExistingAnalyticForm({ onBack, onAdd }: Props) {
             analyticId,
             viewId: linkedViewWidgetId ? null : viewId,
             linkedViewWidgetId,
+            expandable,
+            mobileExpandable,
         });
         setIsSubmitting(false);
     };
@@ -135,6 +140,13 @@ export function ExistingAnalyticForm({ onBack, onAdd }: Props) {
                     !trackerId ||
                     (views.length === 0 && linkableWidgets.length === 0)
                 }
+            />
+
+            <ExpandableOptionFields
+                expandable={expandable}
+                mobileExpandable={mobileExpandable}
+                onExpandableChange={setExpandable}
+                onMobileExpandableChange={setMobileExpandable}
             />
 
             <Group justify="flex-end" mt="sm">

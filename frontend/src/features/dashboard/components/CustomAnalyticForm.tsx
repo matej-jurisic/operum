@@ -27,6 +27,7 @@ import { viewsController } from "../../views/api/viewsController";
 import { ViewDto } from "../../views/types/ViewDto";
 import { useDashboard } from "../context/DashboardContext";
 import { AddDashboardItemDto } from "../types/DashboardDto";
+import { ExpandableOptionFields } from "./ExpandableOptionFields";
 import { linkableViewWidgets, SourceViewSelect } from "./SourceViewSelect";
 
 interface Props {
@@ -87,6 +88,8 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
     const [name, setName] = useState("");
     const [rows, setRows] = useState<TrackerRow[]>([makeEmptyRow()]);
     const [matchedValuesOnly, setMatchedValuesOnly] = useState(false);
+    const [expandable, setExpandable] = useState(false);
+    const [mobileExpandable, setMobileExpandable] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
@@ -207,6 +210,8 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
             resultType: resultType!,
             code: code!,
             matchedValuesOnly: rows.length > 1 && matchedValuesOnly,
+            expandable,
+            mobileExpandable,
             sources: rows.map((row, index) => ({
                 trackerId: row.trackerId!,
                 analyticFields: Object.entries(row.fieldMappings)
@@ -372,6 +377,13 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
                     Add another tracker
                 </Button>
             )}
+
+            <ExpandableOptionFields
+                expandable={expandable}
+                mobileExpandable={mobileExpandable}
+                onExpandableChange={setExpandable}
+                onMobileExpandableChange={setMobileExpandable}
+            />
 
             <Group justify="flex-end" mt="sm">
                 <Button variant="default" onClick={onBack}>

@@ -1,7 +1,6 @@
 import { BarChart } from "@mantine/charts";
 import { em, Paper, Stack } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { useRef } from "react";
 import { BarChartAnalyticDto } from "../types/AnalyticDto";
 import { AnalyticCardHeader } from "./AnalyticCardHeader";
 import {
@@ -12,6 +11,7 @@ import {
     cardBodyProps,
     cardShellProps,
     chartHeight,
+    chartTooltipTrigger,
     useCardLayout,
 } from "./cardSizing";
 
@@ -35,7 +35,6 @@ export function BarChartCard({
 }: Props) {
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
     const layout = useCardLayout(fillHeight);
-    const chartRef = useRef<HTMLDivElement>(null);
 
     return (
         <Paper
@@ -56,7 +55,6 @@ export function BarChartCard({
                     onEdit={onEdit}
                 />
                 <BarChart
-                    ref={chartRef}
                     h={chartHeight(fillHeight, isMobile)}
                     {...cardBodyProps(fillHeight)}
                     data={analytic.points}
@@ -82,10 +80,10 @@ export function BarChartCard({
                             : undefined,
                     }}
                     tooltipProps={{
+                        trigger: chartTooltipTrigger(isMobile),
                         content: createBarChartTooltipContent(
                             analytic,
                             color ?? "blue",
-                            chartRef,
                         ),
                     }}
                 />

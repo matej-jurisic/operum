@@ -9,6 +9,9 @@ namespace Operum.Model.DTOs.Dashboard
         public int Y { get; set; }
         public int W { get; set; }
         public int H { get; set; }
+        // Analytic/Entries widgets only: whether this grid draws the widget as a small
+        // button that opens the real thing in a modal instead of inline.
+        public bool Expandable { get; set; }
     }
 
     // The tracker summary a QuickAdd widget's button needs — resolved server-side from

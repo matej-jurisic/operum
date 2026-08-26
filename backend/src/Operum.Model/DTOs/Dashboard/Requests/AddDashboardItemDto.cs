@@ -38,6 +38,11 @@ namespace Operum.Model.DTOs.Dashboard.Requests
         // so the series line up over the same range. A single-source item ignores it.
         public bool MatchedValuesOnly { get; set; }
 
+        // Whether the widget draws as a small button that opens the chart in a modal
+        // instead of inline, independently on each of the board's two grids.
+        public bool Expandable { get; set; }
+        public bool MobileExpandable { get; set; }
+
         [Required, MinLength(1)]
         public List<DashboardItemSourceRequestDto> Sources { get; set; } = [];
     }

@@ -210,6 +210,7 @@ export function DashboardGrid({
               )}
               <DashboardWidget
                 widget={widget}
+                variant={variant}
                 color={color}
                 isConfiguring={isConfiguring}
                 onRemove={onRemove}

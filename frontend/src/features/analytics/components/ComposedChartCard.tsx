@@ -1,7 +1,7 @@
 import { CompositeChart } from "@mantine/charts";
 import { Box, em, Paper, Stack, Tooltip } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { MdWarningAmber } from "react-icons/md";
 import { ComposedChartAnalyticDto } from "../types/AnalyticDto";
 import { AnalyticCardHeader } from "./AnalyticCardHeader";
@@ -9,6 +9,7 @@ import {
     cardBodyProps,
     cardShellProps,
     chartHeight,
+    chartTooltipTrigger,
     useCardLayout,
 } from "./cardSizing";
 import { createComposedTooltipContent, getAxisFormatter } from "./ChartFormatters";
@@ -38,7 +39,6 @@ export function ComposedChartCard({
 }: Props) {
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
     const layout = useCardLayout(fillHeight);
-    const chartRef = useRef<HTMLDivElement>(null);
 
     // Union of every series' x labels, sorted. Sources may bucket by different
     // semantics (dates vs. category names, monthly vs. yearly, ...) — see the
@@ -104,7 +104,6 @@ export function ComposedChartCard({
                     }
                 />
                 <CompositeChart
-                    ref={chartRef}
                     tooltipAnimationDuration={200}
                     gridAxis="x"
                     data={data}
@@ -117,7 +116,8 @@ export function ComposedChartCard({
                     series={chartSeries}
                     xAxisProps={{ tickFormatter: xAxisFormatter }}
                     tooltipProps={{
-                        content: createComposedTooltipContent(analytic, chartRef),
+                        trigger: chartTooltipTrigger(isMobile),
+                        content: createComposedTooltipContent(analytic),
                     }}
                 />
             </Stack>

@@ -17,6 +17,7 @@ import {
     UpdateDashboardItemDto,
     WidgetTypes,
 } from "../types/DashboardDto";
+import { ExpandableOptionFields } from "./ExpandableOptionFields";
 import { linkableViewWidgets, SourceViewSelect } from "./SourceViewSelect";
 
 interface Props {
@@ -44,6 +45,8 @@ interface SourceRow {
 export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
     const { dashboardId, widgets } = useDashboard();
     const [rows, setRows] = useState<SourceRow[] | null>(null);
+    const [expandable, setExpandable] = useState(false);
+    const [mobileExpandable, setMobileExpandable] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // The board's render endpoint carries the calculated charts, not the definitions
@@ -80,6 +83,8 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
                     views: viewsByTracker.get(source.trackerId) ?? [],
                 })),
             );
+            setExpandable(item.layout.expandable);
+            setMobileExpandable(item.mobileLayout.expandable);
         };
 
         load();
@@ -102,6 +107,8 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
             // Every source, every time: the payload stands for the whole widget, so a
             // name or a view cleared here has to arrive as cleared rather than missing.
             await onSave(itemId, {
+                expandable,
+                mobileExpandable,
                 sources: rows.map((row) => ({
                     sourceId: row.source.id,
                     label: row.label.trim() || null,
@@ -191,6 +198,13 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
                             </Stack>
                         );
                     })}
+
+                    <ExpandableOptionFields
+                        expandable={expandable}
+                        mobileExpandable={mobileExpandable}
+                        onExpandableChange={setExpandable}
+                        onMobileExpandableChange={setMobileExpandable}
+                    />
 
                     <Group justify="flex-end" mt="sm">
                         <Button variant="default" onClick={onClose}>

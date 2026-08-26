@@ -75,6 +75,16 @@ export interface WidgetLayoutDto {
     h: number;
 }
 
+/** A widget's placement as the board reads it back: WidgetLayoutDto plus whether this grid
+    draws it as a small button that opens the real thing in a modal instead of inline
+    (Analytic/Entries widgets only). Kept apart from WidgetLayoutDto itself because the
+    drag/resize save path (DashboardLayoutItemDto below) only ever writes x/y/w/h back —
+    expandable is set from the widget's own create/edit form, never from arranging the
+    board. */
+export interface DashboardWidgetLayoutDto extends WidgetLayoutDto {
+    expandable: boolean;
+}
+
 /**
  * Which of a board's two grids an arrangement belongs to. A placement means nothing
  * without the column count it was made in, so the wide grid and the narrow one a phone
@@ -96,9 +106,9 @@ export interface DashboardWidgetDto {
     id: string;
     type: string;
     /** Placement on the wide grid, in DASHBOARD_GRID_COLUMNS columns. */
-    layout: WidgetLayoutDto;
+    layout: DashboardWidgetLayoutDto;
     /** Placement on the narrow grid, in DASHBOARD_MOBILE_GRID_COLUMNS columns. */
-    mobileLayout: WidgetLayoutDto;
+    mobileLayout: DashboardWidgetLayoutDto;
     config?: string;
     analytic?: AnalyticDto;
     quickAddTracker?: QuickAddTrackerDto;
@@ -153,8 +163,8 @@ export interface DashboardItemDto {
     id: string;
     order: number;
     type: string;
-    layout: WidgetLayoutDto;
-    mobileLayout: WidgetLayoutDto;
+    layout: DashboardWidgetLayoutDto;
+    mobileLayout: DashboardWidgetLayoutDto;
     config?: string;
     /** The single analytic definition every source below is calculated with. */
     resultType: string;
@@ -202,6 +212,10 @@ export interface AddDashboardItemFromAnalyticDto {
         most one of these — see AddDashboardItemSourceDto. */
     viewId?: string | null;
     linkedViewWidgetId?: string | null;
+    /** Whether the widget draws as a small button that opens the chart in a modal instead
+        of inline, independently on each of the board's two grids. */
+    expandable?: boolean;
+    mobileExpandable?: boolean;
 }
 
 export interface AddDashboardItemDto {
@@ -209,6 +223,10 @@ export interface AddDashboardItemDto {
     code: string;
     /** Combined charts only: keep just the x-axis values every source has a point for. */
     matchedValuesOnly?: boolean;
+    /** Whether the widget draws as a small button that opens the chart in a modal instead
+        of inline, independently on each of the board's two grids. */
+    expandable?: boolean;
+    mobileExpandable?: boolean;
     sources: AddDashboardItemSourceDto[];
 }
 
@@ -232,6 +250,10 @@ export interface AddDashboardEntriesItemDto {
     trackerId: string;
     viewId?: string | null;
     linkedViewWidgetId?: string | null;
+    /** Whether the widget draws as a small button that opens the table in a modal instead
+        of inline, independently on each of the board's two grids. */
+    expandable?: boolean;
+    mobileExpandable?: boolean;
 }
 
 /** Adds a WidgetTypes.Header widget: a short line of text read as a section title. */
@@ -264,6 +286,10 @@ export interface UpdateDashboardItemSourceDto {
  * here. The payload stands for the whole widget, so every source is named every time.
  */
 export interface UpdateDashboardItemDto {
+    /** Whether the widget draws as a small button that opens the chart in a modal instead
+        of inline, independently on each of the board's two grids. */
+    expandable: boolean;
+    mobileExpandable: boolean;
     sources: UpdateDashboardItemSourceDto[];
 }
 
