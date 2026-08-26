@@ -69,7 +69,6 @@ const WIDGET_KINDS: WidgetKindOption[] = [
     {
         kind: "view",
         title: "View selector",
-        description: "A dropdown other widgets on this tracker can follow live",
         icon: CiFilter,
         formTitle: "Add a view selector",
     },

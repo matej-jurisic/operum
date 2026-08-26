@@ -18,7 +18,7 @@
         // filters and sorts put together. Columns are not queries and are counted apart.
         public const int MaxQueriesPerView = MaxFilters + MaxSorts;
         public const int MaxDashboardCount = 20;
-        public const int MaxDashboardItemCount = 10;
+        public const int MaxDashboardItemCount = 30;
         public const int MaxDashboardItemSourceCount = 5;
     }
 }
