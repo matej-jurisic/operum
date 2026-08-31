@@ -8,6 +8,7 @@ interface Props {
     color: string;
     isConfiguring: boolean;
     isMobile: boolean;
+    onCreate: () => void;
     onEdit: () => void;
     onDelete: () => void;
     onToggleArrange: () => void;
@@ -25,6 +26,7 @@ export default function BoardActions({
     color,
     isConfiguring,
     isMobile,
+    onCreate,
     onEdit,
     onDelete,
     onToggleArrange,
@@ -58,6 +60,13 @@ export default function BoardActions({
                 </Menu.Item>
                 <Menu.Item leftSection={<MdEdit size={16} />} onClick={onEdit}>
                     Edit board
+                </Menu.Item>
+                <Menu.Divider />
+                <Menu.Item
+                    leftSection={<FiPlus size={16} />}
+                    onClick={onCreate}
+                >
+                    New board
                 </Menu.Item>
                 <Menu.Item
                     color="red"

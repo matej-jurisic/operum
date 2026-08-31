@@ -3,6 +3,8 @@ import { observer } from "mobx-react";
 import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import useAuth from "./features/auth/hooks/useAuth";
+import { readDefaultPage } from "./shared/constants/defaultPage";
+import AppLayout from "./shared/components/navigation/AppLayout";
 import OperumLoader from "./shared/components/OperumLoader";
 import GenericRoute from "./shared/components/routing/GenericRoute";
 import PrivateRoute from "./shared/components/routing/PrivateRoute";
@@ -10,7 +12,8 @@ import PublicRoute from "./shared/components/routing/PublicRoute";
 import { useLoading } from "./shared/context/LoadingContext";
 import globalStore from "./shared/stores/GlobalStore";
 
-function AppShellLayout({ children }: { children: React.ReactNode }) {
+/** Bare shell for public pages (marketing home, legal, email confirmation). */
+function PublicShell({ children }: { children: React.ReactNode }) {
     const location = useLocation();
     const { colorScheme } = useMantineColorScheme();
     const isHome = location.pathname === "/home";
@@ -43,7 +46,6 @@ const Home = lazy(() => import("./features/home/pages/Home"));
 const PrivacyPolicy = lazy(() => import("./features/legal/pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./features/legal/pages/TermsOfService"));
 const ProfilePage = lazy(() => import("./features/profile/pages/ProfilePage"));
-const Trackers = lazy(() => import("./features/trackers/components/Trackers"));
 const Tracker = lazy(() => import("./features/trackers/pages/Tracker"));
 const ConfirmEmail = lazy(() =>
     import("./features/users/pages/ConfirmEmail").then((m) => ({
@@ -67,28 +69,47 @@ const App = observer(() => {
         <>
             <OperumLoader visible={loading} />
             <BrowserRouter>
-                <AppShellLayout>
-                    <Suspense fallback={<OperumLoader visible />}>
-                        <Routes>
-                            <Route
-                                path="home"
-                                element={<GenericRoute page={<Home />} />}
-                            />
+                <Suspense fallback={<OperumLoader visible />}>
+                    <Routes>
+                        {/* Public pages -- no app chrome */}
+                        <Route
+                            path="home"
+                            element={
+                                <PublicShell>
+                                    <GenericRoute page={<Home />} />
+                                </PublicShell>
+                            }
+                        />
+                        <Route
+                            path="privacy"
+                            element={
+                                <PublicShell>
+                                    <GenericRoute page={<PrivacyPolicy />} />
+                                </PublicShell>
+                            }
+                        />
+                        <Route
+                            path="terms"
+                            element={
+                                <PublicShell>
+                                    <GenericRoute page={<TermsOfService />} />
+                                </PublicShell>
+                            }
+                        />
+                        <Route
+                            path="confirm-email"
+                            element={
+                                <PublicShell>
+                                    <PublicRoute page={<ConfirmEmail />} />
+                                </PublicShell>
+                            }
+                        />
+
+                        {/* Signed-in app -- sidebar + command palette */}
+                        <Route element={<AppLayout />}>
                             <Route
                                 path="profile"
                                 element={<PrivateRoute page={<ProfilePage />} />}
-                            />
-                            <Route
-                                path="privacy"
-                                element={<GenericRoute page={<PrivacyPolicy />} />}
-                            />
-                            <Route
-                                path="terms"
-                                element={<GenericRoute page={<TermsOfService />} />}
-                            />
-                            <Route
-                                path="trackers"
-                                element={<PrivateRoute page={<Trackers />} />}
                             />
                             <Route
                                 path="trackers/:trackerId"
@@ -99,15 +120,9 @@ const App = observer(() => {
                                 element={<PrivateRoute page={<Tracker />} />}
                             />
                             <Route
-                                path="confirm-email"
-                                element={
-                                    <PublicRoute page={<ConfirmEmail />} />
-                                }
-                            />
-                            <Route
                                 path="dashboard"
                                 element={<PrivateRoute page={<DashboardPage />} />}
-                                />
+                            />
                             <Route
                                 path="dashboard/:dashboardId"
                                 element={<PrivateRoute page={<DashboardPage />} />}
@@ -127,19 +142,20 @@ const App = observer(() => {
                                     />
                                 }
                             />
-                            <Route
-                                path="*"
-                                element={
-                                    globalStore.currentUser ? (
-                                        <Navigate to={"/dashboard"} />
-                                    ) : (
-                                        <Navigate to={"/home"} />
-                                    )
-                                }
-                            />
-                        </Routes>
-                    </Suspense>
-                </AppShellLayout>
+                        </Route>
+
+                        <Route
+                            path="*"
+                            element={
+                                globalStore.currentUser ? (
+                                    <Navigate to={readDefaultPage()} />
+                                ) : (
+                                    <Navigate to={"/home"} />
+                                )
+                            }
+                        />
+                    </Routes>
+                </Suspense>
             </BrowserRouter>
         </>
     );

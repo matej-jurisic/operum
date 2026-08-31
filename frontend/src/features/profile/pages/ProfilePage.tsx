@@ -8,6 +8,7 @@ import {
     Group,
     PasswordInput,
     ScrollArea,
+    Select,
     SimpleGrid,
     Stack,
     Text,
@@ -16,19 +17,24 @@ import {
     useMantineTheme,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import { observer } from "mobx-react";
 import { useEffect, useState } from "react";
 import { TbDatabase, TbLayoutGrid, TbUsers } from "react-icons/tb";
 import { useNavigate } from "react-router-dom";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
-import Header from "../../../shared/components/Header";
+import {
+    FALLBACK_PAGE,
+    writeDefaultPage,
+} from "../../../shared/constants/defaultPage";
 import globalStore from "../../../shared/stores/GlobalStore";
+import navigationStore from "../../../shared/stores/NavigationStore";
 import useAuth from "../../auth/hooks/useAuth";
 import {
     profileController,
     UserProfileStatsDto,
 } from "../api/profileController";
 
-export default function ProfilePage() {
+const ProfilePage = observer(function ProfilePage() {
     const theme = useMantineTheme();
     const navigate = useNavigate();
     const { setUserData, clearUserData } = useAuth();
@@ -36,6 +42,45 @@ export default function ProfilePage() {
 
     const [stats, setStats] = useState<UserProfileStatsDto | null>(null);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [defaultPage, setDefaultPage] = useState(
+        user.defaultPage ?? FALLBACK_PAGE,
+    );
+
+    const pageOptions = [
+        { value: FALLBACK_PAGE, label: "Default dashboard" },
+        ...(navigationStore.dashboards.length
+            ? [
+                  {
+                      group: "Dashboards",
+                      items: navigationStore.dashboards.map((d) => ({
+                          value: `/dashboard/${d.id}`,
+                          label: d.name,
+                      })),
+                  },
+              ]
+            : []),
+        ...(navigationStore.trackers.length
+            ? [
+                  {
+                      group: "Trackers",
+                      items: navigationStore.trackers.map((t) => ({
+                          value: `/trackers/${t.id}`,
+                          label: t.name,
+                      })),
+                  },
+              ]
+            : []),
+    ];
+
+    const handleDefaultPageChange = async (value: string | null) => {
+        const next = value ?? FALLBACK_PAGE;
+        setDefaultPage(next);
+        const res = await profileController.updateDefaultPage(next);
+        if (res.isSuccess) {
+            globalStore.setCurrentUser({ ...user, defaultPage: next });
+            writeDefaultPage(next);
+        }
+    };
 
     const timezoneForm = useForm({
         initialValues: { timeZone: user.timeZone ?? "" },
@@ -141,12 +186,9 @@ export default function ProfilePage() {
     return (
         <>
             <Stack gap="md" h="100%">
-                <Group justify="space-between" w="100%">
-                    <Title order={2} c={theme.primaryColor}>
-                        Profile
-                    </Title>
-                    <Header />
-                </Group>
+                <Title order={2} c={theme.primaryColor}>
+                    Profile
+                </Title>
 
                 <ScrollArea flex={1}>
                     <Stack align="center">
@@ -273,6 +315,21 @@ export default function ProfilePage() {
                                 </form>
                             </Card>
 
+                            {/* Default landing page */}
+                            <Card withBorder radius="md" p="lg">
+                                <Stack gap="md">
+                                    <Text fw={600}>Default page</Text>
+                                    <Select
+                                        label="Opens on load"
+                                        data={pageOptions}
+                                        value={defaultPage}
+                                        allowDeselect={false}
+                                        checkIconPosition="right"
+                                        onChange={handleDefaultPageChange}
+                                    />
+                                </Stack>
+                            </Card>
+
                             {/* Change password */}
                             <Card withBorder radius="md" p="lg">
                                 <form
@@ -361,4 +418,6 @@ export default function ProfilePage() {
             )}
         </>
     );
-}
+});
+
+export default ProfilePage;

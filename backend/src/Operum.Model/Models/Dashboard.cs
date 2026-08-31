@@ -11,6 +11,9 @@ namespace Operum.Model.Models
         public string? Color { get; set; }
         public string? Icon { get; set; }
 
+        /// Position in the user's dashboard list / sidebar. Lower comes first.
+        public int Order { get; set; }
+
         public string UserId { get; set; } = string.Empty;
         [ForeignKey(nameof(UserId))]
         public virtual User User { get; set; } = null!;

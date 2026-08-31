@@ -24,4 +24,9 @@ export const profileController = {
     updateTimezone: async (timeZone: string): Promise<ApiResponse> => {
         return await api.patch("/users/me/timezone", { timeZone });
     },
+    updateDefaultPage: async (
+        defaultPage: string | null,
+    ): Promise<ApiResponse> => {
+        return await api.patch("/users/me/default-page", { defaultPage });
+    },
 };

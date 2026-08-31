@@ -23,6 +23,12 @@ namespace Operum.API.Controllers
             return GetApiResponse(await dashboardService.CreateDashboard(dto));
         }
 
+        [HttpPut("reorder")]
+        public async Task<IActionResult> ReorderDashboards([FromBody] ReorderDashboardsDto dto)
+        {
+            return GetApiResponse(await dashboardService.ReorderDashboards(dto));
+        }
+
         [HttpGet("{dashboardId}")]
         public async Task<IActionResult> GetDashboard([FromRoute] string dashboardId)
         {

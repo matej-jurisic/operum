@@ -5,4 +5,5 @@ export interface UserDto {
     roles: string[];
     mailConfirmed: boolean;
     timeZone?: string | null;
+    defaultPage?: string | null;
 }

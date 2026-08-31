@@ -50,6 +50,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import AuthDialog from "../../auth/components/AuthDialog";
 import HomeNavbar from "../components/HomeNavbar";
+import { readDefaultPage } from "../../../shared/constants/defaultPage";
 import globalStore from "../../../shared/stores/GlobalStore";
 
 // ─── Mock chart data ──────────────────────────────────────────────────────────
@@ -337,8 +338,8 @@ function CtaButtons({
     const navigate = useNavigate();
     if (globalStore.currentUser) {
         return (
-            <Button size="lg" onClick={() => navigate("/trackers")}>
-                Go to Trackers
+            <Button size="lg" onClick={() => navigate(readDefaultPage())}>
+                Open Operum
             </Button>
         );
     }

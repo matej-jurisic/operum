@@ -4,19 +4,20 @@ import {
     Stack,
     Text,
     ThemeIcon,
+    Title,
     useMantineTheme,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { useCallback, useEffect, useState } from "react";
+import { createElement, useCallback, useEffect, useState } from "react";
 import { FiCheck, FiPlus } from "react-icons/fi";
 import { TbLayoutDashboard } from "react-icons/tb";
 import { useNavigate, useParams } from "react-router-dom";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
-import Header from "../../../shared/components/Header";
+import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
+import navigationStore from "../../../shared/stores/NavigationStore";
 import { dashboardController } from "../api/dashboardController";
 import BoardActions from "../components/BoardActions";
 import BoardFormModal from "../components/BoardFormModal";
-import BoardSwitcher from "../components/BoardSwitcher";
 import { DashboardGrid } from "../components/DashboardGrid";
 import { EditEntriesWidgetModal } from "../components/EditEntriesWidgetModal";
 import { EditTextWidgetModal } from "../components/EditTextWidgetModal";
@@ -42,18 +43,14 @@ function parseTextConfig(config: string | undefined): TextWidgetConfig | null {
 }
 
 interface ContentProps {
-    boards: DashboardDto[];
     activeBoard: DashboardDto;
-    onSelectBoard: (boardId: string) => void;
     onCreateBoard: () => void;
     onEditBoard: () => void;
     onDeleteBoard: () => void;
 }
 
 function DashboardContent({
-    boards,
     activeBoard,
-    onSelectBoard,
     onCreateBoard,
     onEditBoard,
     onDeleteBoard,
@@ -96,7 +93,7 @@ function DashboardContent({
             : theme.primaryColor;
 
     return (
-        <Stack h="100%" gap="md">
+        <Stack h="100%" gap="md" pb="md">
             <Group
                 w="100%"
                 gap="xs"
@@ -104,25 +101,25 @@ function DashboardContent({
                 wrap="nowrap"
                 align="center"
             >
-                {/* Takes whatever the header leaves it, down to nothing: the board
-                    switcher ellipsizes its name rather than pushing the row wider,
-                    so the buttons beside it keep their full width. */}
-                <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
-                    <BoardSwitcher
-                        boards={boards}
-                        activeBoardId={activeBoard.id}
-                        onSelect={onSelectBoard}
-                        onCreate={onCreateBoard}
-                    />
-                    <BoardActions
+                {/* Board name ellipsizes rather than pushing the actions off-screen. */}
+                <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
+                    <ThemeIcon
+                        size={36}
+                        radius="md"
+                        variant="light"
                         color={color}
-                        isConfiguring={isConfiguring}
-                        isMobile={!!isMobile}
-                        onEdit={onEditBoard}
-                        onDelete={onDeleteBoard}
-                        onToggleArrange={() => setIsConfiguring((v) => !v)}
-                        onOpenWidgets={() => setIsWidgetsOpen(true)}
-                    />
+                        style={{ flexShrink: 0 }}
+                    >
+                        {createElement(resolveTrackerIcon(activeBoard.icon), {
+                            size: 20,
+                        })}
+                    </ThemeIcon>
+                    <Title order={2} c={color} lineClamp={1} style={{ minWidth: 0 }}>
+                        {activeBoard.name}
+                    </Title>
+                </Group>
+
+                <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
                     {/* The only way out of arrange mode that does not cost a
                         row of chrome while the board is just being read. On a
                         phone the tick carries it on its own. */}
@@ -142,8 +139,17 @@ function DashboardContent({
                             {isMobile ? <FiCheck size={16} /> : "Done"}
                         </Button>
                     )}
+                    <BoardActions
+                        color={color}
+                        isConfiguring={isConfiguring}
+                        isMobile={!!isMobile}
+                        onCreate={onCreateBoard}
+                        onEdit={onEditBoard}
+                        onDelete={onDeleteBoard}
+                        onToggleArrange={() => setIsConfiguring((v) => !v)}
+                        onOpenWidgets={() => setIsWidgetsOpen(true)}
+                    />
                 </Group>
-                <Header color={color} />
             </Group>
 
             {/* While widgets are (re)loading, the global request loader already
@@ -271,6 +277,7 @@ export default function DashboardPage() {
         const res = await dashboardController.getDashboards();
         setBoards(res.data ?? []);
         setIsLoadingBoards(false);
+        navigationStore.setDashboards(res.data ?? []);
     }, []);
 
     useEffect(() => {
@@ -361,9 +368,6 @@ export default function DashboardPage() {
     if (boards.length === 0) {
         return (
             <Stack h="100%" gap="md">
-                <Group w="100%" justify="flex-end">
-                    <Header color={theme.primaryColor} />
-                </Group>
                 <Stack align="center" gap="md" py={80}>
                     <ThemeIcon
                         size={72}
@@ -404,9 +408,7 @@ export default function DashboardPage() {
                     dashboardId={activeBoard.id}
                 >
                     <DashboardContent
-                        boards={boards}
                         activeBoard={activeBoard}
-                        onSelectBoard={(id) => navigate(`/dashboard/${id}`)}
                         onCreateBoard={() => setIsCreateOpen(true)}
                         onEditBoard={() => setIsEditOpen(true)}
                         onDeleteBoard={() => setIsDeleteOpen(true)}

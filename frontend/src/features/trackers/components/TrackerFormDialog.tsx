@@ -24,7 +24,8 @@ import IconPicker from "./IconPicker";
 
 export interface TrackerFormDialogProps {
     onClose: () => void;
-    onConfirm?: () => void;
+    /** Receives the freshly created tracker on a create; called with no argument on edit. */
+    onConfirm?: (created?: TrackerDto) => void;
     trackerId?: string;
     initialValues?: TrackerDto;
     asTemplate?: boolean;
@@ -123,13 +124,15 @@ export default function TrackerFormDialog(props: TrackerFormDialogProps) {
     const handleSubmit = async (
         values: UpdateTrackerDto & CreateTrackerDto,
     ) => {
+        let created: TrackerDto | undefined;
         if (props.trackerId) {
             await trackersController.updateTracker(props.trackerId, values);
         } else {
-            await trackersController.createTracker(values);
+            const res = await trackersController.createTracker(values);
+            created = res.data;
         }
         props.onClose();
-        props.onConfirm?.();
+        props.onConfirm?.(created);
         form.reset();
     };
 

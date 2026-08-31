@@ -7,6 +7,7 @@ namespace Operum.Service.Interfaces
     public interface IDashboardService
     {
         Task<Result<List<DashboardDto>>> GetDashboards();
+        Task<Result> ReorderDashboards(ReorderDashboardsDto dto);
         Task<Result<DashboardDto>> GetDashboard(string dashboardId);
         Task<Result<List<DashboardWidgetDto>>> GetDashboardWidgets(string dashboardId);
         Task<Result<DashboardDto>> CreateDashboard(CreateDashboardDto dto);

@@ -29,7 +29,10 @@ export const DASHBOARD_MOBILE_GRID_COLUMNS = 4;
 // way DASHBOARD_GRID_COLUMNS going 12 -> 24 doubled every stored x/w.
 const ROW_HEIGHT = 20;
 const MIN_WIDTH = 2;
-const MIN_HEIGHT = 2;
+// One row -- a 20px sliver. A divider or a header is a layout accent, not content, and a
+// board full of them reads better when they can be squeezed right down. The arrange-mode
+// controls that would overflow a cell this short are capped to it in DashboardGrid.css.
+const MIN_HEIGHT = 1;
 
 // Grabbed by the drag handle below, and by react-grid-layout to tell that handle apart
 // from the rest of the card.

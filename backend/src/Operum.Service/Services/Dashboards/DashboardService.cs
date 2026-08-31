@@ -40,9 +40,43 @@ namespace Operum.Service.Services.Dashboards
             var user = currentUserService.GetCurrentUser();
             var dashboards = await WithSourceGraph(db.Dashboards)
                 .Where(d => d.UserId == user.Id)
+                .OrderBy(d => d.Order)
+                .ThenBy(d => d.Name)
                 .ToListAsync();
 
             return Result.Success(dashboards.Select(MapToDto).ToList());
+        }
+
+        // All-or-nothing, like reordering a tracker's fields: the payload must name exactly
+        // the user's own dashboards, and Order is reassigned from its position in the list.
+        public async Task<Result> ReorderDashboards(ReorderDashboardsDto dto)
+        {
+            var user = currentUserService.GetCurrentUser();
+
+            using var transaction = await db.Database.BeginTransactionAsync();
+            try
+            {
+                var dashboards = await db.Dashboards
+                    .AsTracking()
+                    .Where(d => d.UserId == user.Id)
+                    .ToListAsync();
+
+                if (!dto.DashboardIds.ToHashSet().SetEquals(dashboards.Select(d => d.Id).ToHashSet()))
+                    return Result.Failure(ResultStatusCodes.BadRequest);
+
+                var byId = dashboards.ToDictionary(d => d.Id);
+                for (int i = 0; i < dto.DashboardIds.Count; i++)
+                    byId[dto.DashboardIds[i]].Order = i;
+
+                await db.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return Result.Success();
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                return Result.Failure(ResultStatusCodes.Error);
+            }
         }
 
         public async Task<Result<DashboardDto>> GetDashboard(string dashboardId)
@@ -270,11 +304,17 @@ namespace Operum.Service.Services.Dashboards
             if (count >= DataLimits.MaxDashboardCount)
                 return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("dashboards", DataLimits.MaxDashboardCount));
 
+            var maxOrder = await db.Dashboards
+                .Where(d => d.UserId == user.Id)
+                .Select(d => (int?)d.Order)
+                .MaxAsync() ?? -1;
+
             var dashboard = new Dashboard
             {
                 Name = dto.Name,
                 Color = dto.Color,
                 Icon = dto.Icon,
+                Order = maxOrder + 1,
                 UserId = user.Id
             };
 

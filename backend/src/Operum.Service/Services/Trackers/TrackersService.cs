@@ -237,7 +237,7 @@ namespace Operum.Service.Services.Trackers
                 .Where(x => x.TrackerTypeId == null && x.OwnerId == user.Id)
                 .OrderBy(x => x.Order ?? int.MaxValue)
                 .ToListAsync();
-                return Result.Success(mapper.Map<List<Tracker>, List<TrackerDto>>(ownedTrackers));
+                return Result.Success(await WithEntryStats(mapper.Map<List<Tracker>, List<TrackerDto>>(ownedTrackers)));
             }
             else if (filter == TrackerFilters.Collaborating)
             {
@@ -256,7 +256,7 @@ namespace Operum.Service.Services.Trackers
                     })
                     .ToList();
 
-                return Result.Success(mapper.Map<List<Tracker>, List<TrackerDto>>(ordered));
+                return Result.Success(await WithEntryStats(mapper.Map<List<Tracker>, List<TrackerDto>>(ordered)));
             }
 
             else if (filter == TrackerFilters.Accessible)
@@ -268,10 +268,59 @@ namespace Operum.Service.Services.Trackers
                     .Where(x => x.TrackerTypeId == null &&
                         (x.OwnerId == user.Id || x.ApplicationUserTrackers.Any(a => a.ApplicationUserId == user.Id)))
                     .ToListAsync();
-                return Result.Success(mapper.Map<List<Tracker>, List<TrackerDto>>(trackers));
+
+                // Owned trackers sort by Tracker.Order, shared ones by this user's
+                // UserTracker.Order -- the same keys the two single-filter lists use.
+                var ordered = trackers
+                    .OrderBy(x => AccessibleOrderKey(x, user.Id))
+                    .ThenBy(x => x.Name)
+                    .ToList();
+
+                return Result.Success(await WithEntryStats(mapper.Map<List<Tracker>, List<TrackerDto>>(ordered)));
             }
 
             return Result.Failure(ResultStatusCodes.BadRequest, Messages.ItemNotFound("filter"));
+        }
+
+        // Sort key for the "Accessible" list: the owner's Tracker.Order when this user owns
+        // it, otherwise the user's own UserTracker.Order. Missing orders sink to the bottom.
+        private static int AccessibleOrderKey(Tracker tracker, string userId)
+        {
+            if (tracker.OwnerId == userId)
+                return tracker.Order ?? int.MaxValue;
+
+            var ut = tracker.ApplicationUserTrackers.FirstOrDefault(a => a.ApplicationUserId == userId);
+            return ut?.Order ?? int.MaxValue;
+        }
+
+        // Fills EntryCount / LastEntryAt for a page of trackers in a single grouped query
+        // rather than one round-trip per card.
+        private async Task<List<TrackerDto>> WithEntryStats(List<TrackerDto> dtos)
+        {
+            if (dtos.Count == 0) return dtos;
+
+            var trackerIds = dtos.Select(d => d.Id).ToList();
+            var stats = await db.Entries
+                .Where(e => trackerIds.Contains(e.TrackerId))
+                .GroupBy(e => e.TrackerId)
+                .Select(g => new
+                {
+                    TrackerId = g.Key,
+                    Count = g.Count(),
+                    LastEntryAt = (DateTime?)g.Max(e => e.CreatedAt),
+                })
+                .ToDictionaryAsync(x => x.TrackerId);
+
+            foreach (var dto in dtos)
+            {
+                if (stats.TryGetValue(dto.Id, out var s))
+                {
+                    dto.EntryCount = s.Count;
+                    dto.LastEntryAt = s.LastEntryAt;
+                }
+            }
+
+            return dtos;
         }
 
         public async Task<Result<List<TrackerDto>>> GetAllTemplateTrackerList()
@@ -515,6 +564,40 @@ namespace Operum.Service.Services.Trackers
                         {
                             ut.Order = i + 1;
                             db.UserTrackers.Update(ut);
+                        }
+                    }
+                }
+                else if (dto.Filter == TrackerFilters.Accessible)
+                {
+                    // The sidebar list: a mix of owned and shared trackers. Each id updates
+                    // whichever order it has -- Tracker.Order for owned, UserTracker.Order
+                    // for shared.
+                    var accessible = await db.Trackers
+                        .Include(x => x.ApplicationUserTrackers)
+                        .Where(x => x.TrackerTypeId == null &&
+                            (x.OwnerId == user.Id || x.ApplicationUserTrackers.Any(a => a.ApplicationUserId == user.Id)))
+                        .ToListAsync();
+
+                    if (!dto.TrackerIds.ToHashSet().SetEquals(accessible.Select(x => x.Id).ToHashSet()))
+                        return Result.Failure(ResultStatusCodes.BadRequest);
+
+                    var byId = accessible.ToDictionary(x => x.Id);
+                    for (int i = 0; i < dto.TrackerIds.Count; i++)
+                    {
+                        var tracker = byId[dto.TrackerIds[i]];
+                        if (tracker.OwnerId == user.Id)
+                        {
+                            tracker.Order = i + 1;
+                            db.Trackers.Update(tracker);
+                        }
+                        else
+                        {
+                            var ut = tracker.ApplicationUserTrackers.FirstOrDefault(a => a.ApplicationUserId == user.Id);
+                            if (ut != null)
+                            {
+                                ut.Order = i + 1;
+                                db.UserTrackers.Update(ut);
+                            }
                         }
                     }
                 }

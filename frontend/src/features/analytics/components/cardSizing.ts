@@ -1,4 +1,3 @@
-import { useElementSize } from "@mantine/hooks";
 import { CSSProperties, RefObject, useLayoutEffect, useRef, useState } from "react";
 
 /**
@@ -48,7 +47,10 @@ export interface CardLayout {
  * even grid that the masonry is there to give.
  */
 export function useCardLayout(fillHeight?: boolean): CardLayout {
-    const { ref, width, height } = useElementSize<HTMLDivElement>();
+    // Measured synchronously (see useSyncedElementSize): isCompact and padding feed the
+    // card's type and the box its value font is sized from, so a late first measurement
+    // shows up as the whole card's text snapping size a frame or two into every load.
+    const { ref, width, height } = useSyncedElementSize<HTMLDivElement>(!!fillHeight);
 
     const measured = !!fillHeight && width > 0 && height > 0;
     const isCompact =
@@ -108,6 +110,11 @@ export const chartTooltipTrigger = (isMobile?: boolean) =>
  * sized off it — a value's font, say — visibly snaps from its unmeasured fallback to the
  * real size a frame or two into every load. Measuring in `useLayoutEffect` instead lets
  * React re-render with the real size before that first frame is ever painted.
+ *
+ * Reports the border box (`getBoundingClientRect`), not the content box Mantine's
+ * `useElementSize` gives: a card's thresholds are about the cell the user dragged out,
+ * and the border box tracks that cell directly instead of shrinking and growing with the
+ * card's own padding.
  */
 export function useSyncedElementSize<T extends HTMLElement = HTMLDivElement>(
     enabled = true,

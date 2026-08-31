@@ -34,11 +34,11 @@ import { RiListOrdered2 } from "react-icons/ri";
 import { TbLayoutGrid } from "react-icons/tb";
 import { useNavigate } from "react-router-dom";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
-import Header from "../../../shared/components/Header";
 import {
     TrackerFilters,
     TrackerFiltersForSelect,
 } from "../../../shared/constants/TrackerFilters";
+import navigationStore from "../../../shared/stores/NavigationStore";
 import QuickAddEntryDialog from "../../entries/components/QuickAddEntryDialog";
 import { trackersController } from "../api/trackersController";
 import { TrackerDto } from "../types/TrackerDto";
@@ -88,6 +88,7 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
         }
         setTrackerList(response.data);
         setIsLoading(false);
+        if (!isTemplates) navigationStore.refreshTrackers();
     };
 
     useEffect(() => {
@@ -116,12 +117,9 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
         <>
             <Stack gap="md" h="100%">
                 {!isTemplates && (
-                    <Group w="100%" justify="space-between">
-                        <Title order={2} c={theme.primaryColor}>
-                            Operum
-                        </Title>
-                        <Header />
-                    </Group>
+                    <Title order={2} c={theme.primaryColor}>
+                        Trackers
+                    </Title>
                 )}
                 <Group justify="space-between" align="flex-end">
                     {!isTemplates && (

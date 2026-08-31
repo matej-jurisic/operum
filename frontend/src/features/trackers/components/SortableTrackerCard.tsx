@@ -16,6 +16,7 @@ import { FiMoreVertical, FiPlus } from "react-icons/fi";
 import { MdDelete, MdDragHandle, MdEdit } from "react-icons/md";
 import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
 import globalStore from "../../../shared/stores/GlobalStore";
+import { formatRelativeTime } from "../../../shared/utils/formatters/TypeFormatter";
 import { TrackerDto } from "../types/TrackerDto";
 
 interface SortableTrackerCardProps {
@@ -218,6 +219,16 @@ export default function SortableTrackerCard({
                     >
                         {tracker.description || "No description"}
                     </Text>
+                    {!isTemplates && (
+                        <Text c="dimmed" size="xs">
+                            {tracker.entryCount}{" "}
+                            {tracker.entryCount === 1 ? "entry" : "entries"}
+                            {tracker.lastEntryAt &&
+                                ` · updated ${formatRelativeTime(
+                                    tracker.lastEntryAt,
+                                )}`}
+                        </Text>
+                    )}
                 </Stack>
             </Group>
         </Card>

@@ -14,5 +14,6 @@ namespace Operum.Service.Interfaces
         Task<Result> ChangePassword(ChangePasswordDto request);
         Task<Result> DeleteAccount();
         Task<Result> UpdateTimeZone(UpdateTimeZoneDto dto);
+        Task<Result> UpdateDefaultPage(UpdateDefaultPageDto dto);
     }
 }

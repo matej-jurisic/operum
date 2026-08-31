@@ -38,6 +38,11 @@
 /* Above the card, or the resize corner would sit under it and never be grabbed. */
 .dashboard-grid .react-grid-item > .react-resizable-handle {
     z-index: 2;
+    /* A widget can be squeezed down to a single 20px row. Keep the corner inside it
+       rather than letting a 20px (or, on a touchscreen, 32px) handle spill past the
+       edge of a cell that short. */
+    max-width: 100%;
+    max-height: 100%;
 }
 
 .dashboard-grid .react-grid-item > .react-resizable-handle::after {
@@ -52,14 +57,19 @@
    controls across the top of every widget. */
 .dashboard-drag-handle {
     position: absolute;
-    top: 6px;
-    left: 6px;
+    top: 4px;
+    left: 4px;
     z-index: 3;
     display: flex;
     align-items: center;
     justify-content: center;
     width: 28px;
     height: 28px;
+    /* A widget can be as short as one 20px row. Rather than spill past a cell that short,
+       the grip shrinks to fit it -- and its glyph shrinks with it (see the svg rule). */
+    max-width: calc(100% - 8px);
+    max-height: calc(100% - 8px);
+    overflow: hidden;
     border-radius: var(--mantine-radius-sm);
     color: var(--mantine-color-dimmed);
     background: var(--mantine-color-body);
@@ -74,12 +84,38 @@
     cursor: grabbing;
 }
 
+/* Full size when there is room, shrinking to nothing once the grip itself does. */
+.dashboard-drag-handle svg {
+    width: 18px;
+    height: 18px;
+    max-width: 100%;
+    max-height: 100%;
+}
+
 /* The handle floats over the card rather than taking a strip of its height, so on the
    grid that has one the card's header starts after it instead of underneath it. Clears
    the handle from either of the paddings a card is drawn with, and only ever applies to
    a widget that actually has a handle -- which is the narrow grid, in arrange mode. */
 .dashboard-widget:has(> .dashboard-drag-handle) .analytic-card-header {
     padding-left: 32px;
+}
+
+/* The card's own arrange-mode icons (edit / remove). On a compact card the header row is
+   an overlay the full height of the card, so on a widget squeezed to one or two rows a
+   full-size button would poke out above and below it. Cap the buttons to the card and let
+   their glyphs shrink with them, the same way the drag grip does. */
+.dashboard-grid .dashboard-widget .analytic-card-header .mantine-ActionIcon-root {
+    min-width: 0;
+    min-height: 0;
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.dashboard-grid .dashboard-widget .analytic-card-header .mantine-ActionIcon-root svg {
+    width: 18px;
+    height: 18px;
+    max-width: 100%;
+    max-height: 100%;
 }
 
 @media (pointer: coarse) {

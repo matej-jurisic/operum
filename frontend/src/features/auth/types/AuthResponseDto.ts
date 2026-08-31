@@ -5,4 +5,5 @@ export interface AuthResponseDto {
     tokenExpiry?: Date;
     roles: string[];
     timeZone?: string | null;
+    defaultPage?: string | null;
 }

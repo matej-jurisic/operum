@@ -1,6 +1,6 @@
 import { Badge, Container, Group, Stack, Tabs, ThemeIcon, Title } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { createElement, useEffect, useState } from "react";
+import { createElement, useCallback, useEffect, useState } from "react";
 import {
     CiBellOn,
     CiBoxList,
@@ -10,9 +10,11 @@ import {
     CiViewList,
 } from "react-icons/ci";
 import { useNavigate, useParams } from "react-router-dom";
-import Header from "../../../shared/components/Header";
+import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
+import { readDefaultPage } from "../../../shared/constants/defaultPage";
 import { ComposedTrackerProvider } from "../../../shared/context/ComposedTrackerProvider";
 import globalStore from "../../../shared/stores/GlobalStore";
+import navigationStore from "../../../shared/stores/NavigationStore";
 import Constants from "../../constants/components/Constants";
 import Entries from "../../entries/components/Entries";
 import Fields from "../../fields/components/Fields";
@@ -22,6 +24,8 @@ import SelectView from "../../views/components/SelectView";
 import ViewsAndQueries from "../../views/components/ViewsAndQueries";
 import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
 import { trackersController } from "../api/trackersController";
+import TrackerActions from "../components/TrackerActions";
+import TrackerFormDialog from "../components/TrackerFormDialog";
 import TrackerUserList from "../components/TrackerUserList";
 import { TrackerDto } from "../types/TrackerDto";
 
@@ -29,6 +33,8 @@ export default function Tracker() {
     const { trackerId, "*": splat } = useParams();
     const navigate = useNavigate();
     const [tracker, setTracker] = useState<TrackerDto>();
+    const [editOpen, setEditOpen] = useState(false);
+    const [deleteOpen, setDeleteOpen] = useState(false);
 
     const urlParts = (splat ?? "").split("/").filter(Boolean);
     const rawTab = urlParts[0] || "entries";
@@ -46,42 +52,51 @@ export default function Tracker() {
     const viewsSubTab =
         rawTab === "queries" || action === "queries" ? "queries" : "views";
 
-    useEffect(() => {
-        const fetchData = async () => {
-            if (trackerId) {
-                const response = await trackersController.getTracker(trackerId);
-                setTracker(response.data);
-            }
-        };
-        fetchData();
+    const fetchTracker = useCallback(async () => {
+        if (trackerId) {
+            const response = await trackersController.getTracker(trackerId);
+            setTracker(response.data);
+        }
     }, [trackerId]);
+
+    useEffect(() => {
+        fetchTracker();
+    }, [fetchTracker]);
+
+    const handleDelete = async () => {
+        if (!trackerId) return;
+        try {
+            await trackersController.deleteTracker(trackerId);
+        } finally {
+            setDeleteOpen(false);
+        }
+        await navigationStore.refreshTrackers();
+        navigate(readDefaultPage(), { replace: true });
+    };
 
     const isMobile = useMediaQuery("(max-width: 48em)");
 
-    if (!tracker) return <></>;
+    // Until the freshly fetched tracker matches the id in the URL, the providers below
+    // would be seeded with the previous tracker -- they only read initialTracker once.
+    // Holding the render (and keying on the id) forces a clean remount per tracker.
+    if (!tracker || tracker.id !== trackerId) return <></>;
 
     const isOwner = tracker.ownerId === globalStore.currentUser?.id;
     const canEditSchema = isOwner || tracker.currentUserCanEditSchema;
 
     return (
-        <ComposedTrackerProvider initialTracker={tracker}>
+        <ComposedTrackerProvider key={tracker.id} initialTracker={tracker}>
             <Stack h="100%" gap={"md"}>
-                <Stack justify="space-between" w="100%">
-                    <Group justify="space-between">
-                        <SelectView />
-                        <Header color={tracker.color} />
-                    </Group>
-                    <Group align="center" flex={1} justify="space-between">
-                        <Group gap="sm" align="center">
-                            {tracker.icon && (
-                                <ThemeIcon size={36} radius="md" variant="light" color={tracker.color}>
-                                    {createElement(resolveTrackerIcon(tracker.icon), { size: 20 })}
-                                </ThemeIcon>
-                            )}
-                            <Title order={2} c={tracker.color}>
-                                {tracker.name}
-                            </Title>
-                        </Group>
+                <Group align="center" w="100%" justify="space-between" wrap="nowrap">
+                    <Group gap="sm" align="center" wrap="nowrap">
+                        {tracker.icon && (
+                            <ThemeIcon size={36} radius="md" variant="light" color={tracker.color}>
+                                {createElement(resolveTrackerIcon(tracker.icon), { size: 20 })}
+                            </ThemeIcon>
+                        )}
+                        <Title order={2} c={tracker.color}>
+                            {tracker.name}
+                        </Title>
                         {tracker.trackerTypeName && (
                             <Badge variant="light">
                                 {tracker.trackerTypeName}
@@ -93,7 +108,18 @@ export default function Tracker() {
                             </Badge>
                         )}
                     </Group>
-                </Stack>
+                    <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
+                        <SelectView />
+                        {isOwner && (
+                            <TrackerActions
+                                color={tracker.color}
+                                isMobile={!!isMobile}
+                                onEdit={() => setEditOpen(true)}
+                                onDelete={() => setDeleteOpen(true)}
+                            />
+                        )}
+                    </Group>
+                </Group>
 
                 <Stack flex="1" mih={0}>
                     <Tabs
@@ -234,6 +260,26 @@ export default function Tracker() {
                     </Tabs>
                 </Stack>
             </Stack>
+
+            {editOpen && (
+                <TrackerFormDialog
+                    trackerId={tracker.id}
+                    initialValues={tracker}
+                    onClose={() => setEditOpen(false)}
+                    onConfirm={() => {
+                        fetchTracker();
+                        navigationStore.refreshTrackers();
+                    }}
+                />
+            )}
+
+            <ConfirmationDialog
+                isOpen={deleteOpen}
+                onClose={() => setDeleteOpen(false)}
+                onConfirm={handleDelete}
+                message="Are you sure you want to delete the tracker?"
+                severity="important"
+            />
         </ComposedTrackerProvider>
     );
 }

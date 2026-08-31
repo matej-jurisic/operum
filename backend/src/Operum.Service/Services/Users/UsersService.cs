@@ -153,5 +153,23 @@ namespace Operum.Service.Services.Users
 
             return Result.Success(Messages.Success);
         }
+
+        public async Task<Result> UpdateDefaultPage(UpdateDefaultPageDto dto)
+        {
+            var userId = currentUserService.GetCurrentUser().Id;
+            var user = await userManager.FindByIdAsync(userId);
+            if (user == null) return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("user"));
+
+            var page = string.IsNullOrWhiteSpace(dto.DefaultPage) ? null : dto.DefaultPage.Trim();
+            if (page != null && !page.StartsWith("/dashboard") && !page.StartsWith("/trackers"))
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("default page"));
+
+            user.DefaultPage = page;
+            var result = await userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+                return Result.Failure(ResultStatusCodes.Error, result.Errors.Select(e => e.Description));
+
+            return Result.Success(Messages.Success);
+        }
     }
 }

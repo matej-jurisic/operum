@@ -14,4 +14,6 @@ export interface TrackerDto {
     trackerTypeName?: string;
     currentUserCanEditData: boolean;
     currentUserCanEditSchema: boolean;
+    entryCount: number;
+    lastEntryAt?: string;
 }

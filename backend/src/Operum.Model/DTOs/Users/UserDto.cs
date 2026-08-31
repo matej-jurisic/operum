@@ -8,5 +8,6 @@
         public string[] Roles { get; set; } = [];
         public bool? MailConfirmed { get; set; } = false;
         public string? TimeZone { get; set; }
+        public string? DefaultPage { get; set; }
     }
 }

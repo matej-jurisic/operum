@@ -17,5 +17,7 @@ namespace Operum.Model.DTOs.Trackers
         public List<FieldDto> Fields { get; set; } = [];
         public bool CurrentUserCanEditData { get; set; }
         public bool CurrentUserCanEditSchema { get; set; }
+        public int EntryCount { get; set; }
+        public DateTime? LastEntryAt { get; set; }
     }
 }

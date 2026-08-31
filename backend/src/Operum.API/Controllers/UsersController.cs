@@ -86,5 +86,11 @@ namespace Operum.API.Controllers
         {
             return GetApiResponse(await usersService.UpdateTimeZone(dto));
         }
+
+        [HttpPatch("me/default-page")]
+        public async Task<IActionResult> UpdateDefaultPage([FromBody] UpdateDefaultPageDto dto)
+        {
+            return GetApiResponse(await usersService.UpdateDefaultPage(dto));
+        }
     }
 }

@@ -1,6 +1,7 @@
 export const TrackerFilters = {
     Owned: "Owned",
     Collaborating: "Collaborating",
+    Accessible: "Accessible",
 };
 
 export const TrackerFiltersForSelect = [

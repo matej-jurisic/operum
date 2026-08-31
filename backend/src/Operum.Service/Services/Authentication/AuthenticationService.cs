@@ -206,6 +206,8 @@ namespace Operum.Service.Services.Authentication
                 Id = user.Id,
                 Email = user.Email,
                 UserName = user.UserName,
+                TimeZone = user.TimeZone,
+                DefaultPage = user.DefaultPage,
                 TokenExpiry = token.Data.Expiry,
                 Token = token.Data.Token,
                 Roles = [.. roles]

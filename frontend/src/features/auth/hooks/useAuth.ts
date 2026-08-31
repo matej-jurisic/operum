@@ -1,4 +1,9 @@
+import {
+    readDefaultPage,
+    writeDefaultPage,
+} from "../../../shared/constants/defaultPage";
 import globalStore from "../../../shared/stores/GlobalStore";
+import navigationStore from "../../../shared/stores/NavigationStore";
 import { authController } from "../api/authenticationController";
 import { AuthResponseDto } from "../types/AuthResponseDto";
 import { profileController } from "../../profile/api/profileController";
@@ -25,12 +30,13 @@ const useAuth = () => {
                         userName: username,
                         id: id,
                         roles: JSON.parse(roles),
+                        defaultPage: readDefaultPage(),
                     });
                 }
             } else {
                 globalStore.setCurrentUser(undefined);
             }
-        } catch (err) {
+        } catch {
             globalStore.setCurrentUser(undefined);
         } finally {
             globalStore.setCheckingAuth(false);
@@ -44,7 +50,11 @@ const useAuth = () => {
             id: user.id,
             roles: user.roles,
             timeZone: user.timeZone,
+            defaultPage: user.defaultPage,
         });
+        // Partial calls (e.g. the profile page after a username change) omit this;
+        // only mirror it to storage when the caller actually carried a value.
+        if (user.defaultPage !== undefined) writeDefaultPage(user.defaultPage);
         localStorage.setItem(USERNAME_KEY, user.userName);
         localStorage.setItem(ID_KEY, user.id);
         localStorage.setItem(ROLES_KEY, JSON.stringify(user.roles));
@@ -59,6 +69,8 @@ const useAuth = () => {
 
     const clearUserData = () => {
         globalStore.setCurrentUser(undefined);
+        navigationStore.clear();
+        writeDefaultPage(null);
         localStorage.removeItem(USERNAME_KEY);
         localStorage.removeItem(ID_KEY);
         localStorage.removeItem(EXP_KEY);

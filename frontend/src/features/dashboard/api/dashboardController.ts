@@ -52,6 +52,12 @@ export const dashboardController = {
         return await api.delete(`/dashboard/${dashboardId}`);
     },
 
+    reorderDashboards: async (
+        dashboardIds: string[],
+    ): Promise<ApiResponse> => {
+        return await api.put("/dashboard/reorder", { dashboardIds });
+    },
+
     createAndPlaceWidget: async (
         dashboardId: string,
         dto: CreateAndPlaceWidgetDto

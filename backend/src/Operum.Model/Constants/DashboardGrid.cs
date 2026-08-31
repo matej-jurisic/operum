@@ -17,7 +17,10 @@ namespace Operum.Model.Constants
         public const int Columns = 24;
         public const int MobileColumns = 4;
         public const int MinWidth = 2;
-        public const int MinHeight = 2;
+        // One row. A divider or header is a layout accent rather than content, so the grid
+        // lets a widget be squeezed down to a 20px sliver; the client caps the arrange-mode
+        // controls that would otherwise overflow a cell that short.
+        public const int MinHeight = 1;
         public const int MaxHeight = 80;
 
         // How wide the grid is for the arrangement being saved. Unknown variants fall back
