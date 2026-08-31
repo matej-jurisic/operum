@@ -45,7 +45,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "3001:80"
+      - "3000:80"
 
   # Monitoring stack - off by default (see COMPOSE_PROFILES in .env.example).
   # Not needed for local dev/testing; the production host enables it.
@@ -60,7 +60,7 @@ services:
     image: grafana/grafana
     profiles: ["monitoring"]
     ports:
-      - "3002:3000"
+      - "3001:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
       - GF_SERVER_ROOT_URL=https://operum.app/grafana/

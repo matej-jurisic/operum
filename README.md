@@ -71,10 +71,10 @@ docker-compose up -d
 
 | Service | URL |
 |---|---|
-| App | http://localhost:3001 |
+| App | http://localhost:3000 |
 | API | http://localhost:5000/api |
 | Swagger | http://localhost:5000/api/swagger/index.html |
-| Grafana | http://localhost:3002 (only with `COMPOSE_PROFILES=monitoring` in `.env`) |
+| Grafana | http://localhost:3001 (only with `COMPOSE_PROFILES=monitoring` in `.env`) |
 
 A default admin (`admin@example.com`) and test user (`test@example.com`) are seeded automatically on first run; the setup script prints their passwords.
 
