@@ -19,6 +19,7 @@ import {
     UpdateDashboardEntriesItemDto,
     UpdateDashboardItemDto,
     UpdateDashboardLayoutDto,
+    UpdateDashboardViewItemDto,
 } from "../types/DashboardDto";
 
 export const dashboardController = {
@@ -135,6 +136,14 @@ export const dashboardController = {
         dto: SetViewWidgetSelectionDto
     ): Promise<ApiResponse<DashboardWidgetDto[]>> => {
         return await api.put(`/dashboard/${dashboardId}/items/${itemId}/view-selection`, dto);
+    },
+
+    updateViewItem: async (
+        dashboardId: string,
+        itemId: string,
+        dto: UpdateDashboardViewItemDto
+    ): Promise<ApiResponse<DashboardWidgetDto[]>> => {
+        return await api.put(`/dashboard/${dashboardId}/items/${itemId}/view`, dto);
     },
 
     setTextWidgetContent: async (

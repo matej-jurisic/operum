@@ -62,13 +62,13 @@ export default function TermsOfService() {
                     </Text>
                     <Text c="dimmed">
                         You must provide accurate information when registering. Each account is for a single
-                        user — account sharing is not permitted.
+                        user; account sharing is not permitted.
                     </Text>
                 </Section>
 
                 <Section title="3. Your Data">
                     <Text c="dimmed">
-                        You retain full ownership of all data you enter into Operum — your trackers, fields,
+                        You retain full ownership of all data you enter into Operum: your trackers, fields,
                         entries, and any other content you create. We do not claim any rights to your data.
                     </Text>
                     <Text c="dimmed">
@@ -80,11 +80,11 @@ export default function TermsOfService() {
                 <Section title="4. Acceptable Use">
                     <Text c="dimmed">You agree not to:</Text>
                     <Stack gap={4} pl="md">
-                        <Text c="dimmed">— Use the Service for any unlawful purpose.</Text>
-                        <Text c="dimmed">— Attempt to gain unauthorized access to other users' accounts or data.</Text>
-                        <Text c="dimmed">— Interfere with or disrupt the Service or servers.</Text>
-                        <Text c="dimmed">— Use the Service to store or distribute malicious code.</Text>
-                        <Text c="dimmed">— Attempt to reverse-engineer or extract the source code of the Service.</Text>
+                        <Text c="dimmed">• Use the Service for any unlawful purpose.</Text>
+                        <Text c="dimmed">• Attempt to gain unauthorized access to other users' accounts or data.</Text>
+                        <Text c="dimmed">• Interfere with or disrupt the Service or servers.</Text>
+                        <Text c="dimmed">• Use the Service to store or distribute malicious code.</Text>
+                        <Text c="dimmed">• Attempt to reverse-engineer or extract the source code of the Service.</Text>
                     </Stack>
                 </Section>
 

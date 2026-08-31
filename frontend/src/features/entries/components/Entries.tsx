@@ -108,7 +108,7 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
         if (totalCount === 0) return "";
         const from = pageSize * (page - 1) + 1;
         const to = Math.min(totalCount, pageSize * page);
-        return `Showing ${from} – ${to} of ${totalCount}`;
+        return `Showing ${from} to ${to} of ${totalCount}`;
     }, [page, pageSize, totalCount]);
 
     const viewName = useMemo(() => {

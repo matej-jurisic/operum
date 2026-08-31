@@ -26,9 +26,9 @@ interface Props {
     color: string | undefined;
     isConfiguring: boolean;
     onRemove?: (itemId: string) => void;
-    /** Opens the widget's edit dialog. Analytic, Entries, Header and Note widgets only: a
-        View widget's dropdown and a QuickAdd widget's tracker are instead fixed at add time
-        or changed on the card itself, and a Divider has nothing to edit at all. */
+    /** Opens the widget's edit dialog. Analytic, Entries, Header, Note and View widgets: a
+        View selector's edit dialog sets its starting view and which widgets follow it. A
+        QuickAdd widget's tracker is fixed at add time and a Divider has nothing to edit. */
     onEdit?: (itemId: string) => void;
     onEntryClick?: (entryId: string) => void;
     onViewSelect?: (itemId: string, viewId: string | null) => void;
@@ -143,6 +143,7 @@ export function DashboardWidget({
                     color={color}
                     isConfiguring={isConfiguring}
                     onRemove={onRemove}
+                    onEdit={onEdit}
                     onSelect={onViewSelect ?? (() => {})}
                 />
             );

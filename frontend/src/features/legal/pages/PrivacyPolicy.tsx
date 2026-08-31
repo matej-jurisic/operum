@@ -49,10 +49,10 @@ export default function PrivacyPolicy() {
                 <Section title="1. Information We Collect">
                     <Text c="dimmed">We collect the following information when you use Operum:</Text>
                     <Stack gap={4} pl="md">
-                        <Text c="dimmed">— <strong>Account information:</strong> your email address and username when you register.</Text>
-                        <Text c="dimmed">— <strong>User content:</strong> tracker schemas, field definitions, and entries you create inside the app.</Text>
-                        <Text c="dimmed">— <strong>Authentication data:</strong> securely hashed passwords and short-lived authentication tokens stored in HTTP-only cookies.</Text>
-                        <Text c="dimmed">— <strong>Usage data:</strong> basic server logs (IP address, timestamps) for security and debugging purposes.</Text>
+                        <Text c="dimmed">• <strong>Account information:</strong> your email address and username when you register.</Text>
+                        <Text c="dimmed">• <strong>User content:</strong> tracker schemas, field definitions, and entries you create inside the app.</Text>
+                        <Text c="dimmed">• <strong>Authentication data:</strong> securely hashed passwords and short-lived authentication tokens stored in HTTP-only cookies.</Text>
+                        <Text c="dimmed">• <strong>Usage data:</strong> basic server logs (IP address, timestamps) for security and debugging purposes.</Text>
                     </Stack>
                     <Text c="dimmed">
                         If you register via Google, we receive your verified email address and name
@@ -62,10 +62,10 @@ export default function PrivacyPolicy() {
 
                 <Section title="2. How We Use Your Information">
                     <Stack gap={4} pl="md">
-                        <Text c="dimmed">— To provide, operate, and maintain the Operum service.</Text>
-                        <Text c="dimmed">— To send you account-related emails (email confirmation, password reset).</Text>
-                        <Text c="dimmed">— To identify and fix bugs and security issues.</Text>
-                        <Text c="dimmed">— To comply with legal obligations.</Text>
+                        <Text c="dimmed">• To provide, operate, and maintain the Operum service.</Text>
+                        <Text c="dimmed">• To send you account-related emails (email confirmation, password reset).</Text>
+                        <Text c="dimmed">• To identify and fix bugs and security issues.</Text>
+                        <Text c="dimmed">• To comply with legal obligations.</Text>
                     </Stack>
                     <Text c="dimmed">
                         We do not sell your personal data. We do not use your data for advertising.
@@ -75,8 +75,8 @@ export default function PrivacyPolicy() {
                 <Section title="3. Third-Party Services">
                     <Text c="dimmed">We use the following third-party services to operate Operum:</Text>
                     <Stack gap={4} pl="md">
-                        <Text c="dimmed">— <strong>Mailgun</strong> — for sending transactional emails (email confirmation). Your email address is shared with Mailgun solely to deliver these messages.</Text>
-                        <Text c="dimmed">— <strong>Google OAuth</strong> — if you choose to sign in with Google. Governed by <Anchor href="https://policies.google.com/privacy" target="_blank" size="sm">Google's Privacy Policy</Anchor>.</Text>
+                        <Text c="dimmed">• <strong>Mailgun:</strong> for sending transactional emails (email confirmation). Your email address is shared with Mailgun solely to deliver these messages.</Text>
+                        <Text c="dimmed">• <strong>Google OAuth:</strong> if you choose to sign in with Google. Governed by <Anchor href="https://policies.google.com/privacy" target="_blank" size="sm">Google's Privacy Policy</Anchor>.</Text>
                     </Stack>
                 </Section>
 

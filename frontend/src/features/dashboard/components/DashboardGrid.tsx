@@ -19,14 +19,17 @@ import "./DashboardGrid.css";
 import { DashboardWidget } from "./DashboardWidget";
 
 /** Kept in step with DashboardGrid.Columns on the backend: a stored x/w is in these. */
-export const DASHBOARD_GRID_COLUMNS = 12;
+export const DASHBOARD_GRID_COLUMNS = 24;
 
 /** Kept in step with DashboardGrid.MobileColumns. */
 export const DASHBOARD_MOBILE_GRID_COLUMNS = 4;
 
-const ROW_HEIGHT = 40;
-const MIN_WIDTH = 1;
-const MIN_HEIGHT = 1;
+// 20px, half what it was, so a drag or resize snaps to half the vertical step it used to.
+// The IncreaseDashboardGridResolution migration doubled every stored y/h to match, the same
+// way DASHBOARD_GRID_COLUMNS going 12 -> 24 doubled every stored x/w.
+const ROW_HEIGHT = 20;
+const MIN_WIDTH = 2;
+const MIN_HEIGHT = 2;
 
 // Grabbed by the drag handle below, and by react-grid-layout to tell that handle apart
 // from the rest of the card.
@@ -70,7 +73,7 @@ interface VariantConfig {
 const VARIANTS: Record<LayoutVariant, VariantConfig> = {
   [LayoutVariants.Desktop]: {
     margin: [16, 16],
-    fallbackWidth: 6,
+    fallbackWidth: 12,
   },
   [LayoutVariants.Mobile]: {
     margin: [8, 8],
@@ -79,7 +82,7 @@ const VARIANTS: Record<LayoutVariant, VariantConfig> = {
   },
 };
 
-const FALLBACK_HEIGHT = 6;
+const FALLBACK_HEIGHT = 12;
 
 const toLayoutItem = (
   widget: DashboardWidgetDto,

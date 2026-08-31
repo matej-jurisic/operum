@@ -18,12 +18,16 @@ export default function BackButton(props: Props) {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // From a dashboard the button crosses to Trackers; from anywhere else (Trackers, a
-    // tracker's own pages, Profile, the admin panel) it heads back to Dashboards.
+    // From a dashboard the button crosses to Trackers; so does a single tracker's own
+    // pages (/trackers/:trackerId...), which point back up to the Trackers list. From
+    // anywhere else (the Trackers list itself, Profile, the admin panel) it heads to
+    // Dashboards.
     const onDashboard = location.pathname.startsWith("/dashboard");
-    const target = onDashboard
-        ? { path: "/trackers", label: "Trackers", Icon: TbDatabase }
-        : { path: "/dashboard", label: "Dashboards", Icon: LuLayoutDashboard };
+    const onTracker = /^\/trackers\/.+/.test(location.pathname);
+    const target =
+        onDashboard || onTracker
+            ? { path: "/trackers", label: "Trackers", Icon: TbDatabase }
+            : { path: "/dashboard", label: "Dashboards", Icon: LuLayoutDashboard };
 
     // Only ever an icon, so on a phone it drops the padding a label would have needed
     // and leaves that width to the rest of the header's row.

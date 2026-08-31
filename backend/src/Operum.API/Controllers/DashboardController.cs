@@ -120,6 +120,14 @@ namespace Operum.API.Controllers
             return GetApiResponse(await dashboardService.SetViewWidgetSelection(dashboardId, itemId, dto));
         }
 
+        // A View selector's starting view and the full set of board widgets that follow it —
+        // the same links each following widget's own form can set from its side.
+        [HttpPut("{dashboardId}/items/{itemId}/view")]
+        public async Task<IActionResult> UpdateViewItem([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] UpdateDashboardViewItemDto dto)
+        {
+            return GetApiResponse(await dashboardService.UpdateViewItem(dashboardId, itemId, dto));
+        }
+
         // Only how an Entries widget is filtered, and whether it collapses to a button — the
         // tracker it reads from stays as it was placed.
         [HttpPut("{dashboardId}/items/{itemId}/entries")]

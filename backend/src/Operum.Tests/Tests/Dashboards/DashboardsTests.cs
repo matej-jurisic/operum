@@ -1158,6 +1158,167 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(HttpStatusCode.NotFound, selectionResponse.StatusCode);
         }
 
+        // Places a plain, unfiltered line chart on the board and returns its item id — the
+        // "before" a View widget's own link picker acts on.
+        private static async Task<string> PlaceLineChart(HttpClient client, string dashboardId, CapableTracker tracker, string? viewId = null)
+        {
+            var source = LineSource(tracker);
+            source.ViewId = viewId;
+
+            var response = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
+            {
+                ResultType = AnalyticTypes.LineChart,
+                Code = AnalyticCodes.LineChart,
+                Sources = [source]
+            });
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            return (await Data(response)).GetProperty("id").GetString()!;
+        }
+
+        private static JsonElement ChartFor(JsonElement widgets, string itemId)
+            => widgets.EnumerateArray().Single(w => w.GetProperty("id").GetString() == itemId);
+
+        private static int PointsOf(JsonElement widgets, string itemId)
+            => Analytic(ChartFor(widgets, itemId)).GetProperty("points").GetArrayLength();
+
+        // The board-side half of the feature: a View widget added with LinkedItemIds pulls
+        // the named charts into its filter itself, so they re-read through its selection
+        // without ever being opened.
+        [Fact]
+        public async Task AddViewItem_WithLinkedItems_LinksMatchingSources()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("viewwidgetaddlinks");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var viewId = await CreateStrengthOnlyView(client, tracker);
+            var dashboardId = await CreateDashboard(client);
+
+            var chartId = await PlaceLineChart(client, dashboardId, tracker);
+            Assert.Equal(1, PointsOf(await Widgets(client, dashboardId), chartId));
+
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/view",
+                new AddDashboardViewItemDto { TrackerId = tracker.Id, ViewId = viewId, LinkedItemIds = [chartId] });
+            Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
+
+            // The chart now reads through the selector's "Strength only" view — nothing
+            // matches, so it drops to zero points without the chart itself being touched.
+            Assert.Equal(0, PointsOf(await Widgets(client, dashboardId), chartId));
+        }
+
+        [Fact]
+        public async Task AddViewItem_LinkedItemOfAnotherTracker_ReturnsBadRequest()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("viewwidgetaddcross");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var other = await CreateCapableTracker(client, "Steps");
+            var dashboardId = await CreateDashboard(client);
+
+            var chartId = await PlaceLineChart(client, dashboardId, tracker);
+
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/view",
+                new AddDashboardViewItemDto { TrackerId = other.Id, LinkedItemIds = [chartId] });
+
+            Assert.Equal(HttpStatusCode.BadRequest, addResponse.StatusCode);
+        }
+
+        // The edit form's payload is the whole set: a chart added to LinkedItemIds starts
+        // following the selector, one dropped from it goes back to unfiltered — and a chart
+        // that was never linked here is left exactly as it was.
+        [Fact]
+        public async Task UpdateViewItem_AddsAndRemovesLinks()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("viewwidgetupdatelinks");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var viewId = await CreateStrengthOnlyView(client, tracker);
+            var dashboardId = await CreateDashboard(client);
+
+            var viewItemId = (await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/view",
+                new AddDashboardViewItemDto { TrackerId = tracker.Id, ViewId = viewId }))).GetProperty("id").GetString()!;
+
+            var linkedChartId = await PlaceLineChart(client, dashboardId, tracker);
+            var otherChartId = await PlaceLineChart(client, dashboardId, tracker);
+
+            // Start with linkedChartId following the selector (filtered to zero), otherChartId
+            // untouched (one point).
+            await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{viewItemId}/view", new UpdateDashboardViewItemDto
+            {
+                ViewId = viewId,
+                LinkedItemIds = [linkedChartId]
+            });
+            var afterFirst = await Widgets(client, dashboardId);
+            Assert.Equal(0, PointsOf(afterFirst, linkedChartId));
+            Assert.Equal(1, PointsOf(afterFirst, otherChartId));
+
+            // Swap the set: otherChartId in, linkedChartId out.
+            var swap = await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{viewItemId}/view", new UpdateDashboardViewItemDto
+            {
+                ViewId = viewId,
+                LinkedItemIds = [otherChartId]
+            });
+            Assert.Equal(HttpStatusCode.OK, swap.StatusCode);
+
+            var afterSwap = await Data(swap);
+            Assert.Equal(1, PointsOf(afterSwap, linkedChartId));
+            Assert.Equal(0, PointsOf(afterSwap, otherChartId));
+        }
+
+        // Ticking a chart that already had a fixed view replaces that view with the link —
+        // the user's choice on the selector wins.
+        [Fact]
+        public async Task UpdateViewItem_ReplacesExistingFixedView()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("viewwidgetreplace");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var viewId = await CreateStrengthOnlyView(client, tracker);
+            var dashboardId = await CreateDashboard(client);
+
+            var viewItemId = (await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/view",
+                new AddDashboardViewItemDto { TrackerId = tracker.Id }))).GetProperty("id").GetString()!;
+
+            // Fixed to "Strength only" — zero points to start.
+            var chartId = await PlaceLineChart(client, dashboardId, tracker, viewId);
+            Assert.Equal(0, PointsOf(await Widgets(client, dashboardId), chartId));
+
+            // Linked to the selector, which is on "All entries" — the fixed view is gone and
+            // the chart reads every entry again.
+            var response = await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{viewItemId}/view", new UpdateDashboardViewItemDto
+            {
+                ViewId = null,
+                LinkedItemIds = [chartId]
+            });
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(1, PointsOf(await Data(response), chartId));
+        }
+
+        [Fact]
+        public async Task UpdateViewItem_ChangesStartingView()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("viewwidgetstart");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var viewId = await CreateStrengthOnlyView(client, tracker);
+            var dashboardId = await CreateDashboard(client);
+
+            var viewItemId = (await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/view",
+                new AddDashboardViewItemDto { TrackerId = tracker.Id }))).GetProperty("id").GetString()!;
+
+            var response = await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{viewItemId}/view",
+                new UpdateDashboardViewItemDto { ViewId = viewId });
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            var widgets = await Widgets(client, dashboardId);
+            var viewWidget = widgets.EnumerateArray().Single(w => w.GetProperty("type").GetString() == DashboardWidgetTypes.View);
+            Assert.Equal(viewId, viewWidget.GetProperty("viewWidget").GetProperty("viewId").GetString());
+        }
+
         // A source is filtered at most one way: a fixed view and a live link are mutually
         // exclusive, so a request naming both is rejected up front rather than picking one.
         [Fact]

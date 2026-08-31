@@ -19,6 +19,8 @@ interface Props {
   color: string | undefined;
   isConfiguring: boolean;
   onRemove?: (itemId: string) => void;
+  /** Opens the selector's edit dialog: its starting view and which widgets follow it. */
+  onEdit?: (itemId: string) => void;
   /** Persists the new selection and recomputes every widget linked to this one. */
   onSelect: (itemId: string, viewId: string | null) => void;
 }
@@ -40,6 +42,7 @@ export function ViewWidgetCard({
   color,
   isConfiguring,
   onRemove,
+  onEdit,
   onSelect,
 }: Props) {
   const layout = useCardLayout(true);
@@ -74,6 +77,7 @@ export function ViewWidgetCard({
           isConfiguring={isConfiguring}
           analyticId={widgetId}
           onRemove={onRemove}
+          onEdit={onEdit}
           compact
         />
         <Center

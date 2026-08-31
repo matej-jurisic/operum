@@ -120,19 +120,19 @@ export default function ProfilePage() {
     const statCards = [
         {
             label: "Trackers Owned",
-            value: stats?.trackersOwned ?? "—",
+            value: stats?.trackersOwned ?? "-",
             icon: <TbLayoutGrid size={20} />,
             color: "blue",
         },
         {
             label: "Shared With Me",
-            value: stats?.sharedWithMe ?? "—",
+            value: stats?.sharedWithMe ?? "-",
             icon: <TbUsers size={20} />,
             color: "teal",
         },
         {
             label: "Total Entries",
-            value: stats?.totalEntries ?? "—",
+            value: stats?.totalEntries ?? "-",
             icon: <TbDatabase size={20} />,
             color: "grape",
         },

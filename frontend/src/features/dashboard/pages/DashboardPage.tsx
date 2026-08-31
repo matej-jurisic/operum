@@ -20,6 +20,7 @@ import BoardSwitcher from "../components/BoardSwitcher";
 import { DashboardGrid } from "../components/DashboardGrid";
 import { EditEntriesWidgetModal } from "../components/EditEntriesWidgetModal";
 import { EditTextWidgetModal } from "../components/EditTextWidgetModal";
+import { EditViewWidgetModal } from "../components/EditViewWidgetModal";
 import { EditWidgetModal } from "../components/EditWidgetModal";
 import { WidgetsProvider } from "../../widgets/context/WidgetsContext";
 import { WidgetLibraryModal } from "../../widgets/components/WidgetLibraryModal";
@@ -64,6 +65,7 @@ function DashboardContent({
         updateItem,
         updateEntriesItem,
         setViewSelection,
+        updateViewItem,
         setTextContent,
         removeItem,
         saveLayout,
@@ -215,11 +217,21 @@ function DashboardContent({
                 />
             )}
 
+            {editingItemId && editingWidget && editingWidget.type === WidgetTypes.View && (
+                <EditViewWidgetModal
+                    itemId={editingItemId}
+                    color={color}
+                    onClose={closeEditing}
+                    onSave={updateViewItem}
+                />
+            )}
+
             {editingItemId &&
                 editingWidget &&
                 editingWidget.type !== WidgetTypes.Header &&
                 editingWidget.type !== WidgetTypes.Note &&
-                editingWidget.type !== WidgetTypes.Entries && (
+                editingWidget.type !== WidgetTypes.Entries &&
+                editingWidget.type !== WidgetTypes.View && (
                     <EditWidgetModal
                         itemId={editingItemId}
                         color={color}

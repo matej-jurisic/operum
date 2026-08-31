@@ -1,9 +1,10 @@
 import {
     Button,
     Group,
+    Loader,
     Modal,
+    Paper,
     Select,
-    SimpleGrid,
     Stack,
     Tabs,
     Text,
@@ -13,10 +14,10 @@ import {
     UnstyledButton,
     useMantineTheme,
 } from "@mantine/core";
-import { useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { IconType } from "react-icons";
 import { CiFilter } from "react-icons/ci";
-import { FiChevronRight, FiPlus, FiPlusSquare } from "react-icons/fi";
+import { FiChevronRight, FiPlus, FiPlusSquare, FiSearch } from "react-icons/fi";
 import { MdOutlineHorizontalRule } from "react-icons/md";
 import { TbChartHistogram, TbHeading, TbLayoutGrid, TbNote, TbTable } from "react-icons/tb";
 import EmptyState from "../../../shared/components/EmptyState";
@@ -138,6 +139,7 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
 
     const [trackers, setTrackers] = useState<TrackerDto[]>([]);
     const [trackerFilter, setTrackerFilter] = useState<string | null>(null);
+    const [search, setSearch] = useState("");
     const [tab, setTab] = useState<TabValue>("charts");
     const [panel, setPanel] = useState<Panel>({ kind: "list" });
     const [isAddingDivider, setIsAddingDivider] = useState(false);
@@ -150,20 +152,37 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
         });
     }, [refresh]);
 
+    const query = search.trim().toLowerCase();
+
     const filteredWidgets = useMemo(
         () =>
-            trackerFilter
-                ? widgets.filter((w) => w.sources.some((s) => s.trackerId === trackerFilter))
-                : widgets,
-        [widgets, trackerFilter]
+            widgets
+                .filter((w) => !trackerFilter || w.sources.some((s) => s.trackerId === trackerFilter))
+                .filter(
+                    (w) =>
+                        !query ||
+                        w.name.toLowerCase().includes(query) ||
+                        w.resultType.toLowerCase().includes(query) ||
+                        w.sources.some((s) => s.trackerName.toLowerCase().includes(query))
+                )
+                .sort((a, b) => a.name.localeCompare(b.name)),
+        [widgets, trackerFilter, query]
     );
 
     const filteredEntriesWidgets = useMemo(
         () =>
-            trackerFilter
-                ? entriesWidgets.filter((w) => w.trackerId === trackerFilter)
-                : entriesWidgets,
-        [entriesWidgets, trackerFilter]
+            entriesWidgets
+                .filter((w) => !trackerFilter || w.trackerId === trackerFilter)
+                .filter(
+                    (w) =>
+                        !query ||
+                        (w.name ?? "").toLowerCase().includes(query) ||
+                        w.trackerName.toLowerCase().includes(query)
+                )
+                .sort((a, b) =>
+                    (a.name || a.trackerName).localeCompare(b.name || b.trackerName)
+                ),
+        [entriesWidgets, trackerFilter, query]
     );
 
     const backToList = () => setPanel({ kind: "list" });
@@ -206,76 +225,138 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
         }
     };
 
-    // Only the tabbed list wants the big, fixed-height canvas; the forms are ordinary and
-    // look lost stretched to 90vh, so they get a dialog that sizes to their content.
+    // The library modal stays a fixed-height canvas for the tabbed list. Add / edit /
+    // delete and the "New ..." forms open in a second modal stacked on top, so the list
+    // stays visible behind them instead of being replaced.
     const isList = panel.kind === "list";
-    const isWide =
-        panel.kind === "new-chart" ||
-        panel.kind === "new-table" ||
-        panel.kind === "place-chart" ||
-        panel.kind === "place-table";
+    const lastSubPanelRef = useRef<Panel>({ kind: "list" });
+    if (!isList) {
+        lastSubPanelRef.current = panel;
+    }
+    // While the sub-modal plays its close transition `panel` is already back to "list";
+    // keep rendering the last panel's content so the box doesn't empty out mid-fade.
+    const subPanel = isList ? lastSubPanelRef.current : panel;
+    const isWideSub =
+        subPanel.kind === "new-chart" ||
+        subPanel.kind === "new-table" ||
+        subPanel.kind === "place-chart" ||
+        subPanel.kind === "place-table";
 
-    const trackerSelect = (
-        <Select
-            placeholder="All trackers"
-            data={trackers.map((t) => ({ value: t.id, label: t.name }))}
-            value={trackerFilter}
-            onChange={setTrackerFilter}
-            clearable
-            searchable
-            w={240}
-        />
+    // Search + tracker filter share one row across the Charts and Tables tabs; the tab's
+    // "New" button sits at the end and wraps under on a narrow modal.
+    const listToolbar = (newButton: ReactNode) => (
+        <Group gap="sm" wrap="wrap" align="center">
+            <TextInput
+                placeholder="Search by name"
+                leftSection={<FiSearch size={15} />}
+                value={search}
+                onChange={(event) => setSearch(event.currentTarget.value)}
+                style={{ flex: 1, minWidth: 200 }}
+            />
+            <Select
+                placeholder="All trackers"
+                data={trackers.map((t) => ({ value: t.id, label: t.name }))}
+                value={trackerFilter}
+                onChange={setTrackerFilter}
+                clearable
+                searchable
+                w={190}
+            />
+            {newButton}
+        </Group>
     );
 
-    const instantGrid = (options: InstantOption[]) => (
-        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
-            {options.map((option) => (
-                <UnstyledButton
-                    key={option.key}
-                    onClick={() => pickInstant(option.key)}
-                    disabled={option.key === "divider" && isAddingDivider}
-                    p="md"
-                    style={{
-                        borderRadius: theme.radius.md,
-                        border: `1px solid ${theme.colors.gray[6]}33`,
-                    }}
-                >
-                    <Group wrap="nowrap">
-                        <ThemeIcon size={40} radius="md" variant="light" color={color}>
-                            <option.icon size={22} />
-                        </ThemeIcon>
-                        <Text fw={600} style={{ flex: 1 }}>
-                            {option.title}
-                        </Text>
-                        <FiChevronRight size={18} />
-                    </Group>
-                </UnstyledButton>
-            ))}
-        </SimpleGrid>
+    // The list is one bordered surface of quiet rows rather than a grid of standalone
+    // cards -- easier to scan down when there are a lot of saved widgets.
+    const listContainer = (count: number, noun: string, rows: ReactNode) => (
+        <Stack gap="xs">
+            <Text size="xs" c="dimmed">
+                {count} {count === 1 ? noun : `${noun}s`}
+            </Text>
+            <Paper withBorder radius="md" p={4}>
+                <Stack gap={2}>{rows}</Stack>
+            </Paper>
+        </Stack>
+    );
+
+    // The toolbar stays pinned at the top of the tab; only the rows below it scroll.
+    const scrollRegion = (children: ReactNode) => (
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 4 }}>
+            {children}
+        </div>
+    );
+
+    const instantList = (options: InstantOption[]) => (
+        <Paper withBorder radius="md" p={4}>
+            <Stack gap={2}>
+                {options.map((option) => (
+                    <UnstyledButton
+                        key={option.key}
+                        onClick={() => pickInstant(option.key)}
+                        disabled={option.key === "divider" && isAddingDivider}
+                        px="sm"
+                        py="xs"
+                        style={{ borderRadius: theme.radius.sm, width: "100%" }}
+                    >
+                        <Group wrap="nowrap" gap="sm">
+                            <ThemeIcon size={34} radius="md" variant="light" color={color}>
+                                <option.icon size={18} />
+                            </ThemeIcon>
+                            <Text fw={500} style={{ flex: 1 }}>
+                                {option.title}
+                            </Text>
+                            <FiChevronRight size={18} />
+                        </Group>
+                    </UnstyledButton>
+                ))}
+            </Stack>
+        </Paper>
     );
 
     return (
-        <Modal
-            opened
-            onClose={onClose}
-            title={panelTitle(panel)}
-            size={isList ? "90%" : isWide ? "lg" : "md"}
-            centered
-            styles={
-                isList
-                    ? {
-                          content: {
-                              height: "90vh",
-                              display: "flex",
-                              flexDirection: "column",
-                          },
-                          body: { flex: 1, overflowY: "auto" },
-                      }
-                    : undefined
-            }
-        >
-            {panel.kind === "list" && (
-                <Tabs value={tab} onChange={(value) => setTab(value as TabValue)}>
+        <>
+            <Modal
+                opened
+                onClose={onClose}
+                title="Widgets"
+                size={960}
+                centered
+                styles={{
+                    // Fixed height so the modal doesn't jump around as the search or
+                    // tracker filter changes how many rows are shown. The body itself
+                    // never scrolls -- the tab header and toolbar stay put while each
+                    // tab's list area scrolls on its own.
+                    content: {
+                        height: "min(92vh, 840px)",
+                        display: "flex",
+                        flexDirection: "column",
+                    },
+                    body: {
+                        flex: 1,
+                        minHeight: 0,
+                        display: "flex",
+                        flexDirection: "column",
+                        overflow: "hidden",
+                    },
+                }}
+            >
+                <Tabs
+                    value={tab}
+                    onChange={(value) => setTab(value as TabValue)}
+                    // Unmount inactive panels so the per-panel flex styling below only ever
+                    // applies to the visible tab (a kept-but-hidden panel would ignore its
+                    // `hidden` state once we set an explicit `display`).
+                    keepMounted={false}
+                    styles={{
+                        root: {
+                            flex: 1,
+                            minHeight: 0,
+                            display: "flex",
+                            flexDirection: "column",
+                        },
+                        panel: { flex: 1, minHeight: 0 },
+                    }}
+                >
                     <Tabs.List mb="md">
                         <Tabs.Tab value="charts" leftSection={<TbChartHistogram size={16} />}>
                             Charts
@@ -291,30 +372,35 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
                         </Tabs.Tab>
                     </Tabs.List>
 
-                    <Tabs.Panel value="charts">
-                        <Stack gap="md">
-                            <Group justify="space-between" wrap="wrap">
-                                {trackerSelect}
+                    <Tabs.Panel value="charts" style={{ display: "flex", flexDirection: "column" }}>
+                        <Stack gap="md" style={{ flex: 1, minHeight: 0 }}>
+                            {listToolbar(
                                 <Button
                                     leftSection={<FiPlus size={16} />}
                                     onClick={() => setPanel({ kind: "new-chart" })}
                                 >
                                     New chart
                                 </Button>
-                            </Group>
+                            )}
 
-                            {!isLoading && filteredWidgets.length === 0 ? (
+                            {isLoading ? (
+                                <Group justify="center" py="xl">
+                                    <Loader size="sm" />
+                                </Group>
+                            ) : filteredWidgets.length === 0 ? (
                                 <EmptyState
                                     title="No charts yet"
                                     hint={
-                                        trackerFilter
-                                            ? "No charts read from this tracker."
-                                            : "Build one with New chart -- it's saved here and placed on this board."
+                                        query || trackerFilter
+                                            ? "No charts match this search."
+                                            : "Build one with New chart. It's saved here and placed on this board."
                                     }
                                 />
                             ) : (
-                                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-                                    {filteredWidgets.map((widget) => (
+                                scrollRegion(listContainer(
+                                    filteredWidgets.length,
+                                    "chart",
+                                    filteredWidgets.map((widget) => (
                                         <WidgetCard
                                             key={widget.id}
                                             widget={widget}
@@ -329,36 +415,41 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
                                                 setPanel({ kind: "delete-chart", widget })
                                             }
                                         />
-                                    ))}
-                                </SimpleGrid>
+                                    ))
+                                ))
                             )}
                         </Stack>
                     </Tabs.Panel>
 
-                    <Tabs.Panel value="tables">
-                        <Stack gap="md">
-                            <Group justify="space-between" wrap="wrap">
-                                {trackerSelect}
+                    <Tabs.Panel value="tables" style={{ display: "flex", flexDirection: "column" }}>
+                        <Stack gap="md" style={{ flex: 1, minHeight: 0 }}>
+                            {listToolbar(
                                 <Button
                                     leftSection={<FiPlus size={16} />}
                                     onClick={() => setPanel({ kind: "new-table" })}
                                 >
                                     New table
                                 </Button>
-                            </Group>
+                            )}
 
-                            {!isLoading && filteredEntriesWidgets.length === 0 ? (
+                            {isLoading ? (
+                                <Group justify="center" py="xl">
+                                    <Loader size="sm" />
+                                </Group>
+                            ) : filteredEntriesWidgets.length === 0 ? (
                                 <EmptyState
                                     title="No entries tables yet"
                                     hint={
-                                        trackerFilter
-                                            ? "No tables read from this tracker."
-                                            : "Build one with New table -- it's saved here and placed on this board."
+                                        query || trackerFilter
+                                            ? "No tables match this search."
+                                            : "Build one with New table. It's saved here and placed on this board."
                                     }
                                 />
                             ) : (
-                                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-                                    {filteredEntriesWidgets.map((entriesWidget) => (
+                                scrollRegion(listContainer(
+                                    filteredEntriesWidgets.length,
+                                    "table",
+                                    filteredEntriesWidgets.map((entriesWidget) => (
                                         <EntriesWidgetLibraryCard
                                             key={entriesWidget.id}
                                             entriesWidget={entriesWidget}
@@ -382,104 +473,119 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
                                                 })
                                             }
                                         />
-                                    ))}
-                                </SimpleGrid>
+                                    ))
+                                ))
                             )}
                         </Stack>
                     </Tabs.Panel>
 
-                    <Tabs.Panel value="controls">{instantGrid(CONTROL_OPTIONS)}</Tabs.Panel>
-                    <Tabs.Panel value="layout">{instantGrid(LAYOUT_OPTIONS)}</Tabs.Panel>
+                    <Tabs.Panel value="controls" style={{ display: "flex", flexDirection: "column" }}>
+                        {scrollRegion(instantList(CONTROL_OPTIONS))}
+                    </Tabs.Panel>
+                    <Tabs.Panel value="layout" style={{ display: "flex", flexDirection: "column" }}>
+                        {scrollRegion(instantList(LAYOUT_OPTIONS))}
+                    </Tabs.Panel>
                 </Tabs>
-            )}
+            </Modal>
 
-            {panel.kind === "new-chart" && (
-                <CustomAnalyticForm
-                    onBack={backToList}
-                    onAdd={closeAfter(createAndPlaceWidget)}
-                />
-            )}
+            <Modal
+                opened={!isList}
+                onClose={backToList}
+                title={panelTitle(subPanel)}
+                size={isWideSub ? "lg" : "md"}
+                centered
+                // Lighter overlay so the library stays legible behind the stacked dialog
+                // instead of stacking two full-strength scrims.
+                overlayProps={{ backgroundOpacity: 0.35 }}
+            >
+                {subPanel.kind === "new-chart" && (
+                    <CustomAnalyticForm
+                        onBack={backToList}
+                        onAdd={closeAfter(createAndPlaceWidget)}
+                    />
+                )}
 
-            {panel.kind === "new-table" && (
-                <EntriesWidgetForm
-                    onBack={backToList}
-                    onAdd={closeAfter(createAndPlaceEntriesWidget)}
-                />
-            )}
+                {subPanel.kind === "new-table" && (
+                    <EntriesWidgetForm
+                        onBack={backToList}
+                        onAdd={closeAfter(createAndPlaceEntriesWidget)}
+                    />
+                )}
 
-            {panel.kind === "place-chart" && (
-                <PlaceFromLibraryForm
-                    onBack={backToList}
-                    presetWidget={panel.widget}
-                    onPlaceWidget={closeAfter(placeWidget)}
-                    onPlaceEntriesWidget={closeAfter(placeEntriesWidget)}
-                />
-            )}
+                {subPanel.kind === "place-chart" && (
+                    <PlaceFromLibraryForm
+                        onBack={backToList}
+                        presetWidget={subPanel.widget}
+                        onPlaceWidget={closeAfter(placeWidget)}
+                        onPlaceEntriesWidget={closeAfter(placeEntriesWidget)}
+                    />
+                )}
 
-            {panel.kind === "place-table" && (
-                <PlaceFromLibraryForm
-                    onBack={backToList}
-                    presetEntriesWidget={panel.entriesWidget}
-                    onPlaceWidget={closeAfter(placeWidget)}
-                    onPlaceEntriesWidget={closeAfter(placeEntriesWidget)}
-                />
-            )}
+                {subPanel.kind === "place-table" && (
+                    <PlaceFromLibraryForm
+                        onBack={backToList}
+                        presetEntriesWidget={subPanel.entriesWidget}
+                        onPlaceWidget={closeAfter(placeWidget)}
+                        onPlaceEntriesWidget={closeAfter(placeEntriesWidget)}
+                    />
+                )}
 
-            {panel.kind === "config" && panel.widgetKind === "quickAdd" && (
-                <QuickAddTrackerForm onBack={backToList} onAdd={closeAfter(addQuickAddItem)} />
-            )}
+                {subPanel.kind === "config" && subPanel.widgetKind === "quickAdd" && (
+                    <QuickAddTrackerForm onBack={backToList} onAdd={closeAfter(addQuickAddItem)} />
+                )}
 
-            {panel.kind === "config" && panel.widgetKind === "view" && (
-                <ViewWidgetForm onBack={backToList} onAdd={closeAfter(addViewItem)} />
-            )}
+                {subPanel.kind === "config" && subPanel.widgetKind === "view" && (
+                    <ViewWidgetForm onBack={backToList} onAdd={closeAfter(addViewItem)} />
+                )}
 
-            {panel.kind === "config" && panel.widgetKind === "header" && (
-                <HeaderWidgetForm onBack={backToList} onAdd={closeAfter(addHeaderItem)} />
-            )}
+                {subPanel.kind === "config" && subPanel.widgetKind === "header" && (
+                    <HeaderWidgetForm onBack={backToList} onAdd={closeAfter(addHeaderItem)} />
+                )}
 
-            {panel.kind === "config" && panel.widgetKind === "note" && (
-                <NoteWidgetForm onBack={backToList} onAdd={closeAfter(addNoteItem)} />
-            )}
+                {subPanel.kind === "config" && subPanel.widgetKind === "note" && (
+                    <NoteWidgetForm onBack={backToList} onAdd={closeAfter(addNoteItem)} />
+                )}
 
-            {panel.kind === "edit-chart" && (
-                <RenameChartStep
-                    widget={panel.widget}
-                    onCancel={backToList}
-                    onSave={async (dto) => {
-                        await updateWidget(panel.widget.id, dto);
-                        backToList();
-                    }}
-                />
-            )}
+                {subPanel.kind === "edit-chart" && (
+                    <RenameChartStep
+                        widget={subPanel.widget}
+                        onCancel={backToList}
+                        onSave={async (dto) => {
+                            await updateWidget(subPanel.widget.id, dto);
+                            backToList();
+                        }}
+                    />
+                )}
 
-            {panel.kind === "edit-table" && (
-                <RenameEntriesStep
-                    entriesWidget={panel.entriesWidget}
-                    onCancel={backToList}
-                    onSave={async (dto) => {
-                        await updateEntriesWidget(panel.entriesWidget.id, dto);
-                        backToList();
-                    }}
-                />
-            )}
+                {subPanel.kind === "edit-table" && (
+                    <RenameEntriesStep
+                        entriesWidget={subPanel.entriesWidget}
+                        onCancel={backToList}
+                        onSave={async (dto) => {
+                            await updateEntriesWidget(subPanel.entriesWidget.id, dto);
+                            backToList();
+                        }}
+                    />
+                )}
 
-            {(panel.kind === "delete-chart" || panel.kind === "delete-table") && (
-                <Stack gap="lg">
-                    <Text>
-                        This removes it from every dashboard it's placed on, not just the
-                        Library. This can't be undone.
-                    </Text>
-                    <Group justify="flex-end">
-                        <Button variant="default" onClick={backToList}>
-                            Cancel
-                        </Button>
-                        <Button color="red" loading={isDeleting} onClick={handleDelete}>
-                            Delete
-                        </Button>
-                    </Group>
-                </Stack>
-            )}
-        </Modal>
+                {(subPanel.kind === "delete-chart" || subPanel.kind === "delete-table") && (
+                    <Stack gap="lg">
+                        <Text>
+                            This removes it from every dashboard it's placed on, not just the
+                            Library. This can't be undone.
+                        </Text>
+                        <Group justify="flex-end">
+                            <Button variant="default" onClick={backToList}>
+                                Cancel
+                            </Button>
+                            <Button color="red" loading={isDeleting} onClick={handleDelete}>
+                                Delete
+                            </Button>
+                        </Group>
+                    </Stack>
+                )}
+            </Modal>
+        </>
     );
 }
 

@@ -1,6 +1,16 @@
-import { ActionIcon, Badge, Group, Paper, Stack, Text, ThemeIcon } from "@mantine/core";
+import { ActionIcon, Button, Group, Stack, Text, ThemeIcon } from "@mantine/core";
+import { useHover } from "@mantine/hooks";
+import { IconType } from "react-icons";
 import { MdAdd, MdDelete, MdEdit } from "react-icons/md";
-import { TbChartHistogram } from "react-icons/tb";
+import {
+    TbCalendar,
+    TbChartBar,
+    TbChartDonut,
+    TbChartDots,
+    TbChartHistogram,
+    TbChartLine,
+    TbNumbers,
+} from "react-icons/tb";
 import { WidgetDto } from "../types/WidgetDto";
 
 interface Props {
@@ -11,55 +21,104 @@ interface Props {
     onDelete: () => void;
 }
 
-/** One chart Widget in the Library grid. There's no calculated preview here (the Library
-    manages definitions, not renders) -- see DashboardWidget for the actual chart, drawn
-    once a widget is placed on a board. */
+/** Maps a chart's result type to the icon for its shape, so the list can be skimmed by
+    chart kind. Falls back to the generic histogram glyph for anything unrecognised. */
+function resultTypeIcon(resultType: string): IconType {
+    switch (resultType) {
+        case "Single Value":
+            return TbNumbers;
+        case "Line Chart":
+            return TbChartLine;
+        case "Scatter Chart":
+            return TbChartDots;
+        case "Calendar":
+            return TbCalendar;
+        case "Donut Chart":
+            return TbChartDonut;
+        case "Bar Chart":
+            return TbChartBar;
+        default:
+            return TbChartHistogram;
+    }
+}
+
+/** One chart Widget as a row in the Library list. There's no calculated preview here (the
+    Library manages definitions, not renders) -- see DashboardWidget for the actual chart,
+    drawn once a widget is placed on a board. The whole row adds the widget to the board;
+    edit and delete are the quiet icons on the right. */
 export function WidgetCard({ widget, color, onAdd, onEdit, onDelete }: Props) {
+    const { hovered, ref } = useHover<HTMLDivElement>();
     const trackerNames = [...new Set(widget.sources.map((s) => s.trackerName))];
+    const Icon = resultTypeIcon(widget.resultType);
 
     return (
-        <Paper withBorder p="md" radius="md">
-            <Stack gap="sm">
-                <Group justify="space-between" wrap="nowrap" align="flex-start">
-                    <Group gap="sm" wrap="nowrap" style={{ minWidth: 0, flex: 1 }}>
-                        <ThemeIcon size={36} radius="md" variant="light" color={color}>
-                            <TbChartHistogram size={20} />
-                        </ThemeIcon>
-                        <Stack gap={0} style={{ minWidth: 0 }}>
-                            <Text fw={600} truncate title={widget.name}>
-                                {widget.name}
-                            </Text>
-                            <Text size="xs" c="dimmed">
-                                {widget.resultType}
-                            </Text>
-                        </Stack>
-                    </Group>
-                    <Group gap={4} wrap="nowrap">
-                        <ActionIcon
-                            size="md"
-                            color={color}
-                            variant="filled"
-                            onClick={onAdd}
-                            aria-label="Add to board"
-                        >
-                            <MdAdd size={16} />
-                        </ActionIcon>
-                        <ActionIcon size="md" color={color} variant="outline" onClick={onEdit}>
-                            <MdEdit size={16} />
-                        </ActionIcon>
-                        <ActionIcon size="md" color="red" variant="outline" onClick={onDelete}>
-                            <MdDelete size={16} />
-                        </ActionIcon>
-                    </Group>
-                </Group>
-                <Group gap={4} wrap="wrap">
-                    {trackerNames.map((name) => (
-                        <Badge key={name} variant="light" color={color} size="sm">
-                            {name}
-                        </Badge>
-                    ))}
-                </Group>
+        <Group
+            ref={ref}
+            wrap="nowrap"
+            gap="sm"
+            px="sm"
+            py="xs"
+            role="button"
+            tabIndex={0}
+            onClick={onAdd}
+            onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onAdd();
+                }
+            }}
+            style={{
+                cursor: "pointer",
+                borderRadius: "var(--mantine-radius-sm)",
+                backgroundColor: hovered ? "var(--mantine-color-default-hover)" : undefined,
+            }}
+        >
+            <ThemeIcon size={34} radius="md" variant="light" color={color}>
+                <Icon size={18} />
+            </ThemeIcon>
+            <Stack gap={2} style={{ minWidth: 0, flex: 1 }}>
+                <Text fw={500} truncate title={widget.name}>
+                    {widget.name}
+                </Text>
+                <Text size="xs" c="dimmed" truncate>
+                    {[widget.resultType, ...trackerNames].join("  ·  ")}
+                </Text>
             </Stack>
-        </Paper>
+
+            <Button
+                variant={hovered ? "light" : "subtle"}
+                size="compact-sm"
+                color={color}
+                leftSection={<MdAdd size={14} />}
+                onClick={(event) => {
+                    event.stopPropagation();
+                    onAdd();
+                }}
+            >
+                Add
+            </Button>
+            <ActionIcon
+                variant="subtle"
+                color="gray"
+                aria-label="Edit widget"
+                onClick={(event) => {
+                    event.stopPropagation();
+                    onEdit();
+                }}
+            >
+                <MdEdit size={16} />
+            </ActionIcon>
+            <ActionIcon
+                variant="subtle"
+                color="gray"
+                aria-label="Delete widget"
+                onClick={(event) => {
+                    event.stopPropagation();
+                    onDelete();
+                }}
+            >
+                <MdDelete size={16} />
+            </ActionIcon>
+        </Group>
     );
 }

@@ -162,7 +162,7 @@ export default function Fields(props: FieldsProps) {
                     ) : (
                         <EmptyState
                             title="No fields yet"
-                            hint="Fields define what each entry records — add one to start capturing data."
+                            hint="Fields define what each entry records. Add one to start capturing data."
                         />
                     )}
                 </ScrollArea>

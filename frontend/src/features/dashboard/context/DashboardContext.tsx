@@ -20,6 +20,7 @@ import {
     PlaceWidgetDto,
     UpdateDashboardEntriesItemDto,
     UpdateDashboardItemDto,
+    UpdateDashboardViewItemDto,
 } from "../types/DashboardDto";
 
 type DashboardContextType = {
@@ -40,6 +41,7 @@ type DashboardContextType = {
     updateItem: (itemId: string, dto: UpdateDashboardItemDto) => Promise<void>;
     updateEntriesItem: (itemId: string, dto: UpdateDashboardEntriesItemDto) => Promise<void>;
     setViewSelection: (itemId: string, viewId: string | null) => Promise<void>;
+    updateViewItem: (itemId: string, dto: UpdateDashboardViewItemDto) => Promise<void>;
     setTextContent: (itemId: string, text: string) => Promise<void>;
     removeItem: (itemId: string) => Promise<void>;
     saveLayout: (
@@ -140,6 +142,14 @@ export const DashboardProvider: React.FC<{
         setWidgets(res.data ?? []);
     };
 
+    // Same "recompute the whole board" as setViewSelection: the edit changes the selector's
+    // own selection and which widgets follow it, both of which change what those widgets
+    // draw, so the server hands back the whole board recalculated.
+    const updateViewItem = async (itemId: string, dto: UpdateDashboardViewItemDto) => {
+        const res = await dashboardController.updateViewItem(dashboardId, itemId, dto);
+        setWidgets(res.data ?? []);
+    };
+
     // Unlike updateItem/setViewSelection, nothing else on the board ever depends on a text
     // widget's own content, so the response (just that one item) is patched into place
     // rather than the whole board being recomputed and re-rendered from scratch.
@@ -217,6 +227,7 @@ export const DashboardProvider: React.FC<{
                 updateItem,
                 updateEntriesItem,
                 setViewSelection,
+                updateViewItem,
                 setTextContent,
                 removeItem,
                 saveLayout,

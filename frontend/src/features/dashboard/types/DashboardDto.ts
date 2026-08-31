@@ -166,6 +166,12 @@ export interface DashboardItemDto {
     layout: DashboardWidgetLayoutDto;
     mobileLayout: DashboardWidgetLayoutDto;
     config?: string;
+    /** What this widget is called on the board (Analytic/Entries widgets); empty for the
+        kinds that have no name. Lets a form label this item without a second fetch. */
+    name: string;
+    /** Every tracker this widget reads from: one for an Entries widget, one or more for an
+        Analytic widget, empty for the rest. */
+    trackerIds: string[];
     /** The single analytic definition every source below is calculated with. */
     resultType: string;
     code: string;
@@ -260,6 +266,19 @@ export interface AddDashboardViewItemDto {
     trackerId: string;
     /** The dropdown's starting selection. Left unset to start on "All entries". */
     viewId?: string | null;
+    /** Item ids of Analytic/Entries widgets already on the board that should follow this
+        selector from the moment it's added — the sources reading from `trackerId` are
+        pointed at it, so the user doesn't have to open each widget to link it. */
+    linkedItemIds?: string[];
+}
+
+/** Edits a WidgetTypes.View item: its starting/current selection and the full set of board
+    widgets that follow it. The payload stands for the whole set the same way
+    UpdateDashboardItemDto does — a widget left out of `linkedItemIds` is unlinked from this
+    selector (a fixed view, or a link to a different selector, is left alone). */
+export interface UpdateDashboardViewItemDto {
+    viewId?: string | null;
+    linkedItemIds: string[];
 }
 
 /** Defines a new Widget Library Entries table and places it on this board in one call --

@@ -258,8 +258,6 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
 
             <TextInput
                 label="Name"
-                description="Shown in the Widget Library, and on every dashboard placing this widget
-                    that doesn't override it with its own label"
                 placeholder={selectedCode?.name}
                 maxLength={100}
                 value={name}

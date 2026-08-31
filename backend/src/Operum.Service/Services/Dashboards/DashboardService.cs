@@ -565,11 +565,22 @@ namespace Operum.Service.Services.Dashboards
                     return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("view"));
             }
 
+            var linkTargetIds = dto.LinkedItemIds.Distinct().ToList();
+            if (linkTargetIds.Any(id => !IsLinkableTargetItem(dashboard, id, dto.TrackerId)))
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("widget to link"));
+
             var item = BuildLayoutItem(dashboard, dashboardId, DashboardWidgetTypes.View, DashboardGrid.ViewSize,
                 JsonSerializer.Serialize(new ViewWidgetConfigDto { TrackerId = dto.TrackerId, ViewId = dto.ViewId }, ConfigJsonOptions));
 
             db.DashboardItems.Add(item);
+            // Saved first so the item has the Id the linked sources point at.
             await db.SaveChangesAsync();
+
+            if (linkTargetIds.Count > 0)
+            {
+                ApplyViewWidgetLinks(dashboard, item.Id, dto.TrackerId, linkTargetIds, clearUnlisted: false);
+                await db.SaveChangesAsync();
+            }
 
             return Result.Success(MapToItemDto(item));
         }
@@ -842,6 +853,44 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(await BuildWidgets(dashboard));
         }
 
+        // Edits a View widget in place: its starting/current selection, and the full set of
+        // widgets on the board that follow it — the same thing the following widgets' own
+        // forms can already set from their side, gathered here so a selector can be wired up
+        // without opening each one. The payload is the whole set: a widget dropped from
+        // LinkedItemIds is unlinked from this selector (a fixed view, or a link to a
+        // different selector, is left alone). Returns the whole board recomputed, the same as
+        // SetViewWidgetSelection.
+        public async Task<Result<List<DashboardWidgetDto>>> UpdateViewItem(string dashboardId, string itemId, UpdateDashboardViewItemDto dto)
+        {
+            var dashboard = await GetUserDashboard(dashboardId);
+            if (dashboard == null)
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
+
+            var item = dashboard.Items.FirstOrDefault(i => i.Id == itemId && i.Type == DashboardWidgetTypes.View);
+            var config = item != null ? TryParseViewConfig(item.Config) : null;
+            if (item == null || config == null)
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("view widget"));
+
+            if (!string.IsNullOrEmpty(dto.ViewId))
+            {
+                var exists = await db.Views.AnyAsync(v => v.Id == dto.ViewId && v.TrackerId == config.TrackerId);
+                if (!exists)
+                    return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("view"));
+            }
+
+            var linkTargetIds = dto.LinkedItemIds.Distinct().ToList();
+            if (linkTargetIds.Any(id => !IsLinkableTargetItem(dashboard, id, config.TrackerId)))
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("widget to link"));
+
+            ApplyViewWidgetLinks(dashboard, item.Id, config.TrackerId, linkTargetIds, clearUnlisted: true);
+
+            config.ViewId = dto.ViewId;
+            item.Config = JsonSerializer.Serialize(config, ConfigJsonOptions);
+            await db.SaveChangesAsync();
+
+            return Result.Success(await BuildWidgets(dashboard));
+        }
+
         // Edits an Entries widget's placement in place: only how it's filtered, and whether
         // it collapses to a button on each grid — the tracker it reads from lives on the
         // EntriesWidget and is fixed the same way an Analytic widget's definition is (see
@@ -1000,6 +1049,76 @@ namespace Operum.Service.Services.Dashboards
             return viewWidgetConfig != null && viewWidgetConfig.TrackerId == trackerId;
         }
 
+        // The reverse of IsLinkableViewWidget: whether `itemId` names an Analytic or Entries
+        // widget on this board that a View selector for `trackerId` could point at — i.e. one
+        // that actually reads from that tracker. What the add/edit View forms are choosing
+        // from, checked again here since the request is the client's word for it.
+        private static bool IsLinkableTargetItem(Dashboard dashboard, string itemId, string trackerId)
+        {
+            var target = dashboard.Items.FirstOrDefault(i => i.Id == itemId);
+            if (target == null) return false;
+
+            return ResolveItemTrackerIds(target).Contains(trackerId) &&
+                target.Type is DashboardWidgetTypes.Analytic or DashboardWidgetTypes.Entries;
+        }
+
+        // Points every source that reads from `trackerId`, on each item named in
+        // `linkedItemIds`, at the View widget `viewItemId` — dropping any fixed view it had.
+        // With `clearUnlisted` (the edit path), a matching source on any *other* board item
+        // that still follows this selector is unlinked, so the payload stands for the whole
+        // set; the add path only ever adds. A source following a different selector, or
+        // fixed to its own view, is never touched unless its item is in `linkedItemIds`.
+        private static void ApplyViewWidgetLinks(
+            Dashboard dashboard, string viewItemId, string trackerId,
+            IReadOnlyCollection<string> linkedItemIds, bool clearUnlisted)
+        {
+            foreach (var target in dashboard.Items)
+            {
+                if (!ResolveItemTrackerIds(target).Contains(trackerId))
+                    continue;
+
+                var desired = linkedItemIds.Contains(target.Id);
+                if (!desired && !clearUnlisted)
+                    continue;
+
+                if (target.Type == DashboardWidgetTypes.Analytic)
+                {
+                    foreach (var source in target.Sources.Where(s => s.WidgetSource?.TrackerId == trackerId))
+                    {
+                        if (desired)
+                        {
+                            source.ViewId = null;
+                            source.LinkedViewWidgetId = viewItemId;
+                        }
+                        else if (source.LinkedViewWidgetId == viewItemId)
+                        {
+                            source.LinkedViewWidgetId = null;
+                        }
+                    }
+                }
+                else if (target.Type == DashboardWidgetTypes.Entries)
+                {
+                    var config = TryParseEntriesConfig(target.Config) ?? new EntriesWidgetConfigDto();
+
+                    if (desired)
+                    {
+                        config.ViewId = null;
+                        config.LinkedViewWidgetId = viewItemId;
+                    }
+                    else if (config.LinkedViewWidgetId == viewItemId)
+                    {
+                        config.LinkedViewWidgetId = null;
+                    }
+                    else
+                    {
+                        continue;
+                    }
+
+                    target.Config = JsonSerializer.Serialize(config, ConfigJsonOptions);
+                }
+            }
+        }
+
         // Purpose -> Field for the mappings that still resolve. Deleting a field cascades its
         // mapping away, so an incomplete map is possible here; the builder renders whatever
         // it can from what's left and GetDisplayableAnalyticResult falls back to an
@@ -1123,11 +1242,50 @@ namespace Operum.Service.Services.Dashboards
             Layout = MapToLayoutDto(item),
             MobileLayout = MapToMobileLayoutDto(item),
             Config = item.Config,
+            Name = ResolveItemName(item),
+            TrackerIds = ResolveItemTrackerIds(item),
             ResultType = item.Widget?.ResultType ?? string.Empty,
             Code = item.Widget?.Code ?? string.Empty,
             MatchedValuesOnly = item.Widget?.MatchedValuesOnly ?? false,
             Sources = item.Sources.OrderBy(s => s.Order).Select(s => MapSourceToDto(item, s)).ToList()
         };
+
+        // What a form elsewhere labels this item by. An Entries widget carries its own name;
+        // an Analytic widget's placement name wins over its calculation's default label, and
+        // an unnamed one falls through to that label the same way the board itself renders
+        // it (see BuildWidgets). Everything else has no name to show.
+        private static string ResolveItemName(DashboardItem item)
+        {
+            if (item.Type == DashboardWidgetTypes.Entries)
+                return item.EntriesWidget?.Name ?? string.Empty;
+
+            if (item.Widget == null)
+                return string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(item.Widget.Name))
+                return item.Widget.Name;
+
+            var firstSource = item.Sources.OrderBy(s => s.Order).FirstOrDefault();
+            var fieldNames = firstSource?.WidgetSource?.Fields
+                .Where(f => f.Field != null)
+                .Select(f => f.Field.Name) ?? [];
+
+            return AnalyticDefinitionList.GetDisplayName(item.Widget.ResultType, item.Widget.Code, fieldNames);
+        }
+
+        // Every tracker this item reads from — one for an Entries widget, the distinct set
+        // across its sources for an Analytic widget, none for the kinds that read no tracker.
+        private static List<string> ResolveItemTrackerIds(DashboardItem item)
+        {
+            if (item.Type == DashboardWidgetTypes.Entries)
+                return item.EntriesWidget != null ? [item.EntriesWidget.TrackerId] : [];
+
+            return item.Sources
+                .Where(s => s.WidgetSource != null)
+                .Select(s => s.WidgetSource!.TrackerId)
+                .Distinct()
+                .ToList();
+        }
 
         private static DashboardWidgetLayoutDto MapToLayoutDto(DashboardItem i) => new()
         {

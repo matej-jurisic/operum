@@ -215,7 +215,7 @@ export function PlaceFromLibraryForm({
                             <Stack gap="sm">
                                 <Text size="sm" fw={600}>
                                     {source.trackerName}
-                                    {selectedWidget.sources.length > 1 ? ` — ${source.name}` : ""}
+                                    {selectedWidget.sources.length > 1 ? ` · ${source.name}` : ""}
                                 </Text>
                                 <TextInput
                                     label={

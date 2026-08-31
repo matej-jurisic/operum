@@ -1,10 +1,13 @@
-import { Button, Group, Select, Stack } from "@mantine/core";
+import { Button, Checkbox, Group, Select, Stack, Text } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { trackersController } from "../../trackers/api/trackersController";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { viewsController } from "../../views/api/viewsController";
 import { ViewDto } from "../../views/types/ViewDto";
-import { AddDashboardViewItemDto } from "../types/DashboardDto";
+import { dashboardController } from "../api/dashboardController";
+import { useDashboard } from "../context/DashboardContext";
+import { AddDashboardViewItemDto, DashboardItemDto } from "../types/DashboardDto";
+import { linkTargetsForViewWidget } from "./SourceViewSelect";
 
 interface Props {
     /** Steps back to the widget type picker. */
@@ -14,14 +17,19 @@ interface Props {
 
 /**
  * Picks the tracker a view selector on the board lists views for, and what it starts on.
- * Other widgets' sources link to it afterwards, from their own form (see
- * CustomAnalyticForm), so this one has nothing to say about who follows it.
+ * Other widgets' sources normally link to it from their own form afterwards (see
+ * CustomAnalyticForm) — this form also offers the reverse: tick the Analytic/Entries
+ * widgets already on the board that read from the same tracker and they follow this
+ * selector from the moment it's added, rather than being opened one by one.
  */
 export function ViewWidgetForm({ onBack, onAdd }: Props) {
+    const { dashboardId } = useDashboard();
     const [trackers, setTrackers] = useState<TrackerDto[]>([]);
     const [trackerId, setTrackerId] = useState<string | null>(null);
     const [views, setViews] = useState<ViewDto[]>([]);
     const [viewId, setViewId] = useState<string | null>(null);
+    const [items, setItems] = useState<DashboardItemDto[]>([]);
+    const [linkedItemIds, setLinkedItemIds] = useState<string[]>([]);
     const [isLoadingTracker, setIsLoadingTracker] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -29,12 +37,16 @@ export function ViewWidgetForm({ onBack, onAdd }: Props) {
         trackersController.getTrackerList("Accessible").then((res) => {
             setTrackers(res.data ?? []);
         });
-    }, []);
+        dashboardController.getDashboard(dashboardId).then((res) => {
+            setItems(res.data?.items ?? []);
+        });
+    }, [dashboardId]);
 
     const handleTrackerChange = async (value: string | null) => {
         setTrackerId(value);
         setViewId(null);
         setViews([]);
+        setLinkedItemIds([]);
         if (!value) return;
 
         setIsLoadingTracker(true);
@@ -43,12 +55,22 @@ export function ViewWidgetForm({ onBack, onAdd }: Props) {
         setIsLoadingTracker(false);
     };
 
+    const toggleLinked = (itemId: string, checked: boolean) =>
+        setLinkedItemIds((current) =>
+            checked
+                ? [...current, itemId]
+                : current.filter((id) => id !== itemId),
+        );
+
     const handleSubmit = async () => {
         if (!trackerId) return;
         setIsSubmitting(true);
-        await onAdd({ trackerId, viewId });
+        await onAdd({ trackerId, viewId, linkedItemIds });
         setIsSubmitting(false);
     };
+
+    // Newly added, so nothing is linked yet — pass null so no target reads as "linked".
+    const linkTargets = linkTargetsForViewWidget(items, trackerId, null);
 
     return (
         <Stack gap="md">
@@ -70,6 +92,28 @@ export function ViewWidgetForm({ onBack, onAdd }: Props) {
                 disabled={!trackerId || isLoadingTracker}
                 clearable
             />
+
+            {trackerId && linkTargets.length > 0 && (
+                <Stack gap="xs">
+                    <Text size="sm" fw={500}>
+                        Link existing widgets (optional)
+                    </Text>
+                    <Text size="xs" c="dimmed">
+                        These widgets will follow this selector's dropdown.
+                    </Text>
+                    {linkTargets.map((target) => (
+                        <Checkbox
+                            key={target.itemId}
+                            label={target.label}
+                            description={target.note}
+                            checked={linkedItemIds.includes(target.itemId)}
+                            onChange={(event) =>
+                                toggleLinked(target.itemId, event.currentTarget.checked)
+                            }
+                        />
+                    ))}
+                </Stack>
+            )}
 
             <Group justify="flex-end" mt="sm">
                 <Button variant="default" onClick={onBack}>

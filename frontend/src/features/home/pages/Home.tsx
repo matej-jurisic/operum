@@ -592,8 +592,8 @@ const Home = observer(() => {
                                                 Choose from six data types to
                                                 model your data precisely.
                                                 Number, TimeSpan, and Boolean
-                                                fields support calculated values
-                                                — derived automatically from
+                                                fields support calculated values,
+                                                derived automatically from
                                                 other fields using formula
                                                 syntax.
                                             </Text>
@@ -645,7 +645,7 @@ const Home = observer(() => {
                                 <SectionHeader
                                     eyebrow="Use Cases"
                                     title="Track anything you can imagine"
-                                    subtitle="From personal habits to complex projects — if it has data, you can track it."
+                                    subtitle="From personal habits to complex projects. If it has data, you can track it."
                                     primaryColor={theme.primaryColor}
                                 />
                                 <Grid>
@@ -835,7 +835,7 @@ const Home = observer(() => {
                                 <SectionHeader
                                     eyebrow="Collaboration"
                                     title="Share with the right permissions"
-                                    subtitle="Grant teammates exactly the level of access they need — nothing more."
+                                    subtitle="Grant teammates exactly the level of access they need, nothing more."
                                     primaryColor={theme.primaryColor}
                                 />
                                 <Grid>
