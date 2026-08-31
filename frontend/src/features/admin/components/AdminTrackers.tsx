@@ -1,7 +1,6 @@
 import {
     Badge,
     Group,
-    Paper,
     ScrollArea,
     Skeleton,
     Stack,
@@ -10,6 +9,7 @@ import {
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { useEffect, useState } from "react";
+import EmptyState from "../../../shared/components/EmptyState";
 import { adminController } from "../api/adminController";
 import { AdminTrackerDto } from "../types/AdminTrackerDto";
 import { AdminTrackersCards } from "./AdminTrackersCards";
@@ -34,16 +34,10 @@ export default function AdminTrackers() {
             <Stack gap="md" h="100%">
                 <ScrollArea flex={1}>
                     {!loading && trackers.length === 0 && (
-                        <Paper withBorder p="xl" radius="md">
-                            <Stack gap="md" align="center">
-                                <Text size="lg" fw={500} c="dimmed">
-                                    No Trackers
-                                </Text>
-                                <Text ta="center" c="dimmed">
-                                    No trackers have been created yet.
-                                </Text>
-                            </Stack>
-                        </Paper>
+                        <EmptyState
+                            title="No trackers yet"
+                            hint="Trackers created by any user will appear here."
+                        />
                     )}
                     {!loading && trackers.length > 0 && (
                         <>

@@ -4,7 +4,6 @@ import {
     Button,
     Card,
     Group,
-    Paper,
     ScrollArea,
     Stack,
     Text,
@@ -15,6 +14,7 @@ import { CiBoxList } from "react-icons/ci";
 import { FiPlus } from "react-icons/fi";
 import { MdDelete, MdEdit } from "react-icons/md";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
+import EmptyState from "../../../shared/components/EmptyState";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { useConstants } from "../context/ConstantsContext";
 import { TrackerConstantDto } from "../types/TrackerConstantDto";
@@ -163,17 +163,10 @@ export default function Constants(props: ConstantsProps) {
                             ))}
                         </Stack>
                     ) : (
-                        <Paper withBorder p="xl" radius="md">
-                            <Stack gap="md" align="center">
-                                <Text size="lg" fw={500} c="dimmed">
-                                    No Constants
-                                </Text>
-                                <Text ta="center" c="dimmed">
-                                    Create constants to use in calculated field
-                                    formulas.
-                                </Text>
-                            </Stack>
-                        </Paper>
+                        <EmptyState
+                            title="No constants yet"
+                            hint="Create constants to use in calculated field formulas."
+                        />
                     )}
                 </ScrollArea>
             </Stack>

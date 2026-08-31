@@ -1,17 +1,18 @@
 import { ActionIcon, Group, Paper, Stack, Text, ThemeIcon } from "@mantine/core";
-import { MdDelete, MdEdit } from "react-icons/md";
+import { MdAdd, MdDelete, MdEdit } from "react-icons/md";
 import { TbTable } from "react-icons/tb";
 import { EntriesWidgetDefinitionDto } from "../types/WidgetDto";
 
 interface Props {
     entriesWidget: EntriesWidgetDefinitionDto;
     color: string;
+    onAdd: () => void;
     onEdit: () => void;
     onDelete: () => void;
 }
 
 /** One Entries table definition in the Library grid. */
-export function EntriesWidgetLibraryCard({ entriesWidget, color, onEdit, onDelete }: Props) {
+export function EntriesWidgetLibraryCard({ entriesWidget, color, onAdd, onEdit, onDelete }: Props) {
     const title = entriesWidget.name || entriesWidget.trackerName;
 
     return (
@@ -31,6 +32,15 @@ export function EntriesWidgetLibraryCard({ entriesWidget, color, onEdit, onDelet
                     </Stack>
                 </Group>
                 <Group gap={4} wrap="nowrap">
+                    <ActionIcon
+                        size="md"
+                        color={color}
+                        variant="filled"
+                        onClick={onAdd}
+                        aria-label="Add to board"
+                    >
+                        <MdAdd size={16} />
+                    </ActionIcon>
                     <ActionIcon size="md" color={color} variant="outline" onClick={onEdit}>
                         <MdEdit size={16} />
                     </ActionIcon>

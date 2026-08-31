@@ -5,7 +5,6 @@ import {
     Card,
     Group,
     Menu,
-    Paper,
     ScrollArea,
     Stack,
     Text,
@@ -15,6 +14,7 @@ import { CiFilter } from "react-icons/ci";
 import { FiPlus, FiPlusSquare } from "react-icons/fi";
 import { MdDelete, MdEdit, MdSort } from "react-icons/md";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
+import EmptyState from "../../../shared/components/EmptyState";
 import {
     QueryKindColor,
     QueryKindLabel,
@@ -234,17 +234,10 @@ export default function Queries({ tracker, headerSection }: Props) {
                             })}
                         </Stack>
                     ) : (
-                        <Paper withBorder p="xl" radius="md">
-                            <Stack gap="md" align="center">
-                                <Text size="lg" fw={500} c="dimmed">
-                                    No Queries Available
-                                </Text>
-                                <Text ta="center" c="dimmed">
-                                    A query is a single filter or sort,
-                                    combined into views.
-                                </Text>
-                            </Stack>
-                        </Paper>
+                        <EmptyState
+                            title="No queries yet"
+                            hint="A query is a single filter or sort, combined into views."
+                        />
                     )}
                 </ScrollArea>
             </Stack>

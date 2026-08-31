@@ -19,16 +19,15 @@ import {
     Button,
     Group,
     Menu,
-    Paper,
     ScrollArea,
     Stack,
-    Text,
 } from "@mantine/core";
 import { ReactNode, useEffect, useState } from "react";
 import { CiBoxList } from "react-icons/ci";
 import { FiPlus } from "react-icons/fi";
 import { IoChevronDownCircle } from "react-icons/io5";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
+import EmptyState from "../../../shared/components/EmptyState";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import { useFields } from "../../fields/context/FieldsContext";
 import { useTracker } from "../../trackers/context/TrackerContext";
@@ -302,13 +301,10 @@ export default function Views(props: Props) {
                             </SortableContext>
                         </DndContext>
                     ) : (
-                        <Paper withBorder p="xl" radius="md">
-                            <Stack gap="md" align="center">
-                                <Text size="lg" fw={500} c="dimmed">
-                                    No Views Available
-                                </Text>
-                            </Stack>
-                        </Paper>
+                        <EmptyState
+                            title="No views yet"
+                            hint="A view is a saved combination of filters and sorting you can switch between."
+                        />
                     )}
                 </ScrollArea>
             </Stack>

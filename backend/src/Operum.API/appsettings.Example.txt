@@ -19,9 +19,9 @@
     "PublicKey": "",
     "PrivateKey": ""
   },
-  "ClientUrl": "localhost:3000",
+  "ClientUrl": "localhost:3001",
   "ServerUrl":  "localhost:7129",
-  "AllowedHosts": "localhost;https://localhost:3000",
+  "AllowedHosts": "localhost;https://localhost:3001",
   "JwtSettings": {
     "Key": "",
     "Issuer": "Operum backend",

@@ -1,7 +1,8 @@
-import { Paper, ScrollArea, Skeleton, Stack, Table, Text } from "@mantine/core";
+import { ScrollArea, Skeleton, Stack, Table } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { useEffect, useState } from "react";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
+import EmptyState from "../../../shared/components/EmptyState";
 import globalStore from "../../../shared/stores/GlobalStore";
 import { UserDto } from "../../auth/types/UserDto";
 import { usersController } from "../api/usersController";
@@ -52,13 +53,10 @@ export default function Users() {
                         {loading && <></>}
 
                         {!loading && users.length === 0 && (
-                            <Paper withBorder p="xl" radius="md">
-                                <Stack gap="md" align="center">
-                                    <Text size="lg" fw={500} c="dimmed">
-                                        No Users Available
-                                    </Text>
-                                </Stack>
-                            </Paper>
+                            <EmptyState
+                                title="No users yet"
+                                hint="Registered users will appear here."
+                            />
                         )}
 
                         {!loading && users.length > 0 && (

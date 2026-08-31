@@ -1,11 +1,12 @@
 import { ActionIcon, Badge, Group, Paper, Stack, Text, ThemeIcon } from "@mantine/core";
-import { MdDelete, MdEdit } from "react-icons/md";
+import { MdAdd, MdDelete, MdEdit } from "react-icons/md";
 import { TbChartHistogram } from "react-icons/tb";
 import { WidgetDto } from "../types/WidgetDto";
 
 interface Props {
     widget: WidgetDto;
     color: string;
+    onAdd: () => void;
     onEdit: () => void;
     onDelete: () => void;
 }
@@ -13,7 +14,7 @@ interface Props {
 /** One chart Widget in the Library grid. There's no calculated preview here (the Library
     manages definitions, not renders) -- see DashboardWidget for the actual chart, drawn
     once a widget is placed on a board. */
-export function WidgetCard({ widget, color, onEdit, onDelete }: Props) {
+export function WidgetCard({ widget, color, onAdd, onEdit, onDelete }: Props) {
     const trackerNames = [...new Set(widget.sources.map((s) => s.trackerName))];
 
     return (
@@ -34,6 +35,15 @@ export function WidgetCard({ widget, color, onEdit, onDelete }: Props) {
                         </Stack>
                     </Group>
                     <Group gap={4} wrap="nowrap">
+                        <ActionIcon
+                            size="md"
+                            color={color}
+                            variant="filled"
+                            onClick={onAdd}
+                            aria-label="Add to board"
+                        >
+                            <MdAdd size={16} />
+                        </ActionIcon>
                         <ActionIcon size="md" color={color} variant="outline" onClick={onEdit}>
                             <MdEdit size={16} />
                         </ActionIcon>

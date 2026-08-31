@@ -4,6 +4,7 @@ import { trackersController } from "../../trackers/api/trackersController";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { viewsController } from "../../views/api/viewsController";
 import { ViewDto } from "../../views/types/ViewDto";
+import { WidgetDto, EntriesWidgetDefinitionDto } from "../../widgets/types/WidgetDto";
 import { useWidgets } from "../../widgets/context/WidgetsContext";
 import { useDashboard } from "../context/DashboardContext";
 import { PlaceEntriesWidgetDto, PlaceWidgetDto } from "../types/DashboardDto";
@@ -15,6 +16,10 @@ interface Props {
     onBack: () => void;
     onPlaceWidget: (dto: PlaceWidgetDto) => Promise<void>;
     onPlaceEntriesWidget: (dto: PlaceEntriesWidgetDto) => Promise<void>;
+    /** When the library item is already chosen (the Charts/Tables tab's "Add" action), the
+        form drops its own tracker/widget pickers and only shows the placement settings. */
+    presetWidget?: WidgetDto;
+    presetEntriesWidget?: EntriesWidgetDefinitionDto;
 }
 
 // Prefixes distinguishing a chart Widget's id from an EntriesWidget's in the one picker
@@ -31,12 +36,23 @@ type SourceOverride = ViewSelection & { label: string };
  * in the Library, or from any other dashboard placing it -- changes what this placement
  * draws too.
  */
-export function PlaceFromLibraryForm({ onBack, onPlaceWidget, onPlaceEntriesWidget }: Props) {
+export function PlaceFromLibraryForm({
+    onBack,
+    onPlaceWidget,
+    onPlaceEntriesWidget,
+    presetWidget,
+    presetEntriesWidget,
+}: Props) {
     const { widgets: boardWidgets } = useDashboard();
     const { widgets, entriesWidgets, isLoading: isLoadingLibrary } = useWidgets();
+    const preset = presetWidget
+        ? `${WIDGET_PREFIX}${presetWidget.id}`
+        : presetEntriesWidget
+        ? `${ENTRIES_PREFIX}${presetEntriesWidget.id}`
+        : null;
     const [trackers, setTrackers] = useState<TrackerDto[]>([]);
     const [trackerFilter, setTrackerFilter] = useState<string | null>(null);
-    const [selection, setSelection] = useState<string | null>(null);
+    const [selection, setSelection] = useState<string | null>(preset);
     const [viewsByTracker, setViewsByTracker] = useState<Map<string, ViewDto[]>>(new Map());
     const [sourceOverrides, setSourceOverrides] = useState<Record<string, SourceOverride>>({});
     const [entriesSelection, setEntriesSelection] = useState<ViewSelection>({
@@ -150,33 +166,38 @@ export function PlaceFromLibraryForm({ onBack, onPlaceWidget, onPlaceEntriesWidg
 
     return (
         <Stack gap="md">
-            <Select
-                label="Tracker"
-                placeholder="All trackers"
-                data={trackers.map((t) => ({ value: t.id, label: t.name }))}
-                value={trackerFilter}
-                onChange={(value) => {
-                    setTrackerFilter(value);
-                    setSelection(null);
-                }}
-                clearable
-                searchable
-            />
+            {!preset && (
+                <Select
+                    label="Tracker"
+                    placeholder="All trackers"
+                    data={trackers.map((t) => ({ value: t.id, label: t.name }))}
+                    value={trackerFilter}
+                    onChange={(value) => {
+                        setTrackerFilter(value);
+                        setSelection(null);
+                    }}
+                    clearable
+                    searchable
+                />
+            )}
 
-            <Select
-                label="Widget"
-                placeholder={isLoadingLibrary ? "Loading..." : "Select a widget"}
-                data={libraryOptions}
-                value={selection}
-                onChange={setSelection}
-                disabled={isLoadingLibrary}
-                searchable
-            />
+            {!preset && (
+                <Select
+                    label="Widget"
+                    placeholder={isLoadingLibrary ? "Loading..." : "Select a widget"}
+                    data={libraryOptions}
+                    value={selection}
+                    onChange={setSelection}
+                    disabled={isLoadingLibrary}
+                    searchable
+                />
+            )}
 
-            {hasNothingInLibrary && (
+            {!preset && hasNothingInLibrary && (
                 <Alert color="gray" variant="light">
-                    Nothing in the Widget Library yet. Build a chart or entries table there
-                    first, or create one directly on this board.
+                    Nothing in the Widget Library yet. Open the Widget Library from the
+                    board menu to build a reusable one, or create a chart directly on this
+                    board.
                 </Alert>
             )}
 

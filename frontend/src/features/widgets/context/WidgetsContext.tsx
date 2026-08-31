@@ -1,23 +1,28 @@
-import React, { createContext, useCallback, useContext, useState } from "react";
+import React, {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useState,
+} from "react";
 import { widgetsController } from "../api/widgetsController";
 import {
-    CreateEntriesWidgetDto,
-    CreateWidgetDto,
     EntriesWidgetDefinitionDto,
     UpdateEntriesWidgetDto,
     UpdateWidgetDto,
     WidgetDto,
 } from "../types/WidgetDto";
 
+// A Widget Library definition is created together with its first placement, from the board
+// (see DashboardContext.createAndPlaceWidget). This context only reads the library and
+// edits/deletes what's already in it.
 type WidgetsContextType = {
     widgets: WidgetDto[];
     entriesWidgets: EntriesWidgetDefinitionDto[];
     isLoading: boolean;
     refresh: () => Promise<void>;
-    createWidget: (dto: CreateWidgetDto) => Promise<WidgetDto>;
     updateWidget: (widgetId: string, dto: UpdateWidgetDto) => Promise<void>;
     deleteWidget: (widgetId: string) => Promise<void>;
-    createEntriesWidget: (dto: CreateEntriesWidgetDto) => Promise<EntriesWidgetDefinitionDto>;
     updateEntriesWidget: (entriesWidgetId: string, dto: UpdateEntriesWidgetDto) => Promise<void>;
     deleteEntriesWidget: (entriesWidgetId: string) => Promise<void>;
 };
@@ -49,12 +54,6 @@ export const WidgetsProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsLoading(false);
     }, []);
 
-    const createWidget = async (dto: CreateWidgetDto) => {
-        const res = await widgetsController.createWidget(dto);
-        await refresh();
-        return res.data;
-    };
-
     const updateWidget = async (widgetId: string, dto: UpdateWidgetDto) => {
         await widgetsController.updateWidget(widgetId, dto);
         await refresh();
@@ -65,12 +64,6 @@ export const WidgetsProvider: React.FC<{ children: React.ReactNode }> = ({
     const deleteWidget = async (widgetId: string) => {
         await widgetsController.deleteWidget(widgetId);
         await refresh();
-    };
-
-    const createEntriesWidget = async (dto: CreateEntriesWidgetDto) => {
-        const res = await widgetsController.createEntriesWidget(dto);
-        await refresh();
-        return res.data;
     };
 
     const updateEntriesWidget = async (
@@ -86,6 +79,10 @@ export const WidgetsProvider: React.FC<{ children: React.ReactNode }> = ({
         await refresh();
     };
 
+    useEffect(() => {
+        refresh();
+    }, [refresh]);
+
     return (
         <WidgetsContext.Provider
             value={{
@@ -93,10 +90,8 @@ export const WidgetsProvider: React.FC<{ children: React.ReactNode }> = ({
                 entriesWidgets,
                 isLoading,
                 refresh,
-                createWidget,
                 updateWidget,
                 deleteWidget,
-                createEntriesWidget,
                 updateEntriesWidget,
                 deleteEntriesWidget,
             }}

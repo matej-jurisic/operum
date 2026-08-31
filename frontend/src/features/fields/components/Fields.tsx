@@ -18,15 +18,14 @@ import {
     ActionIcon,
     Button,
     Group,
-    Paper,
     ScrollArea,
     Stack,
-    Text,
 } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { CiBoxList } from "react-icons/ci";
 import { FiPlus } from "react-icons/fi";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
+import EmptyState from "../../../shared/components/EmptyState";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
@@ -161,13 +160,10 @@ export default function Fields(props: FieldsProps) {
                             </SortableContext>
                         </DndContext>
                     ) : (
-                        <Paper withBorder p="xl" radius="md">
-                            <Stack gap="md" align="center">
-                                <Text size="lg" fw={500} c="dimmed">
-                                    No Fields Available
-                                </Text>
-                            </Stack>
-                        </Paper>
+                        <EmptyState
+                            title="No fields yet"
+                            hint="Fields define what each entry records — add one to start capturing data."
+                        />
                     )}
                 </ScrollArea>
             </Stack>

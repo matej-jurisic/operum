@@ -2,7 +2,7 @@ import { Button, Menu } from "@mantine/core";
 import { CiSettings } from "react-icons/ci";
 import { FiPlus } from "react-icons/fi";
 import { MdDelete, MdEdit } from "react-icons/md";
-import { TbLayoutGrid } from "react-icons/tb";
+import { TbArrowsMove } from "react-icons/tb";
 
 interface Props {
     color: string;
@@ -10,8 +10,9 @@ interface Props {
     isMobile: boolean;
     onEdit: () => void;
     onDelete: () => void;
-    onAddItem: () => void;
     onToggleArrange: () => void;
+    /** Opens the Widgets modal -- the one surface for adding to or managing this board. */
+    onOpenWidgets: () => void;
 }
 
 /**
@@ -26,8 +27,8 @@ export default function BoardActions({
     isMobile,
     onEdit,
     onDelete,
-    onAddItem,
     onToggleArrange,
+    onOpenWidgets,
 }: Props) {
     return (
         <Menu shadow="md" position="bottom-start" withinPortal>
@@ -45,12 +46,12 @@ export default function BoardActions({
             <Menu.Dropdown miw={200}>
                 <Menu.Item
                     leftSection={<FiPlus size={16} />}
-                    onClick={onAddItem}
+                    onClick={onOpenWidgets}
                 >
                     Add widget
                 </Menu.Item>
                 <Menu.Item
-                    leftSection={<TbLayoutGrid size={16} />}
+                    leftSection={<TbArrowsMove size={16} />}
                     onClick={onToggleArrange}
                 >
                     {isConfiguring ? "Stop arranging" : "Arrange board"}

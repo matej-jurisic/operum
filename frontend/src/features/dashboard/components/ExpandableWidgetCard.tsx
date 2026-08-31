@@ -30,7 +30,7 @@ interface Props {
  * carrying the widget's name, and pressing it opens the real thing at full size in a
  * modal with a plain close button.
  *
- * Set once from the widget's own create/edit form (see AddWidgetModal's forms and
+ * Set once from the widget's own create/edit form (see WidgetLibraryModal's forms and
  * EditWidgetModal) — never by arranging the board. The button never grows or resizes in
  * place, so opening it can never disturb anything else on the grid.
  */

@@ -6,16 +6,15 @@ import {
     Checkbox,
     Group,
     Modal,
-    Paper,
     ScrollArea,
     Stack,
-    Text,
     Title,
 } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { MdDelete, MdEdit } from "react-icons/md";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
+import EmptyState from "../../../shared/components/EmptyState";
 import globalStore from "../../../shared/stores/GlobalStore";
 import { trackersController } from "../api/trackersController";
 import { useTracker } from "../context/TrackerContext";
@@ -166,13 +165,10 @@ export default function TrackerUserList() {
                                 </Card>
                             ))
                         ) : (
-                            <Paper withBorder p="xl" radius="md">
-                                <Stack gap="md" align="center">
-                                    <Text size="lg" fw={500} c="dimmed">
-                                        No Users Added
-                                    </Text>
-                                </Stack>
-                            </Paper>
+                            <EmptyState
+                                title="No collaborators yet"
+                                hint="Add a user to give them access to this tracker."
+                            />
                         )}
                     </Stack>
                 </ScrollArea>

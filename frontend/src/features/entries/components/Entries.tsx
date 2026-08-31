@@ -6,7 +6,6 @@ import {
     Menu,
     Modal,
     Pagination,
-    Paper,
     ScrollArea,
     Skeleton,
     Stack,
@@ -22,6 +21,7 @@ import { PiFileCsvDuotone } from "react-icons/pi";
 import { TbNotes, TbRefresh } from "react-icons/tb";
 import { useNavigate, useParams } from "react-router-dom";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
+import EmptyState from "../../../shared/components/EmptyState";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import { downloadBlob } from "../../../shared/utils/BlobDownloader";
 import { useFields } from "../../fields/context/FieldsContext";
@@ -444,13 +444,10 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                             ) : isLoadingData ? (
                                 <></>
                             ) : (
-                                <Paper withBorder p="xl" radius="md">
-                                    <Stack gap="md" align="center">
-                                        <Text size="lg" fw={500} c="dimmed">
-                                            No Entries Available
-                                        </Text>
-                                    </Stack>
-                                </Paper>
+                                <EmptyState
+                                    title="No entries yet"
+                                    hint="Entries are the records you log against this tracker."
+                                />
                             )}
                         </ScrollArea>
                         {totalCount > 0 && (

@@ -10,7 +10,7 @@
   },
   "AdminUserPassword": "",
   "AllowedHosts": "*",
-  "ClientUrl": "https://localhost:3000",
+  "ClientUrl": "https://localhost:3001",
   "ServerUrl": "https://localhost:7129",
   "JwtSettings": {
     "Key": "",

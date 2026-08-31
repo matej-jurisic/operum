@@ -1,15 +1,14 @@
 import {
     Button,
     Group,
-    Paper,
     ScrollArea,
     Stack,
-    Text,
     Tooltip,
 } from "@mantine/core";
 import { useEffect, useMemo, useState } from "react";
 import { FiBell, FiBellOff, FiPlus } from "react-icons/fi";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
+import EmptyState from "../../../shared/components/EmptyState";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { useViews } from "../../views/context/ViewsContext";
 import { useNotifications } from "../context/NotificationsContext";
@@ -104,17 +103,10 @@ export default function Notifications() {
                             ))}
                         </Stack>
                     ) : (
-                        <Paper withBorder p="xl" radius="md">
-                            <Stack gap="md" align="center">
-                                <Text size="lg" fw={500} c="dimmed">
-                                    No Notifications
-                                </Text>
-                                <Text ta="center" c="dimmed">
-                                    Add a notification to be alerted when a
-                                    condition is met.
-                                </Text>
-                            </Stack>
-                        </Paper>
+                        <EmptyState
+                            title="No notifications yet"
+                            hint="Add a notification to be alerted when a condition is met."
+                        />
                     )}
                 </ScrollArea>
             </Stack>

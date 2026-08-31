@@ -14,7 +14,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
 import Header from "../../../shared/components/Header";
 import { dashboardController } from "../api/dashboardController";
-import { AddWidgetModal } from "../components/AddWidgetModal";
 import BoardActions from "../components/BoardActions";
 import BoardFormModal from "../components/BoardFormModal";
 import BoardSwitcher from "../components/BoardSwitcher";
@@ -23,6 +22,7 @@ import { EditEntriesWidgetModal } from "../components/EditEntriesWidgetModal";
 import { EditTextWidgetModal } from "../components/EditTextWidgetModal";
 import { EditWidgetModal } from "../components/EditWidgetModal";
 import { WidgetsProvider } from "../../widgets/context/WidgetsContext";
+import { WidgetLibraryModal } from "../../widgets/components/WidgetLibraryModal";
 import { DashboardProvider, useDashboard } from "../context/DashboardContext";
 import { DashboardDto, TextWidgetConfig, WidgetTypes } from "../types/DashboardDto";
 
@@ -61,15 +61,6 @@ function DashboardContent({
         widgets,
         isLoading,
         refreshWidgets,
-        createAndPlaceWidget,
-        placeWidget,
-        addQuickAddItem,
-        addViewItem,
-        createAndPlaceEntriesWidget,
-        placeEntriesWidget,
-        addHeaderItem,
-        addDividerItem,
-        addNoteItem,
         updateItem,
         updateEntriesItem,
         setViewSelection,
@@ -79,7 +70,7 @@ function DashboardContent({
     } = useDashboard();
     const theme = useMantineTheme();
     const [isConfiguring, setIsConfiguring] = useState(false);
-    const [isAddOpen, setIsAddOpen] = useState(false);
+    const [isWidgetsOpen, setIsWidgetsOpen] = useState(false);
     const [editingItemId, setEditingItemId] = useState<string>();
     const editingWidget = widgets.find((w) => w.id === editingItemId);
 
@@ -127,8 +118,8 @@ function DashboardContent({
                         isMobile={!!isMobile}
                         onEdit={onEditBoard}
                         onDelete={onDeleteBoard}
-                        onAddItem={() => setIsAddOpen(true)}
                         onToggleArrange={() => setIsConfiguring((v) => !v)}
+                        onOpenWidgets={() => setIsWidgetsOpen(true)}
                     />
                     {/* The only way out of arrange mode that does not cost a
                         row of chrome while the board is just being read. On a
@@ -172,7 +163,7 @@ function DashboardContent({
                     <Button
                         color={color}
                         leftSection={<FiPlus size={16} />}
-                        onClick={() => setIsAddOpen(true)}
+                        onClick={() => setIsWidgetsOpen(true)}
                     >
                         Get Started
                     </Button>
@@ -237,19 +228,16 @@ function DashboardContent({
                     />
                 )}
 
-            {isAddOpen && (
-                <AddWidgetModal
+            {isWidgetsOpen && (
+                <WidgetLibraryModal
                     color={color}
-                    onClose={() => setIsAddOpen(false)}
-                    onCreateAndPlaceWidget={createAndPlaceWidget}
-                    onPlaceWidget={placeWidget}
-                    onAddQuickAdd={addQuickAddItem}
-                    onAddView={addViewItem}
-                    onCreateAndPlaceEntriesWidget={createAndPlaceEntriesWidget}
-                    onPlaceEntriesWidget={placeEntriesWidget}
-                    onAddHeader={addHeaderItem}
-                    onAddDivider={addDividerItem}
-                    onAddNote={addNoteItem}
+                    onClose={() => {
+                        setIsWidgetsOpen(false);
+                        // Placing/creating a widget adds it to the board, and a widget
+                        // deleted in the Library cascades to its placements on the server,
+                        // so the board needs re-pulling either way.
+                        refreshWidgets();
+                    }}
                 />
             )}
         </Stack>
@@ -396,8 +384,8 @@ export default function DashboardPage() {
 
     return (
         <>
-            {/* Widgets so AddWidgetModal's "From Widget Library" step can list them without
-                a fetch of its own -- see PlaceFromLibraryForm. */}
+            {/* The Widget Library's saved definitions, so WidgetLibraryModal can list and
+                place them without a fetch of its own -- see PlaceFromLibraryForm. */}
             <WidgetsProvider>
                 <DashboardProvider
                     key={activeBoard.id}
