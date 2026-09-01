@@ -1344,6 +1344,205 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
 
+        // ----- Parameter widget -----
+
+        // "Amount greater than ?" -- the value is left for the parameter widget to supply on
+        // the board. The seeded entry's Amount is 5.
+        private static SaveDashboardViewDto AmountOverSet() => new()
+        {
+            Name = "Amount over",
+            Clauses =
+            [
+                new ClauseDto
+                {
+                    Kind = QueryKinds.Filter,
+                    DataType = DataTypes.Number,
+                    Operator = OperatorTypes.GreaterThan
+                }
+            ]
+        };
+
+        [Fact]
+        public async Task Parameter_TypedValue_NarrowsLinkedChartAndClearsWhenBlank()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("paramnarrows");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var chartId = await PlaceLineChart(client, dashboardId, tracker);
+
+            var view = await Data(await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/views", AmountOverSet()));
+            var viewId = view.GetProperty("id").GetString()!;
+            var queryId = view.GetProperty("clauses")[0].GetProperty("queryId").GetString()!;
+
+            var item = await Data(await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/items/parameter",
+                new SaveParameterItemDto
+                {
+                    ViewId = viewId,
+                    Links =
+                    [
+                        new ViewSelectorLinkDto
+                        {
+                            ItemId = chartId,
+                            TrackerId = tracker.Id,
+                            FieldByQuery = new() { [queryId] = tracker.AmountFieldId }
+                        }
+                    ]
+                }));
+            var paramId = item.GetProperty("id").GetString()!;
+
+            // No value yet -- the clause is not applied, so the entry is still there.
+            Assert.Equal(1, PointsOf(await Widgets(client, dashboardId), chartId));
+
+            var narrowed = await client.PutAsJsonAsync(
+                $"dashboard/{dashboardId}/items/{paramId}/parameter-values",
+                new SetParameterValuesDto { Values = new() { [queryId] = "10" } });
+            Assert.Equal(HttpStatusCode.OK, narrowed.StatusCode);
+            Assert.Equal(0, PointsOf(await Data(narrowed), chartId));
+
+            var cleared = await client.PutAsJsonAsync(
+                $"dashboard/{dashboardId}/items/{paramId}/parameter-values",
+                new SetParameterValuesDto { Values = new() { [queryId] = "" } });
+            Assert.Equal(HttpStatusCode.OK, cleared.StatusCode);
+            Assert.Equal(1, PointsOf(await Data(cleared), chartId));
+        }
+
+        [Fact]
+        public async Task Parameter_ResolvedClausesReachAnEntriesWidget()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("paramentries");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await PlaceEntriesTable(client, dashboardId, tracker);
+
+            var view = await Data(await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/views", AmountOverSet()));
+            var viewId = view.GetProperty("id").GetString()!;
+            var queryId = view.GetProperty("clauses")[0].GetProperty("queryId").GetString()!;
+
+            var param = await Data(await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/items/parameter",
+                new SaveParameterItemDto
+                {
+                    ViewId = viewId,
+                    Links =
+                    [
+                        new ViewSelectorLinkDto
+                        {
+                            ItemId = itemId,
+                            TrackerId = tracker.Id,
+                            FieldByQuery = new() { [queryId] = tracker.AmountFieldId }
+                        }
+                    ]
+                }));
+            var paramId = param.GetProperty("id").GetString()!;
+
+            var narrowed = await client.PutAsJsonAsync(
+                $"dashboard/{dashboardId}/items/{paramId}/parameter-values",
+                new SetParameterValuesDto { Values = new() { [queryId] = "10" } });
+            Assert.Equal(0, EntriesRowCount(await Data(narrowed), itemId));
+        }
+
+        [Fact]
+        public async Task AddParameter_UnknownView_ReturnsBadRequest()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("paramunknownview");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            await PlaceLineChart(client, dashboardId, tracker);
+
+            var response = await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/items/parameter",
+                new SaveParameterItemDto { ViewId = "no-such-view" });
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task AddParameter_ClauseMappedToFieldOfWrongType_ReturnsBadRequest()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("paramwrongtype");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var chartId = await PlaceLineChart(client, dashboardId, tracker);
+
+            var view = await Data(await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/views", AmountOverSet()));
+            var viewId = view.GetProperty("id").GetString()!;
+            var queryId = view.GetProperty("clauses")[0].GetProperty("queryId").GetString()!;
+
+            var response = await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/items/parameter",
+                new SaveParameterItemDto
+                {
+                    ViewId = viewId,
+                    Links =
+                    [
+                        new ViewSelectorLinkDto
+                        {
+                            ItemId = chartId,
+                            TrackerId = tracker.Id,
+                            // Day is a date field, but the clause is a number clause.
+                            FieldByQuery = new() { [queryId] = tracker.DayFieldId }
+                        }
+                    ]
+                });
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task SetParameterValues_ValueOfWrongType_ReturnsBadRequest()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("paramvaluetype");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var chartId = await PlaceLineChart(client, dashboardId, tracker);
+
+            var view = await Data(await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/views", AmountOverSet()));
+            var viewId = view.GetProperty("id").GetString()!;
+            var queryId = view.GetProperty("clauses")[0].GetProperty("queryId").GetString()!;
+
+            var item = await Data(await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/items/parameter",
+                new SaveParameterItemDto
+                {
+                    ViewId = viewId,
+                    Links =
+                    [
+                        new ViewSelectorLinkDto
+                        {
+                            ItemId = chartId,
+                            TrackerId = tracker.Id,
+                            FieldByQuery = new() { [queryId] = tracker.AmountFieldId }
+                        }
+                    ]
+                }));
+            var paramId = item.GetProperty("id").GetString()!;
+
+            var badValue = await client.PutAsJsonAsync(
+                $"dashboard/{dashboardId}/items/{paramId}/parameter-values",
+                new SetParameterValuesDto { Values = new() { [queryId] = "not a number" } });
+            Assert.Equal(HttpStatusCode.BadRequest, badValue.StatusCode);
+
+            var badKey = await client.PutAsJsonAsync(
+                $"dashboard/{dashboardId}/items/{paramId}/parameter-values",
+                new SetParameterValuesDto { Values = new() { ["not-a-query"] = "5" } });
+            Assert.Equal(HttpStatusCode.BadRequest, badKey.StatusCode);
+        }
+
         [Fact]
         public async Task AddDashboardView_MoreThanTheCap_ReturnsBadRequest()
         {

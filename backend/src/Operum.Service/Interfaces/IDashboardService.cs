@@ -17,6 +17,7 @@ namespace Operum.Service.Interfaces
         Task<Result<DashboardItemDto>> PlaceWidget(string dashboardId, PlaceWidgetDto dto);
         Task<Result<DashboardItemDto>> AddQuickAddItem(string dashboardId, AddDashboardQuickAddItemDto dto);
         Task<Result<DashboardItemDto>> AddViewSelectorItem(string dashboardId, SaveViewSelectorItemDto dto);
+        Task<Result<DashboardItemDto>> AddParameterItem(string dashboardId, SaveParameterItemDto dto);
         Task<Result<DashboardItemDto>> CreateAndPlaceEntriesWidget(string dashboardId, CreateAndPlaceEntriesWidgetDto dto);
         Task<Result<DashboardItemDto>> PlaceEntriesWidget(string dashboardId, PlaceEntriesWidgetDto dto);
         Task<Result<DashboardItemDto>> AddHeaderItem(string dashboardId, AddDashboardHeaderItemDto dto);
@@ -25,6 +26,8 @@ namespace Operum.Service.Interfaces
         Task<Result<List<DashboardWidgetDto>>> UpdateDashboardItem(string dashboardId, string itemId, UpdateDashboardItemDto dto);
         Task<Result<List<DashboardWidgetDto>>> UpdateViewSelectorItem(string dashboardId, string itemId, SaveViewSelectorItemDto dto);
         Task<Result<List<DashboardWidgetDto>>> SetViewSelectorSelection(string dashboardId, string itemId, SetViewSelectorSelectionDto dto);
+        Task<Result<List<DashboardWidgetDto>>> UpdateParameterItem(string dashboardId, string itemId, SaveParameterItemDto dto);
+        Task<Result<List<DashboardWidgetDto>>> SetParameterValues(string dashboardId, string itemId, SetParameterValuesDto dto);
         Task<Result<List<DashboardWidgetDto>>> UpdateEntriesItem(string dashboardId, string itemId, UpdateDashboardEntriesItemDto dto);
         Task<Result<DashboardItemDto>> SetTextWidgetContent(string dashboardId, string itemId, SetTextWidgetContentDto dto);
         Task<Result> RemoveDashboardItem(string dashboardId, string itemId);

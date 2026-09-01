@@ -14,6 +14,7 @@ import { EntriesWidgetCard } from "./EntriesWidgetCard";
 import { ExpandableWidgetCard } from "./ExpandableWidgetCard";
 import { HeaderWidgetCard } from "./HeaderWidgetCard";
 import { NoteWidgetCard } from "./NoteWidgetCard";
+import { ParameterWidgetCard } from "./ParameterWidgetCard";
 import { QuickAddWidgetCard } from "./QuickAddWidgetCard";
 import { ViewSelectorWidgetCard } from "./ViewSelectorWidgetCard";
 
@@ -32,6 +33,10 @@ interface Props {
     onEdit?: (itemId: string) => void;
     onEntryClick?: (entryId: string) => void;
     onViewSelectorSelect?: (itemId: string, selectedId: string | null) => void;
+    onParameterSetValues?: (
+        itemId: string,
+        values: Record<string, string | null>,
+    ) => void;
 }
 
 // Whether the current grid draws this widget as its collapsed button instead of inline —
@@ -78,6 +83,7 @@ export function DashboardWidget({
     onEdit,
     onEntryClick,
     onViewSelectorSelect,
+    onParameterSetValues,
 }: Props) {
     switch (widget.type) {
         case WidgetTypes.Analytic: {
@@ -145,6 +151,18 @@ export function DashboardWidget({
                     onRemove={onRemove}
                     onEdit={onEdit}
                     onSelect={onViewSelectorSelect ?? (() => {})}
+                />
+            );
+        case WidgetTypes.Parameter:
+            return (
+                <ParameterWidgetCard
+                    widgetId={widget.id}
+                    parameter={widget.parameter}
+                    color={color}
+                    isConfiguring={isConfiguring}
+                    onRemove={onRemove}
+                    onEdit={onEdit}
+                    onSetValues={onParameterSetValues ?? (() => {})}
                 />
             );
         case WidgetTypes.Entries: {

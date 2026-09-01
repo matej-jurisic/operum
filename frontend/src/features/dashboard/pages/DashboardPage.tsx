@@ -22,6 +22,7 @@ import BoardFormModal from "../components/BoardFormModal";
 import { DashboardGrid } from "../components/DashboardGrid";
 import { EditEntriesWidgetModal } from "../components/EditEntriesWidgetModal";
 import { EditTextWidgetModal } from "../components/EditTextWidgetModal";
+import { EditParameterModal } from "../components/EditParameterModal";
 import { EditViewSelectorModal } from "../components/EditViewSelectorModal";
 import { EditWidgetModal } from "../components/EditWidgetModal";
 import { WidgetsProvider } from "../../widgets/context/WidgetsContext";
@@ -62,6 +63,8 @@ function DashboardContent({
         updateEntriesItem,
         setViewSelectorSelection,
         updateViewSelectorItem,
+        setParameterValues,
+        updateParameterItem,
         setTextContent,
         removeItem,
         saveLayout,
@@ -184,6 +187,7 @@ function DashboardContent({
                     onRemove={removeItem}
                     onEdit={setEditingItemId}
                     onViewSelectorSelect={setViewSelectorSelection}
+                    onParameterSetValues={setParameterValues}
                 />
             )}
 
@@ -235,10 +239,22 @@ function DashboardContent({
 
             {editingItemId &&
                 editingWidget &&
+                editingWidget.type === WidgetTypes.Parameter && (
+                    <EditParameterModal
+                        itemId={editingItemId}
+                        color={color}
+                        onClose={closeEditing}
+                        onSave={updateParameterItem}
+                    />
+                )}
+
+            {editingItemId &&
+                editingWidget &&
                 editingWidget.type !== WidgetTypes.Header &&
                 editingWidget.type !== WidgetTypes.Note &&
                 editingWidget.type !== WidgetTypes.Entries &&
-                editingWidget.type !== WidgetTypes.ViewSelector && (
+                editingWidget.type !== WidgetTypes.ViewSelector &&
+                editingWidget.type !== WidgetTypes.Parameter && (
                     <EditWidgetModal
                         itemId={editingItemId}
                         color={color}

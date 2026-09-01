@@ -80,6 +80,12 @@ namespace Operum.API.Controllers
             return GetApiResponse(await dashboardService.AddViewSelectorItem(dashboardId, dto));
         }
 
+        [HttpPost("{dashboardId}/items/parameter")]
+        public async Task<IActionResult> AddParameterItem([FromRoute] string dashboardId, [FromBody] SaveParameterItemDto dto)
+        {
+            return GetApiResponse(await dashboardService.AddParameterItem(dashboardId, dto));
+        }
+
         [HttpGet("{dashboardId}/views")]
         public async Task<IActionResult> GetDashboardViews([FromRoute] string dashboardId)
         {
@@ -163,6 +169,21 @@ namespace Operum.API.Controllers
         public async Task<IActionResult> UpdateViewSelectorItem([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] SaveViewSelectorItemDto dto)
         {
             return GetApiResponse(await dashboardService.UpdateViewSelectorItem(dashboardId, itemId, dto));
+        }
+
+        // A parameter widget's current per-clause values alone -- the inputs on the board.
+        [HttpPut("{dashboardId}/items/{itemId}/parameter-values")]
+        public async Task<IActionResult> SetParameterValues([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] SetParameterValuesDto dto)
+        {
+            return GetApiResponse(await dashboardService.SetParameterValues(dashboardId, itemId, dto));
+        }
+
+        // A parameter widget's view, values and the full set of widgets that follow it with
+        // their per-clause field maps.
+        [HttpPut("{dashboardId}/items/{itemId}/parameter")]
+        public async Task<IActionResult> UpdateParameterItem([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] SaveParameterItemDto dto)
+        {
+            return GetApiResponse(await dashboardService.UpdateParameterItem(dashboardId, itemId, dto));
         }
 
         // Only how an Entries widget is filtered, and whether it collapses to a button — the

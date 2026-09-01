@@ -100,15 +100,14 @@ export function ViewSelectorWidgetCard({
                             // otherwise the widget reads as inset from its neighbours.
                             styles={{
                                 wrapper: { height: "100%" },
-                                // Match the shell's corners: the input reaches the
-                                // Paper's edges, and its square bottom corners would
-                                // otherwise be sliced off by the rounded overflow clip.
+                                // Match the shell's corners: the compact header is an
+                                // absolute overlay, so the input fills the whole Paper
+                                // and reaches all four edges. Without this its tighter
+                                // default radius leaves the corners sliced by the
+                                // Paper's rounded overflow clip.
                                 input: {
                                     height: "100%",
-                                    borderBottomLeftRadius:
-                                        "var(--mantine-radius-md)",
-                                    borderBottomRightRadius:
-                                        "var(--mantine-radius-md)",
+                                    borderRadius: "var(--mantine-radius-md)",
                                 },
                             }}
                         />

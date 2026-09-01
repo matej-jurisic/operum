@@ -15,7 +15,9 @@ import {
     PlaceWidgetDto,
     ReorderDashboardViewsDto,
     SaveDashboardViewDto,
+    SaveParameterItemDto,
     SaveViewSelectorItemDto,
+    SetParameterValuesDto,
     SetTextWidgetContentDto,
     SetViewSelectorSelectionDto,
     UpdateDashboardDto,
@@ -86,6 +88,13 @@ export const dashboardController = {
         dto: SaveViewSelectorItemDto
     ): Promise<ApiResponse<DashboardItemDto>> => {
         return await api.post(`/dashboard/${dashboardId}/items/view-selector`, dto);
+    },
+
+    addParameterItem: async (
+        dashboardId: string,
+        dto: SaveParameterItemDto
+    ): Promise<ApiResponse<DashboardItemDto>> => {
+        return await api.post(`/dashboard/${dashboardId}/items/parameter`, dto);
     },
 
     getDashboardViews: async (
@@ -190,6 +199,25 @@ export const dashboardController = {
         dto: SaveViewSelectorItemDto
     ): Promise<ApiResponse<DashboardWidgetDto[]>> => {
         return await api.put(`/dashboard/${dashboardId}/items/${itemId}/view-selector`, dto);
+    },
+
+    setParameterValues: async (
+        dashboardId: string,
+        itemId: string,
+        dto: SetParameterValuesDto
+    ): Promise<ApiResponse<DashboardWidgetDto[]>> => {
+        return await api.put(
+            `/dashboard/${dashboardId}/items/${itemId}/parameter-values`,
+            dto
+        );
+    },
+
+    updateParameterItem: async (
+        dashboardId: string,
+        itemId: string,
+        dto: SaveParameterItemDto
+    ): Promise<ApiResponse<DashboardWidgetDto[]>> => {
+        return await api.put(`/dashboard/${dashboardId}/items/${itemId}/parameter`, dto);
     },
 
     setTextWidgetContent: async (

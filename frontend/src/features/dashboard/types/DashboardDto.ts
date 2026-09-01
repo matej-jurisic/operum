@@ -8,6 +8,7 @@ export const WidgetTypes = {
     Analytic: "analytic",
     QuickAdd: "quickAdd",
     ViewSelector: "viewSelector",
+    Parameter: "parameter",
     Entries: "entries",
     Header: "header",
     Divider: "divider",
@@ -115,6 +116,43 @@ export interface SetViewSelectorSelectionDto {
     selectedId?: string | null;
 }
 
+/** The Config payload of a WidgetTypes.Parameter widget: the single DashboardView it
+    drives, the current value per clause (keyed by the pooled query id), and the followed
+    widgets — links reuse the view selector's shape. */
+export interface ParameterWidgetConfig {
+    viewId: string;
+    valueByQuery: Record<string, string | null>;
+    links: ViewSelectorLink[];
+}
+
+/** One filter clause of the DashboardView a parameter widget drives, resolved server-side
+    for the card to render an input for. queryId keys the widget's valueByQuery map. */
+export interface ParameterClauseDto {
+    queryId: string;
+    kind: string;
+    dataType: string;
+    operator?: string | null;
+    value?: string | null;
+}
+
+/** What a WidgetTypes.Parameter widget's card needs, resolved server-side the same way
+    viewSelector is: the filter clauses of the view it drives, each with its current value. */
+export interface ParameterWidgetDto {
+    clauses: ParameterClauseDto[];
+}
+
+/** Adds or edits a WidgetTypes.Parameter item. */
+export interface SaveParameterItemDto {
+    viewId: string;
+    values: Record<string, string | null>;
+    links: ViewSelectorLink[];
+}
+
+/** Changes the values a WidgetTypes.Parameter item's clauses are currently set to. */
+export interface SetParameterValuesDto {
+    values: Record<string, string | null>;
+}
+
 /** What a WidgetTypes.Entries widget's table needs, resolved server-side: the tracker it
     reads from, the columns to show in order (Config's columnFieldIds, or every field when it
     names none), and the rows themselves — already filtered/sorted by the view selectors this
@@ -157,6 +195,7 @@ export interface DashboardWidgetDto {
     analytic?: AnalyticDto;
     quickAddTracker?: QuickAddTrackerDto;
     viewSelector?: ViewSelectorWidgetDto;
+    parameter?: ParameterWidgetDto;
     entriesWidget?: EntriesWidgetDto;
     trackerColor?: string;
 }

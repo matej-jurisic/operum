@@ -17,6 +17,7 @@ import {
     LayoutVariants,
     PlaceEntriesWidgetDto,
     PlaceWidgetDto,
+    SaveParameterItemDto,
     SaveViewSelectorItemDto,
     UpdateDashboardEntriesItemDto,
     UpdateDashboardItemDto,
@@ -32,6 +33,7 @@ type DashboardContextType = {
     placeWidget: (dto: PlaceWidgetDto) => Promise<void>;
     addQuickAddItem: (dto: AddDashboardQuickAddItemDto) => Promise<void>;
     addViewSelectorItem: (dto: SaveViewSelectorItemDto) => Promise<void>;
+    addParameterItem: (dto: SaveParameterItemDto) => Promise<void>;
     createAndPlaceEntriesWidget: (dto: CreateAndPlaceEntriesWidgetDto) => Promise<void>;
     placeEntriesWidget: (dto: PlaceEntriesWidgetDto) => Promise<void>;
     addHeaderItem: (dto: AddDashboardHeaderItemDto) => Promise<void>;
@@ -41,6 +43,11 @@ type DashboardContextType = {
     updateEntriesItem: (itemId: string, dto: UpdateDashboardEntriesItemDto) => Promise<void>;
     setViewSelectorSelection: (itemId: string, selectedId: string | null) => Promise<void>;
     updateViewSelectorItem: (itemId: string, dto: SaveViewSelectorItemDto) => Promise<void>;
+    setParameterValues: (
+        itemId: string,
+        values: Record<string, string | null>
+    ) => Promise<void>;
+    updateParameterItem: (itemId: string, dto: SaveParameterItemDto) => Promise<void>;
     setTextContent: (itemId: string, text: string) => Promise<void>;
     removeItem: (itemId: string) => Promise<void>;
     saveLayout: (
@@ -82,6 +89,11 @@ export const DashboardProvider: React.FC<{
 
     const addViewSelectorItem = async (dto: SaveViewSelectorItemDto) => {
         await dashboardController.addViewSelectorItem(dashboardId, dto);
+        await refreshWidgets();
+    };
+
+    const addParameterItem = async (dto: SaveParameterItemDto) => {
+        await dashboardController.addParameterItem(dashboardId, dto);
         await refreshWidgets();
     };
 
@@ -150,6 +162,23 @@ export const DashboardProvider: React.FC<{
         dto: SaveViewSelectorItemDto
     ) => {
         const res = await dashboardController.updateViewSelectorItem(dashboardId, itemId, dto);
+        setWidgets(res.data ?? []);
+    };
+
+    // Same "recompute the whole board" as setViewSelectorSelection: the typed value is
+    // saved server-side and every widget the parameter links re-filters by it.
+    const setParameterValues = async (
+        itemId: string,
+        values: Record<string, string | null>
+    ) => {
+        const res = await dashboardController.setParameterValues(dashboardId, itemId, {
+            values,
+        });
+        setWidgets(res.data ?? []);
+    };
+
+    const updateParameterItem = async (itemId: string, dto: SaveParameterItemDto) => {
+        const res = await dashboardController.updateParameterItem(dashboardId, itemId, dto);
         setWidgets(res.data ?? []);
     };
 
@@ -222,6 +251,7 @@ export const DashboardProvider: React.FC<{
                 placeWidget,
                 addQuickAddItem,
                 addViewSelectorItem,
+                addParameterItem,
                 createAndPlaceEntriesWidget,
                 placeEntriesWidget,
                 addHeaderItem,
@@ -231,6 +261,8 @@ export const DashboardProvider: React.FC<{
                 updateEntriesItem,
                 setViewSelectorSelection,
                 updateViewSelectorItem,
+                setParameterValues,
+                updateParameterItem,
                 setTextContent,
                 removeItem,
                 saveLayout,

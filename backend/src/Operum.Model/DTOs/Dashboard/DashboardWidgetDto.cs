@@ -43,6 +43,27 @@ namespace Operum.Model.DTOs.Dashboard
         public string? SelectedId { get; set; }
     }
 
+    // One clause of the DashboardView a parameter widget drives, resolved for the card to
+    // render an input for: what it filters (data type + operator, shown as a label) and the
+    // value currently typed on the board (null when unset -- the clause is then not applied).
+    // QueryId is the pooled query id, the key SetParameterValues writes back under.
+    public class ParameterClauseDto
+    {
+        public string QueryId { get; set; } = string.Empty;
+        public string Kind { get; set; } = string.Empty;
+        public string DataType { get; set; } = string.Empty;
+        public string? Operator { get; set; }
+        public string? Value { get; set; }
+    }
+
+    // What a DashboardWidgetTypes.Parameter widget's card needs -- resolved server-side from
+    // Config the same way ViewSelectorWidgetDto is: the filter clauses of the view it drives,
+    // each with its current value.
+    public class ParameterWidgetDto
+    {
+        public List<ParameterClauseDto> Clauses { get; set; } = [];
+    }
+
     // What a DashboardWidgetTypes.Entries widget's table needs — resolved server-side the
     // same way QuickAddTrackerDto is: the tracker it reads from, the columns to show in
     // order (Config's ColumnFieldIds, or every field when it names none), and the rows
@@ -77,6 +98,7 @@ namespace Operum.Model.DTOs.Dashboard
         public AnalyticDto? Analytic { get; set; }
         public QuickAddTrackerDto? QuickAddTracker { get; set; }
         public ViewSelectorWidgetDto? ViewSelector { get; set; }
+        public ParameterWidgetDto? Parameter { get; set; }
         public EntriesWidgetDto? EntriesWidget { get; set; }
         // The color of the single tracker every source of this widget reads from. Null when
         // the widget has no single owning tracker — a combined chart spanning more than one —

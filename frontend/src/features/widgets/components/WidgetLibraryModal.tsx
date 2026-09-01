@@ -20,6 +20,7 @@ import { IconType } from "react-icons";
 import { FiChevronRight, FiPlus, FiPlusSquare, FiSearch } from "react-icons/fi";
 import { MdOutlineHorizontalRule } from "react-icons/md";
 import {
+    TbAdjustmentsHorizontal,
     TbChartHistogram,
     TbFilter,
     TbHeading,
@@ -34,6 +35,7 @@ import { HeaderWidgetForm } from "../../dashboard/components/HeaderWidgetForm";
 import { NoteWidgetForm } from "../../dashboard/components/NoteWidgetForm";
 import { PlaceFromLibraryForm } from "../../dashboard/components/PlaceFromLibraryForm";
 import { QuickAddTrackerForm } from "../../dashboard/components/QuickAddTrackerForm";
+import { ParameterWidgetForm } from "../../dashboard/components/ParameterWidgetForm";
 import { ViewSelectorWidgetForm } from "../../dashboard/components/ViewSelectorWidgetForm";
 import { useDashboard } from "../../dashboard/context/DashboardContext";
 import { trackersController } from "../../trackers/api/trackersController";
@@ -71,7 +73,10 @@ type Panel =
     | { kind: "edit-table"; entriesWidget: EntriesWidgetDefinitionDto }
     | { kind: "delete-chart"; widget: WidgetDto }
     | { kind: "delete-table"; entriesWidget: EntriesWidgetDefinitionDto }
-    | { kind: "config"; widgetKind: "quickAdd" | "view" | "header" | "note" };
+    | {
+          kind: "config";
+          widgetKind: "quickAdd" | "view" | "parameter" | "header" | "note";
+      };
 
 const TAB_META: { value: TabValue; label: string; icon: IconType }[] = [
     { value: "charts", label: "Charts", icon: TbChartHistogram },
@@ -81,7 +86,7 @@ const TAB_META: { value: TabValue; label: string; icon: IconType }[] = [
 ];
 
 interface InstantOption {
-    key: "quickAdd" | "view" | "header" | "divider" | "note";
+    key: "quickAdd" | "view" | "parameter" | "header" | "divider" | "note";
     title: string;
     icon: IconType;
 }
@@ -89,6 +94,7 @@ interface InstantOption {
 const CONTROL_OPTIONS: InstantOption[] = [
     { key: "quickAdd", title: "Quick-add button", icon: FiPlusSquare },
     { key: "view", title: "View selector", icon: TbFilter },
+    { key: "parameter", title: "Parameter", icon: TbAdjustmentsHorizontal },
 ];
 
 const LAYOUT_OPTIONS: InstantOption[] = [
@@ -121,6 +127,8 @@ function panelTitle(panel: Panel): string {
                 ? "Add a quick-add button"
                 : panel.widgetKind === "view"
                 ? "Add a view selector"
+                : panel.widgetKind === "parameter"
+                ? "Add a parameter"
                 : panel.widgetKind === "header"
                 ? "Add a header"
                 : "Add a note";
@@ -147,6 +155,7 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
         placeEntriesWidget,
         addQuickAddItem,
         addViewSelectorItem,
+        addParameterItem,
         addHeaderItem,
         addDividerItem,
         addNoteItem,
@@ -256,7 +265,8 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
         subPanel.kind === "new-table" ||
         subPanel.kind === "place-chart" ||
         subPanel.kind === "place-table" ||
-        (subPanel.kind === "config" && subPanel.widgetKind === "view");
+        (subPanel.kind === "config" &&
+            (subPanel.widgetKind === "view" || subPanel.widgetKind === "parameter"));
 
     // Search + tracker filter share one row across the Charts and Tables tabs on desktop.
     // On mobile the modal is too narrow for that: search gets its own row, and the tracker
@@ -580,6 +590,14 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
                         color={color}
                         onBack={backToList}
                         onAdd={closeAfter(addViewSelectorItem)}
+                    />
+                )}
+
+                {subPanel.kind === "config" && subPanel.widgetKind === "parameter" && (
+                    <ParameterWidgetForm
+                        color={color}
+                        onBack={backToList}
+                        onAdd={closeAfter(addParameterItem)}
                     />
                 )}
 

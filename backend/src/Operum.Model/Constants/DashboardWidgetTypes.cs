@@ -23,6 +23,14 @@ namespace Operum.Model.Constants
         // it's filtered comes only from the view selector widgets it's linked to.
         public const string Entries = "entries";
 
+        // Like ViewSelector, but instead of switching between whole DashboardViews it points
+        // at exactly one and exposes an input per clause so the value is typed on the board.
+        // Carries no analytic definition — just Config, a ParameterWidgetConfigDto holding
+        // the view id, the current per-clause values, and (as ViewSelector) per followed
+        // widget which of its tracker's fields each clause runs against. A clause with no
+        // value yet is simply not applied.
+        public const string Parameter = "parameter";
+
         // A short line of user-entered text that reads as a section title rather than a
         // chart. Carries no tracker or analytic — just Config, a TextWidgetConfigDto.
         public const string Header = "header";
@@ -37,7 +45,7 @@ namespace Operum.Model.Constants
         public const string Note = "note";
 
         public static readonly HashSet<string> All =
-            [Analytic, QuickAdd, ViewSelector, Entries, Header, Divider, Note];
+            [Analytic, QuickAdd, ViewSelector, Entries, Parameter, Header, Divider, Note];
 
         public static bool IsValid(string type) => All.Contains(type);
     }
