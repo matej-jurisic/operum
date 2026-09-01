@@ -1,4 +1,5 @@
 import { Button, Checkbox, Group, Modal, Select, Stack, Text } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { useEffect, useState } from "react";
 import { dashboardController } from "../api/dashboardController";
 import { useDashboard } from "../context/DashboardContext";
@@ -32,6 +33,7 @@ interface Props {
  */
 export function EditViewWidgetModal({ itemId, color, onClose, onSave }: Props) {
     const { dashboardId, widgets } = useDashboard();
+    const isMobile = useMediaQuery("(max-width: 48em)");
     const widget = widgets.find((w) => w.id === itemId);
     const viewWidget =
         widget?.type === WidgetTypes.View ? widget.viewWidget : undefined;
@@ -79,7 +81,14 @@ export function EditViewWidgetModal({ itemId, color, onClose, onSave }: Props) {
     ];
 
     return (
-        <Modal opened onClose={onClose} title="Edit view selector" size="md" centered>
+        <Modal
+            opened
+            onClose={onClose}
+            title="Edit view selector"
+            size="md"
+            centered
+            fullScreen={isMobile}
+        >
             {/* The global request loader covers the fetch above, so this renders nothing
                 rather than stacking a second spinner on it. */}
             {targets && (

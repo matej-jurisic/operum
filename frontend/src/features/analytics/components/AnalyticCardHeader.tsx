@@ -39,6 +39,14 @@ export function AnalyticCardHeader({
   actions,
   compact,
 }: Props) {
+  // On a full-size card the edit / remove controls used to sit in the header row, so
+  // turning arrange mode on grew that row and pushed the widget's content down -- the
+  // board you were arranging was never quite the board you had been looking at. While
+  // arranging, float them over the card's top-right corner instead, on a solid chip so
+  // they stay legible over whatever they cover, and leave the widget's layout untouched.
+  // A compact card already floats its whole header, so this only kicks in for the rest.
+  const floatControls = isConfiguring && !compact;
+
   return (
     <Group
       className={CARD_HEADER_CLASS}
@@ -48,7 +56,7 @@ export function AnalyticCardHeader({
       w="100%"
       h={compact ? "100%" : "auto"}
       gap="xs"
-      pos={compact ? "absolute" : "inherit"}
+      pos={compact ? "absolute" : floatControls ? "relative" : "inherit"}
       top={compact ? 0 : undefined}
       left={compact ? 0 : undefined}
       right={compact ? layout.padding : undefined}
@@ -85,7 +93,21 @@ export function AnalyticCardHeader({
           {titleAdornment}
         </Group>
       )}
-      <Group gap="xs" wrap="nowrap" align="center">
+      <Group
+        gap="xs"
+        wrap="nowrap"
+        align="center"
+        pos={floatControls ? "absolute" : undefined}
+        top={floatControls ? 0 : undefined}
+        right={floatControls ? 0 : undefined}
+        style={{
+          zIndex: floatControls ? 10 : undefined,
+          background: floatControls ? "var(--mantine-color-body)" : undefined,
+          borderRadius: floatControls
+            ? "var(--mantine-radius-sm)"
+            : undefined,
+        }}
+      >
         {actions}
         {isConfiguring && onEdit && (
           <ActionIcon

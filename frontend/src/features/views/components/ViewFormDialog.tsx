@@ -14,6 +14,7 @@ import {
     TextInput,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import { useMediaQuery } from "@mantine/hooks";
 import { useEffect, useState } from "react";
 import { CiFilter } from "react-icons/ci";
 import { FiPlus, FiPlusSquare } from "react-icons/fi";
@@ -81,6 +82,7 @@ export default function ViewFormDialog({
     const { fields } = useFields();
     const { createView, updateView } = useTrackerOperations();
     const { queries, refreshQueriesIfDirty } = useQueries();
+    const isMobile = useMediaQuery("(max-width: 48em)");
 
     const [editingQuery, setEditingQuery] = useState<QueryDto>();
     const [newQueryOpen, setNewQueryOpen] = useState(false);
@@ -220,6 +222,7 @@ export default function ViewFormDialog({
                 onClose={onClose}
                 title={viewId ? "Edit View" : "Create View"}
                 size="lg"
+                fullScreen={isMobile}
             >
                 <form onSubmit={form.onSubmit(handleSubmit)}>
                     <Stack gap="lg">
@@ -241,7 +244,11 @@ export default function ViewFormDialog({
                         </Stack>
 
                         <Stack gap="md">
-                            <Group justify="space-between" align="center">
+                            <Group
+                                justify="space-between"
+                                align={isMobile ? "stretch" : "center"}
+                                wrap={isMobile ? "wrap" : "nowrap"}
+                            >
                                 <Text fw={500} size="md">
                                     Queries
                                     {rows.length > 0 && (
@@ -250,7 +257,11 @@ export default function ViewFormDialog({
                                         </Text>
                                     )}
                                 </Text>
-                                <Group gap="xs">
+                                <Group
+                                    gap="xs"
+                                    wrap={isMobile ? "wrap" : "nowrap"}
+                                    w={isMobile ? "100%" : undefined}
+                                >
                                     <Select
                                         placeholder="Add existing query"
                                         data={availableQueries.map((q) => ({
@@ -264,7 +275,7 @@ export default function ViewFormDialog({
                                             availableQueries.length === 0
                                         }
                                         searchable
-                                        w={240}
+                                        w={isMobile ? "100%" : 240}
                                     />
                                     <Menu position="bottom-end">
                                         <Menu.Target>
@@ -276,6 +287,7 @@ export default function ViewFormDialog({
                                                 }
                                                 size="sm"
                                                 disabled={!canAddMore}
+                                                w={isMobile ? "100%" : undefined}
                                             >
                                                 New Query
                                             </Button>

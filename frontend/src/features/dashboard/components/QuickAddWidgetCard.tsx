@@ -1,5 +1,6 @@
 import { Button, Center, Paper, Stack, Text } from "@mantine/core";
-import { createElement, useState } from "react";
+import { useState } from "react";
+import { TbPlus } from "react-icons/tb";
 import { AnalyticCardHeader } from "../../analytics/components/AnalyticCardHeader";
 import {
   cardBodyProps,
@@ -7,7 +8,6 @@ import {
   useCardLayout,
 } from "../../analytics/components/cardSizing";
 import QuickAddEntryDialog from "../../entries/components/QuickAddEntryDialog";
-import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
 import { trackersController } from "../../trackers/api/trackersController";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { useDashboard } from "../context/DashboardContext";
@@ -47,7 +47,6 @@ export function QuickAddWidgetCard({
   const { refreshWidgets } = useDashboard();
 
   const trackerColor = tracker?.color || color;
-  const Icon = resolveTrackerIcon(tracker?.icon);
 
   const handleOpen = async () => {
     const res = await trackersController.getTracker(config.trackerId);
@@ -91,10 +90,13 @@ export function QuickAddWidgetCard({
               style={{
                 pointerEvents: isConfiguring ? "none" : "all",
               }}
-              leftSection={createElement(Icon, { size: 18 })}
+              styles={{
+                label: { whiteSpace: "normal", lineHeight: 1.3 },
+              }}
+              leftSection={<TbPlus size={18} />}
               onClick={handleOpen}
             >
-              Add entry
+              {tracker.name}
             </Button>
           ) : (
             <Text size="sm" c="dimmed" ta="center">

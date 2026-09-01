@@ -9,6 +9,7 @@ import {
     Text,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import { useMediaQuery } from "@mantine/hooks";
 import DynamicDateValueInput from "../../../shared/components/DynamicDateValueInput";
 import { FieldTypes } from "../../../shared/constants/DataTypes";
 import { operatorsForFieldType } from "../../../shared/constants/DataTypesForSelect";
@@ -78,6 +79,7 @@ export default function QueryFormDialog({
 }: Props) {
     const { fields } = useFields();
     const { createQuery, updateQuery } = useTrackerOperations();
+    const isMobile = useMediaQuery("(max-width: 48em)");
 
     const getFieldById = (fieldId: string) =>
         fields.find((f) => f.id === fieldId);
@@ -187,6 +189,7 @@ export default function QueryFormDialog({
             onClose={onClose}
             title={queryId || initialClause ? "Edit Query" : "New Query"}
             size="lg"
+            fullScreen={isMobile}
         >
             <form onSubmit={form.onSubmit(handleSubmit)}>
                 <Stack gap="lg">
