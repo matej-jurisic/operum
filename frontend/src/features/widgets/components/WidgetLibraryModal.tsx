@@ -388,7 +388,7 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
                     {/* On mobile the four labels don't fit on one line, so we show just the
                         icon for every tab and the label only for the selected one -- the
                         same treatment as the tracker page. */}
-                    <Tabs.List mb="md" grow={!!isMobile}>
+                    <Tabs.List mb="md">
                         {TAB_META.map(({ value, label, icon: Icon }) => (
                             <Tabs.Tab
                                 key={value}
