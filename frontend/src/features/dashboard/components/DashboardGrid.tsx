@@ -4,7 +4,6 @@ import {
   getBreakpointFromWidth,
   Layout,
   LayoutItem,
-  noCompactor,
   Responsive,
   useContainerWidth,
   verticalCompactor,
