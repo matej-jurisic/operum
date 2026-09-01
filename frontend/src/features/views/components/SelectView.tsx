@@ -6,6 +6,7 @@ import {
   Text,
   useCombobox,
 } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { useEffect, useState } from "react";
 import { CiFilter } from "react-icons/ci";
 
@@ -17,6 +18,8 @@ export default function SelectViewMenu() {
   const { selectedViewId, tracker } = useTracker();
   const { setSelectedView } = useTrackerOperations();
   const { views, refreshViewsIfDirty } = useViews();
+
+  const isMobile = useMediaQuery("(max-width: 48em)");
 
   const [opened, setOpened] = useState(false);
 
@@ -41,12 +44,15 @@ export default function SelectViewMenu() {
         <Button
           variant={selectedViewId ? "filled" : "outline"}
           color={tracker.color}
+          px={isMobile ? "xs" : undefined}
+          aria-label="Select view"
+          style={{ flexShrink: 0 }}
           onClick={() => {
             setOpened((current) => !current);
             combobox.toggleDropdown();
           }}
         >
-          <CiFilter size={16} />
+          <CiFilter size={18} />
         </Button>
       </Popover.Target>
 

@@ -22,6 +22,7 @@ import { useEffect, useState } from "react";
 import { TbDatabase, TbLayoutGrid, TbUsers } from "react-icons/tb";
 import { useNavigate } from "react-router-dom";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
+import SidebarBurger from "../../../shared/components/navigation/SidebarBurger";
 import {
     FALLBACK_PAGE,
     writeDefaultPage,
@@ -186,9 +187,12 @@ const ProfilePage = observer(function ProfilePage() {
     return (
         <>
             <Stack gap="md" h="100%">
-                <Title order={2} c={theme.primaryColor}>
-                    Profile
-                </Title>
+                <Group gap="sm" wrap="nowrap">
+                    <SidebarBurger />
+                    <Title order={2} c={theme.primaryColor}>
+                        Profile
+                    </Title>
+                </Group>
 
                 <ScrollArea flex={1}>
                     <Stack align="center">

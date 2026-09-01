@@ -1,5 +1,5 @@
-import { AppShell, Burger, Group, Overlay, useMantineColorScheme } from "@mantine/core";
-import { useDisclosure, useMediaQuery } from "@mantine/hooks";
+import { AppShell, Overlay, useMantineColorScheme } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { observer } from "mobx-react";
 import { useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
@@ -20,7 +20,7 @@ const AppLayout = observer(() => {
     const location = useLocation();
     const { colorScheme } = useMantineColorScheme();
     const isMobile = useMediaQuery("(max-width: 48em)");
-    const [mobileOpened, mobileHandlers] = useDisclosure(false);
+    const mobileOpened = navigationStore.mobileNavOpen;
     const [collapsed, setCollapsed] = useState(
         () => localStorage.getItem(COLLAPSED_KEY) === "true",
     );
@@ -31,7 +31,7 @@ const AppLayout = observer(() => {
 
     // Close the mobile drawer whenever navigation lands somewhere new.
     useEffect(() => {
-        mobileHandlers.close();
+        navigationStore.closeMobileNav();
     }, [location.pathname]);
 
     // AppShell's mobile navbar is just a sliding panel -- it locks nothing. Keep
@@ -67,19 +67,12 @@ const AppLayout = observer(() => {
             w="100%"
             padding="md"
             transitionDuration={0}
-            header={{ height: 48, collapsed: !isMobile }}
             navbar={{
                 width: collapsed ? 68 : 260,
                 breakpoint: "sm",
                 collapsed: { mobile: !mobileOpened, desktop: false },
             }}
         >
-            <AppShell.Header hiddenFrom="sm" zIndex={102}>
-                <Group h="100%" px="md" gap="sm">
-                    <Burger opened={mobileOpened} onClick={mobileHandlers.toggle} size="sm" />
-                </Group>
-            </AppShell.Header>
-
             {/*
              * Sits above the header/main (z 100) but below the navbar (see its
              * zIndex below). AppShell's own z-indexes are ~100, so the old value
@@ -91,7 +84,7 @@ const AppLayout = observer(() => {
                     zIndex={101}
                     color="#000"
                     backgroundOpacity={0.35}
-                    onClick={mobileHandlers.close}
+                    onClick={navigationStore.closeMobileNav}
                     hiddenFrom="sm"
                 />
             )}
@@ -100,8 +93,10 @@ const AppLayout = observer(() => {
                 <AppSidebar
                     collapsed={!isMobile && collapsed}
                     showCollapseToggle={!isMobile}
+                    showBrand
                     onToggleCollapse={toggleCollapsed}
-                    onNavigate={mobileHandlers.close}
+                    onNavigate={navigationStore.closeMobileNav}
+                    onClose={navigationStore.closeMobileNav}
                 />
             </AppShell.Navbar>
 

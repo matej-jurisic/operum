@@ -20,6 +20,7 @@ import Entries from "../../entries/components/Entries";
 import Fields from "../../fields/components/Fields";
 import Notifications from "../../notifications/components/Notifications";
 import { areNotificationsEnabled } from "../../notifications/config/notificationsFeature";
+import SidebarBurger from "../../../shared/components/navigation/SidebarBurger";
 import SelectView from "../../views/components/SelectView";
 import ViewsAndQueries from "../../views/components/ViewsAndQueries";
 import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
@@ -88,13 +89,14 @@ export default function Tracker() {
         <ComposedTrackerProvider key={tracker.id} initialTracker={tracker}>
             <Stack h="100%" gap={"md"}>
                 <Group align="center" w="100%" justify="space-between" wrap="nowrap">
-                    <Group gap="sm" align="center" wrap="nowrap">
+                    <Group gap="sm" align="center" wrap="nowrap" style={{ minWidth: 0 }}>
+                        <SidebarBurger />
                         {tracker.icon && (
-                            <ThemeIcon size={36} radius="md" variant="light" color={tracker.color}>
-                                {createElement(resolveTrackerIcon(tracker.icon), { size: 20 })}
+                            <ThemeIcon size={32} radius="md" variant="light" color={tracker.color} style={{ flexShrink: 0 }}>
+                                {createElement(resolveTrackerIcon(tracker.icon), { size: 18 })}
                             </ThemeIcon>
                         )}
-                        <Title order={2} c={tracker.color}>
+                        <Title order={3} c={tracker.color}>
                             {tracker.name}
                         </Title>
                         {tracker.trackerTypeName && (

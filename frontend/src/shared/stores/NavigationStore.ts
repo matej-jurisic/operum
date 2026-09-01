@@ -24,9 +24,26 @@ class NavigationStore {
     trackerCreate: TrackerCreateMode | null = null;
     dashboardCreateOpen = false;
 
+    // The sidebar is a sliding drawer on mobile. Its open state lives here rather
+    // than in AppLayout so the burger that toggles it can sit inside each page's
+    // own header row -- the app then needs no top bar of its own.
+    mobileNavOpen = false;
+
     constructor() {
         makeAutoObservable(this);
     }
+
+    openMobileNav = () => {
+        this.mobileNavOpen = true;
+    };
+
+    closeMobileNav = () => {
+        this.mobileNavOpen = false;
+    };
+
+    toggleMobileNav = () => {
+        this.mobileNavOpen = !this.mobileNavOpen;
+    };
 
     startTrackerCreate(mode: TrackerCreateMode) {
         this.trackerCreate = mode;
@@ -95,6 +112,7 @@ class NavigationStore {
         this.loading = false;
         this.trackerCreate = null;
         this.dashboardCreateOpen = false;
+        this.mobileNavOpen = false;
     }
 }
 

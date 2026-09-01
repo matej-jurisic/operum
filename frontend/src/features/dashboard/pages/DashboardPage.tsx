@@ -13,6 +13,7 @@ import { FiCheck, FiPlus } from "react-icons/fi";
 import { TbLayoutDashboard } from "react-icons/tb";
 import { useNavigate, useParams } from "react-router-dom";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
+import SidebarBurger from "../../../shared/components/navigation/SidebarBurger";
 import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
 import navigationStore from "../../../shared/stores/NavigationStore";
 import { dashboardController } from "../api/dashboardController";
@@ -103,18 +104,19 @@ function DashboardContent({
             >
                 {/* Board name ellipsizes rather than pushing the actions off-screen. */}
                 <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
+                    <SidebarBurger />
                     <ThemeIcon
-                        size={36}
+                        size={32}
                         radius="md"
                         variant="light"
                         color={color}
                         style={{ flexShrink: 0 }}
                     >
                         {createElement(resolveTrackerIcon(activeBoard.icon), {
-                            size: 20,
+                            size: 18,
                         })}
                     </ThemeIcon>
-                    <Title order={2} c={color} lineClamp={1} style={{ minWidth: 0 }}>
+                    <Title order={3} c={color} lineClamp={1} style={{ minWidth: 0 }}>
                         {activeBoard.name}
                     </Title>
                 </Group>

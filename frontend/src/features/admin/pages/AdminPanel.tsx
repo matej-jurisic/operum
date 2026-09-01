@@ -1,5 +1,6 @@
 import {
     Container,
+    Group,
     Stack,
     Tabs,
     Title,
@@ -9,6 +10,7 @@ import { useMediaQuery } from "@mantine/hooks";
 import { CiAlignBottom, CiBoxList, CiUser } from "react-icons/ci";
 import { PiDatabaseThin } from "react-icons/pi";
 import { useLocation, useNavigate } from "react-router-dom";
+import SidebarBurger from "../../../shared/components/navigation/SidebarBurger";
 import Trackers from "../../trackers/components/Trackers";
 import Users from "../../users/components/Users";
 import AdminStats from "../components/AdminStats";
@@ -24,9 +26,12 @@ export default function AdminPanel() {
     return (
         <>
             <Stack h="100%" gap="md">
-                <Title c={theme.primaryColor} order={2}>
-                    Admin Panel
-                </Title>
+                <Group gap="sm" wrap="nowrap">
+                    <SidebarBurger />
+                    <Title c={theme.primaryColor} order={2}>
+                        Admin Panel
+                    </Title>
+                </Group>
                 <Stack flex="1" mih={0}>
                     <Tabs
                         variant="default"

@@ -19,6 +19,7 @@ import { CSS } from "@dnd-kit/utilities";
 import {
     ActionIcon,
     Box,
+    CloseButton,
     Divider,
     Group,
     Kbd,
@@ -43,6 +44,7 @@ import { GoSun } from "react-icons/go";
 import { IoMoonOutline } from "react-icons/io5";
 import { RiListOrdered2 } from "react-icons/ri";
 import {
+    TbCheck,
     TbChevronLeft,
     TbChevronRight,
     TbGripVertical,
@@ -65,17 +67,27 @@ import navigationStore from "../../stores/NavigationStore";
 interface Props {
     collapsed: boolean;
     showCollapseToggle: boolean;
+    // Shown everywhere the rail is expanded -- on desktop and in the mobile
+    // drawer, which has no app header of its own to carry the wordmark.
+    showBrand: boolean;
     onToggleCollapse: () => void;
     onNavigate: () => void;
+    // Dismisses the drawer on mobile. The close affordance lives here rather than
+    // in a top bar -- there is no top bar anymore.
+    onClose: () => void;
 }
 
 // Every sidebar row -- nav link, collapsed icon button, and reorder handle row --
 // renders at this exact height. Keeping it constant across all three is what stops
 // the list from jumping when you collapse the rail or toggle reorder mode.
-const ROW_HEIGHT = 38;
+const ROW_HEIGHT = 44;
 // The header and search blocks are likewise pinned so the first list item never
 // changes vertical position between the collapsed and expanded rail.
-const BLOCK_HEIGHT = 38;
+const BLOCK_HEIGHT = 40;
+// Row icon box + glyph. Sized up together with ROW_HEIGHT so the list breathes
+// instead of feeling stuffed.
+const ROW_ICON_BOX = 26;
+const ROW_ICON_GLYPH = 18;
 
 // The ⌘ / K hints in the search button. Mantine's Kbd is pill-shaped by default;
 // pinning width to height keeps each key a clean square.
@@ -90,17 +102,19 @@ const KBD_STYLE: CSSProperties = {
 };
 
 const AppSidebar = observer(
-    ({ collapsed, showCollapseToggle, onToggleCollapse, onNavigate }: Props) => {
+    ({
+        collapsed,
+        showCollapseToggle,
+        showBrand,
+        onToggleCollapse,
+        onNavigate,
+        onClose,
+    }: Props) => {
         const theme = useMantineTheme();
         const navigate = useNavigate();
         const location = useLocation();
         const auth = useAuth();
         const { colorScheme, toggleColorScheme } = useMantineColorScheme();
-
-        // Reorder mode turns both lists into drag lists at once. Only offered while
-        // the rail is expanded -- there is nowhere to grab in the 68px rail.
-        const [reordering, setReordering] = useState(false);
-        const canReorder = !collapsed;
 
         const isAdmin = globalStore.userHasRole("admin");
         const pathname = location.pathname;
@@ -121,7 +135,9 @@ const AppSidebar = observer(
             label: t.name,
             active: isRouteActive(`/trackers/${t.id}`),
             color: t.color,
-            icon: createElement(resolveTrackerIcon(t.icon), { size: 16 }),
+            icon: createElement(resolveTrackerIcon(t.icon), {
+                size: ROW_ICON_GLYPH,
+            }),
             onClick: () => go(`/trackers/${t.id}`),
         }));
 
@@ -132,7 +148,7 @@ const AppSidebar = observer(
             color: d.color,
             icon: createElement(
                 d.icon ? resolveTrackerIcon(d.icon) : TbLayoutDashboard,
-                { size: 16 },
+                { size: ROW_ICON_GLYPH },
             ),
             onClick: () => go(`/dashboard/${d.id}`),
         }));
@@ -170,42 +186,25 @@ const AppSidebar = observer(
 
         return (
             <Stack h="100%" gap={0} py="xs">
-                {/* Header */}
-                <Group
-                    justify={collapsed ? "center" : "space-between"}
-                    wrap="nowrap"
-                    align="center"
-                    h={BLOCK_HEIGHT}
-                    px={px}
-                    mb="xs"
-                >
-                    {!collapsed && (
-                        <UnstyledButton onClick={() => go("/dashboard")}>
-                            <Title order={3} c={theme.primaryColor}>
-                                Operum
-                            </Title>
-                        </UnstyledButton>
-                    )}
-                    <Group gap={4} wrap="nowrap">
-                        {canReorder && (
-                            <Tooltip
-                                label={reordering ? "Done reordering" : "Reorder lists"}
-                                position="right"
-                                withArrow
-                            >
-                                <ActionIcon
-                                    variant={reordering ? "light" : "subtle"}
-                                    color={reordering ? theme.primaryColor : "gray"}
-                                    onClick={() => setReordering((v) => !v)}
-                                    aria-label={
-                                        reordering
-                                            ? "Done reordering"
-                                            : "Reorder lists"
-                                    }
-                                >
-                                    <RiListOrdered2 size={18} />
-                                </ActionIcon>
-                            </Tooltip>
+                {/* Header: the wordmark, plus the collapse toggle on desktop and
+                    a close button in the mobile drawer. */}
+                {(showBrand || showCollapseToggle) && (
+                    <Group
+                        justify={
+                            collapsed || !showBrand ? "center" : "space-between"
+                        }
+                        wrap="nowrap"
+                        align="center"
+                        h={BLOCK_HEIGHT}
+                        px={px}
+                        mb="xs"
+                    >
+                        {!collapsed && showBrand && (
+                            <UnstyledButton onClick={() => go("/dashboard")}>
+                                <Title order={3} c={theme.primaryColor}>
+                                    Operum
+                                </Title>
+                            </UnstyledButton>
                         )}
                         {showCollapseToggle && (
                             <ActionIcon
@@ -225,8 +224,14 @@ const AppSidebar = observer(
                                 )}
                             </ActionIcon>
                         )}
+                        <CloseButton
+                            hiddenFrom="sm"
+                            size="lg"
+                            onClick={onClose}
+                            aria-label="Close navigation"
+                        />
                     </Group>
-                </Group>
+                )}
 
                 {/* Search */}
                 <Box px={px} mb="xs" h={BLOCK_HEIGHT}>
@@ -286,12 +291,21 @@ const AppSidebar = observer(
                 <ScrollArea flex={1} type="hover" scrollbarSize={6}>
                     <Box px={px}>
                         <SidebarList
+                            title="Dashboards"
+                            collapsed={collapsed}
+                            loaded={navigationStore.loaded}
+                            emptyLabel="No dashboards yet"
+                            items={dashboardItems}
+                            onReorder={reorderDashboards}
+                            onAdd={() => navigationStore.startDashboardCreate()}
+                        />
+                        <Divider my="xs" />
+                        <SidebarList
                             title="Trackers"
                             collapsed={collapsed}
                             loaded={navigationStore.loaded}
                             emptyLabel="No trackers yet"
                             items={trackerItems}
-                            reordering={reordering}
                             onReorder={reorderTrackers}
                             addMenuItems={[
                                 {
@@ -319,17 +333,6 @@ const AppSidebar = observer(
                                         ),
                                 },
                             ]}
-                        />
-                        <Divider my="xs" />
-                        <SidebarList
-                            title="Dashboards"
-                            collapsed={collapsed}
-                            loaded={navigationStore.loaded}
-                            emptyLabel="No dashboards yet"
-                            items={dashboardItems}
-                            reordering={reordering}
-                            onReorder={reorderDashboards}
-                            onAdd={() => navigationStore.startDashboardCreate()}
                         />
                     </Box>
                 </ScrollArea>
@@ -437,7 +440,10 @@ function NavItem({
             color={color}
             leftSection={icon}
             onClick={onClick}
-            styles={{ root: { height: ROW_HEIGHT, minHeight: ROW_HEIGHT } }}
+            styles={{
+                root: { height: ROW_HEIGHT, minHeight: ROW_HEIGHT },
+                label: { fontSize: "var(--mantine-font-size-md)" },
+            }}
         />
     );
 }
@@ -471,17 +477,17 @@ function SortableRow({ item }: { item: ListItem }) {
                 style={{ cursor: "grab", touchAction: "none" }}
                 aria-label={`Drag to reorder ${item.label}`}
             >
-                <TbGripVertical size={16} />
+                <TbGripVertical size={18} />
             </ActionIcon>
             <ThemeIcon
-                size="sm"
+                size={ROW_ICON_BOX}
                 radius="sm"
                 variant="light"
                 color={item.color ?? "gray"}
             >
                 {item.icon}
             </ThemeIcon>
-            <Text size="sm" truncate flex={1}>
+            <Text size="md" truncate flex={1}>
                 {item.label}
             </Text>
         </Group>
@@ -494,7 +500,6 @@ function SidebarList({
     loaded,
     emptyLabel,
     items,
-    reordering,
     onReorder,
     onAdd,
     addMenuItems,
@@ -504,11 +509,14 @@ function SidebarList({
     loaded: boolean;
     emptyLabel: string;
     items: ListItem[];
-    reordering: boolean;
     onReorder: (ids: string[]) => void;
     onAdd?: () => void;
     addMenuItems?: { label: string; icon: React.ReactNode; onClick: () => void }[];
 }) {
+    // Each list owns its reorder toggle, sitting beside its add button -- there
+    // is no shared rail-level control.
+    const [reordering, setReordering] = useState(false);
+
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
         useSensor(KeyboardSensor, {
@@ -528,7 +536,7 @@ function SidebarList({
                         px={collapsed ? 0 : "xs"}
                     >
                         <Skeleton
-                            h={collapsed ? 28 : 20}
+                            h={collapsed ? 28 : 24}
                             w={collapsed ? 28 : "75%"}
                         />
                     </Group>
@@ -537,7 +545,9 @@ function SidebarList({
         );
     }
 
-    const isReordering = reordering && !collapsed && items.length > 1;
+    // Reordering needs the expanded rail and at least two rows to move.
+    const canReorder = !collapsed && items.length > 1;
+    const isReordering = reordering && canReorder;
     const singular = title.replace(/s$/, "").toLowerCase();
 
     const handleDragEnd = (event: DragEndEvent) => {
@@ -554,64 +564,98 @@ function SidebarList({
             {collapsed ? (
                 // Reserve the same vertical space the title occupies when expanded
                 // so the icon column does not slide up/down as the rail toggles.
-                <Box h={28} mb={4} />
+                <Box h={32} mb={6} />
             ) : (
                 <Group
                     justify="space-between"
                     wrap="nowrap"
                     align="center"
-                    h={28}
+                    h={32}
                     pl="sm"
                     pr={4}
-                    mb={4}
+                    mb={6}
                 >
-                    <Text size="xs" fw={700} c="dimmed" tt="uppercase">
+                    <Text size="sm" fw={700} c="dimmed" tt="uppercase">
                         {title}
                     </Text>
-                    {!reordering &&
-                        (addMenuItems ? (
-                            <Menu shadow="md" position="bottom-end" withinPortal>
-                                <Menu.Target>
+                    <Group gap={4} wrap="nowrap">
+                        {canReorder && (
+                            <Tooltip
+                                label={
+                                    reordering
+                                        ? "Done reordering"
+                                        : `Reorder ${title.toLowerCase()}`
+                                }
+                                withArrow
+                            >
+                                <ActionIcon
+                                    size="sm"
+                                    variant={reordering ? "light" : "default"}
+                                    color={reordering ? undefined : "gray"}
+                                    onClick={() => setReordering((v) => !v)}
+                                    aria-label={
+                                        reordering
+                                            ? "Done reordering"
+                                            : `Reorder ${title.toLowerCase()}`
+                                    }
+                                >
+                                    {reordering ? (
+                                        <TbCheck size={14} />
+                                    ) : (
+                                        <RiListOrdered2 size={14} />
+                                    )}
+                                </ActionIcon>
+                            </Tooltip>
+                        )}
+                        {!reordering &&
+                            (addMenuItems ? (
+                                <Menu
+                                    shadow="md"
+                                    position="bottom-end"
+                                    withinPortal
+                                >
+                                    <Menu.Target>
+                                        <ActionIcon
+                                            size="sm"
+                                            variant="default"
+                                            color="gray"
+                                            aria-label={`New ${singular}`}
+                                        >
+                                            <TbPlus size={14} />
+                                        </ActionIcon>
+                                    </Menu.Target>
+                                    <Menu.Dropdown>
+                                        {addMenuItems.map((mi) => (
+                                            <Menu.Item
+                                                key={mi.label}
+                                                leftSection={mi.icon}
+                                                onClick={mi.onClick}
+                                            >
+                                                {mi.label}
+                                            </Menu.Item>
+                                        ))}
+                                    </Menu.Dropdown>
+                                </Menu>
+                            ) : onAdd ? (
+                                <Tooltip label={`New ${singular}`} withArrow>
                                     <ActionIcon
                                         size="sm"
                                         variant="default"
                                         color="gray"
+                                        onClick={onAdd}
                                         aria-label={`New ${singular}`}
                                     >
                                         <TbPlus size={14} />
                                     </ActionIcon>
-                                </Menu.Target>
-                                <Menu.Dropdown>
-                                    {addMenuItems.map((mi) => (
-                                        <Menu.Item
-                                            key={mi.label}
-                                            leftSection={mi.icon}
-                                            onClick={mi.onClick}
-                                        >
-                                            {mi.label}
-                                        </Menu.Item>
-                                    ))}
-                                </Menu.Dropdown>
-                            </Menu>
-                        ) : onAdd ? (
-                            <Tooltip label={`New ${singular}`} withArrow>
-                                <ActionIcon
-                                    size="sm"
-                                    variant="default"
-                                    color="gray"
-                                    onClick={onAdd}
-                                    aria-label={`New ${singular}`}
-                                >
-                                    <TbPlus size={14} />
-                                </ActionIcon>
-                            </Tooltip>
-                        ) : null)}
+                                </Tooltip>
+                            ) : null)}
+                    </Group>
                 </Group>
             )}
 
             {items.length === 0 ? (
                 !collapsed && (
-                    <Text size="xs" c="dimmed" px="sm">
+                    <Text size="sm" c="dimmed" px="sm">
                         {emptyLabel}
                     </Text>
                 )
@@ -644,7 +688,7 @@ function SidebarList({
                                 item.icon
                             ) : (
                                 <ThemeIcon
-                                    size="sm"
+                                    size={ROW_ICON_BOX}
                                     radius="sm"
                                     variant="light"
                                     color={item.color ?? "gray"}

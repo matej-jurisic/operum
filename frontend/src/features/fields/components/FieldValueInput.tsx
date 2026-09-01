@@ -73,6 +73,7 @@ export default function FieldValueInput<T extends Record<string, any> = any>({
                     style={styles}
                     valueFormat="DD/MM/YYYY"
                     placeholder="Pick date"
+                    highlightToday
                     {...baseProps}
                     value={baseProps.value || null}
                     modalProps={{
@@ -100,6 +101,7 @@ export default function FieldValueInput<T extends Record<string, any> = any>({
                     valueFormat="DD/MM/YYYY HH:mm:ss"
                     withSeconds
                     placeholder="Pick date/time"
+                    highlightToday
                     {...baseProps}
                     dropdownType="modal"
                     styles={{
