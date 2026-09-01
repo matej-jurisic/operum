@@ -110,6 +110,7 @@ export default function DynamicDateValueInput({
                             onChange(serializeAnchorToken((v as DateAnchor) ?? anchor, offset))
                         }
                         allowDeselect={false}
+                        comboboxProps={{ zIndex: 500 }}
                     />
                     <Select
                         label="Period"
@@ -122,6 +123,7 @@ export default function DynamicDateValueInput({
                             onChange(serializeAnchorToken(anchor, v ? parseInt(v, 10) : 0))
                         }
                         allowDeselect={false}
+                        comboboxProps={{ zIndex: 500 }}
                     />
                 </Group>
             )}
@@ -150,6 +152,7 @@ export default function DynamicDateValueInput({
                                 );
                         }}
                         style={{ flex: 1 }}
+                        comboboxProps={{ zIndex: 500 }}
                     />
                 </Group>
             )}
