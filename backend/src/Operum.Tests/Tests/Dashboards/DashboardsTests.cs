@@ -1305,6 +1305,46 @@ namespace Operum.Tests.Tests.Dashboards
         }
 
         [Fact]
+        public async Task AddViewSelector_DateClauseMappedToDatetimeField_IsAccepted()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("selectordatedatetime");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var momentField = await Data(await client.PostAsJsonAsync($"trackers/{tracker.Id}/fields",
+                new CreateFieldDto { Name = "Moment", Type = DataTypes.DateTime }));
+            var momentFieldId = momentField.GetProperty("id").GetString()!;
+
+            var dashboardId = await CreateDashboard(client);
+            var chartId = await PlaceLineChart(client, dashboardId, tracker);
+
+            var view = await Data(await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/views", LateInYearSet()));
+            var viewId = view.GetProperty("id").GetString()!;
+            var queryId = view.GetProperty("clauses")[0].GetProperty("queryId").GetString()!;
+
+            // The clause is a date clause; Moment is a datetime field -- the two filter
+            // identically, so the link is allowed.
+            var response = await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/items/view-selector",
+                new SaveViewSelectorItemDto
+                {
+                    OptionIds = [viewId],
+                    Links =
+                    [
+                        new ViewSelectorLinkDto
+                        {
+                            ItemId = chartId,
+                            TrackerId = tracker.Id,
+                            FieldByQuery = new() { [queryId] = momentFieldId }
+                        }
+                    ]
+                });
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+
+        [Fact]
         public async Task AddDashboardView_MoreThanTheCap_ReturnsBadRequest()
         {
             await _factory.SeedDatabaseAsync();

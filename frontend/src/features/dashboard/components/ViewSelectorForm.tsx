@@ -8,6 +8,7 @@ import {
     Text,
 } from "@mantine/core";
 import { useEffect, useMemo, useState } from "react";
+import { fieldTypesCompatible } from "../../../shared/constants/DataTypes";
 import { describeAbstractClause } from "../../../shared/utils/formatters/QueryFormatter";
 import { fieldsController } from "../../fields/api/fieldsController";
 import { FieldDto } from "../../fields/types/FieldDto";
@@ -127,7 +128,9 @@ export function ViewSelectorForm({
     }, [views, optionIds]);
 
     const eligibleFields = (trackerId: string, q: DashboardViewClauseDto) =>
-        (fieldsByTracker[trackerId] ?? []).filter((f) => f.type === q.dataType);
+        (fieldsByTracker[trackerId] ?? []).filter((f) =>
+            fieldTypesCompatible(f.type, q.dataType),
+        );
 
     // When a tracker offers exactly one field of the right type there is no choice to make,
     // so fill it in automatically. On a board where every widget has a single date field
@@ -172,7 +175,7 @@ export function ViewSelectorForm({
             const field = (fieldsByTracker[l.trackerId] ?? []).find(
                 (f) => f.id === fieldId,
             );
-            return field?.type === q.dataType;
+            return field != null && fieldTypesCompatible(field.type, q.dataType);
         }),
     );
 

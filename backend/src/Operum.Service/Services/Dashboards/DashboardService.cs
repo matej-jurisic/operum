@@ -727,7 +727,7 @@ namespace Operum.Service.Services.Dashboards
 
                     if (!fields.TryGetValue(fieldId, out var field) ||
                         field.TrackerId != link.TrackerId ||
-                        !string.Equals(field.Type, query.DataType, StringComparison.OrdinalIgnoreCase))
+                        !DataTypes.AreCompatible(query.DataType, field.Type))
                         return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("field mapping for this view selector"));
                 }
             }
