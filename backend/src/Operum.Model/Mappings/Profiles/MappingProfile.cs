@@ -8,7 +8,6 @@ using Operum.Model.DTOs.TrackerConstants.Requests;
 using Operum.Model.DTOs.Trackers;
 using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Model.DTOs.Users;
-using Operum.Model.DTOs.Queries;
 using Operum.Model.DTOs.Views;
 using Operum.Model.DTOs.Views.Requests;
 using Operum.Model.Extensions;
@@ -80,12 +79,9 @@ namespace Operum.Service.Mappings.Profiles
                 }
             });
 
-            // View/ViewDto mapping is hand-rolled in ViewsService (it needs to walk the
-            // ordered ViewQuery join), so only Query itself is registered here.
-            mapper.Register<Query, QueryDto>((s, d) =>
-            {
-                d.Field = mapper.Map<Field, FieldDto>(s.Field);
-            });
+            // View/ViewDto mapping is hand-rolled in ViewsService (it walks the ordered
+            // ViewQuery join and flattens each clause together with its bound field), so
+            // there is nothing to register for it here.
 
             mapper.Register<TrackerConstant, TrackerConstantDto>((s, d) =>
             {

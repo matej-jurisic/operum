@@ -74,10 +74,40 @@ namespace Operum.API.Controllers
             return GetApiResponse(await dashboardService.AddQuickAddItem(dashboardId, dto));
         }
 
-        [HttpPost("{dashboardId}/items/view")]
-        public async Task<IActionResult> AddViewItem([FromRoute] string dashboardId, [FromBody] AddDashboardViewItemDto dto)
+        [HttpPost("{dashboardId}/items/view-selector")]
+        public async Task<IActionResult> AddViewSelectorItem([FromRoute] string dashboardId, [FromBody] SaveViewSelectorItemDto dto)
         {
-            return GetApiResponse(await dashboardService.AddViewItem(dashboardId, dto));
+            return GetApiResponse(await dashboardService.AddViewSelectorItem(dashboardId, dto));
+        }
+
+        [HttpGet("{dashboardId}/views")]
+        public async Task<IActionResult> GetDashboardViews([FromRoute] string dashboardId)
+        {
+            return GetApiResponse(await dashboardService.GetDashboardViews(dashboardId));
+        }
+
+        [HttpPost("{dashboardId}/views")]
+        public async Task<IActionResult> AddDashboardView([FromRoute] string dashboardId, [FromBody] SaveDashboardViewDto dto)
+        {
+            return GetApiResponse(await dashboardService.AddDashboardView(dashboardId, dto));
+        }
+
+        [HttpPut("{dashboardId}/views/reorder")]
+        public async Task<IActionResult> ReorderDashboardViews([FromRoute] string dashboardId, [FromBody] ReorderDashboardViewsDto dto)
+        {
+            return GetApiResponse(await dashboardService.ReorderDashboardViews(dashboardId, dto));
+        }
+
+        [HttpPut("{dashboardId}/views/{viewId}")]
+        public async Task<IActionResult> UpdateDashboardView([FromRoute] string dashboardId, [FromRoute] string viewId, [FromBody] SaveDashboardViewDto dto)
+        {
+            return GetApiResponse(await dashboardService.UpdateDashboardView(dashboardId, viewId, dto));
+        }
+
+        [HttpDelete("{dashboardId}/views/{viewId}")]
+        public async Task<IActionResult> DeleteDashboardView([FromRoute] string dashboardId, [FromRoute] string viewId)
+        {
+            return GetApiResponse(await dashboardService.DeleteDashboardView(dashboardId, viewId));
         }
 
         [HttpPost("{dashboardId}/items/entries")]
@@ -120,18 +150,19 @@ namespace Operum.API.Controllers
             return GetApiResponse(await dashboardService.UpdateDashboardItem(dashboardId, itemId, dto));
         }
 
-        [HttpPut("{dashboardId}/items/{itemId}/view-selection")]
-        public async Task<IActionResult> SetViewWidgetSelection([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] SetViewWidgetSelectionDto dto)
+        // A view selector's current selection alone -- the swappable dropdown on the board.
+        [HttpPut("{dashboardId}/items/{itemId}/view-selector-selection")]
+        public async Task<IActionResult> SetViewSelectorSelection([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] SetViewSelectorSelectionDto dto)
         {
-            return GetApiResponse(await dashboardService.SetViewWidgetSelection(dashboardId, itemId, dto));
+            return GetApiResponse(await dashboardService.SetViewSelectorSelection(dashboardId, itemId, dto));
         }
 
-        // A View selector's starting view and the full set of board widgets that follow it —
-        // the same links each following widget's own form can set from its side.
-        [HttpPut("{dashboardId}/items/{itemId}/view")]
-        public async Task<IActionResult> UpdateViewItem([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] UpdateDashboardViewItemDto dto)
+        // A view selector's options, selection and the full set of Analytic widgets that
+        // follow it with their per-clause field maps.
+        [HttpPut("{dashboardId}/items/{itemId}/view-selector")]
+        public async Task<IActionResult> UpdateViewSelectorItem([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] SaveViewSelectorItemDto dto)
         {
-            return GetApiResponse(await dashboardService.UpdateViewItem(dashboardId, itemId, dto));
+            return GetApiResponse(await dashboardService.UpdateViewSelectorItem(dashboardId, itemId, dto));
         }
 
         // Only how an Entries widget is filtered, and whether it collapses to a button — the

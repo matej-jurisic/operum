@@ -38,9 +38,9 @@
 /* Above the card, or the resize corner would sit under it and never be grabbed. */
 .dashboard-grid .react-grid-item > .react-resizable-handle {
     z-index: 2;
-    /* A widget can be squeezed down to a single 20px row. Keep the corner inside it
-       rather than letting a 20px (or, on a touchscreen, 32px) handle spill past the
-       edge of a cell that short. */
+    /* A widget can be squeezed down to a 20px sliver. Keep the corner inside it rather
+       than letting a 20px (or, on a touchscreen, 32px) handle spill past the edge of a
+       cell that short. */
     max-width: 100%;
     max-height: 100%;
 }
@@ -65,7 +65,7 @@
     justify-content: center;
     width: 28px;
     height: 28px;
-    /* A widget can be as short as one 20px row. Rather than spill past a cell that short,
+    /* A widget can be as short as a 20px sliver. Rather than spill past a cell that short,
        the grip shrinks to fit it -- and its glyph shrinks with it (see the svg rule). */
     max-width: calc(100% - 8px);
     max-height: calc(100% - 8px);

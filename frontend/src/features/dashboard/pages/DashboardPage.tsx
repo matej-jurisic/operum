@@ -22,7 +22,7 @@ import BoardFormModal from "../components/BoardFormModal";
 import { DashboardGrid } from "../components/DashboardGrid";
 import { EditEntriesWidgetModal } from "../components/EditEntriesWidgetModal";
 import { EditTextWidgetModal } from "../components/EditTextWidgetModal";
-import { EditViewWidgetModal } from "../components/EditViewWidgetModal";
+import { EditViewSelectorModal } from "../components/EditViewSelectorModal";
 import { EditWidgetModal } from "../components/EditWidgetModal";
 import { WidgetsProvider } from "../../widgets/context/WidgetsContext";
 import { WidgetLibraryModal } from "../../widgets/components/WidgetLibraryModal";
@@ -45,14 +45,12 @@ function parseTextConfig(config: string | undefined): TextWidgetConfig | null {
 
 interface ContentProps {
     activeBoard: DashboardDto;
-    onCreateBoard: () => void;
     onEditBoard: () => void;
     onDeleteBoard: () => void;
 }
 
 function DashboardContent({
     activeBoard,
-    onCreateBoard,
     onEditBoard,
     onDeleteBoard,
 }: ContentProps) {
@@ -62,8 +60,8 @@ function DashboardContent({
         refreshWidgets,
         updateItem,
         updateEntriesItem,
-        setViewSelection,
-        updateViewItem,
+        setViewSelectorSelection,
+        updateViewSelectorItem,
         setTextContent,
         removeItem,
         saveLayout,
@@ -145,7 +143,6 @@ function DashboardContent({
                         color={color}
                         isConfiguring={isConfiguring}
                         isMobile={!!isMobile}
-                        onCreate={onCreateBoard}
                         onEdit={onEditBoard}
                         onDelete={onDeleteBoard}
                         onToggleArrange={() => setIsConfiguring((v) => !v)}
@@ -186,7 +183,7 @@ function DashboardContent({
                     onLayoutSave={saveLayout}
                     onRemove={removeItem}
                     onEdit={setEditingItemId}
-                    onViewSelect={setViewSelection}
+                    onViewSelectorSelect={setViewSelectorSelection}
                 />
             )}
 
@@ -225,21 +222,23 @@ function DashboardContent({
                 />
             )}
 
-            {editingItemId && editingWidget && editingWidget.type === WidgetTypes.View && (
-                <EditViewWidgetModal
-                    itemId={editingItemId}
-                    color={color}
-                    onClose={closeEditing}
-                    onSave={updateViewItem}
-                />
-            )}
+            {editingItemId &&
+                editingWidget &&
+                editingWidget.type === WidgetTypes.ViewSelector && (
+                    <EditViewSelectorModal
+                        itemId={editingItemId}
+                        color={color}
+                        onClose={closeEditing}
+                        onSave={updateViewSelectorItem}
+                    />
+                )}
 
             {editingItemId &&
                 editingWidget &&
                 editingWidget.type !== WidgetTypes.Header &&
                 editingWidget.type !== WidgetTypes.Note &&
                 editingWidget.type !== WidgetTypes.Entries &&
-                editingWidget.type !== WidgetTypes.View && (
+                editingWidget.type !== WidgetTypes.ViewSelector && (
                     <EditWidgetModal
                         itemId={editingItemId}
                         color={color}
@@ -411,14 +410,11 @@ export default function DashboardPage() {
                 >
                     <DashboardContent
                         activeBoard={activeBoard}
-                        onCreateBoard={() => setIsCreateOpen(true)}
                         onEditBoard={() => setIsEditOpen(true)}
                         onDeleteBoard={() => setIsDeleteOpen(true)}
                     />
                 </DashboardProvider>
             </WidgetsProvider>
-
-            {createModal}
 
             {isEditOpen && (
                 <BoardFormModal

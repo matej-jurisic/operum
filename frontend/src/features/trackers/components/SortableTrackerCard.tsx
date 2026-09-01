@@ -77,7 +77,7 @@ export default function SortableTrackerCard({
             <Group gap="md" align="center" wrap="nowrap">
                 {isReordering && (
                     <ActionIcon
-                        variant="subtle"
+                        variant="outline"
                         color={color}
                         size="xl"
                         {...attributes}

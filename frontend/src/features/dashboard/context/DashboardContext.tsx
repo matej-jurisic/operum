@@ -9,7 +9,6 @@ import {
     AddDashboardHeaderItemDto,
     AddDashboardNoteItemDto,
     AddDashboardQuickAddItemDto,
-    AddDashboardViewItemDto,
     CreateAndPlaceEntriesWidgetDto,
     CreateAndPlaceWidgetDto,
     DashboardLayoutItemDto,
@@ -18,9 +17,9 @@ import {
     LayoutVariants,
     PlaceEntriesWidgetDto,
     PlaceWidgetDto,
+    SaveViewSelectorItemDto,
     UpdateDashboardEntriesItemDto,
     UpdateDashboardItemDto,
-    UpdateDashboardViewItemDto,
 } from "../types/DashboardDto";
 
 type DashboardContextType = {
@@ -32,7 +31,7 @@ type DashboardContextType = {
     createAndPlaceWidget: (dto: CreateAndPlaceWidgetDto) => Promise<void>;
     placeWidget: (dto: PlaceWidgetDto) => Promise<void>;
     addQuickAddItem: (dto: AddDashboardQuickAddItemDto) => Promise<void>;
-    addViewItem: (dto: AddDashboardViewItemDto) => Promise<void>;
+    addViewSelectorItem: (dto: SaveViewSelectorItemDto) => Promise<void>;
     createAndPlaceEntriesWidget: (dto: CreateAndPlaceEntriesWidgetDto) => Promise<void>;
     placeEntriesWidget: (dto: PlaceEntriesWidgetDto) => Promise<void>;
     addHeaderItem: (dto: AddDashboardHeaderItemDto) => Promise<void>;
@@ -40,8 +39,8 @@ type DashboardContextType = {
     addNoteItem: (dto: AddDashboardNoteItemDto) => Promise<void>;
     updateItem: (itemId: string, dto: UpdateDashboardItemDto) => Promise<void>;
     updateEntriesItem: (itemId: string, dto: UpdateDashboardEntriesItemDto) => Promise<void>;
-    setViewSelection: (itemId: string, viewId: string | null) => Promise<void>;
-    updateViewItem: (itemId: string, dto: UpdateDashboardViewItemDto) => Promise<void>;
+    setViewSelectorSelection: (itemId: string, selectedId: string | null) => Promise<void>;
+    updateViewSelectorItem: (itemId: string, dto: SaveViewSelectorItemDto) => Promise<void>;
     setTextContent: (itemId: string, text: string) => Promise<void>;
     removeItem: (itemId: string) => Promise<void>;
     saveLayout: (
@@ -81,8 +80,8 @@ export const DashboardProvider: React.FC<{
         await refreshWidgets();
     };
 
-    const addViewItem = async (dto: AddDashboardViewItemDto) => {
-        await dashboardController.addViewItem(dashboardId, dto);
+    const addViewSelectorItem = async (dto: SaveViewSelectorItemDto) => {
+        await dashboardController.addViewSelectorItem(dashboardId, dto);
         await refreshWidgets();
     };
 
@@ -131,22 +130,26 @@ export const DashboardProvider: React.FC<{
         setWidgets(res.data ?? []);
     };
 
-    // The dropdown's own widget re-renders from the response immediately, same as any other
-    // widget update, and so does every widget whose source is linked to it — the selection
-    // is saved server-side (ViewWidgetConfigDto.ViewId), so this is the same "recompute the
-    // whole board" the server already does on every load, not a client-only toggle.
-    const setViewSelection = async (itemId: string, viewId: string | null) => {
-        const res = await dashboardController.setViewWidgetSelection(dashboardId, itemId, {
-            viewId,
+    // The selector re-renders from the response immediately, and so does every widget it
+    // links — the selection is saved server-side, so this is the same "recompute the whole
+    // board" the server does on every load, not a client-only toggle.
+    const setViewSelectorSelection = async (
+        itemId: string,
+        selectedId: string | null
+    ) => {
+        const res = await dashboardController.setViewSelectorSelection(dashboardId, itemId, {
+            selectedId,
         });
         setWidgets(res.data ?? []);
     };
 
-    // Same "recompute the whole board" as setViewSelection: the edit changes the selector's
-    // own selection and which widgets follow it, both of which change what those widgets
-    // draw, so the server hands back the whole board recalculated.
-    const updateViewItem = async (itemId: string, dto: UpdateDashboardViewItemDto) => {
-        const res = await dashboardController.updateViewItem(dashboardId, itemId, dto);
+    // Same "recompute the whole board": the edit changes the selector's options, selection
+    // and which widgets follow it, all of which change what those widgets draw.
+    const updateViewSelectorItem = async (
+        itemId: string,
+        dto: SaveViewSelectorItemDto
+    ) => {
+        const res = await dashboardController.updateViewSelectorItem(dashboardId, itemId, dto);
         setWidgets(res.data ?? []);
     };
 
@@ -218,7 +221,7 @@ export const DashboardProvider: React.FC<{
                 createAndPlaceWidget,
                 placeWidget,
                 addQuickAddItem,
-                addViewItem,
+                addViewSelectorItem,
                 createAndPlaceEntriesWidget,
                 placeEntriesWidget,
                 addHeaderItem,
@@ -226,8 +229,8 @@ export const DashboardProvider: React.FC<{
                 addNoteItem,
                 updateItem,
                 updateEntriesItem,
-                setViewSelection,
-                updateViewItem,
+                setViewSelectorSelection,
+                updateViewSelectorItem,
                 setTextContent,
                 removeItem,
                 saveLayout,

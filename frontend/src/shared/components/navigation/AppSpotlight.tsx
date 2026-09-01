@@ -1,4 +1,5 @@
 import { useMantineColorScheme } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import {
     Spotlight,
     SpotlightActionData,
@@ -19,6 +20,7 @@ import navigationStore from "../../stores/NavigationStore";
 const AppSpotlight = observer(() => {
     const navigate = useNavigate();
     const { toggleColorScheme } = useMantineColorScheme();
+    const isMobile = useMediaQuery("(max-width: 48em)");
 
     const trackerActions: SpotlightActionData[] = navigationStore.trackers.map(
         (tracker) => ({
@@ -77,6 +79,7 @@ const AppSpotlight = observer(() => {
             shortcut="mod + K"
             nothingFound="Nothing found"
             highlightQuery
+            fullScreen={isMobile}
             searchProps={{
                 placeholder: "Search trackers and dashboards...",
             }}

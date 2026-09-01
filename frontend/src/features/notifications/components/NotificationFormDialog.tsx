@@ -490,7 +490,7 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
                             />
                             <ActionIcon
                                 color="red"
-                                variant="subtle"
+                                variant="outline"
                                 onClick={() => form.removeListItem("filters", i)}
                                 mt="lg"
                             >

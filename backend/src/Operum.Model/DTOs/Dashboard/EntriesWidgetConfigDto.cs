@@ -6,12 +6,10 @@ namespace Operum.Model.DTOs.Dashboard
     // formatting. Which tracker the table reads from lives on the item's EntriesWidget
     // instead -- a placement can't change that without becoming a different widget.
     //
-    // At most one of ViewId/LinkedViewWidgetId is ever set — ViewId fixes the filter,
-    // LinkedViewWidgetId instead follows a DashboardWidgetTypes.View item's own selection,
-    // the same duality a DashboardItemSource has.
+    // ViewId is the fixed tracker view the table reads through -- its base filter and the
+    // columns it shows.
     public class EntriesWidgetConfigDto
     {
         public string? ViewId { get; set; }
-        public string? LinkedViewWidgetId { get; set; }
     }
 }

@@ -53,7 +53,7 @@ export default function SortableFieldCard({
                 {/* Drag handle */}
                 {isReordering && (
                     <ActionIcon
-                        variant="subtle"
+                        variant="outline"
                         color={color}
                         size="xl"
                         {...attributes}

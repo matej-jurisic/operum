@@ -7,6 +7,17 @@ using System.Globalization;
 
 namespace Operum.Service.Domain.Views
 {
+    // One clause resolved to the concrete field it runs against -- what a view's
+    // field-agnostic queries become once their ViewQuery binding is applied, and what a
+    // dashboard view selector produces from its per-widget field map. The one currency
+    // ApplyViewFilters / ApplyViewSorting speak.
+    public readonly record struct ResolvedClause(
+        string FieldId,
+        string FieldType,
+        string? Operator,
+        string? Value,
+        bool Descending);
+
     public static class ViewQueryBuilder
     {
         /// <summary>
@@ -14,10 +25,10 @@ namespace Operum.Service.Domain.Views
         /// of them sort the same field, the earlier one takes priority and the later one
         /// is skipped.
         /// </summary>
-        public static List<Query> ResolveSorts(View view)
+        public static List<ResolvedClause> ResolveSorts(View view)
         {
             var seenFieldIds = new HashSet<string>();
-            var merged = new List<Query>();
+            var merged = new List<ResolvedClause>();
 
             foreach (var viewQuery in view.ViewQueries.OrderBy(vq => vq.Order))
             {
@@ -25,8 +36,8 @@ namespace Operum.Service.Domain.Views
                 if (query.Kind != QueryKinds.Sort)
                     continue;
 
-                if (seenFieldIds.Add(query.FieldId))
-                    merged.Add(query);
+                if (seenFieldIds.Add(viewQuery.FieldId))
+                    merged.Add(new ResolvedClause(viewQuery.FieldId, viewQuery.Field.Type, null, null, query.Descending));
             }
 
             return merged;
@@ -35,12 +46,12 @@ namespace Operum.Service.Domain.Views
         /// <summary>
         /// Picks a view's filter queries out, ANDing them all together.
         /// </summary>
-        public static List<Query> ResolveFilters(View view)
+        public static List<ResolvedClause> ResolveFilters(View view)
         {
             return view.ViewQueries
                 .OrderBy(vq => vq.Order)
-                .Select(vq => vq.Query)
-                .Where(q => q.Kind == QueryKinds.Filter)
+                .Where(vq => vq.Query.Kind == QueryKinds.Filter)
+                .Select(vq => new ResolvedClause(vq.FieldId, vq.Field.Type, vq.Query.Operator, vq.Query.Value, false))
                 .ToList();
         }
 
@@ -49,7 +60,7 @@ namespace Operum.Service.Domain.Views
         // the entries query. Columns are the last step, decided by whatever renders the
         // entries, so a filter or a sort over a hidden field keeps working exactly as it did.
 
-        public static IQueryable<Entry> ApplyViewSorting(IQueryable<Entry> query, List<Query> sorts)
+        public static IQueryable<Entry> ApplyViewSorting(IQueryable<Entry> query, List<ResolvedClause> sorts)
         {
             if (sorts.Count == 0)
                 return query.OrderByDescending(x => x.CreatedAt);
@@ -61,7 +72,7 @@ namespace Operum.Service.Domain.Views
             {
                 var fieldId = sort.FieldId;
                 var descending = sort.Descending;
-                var fieldType = sort.Field.Type.ToLowerInvariant();
+                var fieldType = sort.FieldType.ToLowerInvariant();
 
                 if (orderedQuery == null)
                 {
@@ -126,7 +137,7 @@ namespace Operum.Service.Domain.Views
             return orderedQuery ?? query.OrderByDescending(x => x.CreatedAt);
         }
 
-        public static IQueryable<Entry> ApplyViewFilters(IQueryable<Entry> query, List<Query> filters, TimeZoneInfo tz)
+        public static IQueryable<Entry> ApplyViewFilters(IQueryable<Entry> query, List<ResolvedClause> filters, TimeZoneInfo tz)
         {
             if (filters.Count == 0)
                 return query;
@@ -136,7 +147,7 @@ namespace Operum.Service.Domain.Views
                 var fieldId = filter.FieldId;
                 var operatorType = filter.Operator ?? string.Empty;
                 var value = filter.Value;
-                var fieldType = filter.Field.Type.ToLowerInvariant();
+                var fieldType = filter.FieldType.ToLowerInvariant();
 
                 query = fieldType switch
                 {

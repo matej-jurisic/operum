@@ -10,18 +10,21 @@ namespace Operum.Model.Constants
     // Each item carries a placement in both (see DashboardLayoutVariants).
     public static class DashboardGrid
     {
-        // The wide grid is 24 columns and its row is 20px on the client, so a widget can be
-        // placed and sized to half the step it used to snap to on either axis. It was 12
-        // columns / 40px rows before the IncreaseDashboardGridResolution migration, which
-        // doubled every stored X/W/H (and MobileH) so no board moved when the step halved.
+        // The wide grid is 24 columns and its row is 2px on the client. A row is dwarfed by
+        // the 16px margin baked into every widget's height, so the vertical step a drag or
+        // resize snaps to is really row + margin: 18px now, down from 36px. It was 12
+        // columns / 40px rows before IncreaseDashboardGridResolution and 24 / 20px before
+        // HalveDashboardGridRowHeight; each migration doubled every stored H/Y (and
+        // MobileH/MobileY) so no board moved when the step halved.
         public const int Columns = 24;
         public const int MobileColumns = 4;
         public const int MinWidth = 2;
-        // One row. A divider or header is a layout accent rather than content, so the grid
-        // lets a widget be squeezed down to a 20px sliver; the client caps the arrange-mode
-        // controls that would otherwise overflow a cell that short.
-        public const int MinHeight = 1;
-        public const int MaxHeight = 80;
+        // Two rows -- a 20px sliver, the same floor it was at one 20px row. A divider or
+        // header is a layout accent rather than content, so the grid lets a widget be
+        // squeezed down that far; the client caps the arrange-mode controls that would
+        // otherwise overflow a cell that short.
+        public const int MinHeight = 2;
+        public const int MaxHeight = 160;
 
         // How wide the grid is for the arrangement being saved. Unknown variants fall back
         // to the wide grid, which is the one every board is arranged on first.
@@ -36,40 +39,41 @@ namespace Operum.Model.Constants
         // What a widget is worth on the grid before the user has resized it. Charts need
         // room for their axes, a single value only needs a line of text.
         //
-        // Sizes below are in the 24-column / 20px-row grid: every one is twice what it was
-        // on the old 12-column / 40px-row grid, so a widget added now lands at the same
-        // footprint it always did.
+        // Heights below are in the 2px-row grid: each is twice what it was on the 20px-row
+        // grid (and four times the original 40px-row grid), so a widget added now lands at
+        // the same footprint it always did. Widths are untouched -- the column axis has not
+        // changed since IncreaseDashboardGridResolution.
         public static (int Width, int Height) DefaultSizeFor(string resultType) => resultType switch
         {
-            AnalyticTypes.SingleValue => (6, 4),
-            AnalyticTypes.Donut => (8, 12),
-            AnalyticTypes.Calendar => (12, 16),
-            _ => (12, 12)
+            AnalyticTypes.SingleValue => (6, 8),
+            AnalyticTypes.Donut => (8, 24),
+            AnalyticTypes.Calendar => (12, 32),
+            _ => (12, 24)
         };
 
         // A quick-add button is a single row of chrome, not a chart — it only ever needs
         // room for an icon, a name and a button.
-        public static readonly (int Width, int Height) QuickAddSize = (6, 6);
+        public static readonly (int Width, int Height) QuickAddSize = (6, 12);
 
-        // A view selector is just a dropdown under a label — the same footprint as a
-        // quick-add button.
-        public static readonly (int Width, int Height) ViewSize = (6, 6);
+        // A view selector is a dropdown under a label, a little taller than a quick-add
+        // button so the current selection's clauses can be summarised beneath it.
+        public static readonly (int Width, int Height) ViewSelectorSize = (6, 16);
 
         // An entries table wants the same room a chart does: enough width for a few
         // columns and enough height to show more than a couple of rows.
-        public static readonly (int Width, int Height) EntriesSize = (12, 12);
+        public static readonly (int Width, int Height) EntriesSize = (12, 24);
 
         // A header is one short line of text, but it reads as dividing the board into
         // sections only if it spans the row it sits in rather than sitting in a column of
         // its own.
-        public static readonly (int Width, int Height) HeaderSize = (Columns, 4);
+        public static readonly (int Width, int Height) HeaderSize = (Columns, 8);
 
         // A divider needs even less height than a header — just enough for a bare line to
         // read as a deliberate gap rather than unfinished layout — but the same full width.
-        public static readonly (int Width, int Height) DividerSize = (Columns, 2);
+        public static readonly (int Width, int Height) DividerSize = (Columns, 4);
 
         // A note is read a paragraph at a time, so it gets a card-sized footprint rather
         // than a full row.
-        public static readonly (int Width, int Height) NoteSize = (8, 8);
+        public static readonly (int Width, int Height) NoteSize = (8, 16);
     }
 }

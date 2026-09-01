@@ -63,7 +63,7 @@ export default function SortableViewCard({
             <Group align="flex-start" justify="space-between" wrap="nowrap">
                 {isReordering && (
                     <ActionIcon
-                        variant="subtle"
+                        variant="outline"
                         color={color}
                         size="xl"
                         {...attributes}

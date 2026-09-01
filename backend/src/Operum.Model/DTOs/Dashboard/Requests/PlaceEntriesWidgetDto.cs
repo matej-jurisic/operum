@@ -13,7 +13,6 @@ namespace Operum.Model.DTOs.Dashboard.Requests
         public string EntriesWidgetId { get; set; } = string.Empty;
 
         public string? ViewId { get; set; }
-        public string? LinkedViewWidgetId { get; set; }
 
         public bool Expandable { get; set; }
         public bool MobileExpandable { get; set; }
@@ -25,10 +24,6 @@ namespace Operum.Model.DTOs.Dashboard.Requests
         {
             RuleFor(x => x.EntriesWidgetId)
                 .NotEmpty().WithMessage(x => Messages.Required("entries widget id"));
-
-            RuleFor(x => x)
-                .Must(x => string.IsNullOrEmpty(x.ViewId) || string.IsNullOrEmpty(x.LinkedViewWidgetId))
-                .WithMessage("An entries widget cannot both filter by a fixed view and follow a view widget.");
         }
     }
 }

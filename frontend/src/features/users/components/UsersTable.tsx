@@ -107,7 +107,7 @@ export default function UsersTable(props: Props) {
                                         user.id !==
                                             globalStore.currentUser.id && (
                                             <ActionIcon
-                                                variant="light"
+                                                variant="outline"
                                                 color="blue"
                                                 onClick={() =>
                                                     props.handleEditRoles(user)
@@ -118,7 +118,7 @@ export default function UsersTable(props: Props) {
                                         )}
                                     {!user.mailConfirmed && (
                                         <ActionIcon
-                                            variant="light"
+                                            variant="outline"
                                             color="blue"
                                             onClick={() =>
                                                 props.handleConfirmMail(user)

@@ -1,7 +1,6 @@
 using Operum.Model.DTOs.Entries.Requests;
 using Operum.Model.DTOs.Fields.Requests;
 using Operum.Model.Constants;
-using Operum.Model.DTOs.Queries.Requests;
 using Operum.Model.DTOs.Trackers.Requests;
 using Operum.Model.DTOs.Views.Requests;
 using System.Net.Http.Json;
@@ -105,21 +104,7 @@ namespace Operum.Tests.Util
         public static async Task<string> CreateView(HttpClient client, string trackerId, CreateViewDto view) =>
             await IdOf(await PostView(client, trackerId, view));
 
-        public static Task<HttpResponseMessage> PostQuery(HttpClient client, string trackerId, CreateQueryDto query) =>
-            client.PostAsJsonAsync($"trackers/{trackerId}/queries", query);
-
-        public static async Task<string> CreateQuery(HttpClient client, string trackerId, CreateQueryDto query) =>
-            await IdOf(await PostQuery(client, trackerId, query));
-
-        /// <summary>A standalone filter query.</summary>
-        public static Task<string> CreateFilterQuery(HttpClient client, string trackerId, string fieldId, string op, string? value) =>
-            CreateQuery(client, trackerId, FilterClause(fieldId, op, value));
-
-        /// <summary>A standalone sort query.</summary>
-        public static Task<string> CreateSortQuery(HttpClient client, string trackerId, string fieldId, bool descending) =>
-            CreateQuery(client, trackerId, SortClause(fieldId, descending));
-
-        public static CreateQueryDto FilterClause(string fieldId, string op, string? value) => new()
+        public static ViewClauseDto FilterClause(string fieldId, string op, string? value) => new()
         {
             Kind = QueryKinds.Filter,
             FieldId = fieldId,
@@ -127,7 +112,7 @@ namespace Operum.Tests.Util
             Value = value
         };
 
-        public static CreateQueryDto SortClause(string fieldId, bool descending) => new()
+        public static ViewClauseDto SortClause(string fieldId, bool descending) => new()
         {
             Kind = QueryKinds.Sort,
             FieldId = fieldId,
@@ -139,7 +124,7 @@ namespace Operum.Tests.Util
             CreateView(client, trackerId, new CreateViewDto
             {
                 Name = name,
-                Queries = [new ViewQueryRefDto { NewQuery = FilterClause(fieldId, op, value) }]
+                Queries = [FilterClause(fieldId, op, value)]
             });
 
         /// <summary>A view built from one ad-hoc sort.</summary>
@@ -147,15 +132,15 @@ namespace Operum.Tests.Util
             CreateView(client, trackerId, new CreateViewDto
             {
                 Name = name,
-                Queries = [new ViewQueryRefDto { NewQuery = SortClause(fieldId, descending) }]
+                Queries = [SortClause(fieldId, descending)]
             });
 
-        /// <summary>A view composed of existing queries, in the given order (order decides sort precedence).</summary>
-        public static Task<string> CreateViewFromQueries(HttpClient client, string trackerId, string name, params string[] queryIds) =>
+        /// <summary>A view composed of the given clauses, in order (order decides sort precedence).</summary>
+        public static Task<string> CreateViewFromClauses(HttpClient client, string trackerId, string name, params ViewClauseDto[] clauses) =>
             CreateView(client, trackerId, new CreateViewDto
             {
                 Name = name,
-                Queries = [.. queryIds.Select(id => new ViewQueryRefDto { QueryId = id })]
+                Queries = [.. clauses]
             });
     }
 }

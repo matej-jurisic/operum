@@ -198,8 +198,8 @@ namespace Operum.Tests.Tests.Views
                 Name = "Group then amount",
                 Queries =
                 [
-                    new ViewQueryRefDto { NewQuery = TestApi.SortClause(groupId, descending: false) },
-                    new ViewQueryRefDto { NewQuery = TestApi.SortClause(amountId, descending: true) }
+                    TestApi.SortClause(groupId, descending: false),
+                    TestApi.SortClause(amountId, descending: true)
                 ]
             });
 
@@ -249,9 +249,9 @@ namespace Operum.Tests.Tests.Views
             await TestApi.CreateEntry(client, trackerId, new() { ["Note"] = "walk", ["Amount"] = "10" });
             await TestApi.CreateEntry(client, trackerId, new() { ["Note"] = "walk", ["Amount"] = "1" });
             await TestApi.CreateEntry(client, trackerId, new() { ["Note"] = "run", ["Amount"] = "10" });
-            var walks = await TestApi.CreateFilterQuery(client, trackerId, noteId, OperatorTypes.EqualsOperator, "walk");
-            var big = await TestApi.CreateFilterQuery(client, trackerId, amountId, OperatorTypes.GreaterThan, "5");
-            var viewId = await TestApi.CreateViewFromQueries(client, trackerId, "Big walks", walks, big);
+            var viewId = await TestApi.CreateViewFromClauses(client, trackerId, "Big walks",
+                TestApi.FilterClause(noteId, OperatorTypes.EqualsOperator, "walk"),
+                TestApi.FilterClause(amountId, OperatorTypes.GreaterThan, "5"));
 
             var entries = await TestApi.ListEntries(client, trackerId, viewId);
 
@@ -269,11 +269,11 @@ namespace Operum.Tests.Tests.Views
             var amountId = await TestApi.CreateField(client, trackerId, "Amount", DataTypes.Number);
             foreach (var amount in new[] { "1", "10", "5" })
                 await TestApi.CreateEntry(client, trackerId, new() { ["Amount"] = amount });
-            var descending = await TestApi.CreateSortQuery(client, trackerId, amountId, descending: true);
-            var ascending = await TestApi.CreateSortQuery(client, trackerId, amountId, descending: false);
+            var descending = TestApi.SortClause(amountId, descending: true);
+            var ascending = TestApi.SortClause(amountId, descending: false);
 
-            var descendingWins = await TestApi.CreateViewFromQueries(client, trackerId, "Descending wins", descending, ascending);
-            var ascendingWins = await TestApi.CreateViewFromQueries(client, trackerId, "Ascending wins", ascending, descending);
+            var descendingWins = await TestApi.CreateViewFromClauses(client, trackerId, "Descending wins", descending, ascending);
+            var ascendingWins = await TestApi.CreateViewFromClauses(client, trackerId, "Ascending wins", ascending, descending);
 
             Assert.Equal(["10", "5", "1"], await TestApi.ListValues(client, trackerId, "Amount", descendingWins));
             Assert.Equal(["1", "5", "10"], await TestApi.ListValues(client, trackerId, "Amount", ascendingWins));
@@ -287,9 +287,9 @@ namespace Operum.Tests.Tests.Views
             var amountId = await TestApi.CreateField(client, trackerId, "Amount", DataTypes.Number);
             foreach (var amount in new[] { "1", "10", "5", "7" })
                 await TestApi.CreateEntry(client, trackerId, new() { ["Amount"] = amount });
-            var big = await TestApi.CreateFilterQuery(client, trackerId, amountId, OperatorTypes.GreaterThan, "1");
-            var sorted = await TestApi.CreateSortQuery(client, trackerId, amountId, descending: true);
-            var viewId = await TestApi.CreateViewFromQueries(client, trackerId, "Big, biggest first", big, sorted);
+            var viewId = await TestApi.CreateViewFromClauses(client, trackerId, "Big, biggest first",
+                TestApi.FilterClause(amountId, OperatorTypes.GreaterThan, "1"),
+                TestApi.SortClause(amountId, descending: true));
 
             Assert.Equal(["10", "7", "5"], await TestApi.ListValues(client, trackerId, "Amount", viewId));
         }

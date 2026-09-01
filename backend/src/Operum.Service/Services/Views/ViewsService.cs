@@ -34,7 +34,7 @@ namespace Operum.Service.Services.Views
             if (viewCount >= DataLimits.MaxViewCount)
                 return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("views", DataLimits.MaxViewCount));
 
-            var resolvedQueries = await ResolveViewQueries(trackerId, view.Queries);
+            var resolvedQueries = await ResolveViewClauses(trackerId, user.Id, view.Queries);
             if (resolvedQueries.IsFailure)
                 return Result.Failure(resolvedQueries.StatusCode, resolvedQueries.Messages);
 
@@ -55,7 +55,7 @@ namespace Operum.Service.Services.Views
             userView.Order = maxOrder + 1;
 
             await db.Views.AddAsync(userView);
-            await AttachViewQueries(userView.Id, resolvedQueries.Data!);
+            await AttachViewClauses(userView.Id, resolvedQueries.Data!);
             await AttachViewColumns(userView.Id, resolvedColumns.Data!);
 
             await db.SaveChangesAsync();
@@ -78,7 +78,7 @@ namespace Operum.Service.Services.Views
                 return Result.Failure(ResultStatusCodes.NotFound);
             }
 
-            var resolvedQueries = await ResolveViewQueries(trackerId, view.Queries);
+            var resolvedQueries = await ResolveViewClauses(trackerId, user.Id, view.Queries);
             if (resolvedQueries.IsFailure)
                 return Result.Failure(resolvedQueries.StatusCode, resolvedQueries.Messages);
 
@@ -89,10 +89,10 @@ namespace Operum.Service.Services.Views
             userView.Name = view.Name;
             userView.Description = view.Description;
 
-            // Only the join rows go away — the underlying Queries are independent and may
-            // still be attached to other views, so they're never deleted here.
+            // Only the join rows go away — the underlying pooled Queries are independent and
+            // may still be attached to other views, so they're never deleted here.
             await db.ViewQueries.Where(x => x.ViewId == viewId).ExecuteDeleteAsync();
-            await AttachViewQueries(viewId, resolvedQueries.Data!);
+            await AttachViewClauses(viewId, resolvedQueries.Data!);
 
             // Columns belong to the view alone, so the payload replaces them wholesale.
             await db.ViewColumns.Where(x => x.ViewId == viewId).ExecuteDeleteAsync();
@@ -135,7 +135,8 @@ namespace Operum.Service.Services.Views
                     .ThenInclude(x => x.ApplicationUserTrackers)
                 .Include(x => x.ViewQueries.OrderBy(vq => vq.Order))
                     .ThenInclude(vq => vq.Query)
-                        .ThenInclude(q => q.Field)
+                .Include(x => x.ViewQueries)
+                    .ThenInclude(vq => vq.Field)
                 .Include(x => x.ViewColumns.OrderBy(vc => vc.Order))
                 .FirstOrDefaultAsync(x => x.Id == viewId && x.TrackerId == trackerId);
 
@@ -167,7 +168,8 @@ namespace Operum.Service.Services.Views
             var userViews = await db.Views
                 .Include(x => x.ViewQueries.OrderBy(vq => vq.Order))
                     .ThenInclude(vq => vq.Query)
-                        .ThenInclude(q => q.Field)
+                .Include(x => x.ViewQueries)
+                    .ThenInclude(vq => vq.Field)
                 .Include(x => x.ViewColumns.OrderBy(vc => vc.Order))
                 .Where(x => x.TrackerId == trackerId)
                 .OrderBy(x => x.Order)
@@ -237,7 +239,7 @@ namespace Operum.Service.Services.Views
                 Description = view.Description,
                 Queries = view.ViewQueries
                     .OrderBy(vq => vq.Order)
-                    .Select(vq => MapQueryToDto(vq.Query))
+                    .Select(MapViewQueryToDto)
                     .ToList(),
                 ColumnFieldIds = view.ViewColumns
                     .OrderBy(vc => vc.Order)
@@ -246,63 +248,64 @@ namespace Operum.Service.Services.Views
             };
         }
 
-        private QueryDto MapQueryToDto(Query query)
+        private ViewQueryDto MapViewQueryToDto(ViewQuery viewQuery)
         {
-            return new QueryDto
+            return new ViewQueryDto
             {
-                Id = query.Id,
-                Kind = query.Kind,
-                Field = mapper.Map<Field, FieldDto>(query.Field),
-                Operator = query.Operator,
-                Value = query.Value,
-                Descending = query.Descending,
+                Kind = viewQuery.Query.Kind,
+                DataType = viewQuery.Query.DataType,
+                Field = mapper.Map<Field, FieldDto>(viewQuery.Field),
+                Operator = viewQuery.Query.Operator,
+                Value = viewQuery.Query.Value,
+                Descending = viewQuery.Query.Descending,
             };
         }
 
-        // Resolves each ordered ViewQueryRefDto to a concrete Query id, validating and
-        // building brand-new Query entities for ad-hoc refs along the way (not yet saved).
-        // A view's clauses are counted by kind, so the old per-view filter and sort limits
-        // still hold now that each query carries exactly one of them.
-        private async Task<Result<List<(string QueryId, Query? NewQuery)>>> ResolveViewQueries(string trackerId, List<ViewQueryRefDto> queryRefs)
+        // Resolves each ordered ViewClauseDto to a pooled Query (created unsaved if new) plus
+        // the tracker field it is bound to, validating the field, the operator/value against
+        // that field's type, and the per-view filter/sort caps along the way.
+        private async Task<Result<List<(Query Query, string FieldId)>>> ResolveViewClauses(string trackerId, string ownerId, List<ViewClauseDto> clauses)
         {
-            var resolved = new List<(string QueryId, Query? NewQuery)>();
-            var existingQueryCount = await db.Queries.CountAsync(q => q.TrackerId == trackerId);
-            var newQueryCount = 0;
+            var resolved = new List<(Query Query, string FieldId)>();
             var filterCount = 0;
             var sortCount = 0;
 
-            foreach (var queryRef in queryRefs)
+            var trackerFields = await db.Fields
+                .Where(f => f.TrackerId == trackerId)
+                .ToDictionaryAsync(f => f.Id);
+
+            foreach (var clause in clauses)
             {
-                if (queryRef.QueryId != null)
+                if (!trackerFields.TryGetValue(clause.FieldId, out var field))
+                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.ItemNotFound(
+                        clause.Kind == QueryKinds.Sort ? "sort field" : "filter field"));
+
+                var validation = QueryBuilder.ValidateClause(clause.Kind, field.Type, clause.Operator, clause.Value, clause.Descending);
+                if (validation.IsFailure)
+                    return Result.Failure(validation.StatusCode, validation.Messages);
+
+                if (clause.Kind == QueryKinds.Sort) sortCount++; else filterCount++;
+
+                var query = await QueryPool.GetOrCreate(db, ownerId, new ClauseDto
                 {
-                    var existing = await db.Queries.FirstOrDefaultAsync(q => q.Id == queryRef.QueryId && q.TrackerId == trackerId);
-                    if (existing == null)
-                        return Result.Failure(ResultStatusCodes.BadRequest, Messages.ItemNotFound("query"));
-
-                    if (existing.Kind == QueryKinds.Sort) sortCount++; else filterCount++;
-                    resolved.Add((queryRef.QueryId, null));
-                }
-                else if (queryRef.NewQuery != null)
-                {
-                    if (existingQueryCount + newQueryCount >= DataLimits.MaxQueryCount)
-                        return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("queries", DataLimits.MaxQueryCount));
-
-                    var validation = await QueryBuilder.ValidateClause(db, trackerId, queryRef.NewQuery);
-                    if (validation.IsFailure)
-                        return Result.Failure(validation.StatusCode, validation.Messages);
-
-                    if (queryRef.NewQuery.Kind == QueryKinds.Sort) sortCount++; else filterCount++;
-
-                    var newQuery = QueryBuilder.BuildQueryEntity(trackerId, queryRef.NewQuery);
-                    newQueryCount++;
-                    resolved.Add((newQuery.Id, newQuery));
-                }
+                    Kind = clause.Kind,
+                    DataType = field.Type,
+                    Operator = clause.Operator,
+                    Value = clause.Value,
+                    Descending = clause.Descending,
+                });
+                resolved.Add((query, clause.FieldId));
             }
 
             if (filterCount > DataLimits.MaxFilters)
                 return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("filters", DataLimits.MaxFilters));
             if (sortCount > DataLimits.MaxSorts)
                 return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("sorts", DataLimits.MaxSorts));
+
+            var addedToPool = db.ChangeTracker.Entries<Query>().Count(e => e.State == EntityState.Added);
+            var existingPool = await db.Queries.CountAsync(q => q.OwnerId == ownerId);
+            if (existingPool + addedToPool > DataLimits.MaxQueryCount)
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("queries", DataLimits.MaxQueryCount));
 
             return Result.Success(resolved);
         }
@@ -352,18 +355,15 @@ namespace Operum.Service.Services.Views
             }
         }
 
-        private async Task AttachViewQueries(string viewId, List<(string QueryId, Query? NewQuery)> resolvedQueries)
+        private async Task AttachViewClauses(string viewId, List<(Query Query, string FieldId)> resolved)
         {
-            for (int i = 0; i < resolvedQueries.Count; i++)
+            for (int i = 0; i < resolved.Count; i++)
             {
-                var (queryId, newQuery) = resolvedQueries[i];
-                if (newQuery != null)
-                    await db.Queries.AddAsync(newQuery);
-
                 await db.ViewQueries.AddAsync(new ViewQuery
                 {
                     ViewId = viewId,
-                    QueryId = queryId,
+                    QueryId = resolved[i].Query.Id,
+                    FieldId = resolved[i].FieldId,
                     Order = i,
                 });
             }

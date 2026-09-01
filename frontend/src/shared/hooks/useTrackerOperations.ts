@@ -3,9 +3,6 @@ import { EntrySelection } from "../../features/entries/types/EntrySelection";
 import { useFields } from "../../features/fields/context/FieldsContext";
 import { CreateFieldDto } from "../../features/fields/types/CreateFieldDto";
 import { UpdateFieldDto } from "../../features/fields/types/UpdateFieldDto";
-import { useQueries } from "../../features/queries/context/QueriesContext";
-import { CreateQueryDto } from "../../features/queries/types/requests/CreateQueryDto";
-import { UpdateQueryDto } from "../../features/queries/types/requests/UpdateQueryDto";
 import { useTracker } from "../../features/trackers/context/TrackerContext";
 import { useViews } from "../../features/views/context/ViewsContext";
 import { CreateViewDto } from "../../features/views/types/requests/CreateViewDto";
@@ -27,8 +24,6 @@ export const useTrackerOperations = () => {
 
     const { refreshViews, _createView, _updateView, _deleteView, _updateViewOrder } =
         useViews();
-
-    const { markQueriesDirty, _createQuery, _updateQuery, _deleteQuery } = useQueries();
 
     const { _setSelectedViewId } = useTracker();
 
@@ -53,9 +48,8 @@ export const useTrackerOperations = () => {
     const deleteField = async (fieldId: string) => {
         await _deleteField(fieldId);
         markEntriesDirty();
-        // A query is a clause over one field, so deleting the field takes its queries
-        // with it and the views built on them read differently afterwards.
-        markQueriesDirty();
+        // Deleting a field drops the clauses bound to it, so the views built on them read
+        // differently afterwards.
         await refreshViews();
     };
 
@@ -94,16 +88,11 @@ export const useTrackerOperations = () => {
     // ========================================
     const createView = async (view: CreateViewDto) => {
         await _createView(view);
-        // Creating a view can also create brand-new ad-hoc queries, so the
-        // cached queries list needs refreshing before it's trusted again.
-        markQueriesDirty();
     };
 
     const updateView = async (viewId: string, view: UpdateViewDto) => {
         await _updateView(viewId, view);
         markEntriesDirty();
-        // Same as above — editing a view can create new ad-hoc queries.
-        markQueriesDirty();
     };
 
     const deleteView = async (viewId: string) => {
@@ -113,26 +102,6 @@ export const useTrackerOperations = () => {
 
     const updateViewOrder = async (viewIds: string[]) => {
         await _updateViewOrder(viewIds);
-    };
-
-    // ========================================
-    // Query Operations
-    // ========================================
-    const createQuery = async (query: CreateQueryDto) => await _createQuery(query);
-
-    // Editing or deleting a query changes every view built on it, so the cached views
-    // and anything drawn through them have to be re-read.
-    const updateQuery = async (queryId: string, query: UpdateQueryDto) => {
-        const saved = await _updateQuery(queryId, query);
-        await refreshViews();
-        markEntriesDirty();
-        return saved;
-    };
-
-    const deleteQuery = async (queryId: string) => {
-        await _deleteQuery(queryId);
-        await refreshViews();
-        markEntriesDirty();
     };
 
     // ========================================
@@ -164,11 +133,6 @@ export const useTrackerOperations = () => {
         updateView,
         deleteView,
         updateViewOrder,
-
-        // Query operations
-        createQuery,
-        updateQuery,
-        deleteQuery,
 
         // Tracker operations
         setSelectedView,

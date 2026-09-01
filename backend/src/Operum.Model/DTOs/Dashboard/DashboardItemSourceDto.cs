@@ -16,10 +16,9 @@ namespace Operum.Model.DTOs.Dashboard
         public List<DashboardItemSourceFieldDto> Fields { get; set; } = [];
         public string TrackerId { get; set; } = string.Empty;
         public string TrackerName { get; set; } = string.Empty;
-        // How the source is filtered: a fixed view of its own tracker, or the View widget
-        // on the board whose selection it follows. Never both.
+        // The fixed tracker view this source reads through, if any. A view selector widget
+        // on the board can layer further clauses on top of it.
         public string? ViewId { get; set; }
-        public string? LinkedViewWidgetId { get; set; }
         public string? Label { get; set; }
         public int Order { get; set; }
     }

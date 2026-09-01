@@ -1,6 +1,10 @@
 import { FieldDto } from "../../../features/fields/types/FieldDto";
-import { QueryDto } from "../../../features/queries/types/QueryDto";
 import { OperatorTypes } from "../../constants/DataTypes";
+import { fieldTypes } from "../../constants/DataTypesForSelect";
+import {
+    formatDynamicDateToken,
+    isDynamicDateToken,
+} from "../../constants/dynamicDateTokens";
 import { QueryKind, QueryKinds } from "../../constants/QueryKinds";
 import { formatOperator } from "./OperatorFormatter";
 import { renderValue } from "./ValueRenderer";
@@ -40,4 +44,38 @@ export const describeClause = (clause: Clause): string => {
     return `${fieldName} ${formatOperator(clause.operator)} ${quoted}`;
 };
 
-export const describeQuery = (query: QueryDto): string => describeClause(query);
+const dataTypeLabel = (value: string) =>
+    fieldTypes.find((t) => t.value === value)?.label ?? value;
+
+interface AbstractClause {
+    kind: string;
+    dataType: string;
+    operator?: string | null;
+    value?: unknown;
+    descending?: boolean;
+}
+
+/**
+ * describeClause for a field-agnostic clause -- a DashboardView clause or a template row
+ * that names only a data type, not a concrete field: "Date ≥ Start of this month".
+ */
+export const describeAbstractClause = (c: AbstractClause): string => {
+    const type = dataTypeLabel(c.dataType);
+
+    if (c.kind === QueryKinds.Sort)
+        return `${type} ${c.descending ? "descending" : "ascending"}`;
+
+    const operator = c.operator ? formatOperator(c.operator) : "";
+
+    if (c.value === undefined || c.value === null || c.value === "")
+        return `${type} ${operator} empty`.replace(/\s+/g, " ").trim();
+
+    const value =
+        typeof c.value === "string" && isDynamicDateToken(c.value)
+            ? formatDynamicDateToken(c.value)
+            : c.value instanceof Date
+              ? c.value.toLocaleDateString()
+              : String(c.value);
+
+    return `${type} ${operator} ${value}`.replace(/\s+/g, " ").trim();
+};

@@ -15,7 +15,7 @@ import { ExpandableWidgetCard } from "./ExpandableWidgetCard";
 import { HeaderWidgetCard } from "./HeaderWidgetCard";
 import { NoteWidgetCard } from "./NoteWidgetCard";
 import { QuickAddWidgetCard } from "./QuickAddWidgetCard";
-import { ViewWidgetCard } from "./ViewWidgetCard";
+import { ViewSelectorWidgetCard } from "./ViewSelectorWidgetCard";
 
 interface Props {
     widget: DashboardWidgetDto;
@@ -31,7 +31,7 @@ interface Props {
         QuickAdd widget's tracker is fixed at add time and a Divider has nothing to edit. */
     onEdit?: (itemId: string) => void;
     onEntryClick?: (entryId: string) => void;
-    onViewSelect?: (itemId: string, viewId: string | null) => void;
+    onViewSelectorSelect?: (itemId: string, selectedId: string | null) => void;
 }
 
 // Whether the current grid draws this widget as its collapsed button instead of inline —
@@ -77,7 +77,7 @@ export function DashboardWidget({
     onRemove,
     onEdit,
     onEntryClick,
-    onViewSelect,
+    onViewSelectorSelect,
 }: Props) {
     switch (widget.type) {
         case WidgetTypes.Analytic: {
@@ -135,16 +135,16 @@ export function DashboardWidget({
                 />
             ) : null;
         }
-        case WidgetTypes.View:
+        case WidgetTypes.ViewSelector:
             return (
-                <ViewWidgetCard
+                <ViewSelectorWidgetCard
                     widgetId={widget.id}
-                    viewWidget={widget.viewWidget}
+                    viewSelector={widget.viewSelector}
                     color={color}
                     isConfiguring={isConfiguring}
                     onRemove={onRemove}
                     onEdit={onEdit}
-                    onSelect={onViewSelect ?? (() => {})}
+                    onSelect={onViewSelectorSelect ?? (() => {})}
                 />
             );
         case WidgetTypes.Entries: {

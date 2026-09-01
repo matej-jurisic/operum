@@ -18,7 +18,7 @@ import {
     WidgetTypes,
 } from "../types/DashboardDto";
 import { ExpandableOptionFields } from "./ExpandableOptionFields";
-import { linkableViewWidgets, SourceViewSelect } from "./SourceViewSelect";
+import { SourceViewSelect } from "./SourceViewSelect";
 
 interface Props {
     itemId: string;
@@ -32,7 +32,6 @@ interface SourceRow {
     source: DashboardItemSourceDto;
     label: string;
     viewId: string | null;
-    linkedViewWidgetId: string | null;
     views: ViewDto[];
 }
 
@@ -43,7 +42,7 @@ interface SourceRow {
  * widget rather than quietly turning this one into something else.
  */
 export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
-    const { dashboardId, widgets } = useDashboard();
+    const { dashboardId } = useDashboard();
     const [rows, setRows] = useState<SourceRow[] | null>(null);
     const [expandable, setExpandable] = useState(false);
     const [mobileExpandable, setMobileExpandable] = useState(false);
@@ -79,7 +78,6 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
                     source,
                     label: source.label ?? "",
                     viewId: source.viewId ?? null,
-                    linkedViewWidgetId: source.linkedViewWidgetId ?? null,
                     views: viewsByTracker.get(source.trackerId) ?? [],
                 })),
             );
@@ -113,7 +111,6 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
                     sourceId: row.source.id,
                     label: row.label.trim() || null,
                     viewId: row.viewId,
-                    linkedViewWidgetId: row.linkedViewWidgetId,
                 })),
             });
         } finally {
@@ -152,14 +149,7 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
                         const viewSelect = (
                             <SourceViewSelect
                                 views={row.views}
-                                linkableWidgets={linkableViewWidgets(
-                                    widgets,
-                                    row.source.trackerId,
-                                )}
-                                value={{
-                                    viewId: row.viewId,
-                                    linkedViewWidgetId: row.linkedViewWidgetId,
-                                }}
+                                value={{ viewId: row.viewId }}
                                 onChange={(selection) =>
                                     updateRow(index, selection)
                                 }

@@ -14,7 +14,6 @@ namespace Operum.Model.DTOs.Dashboard.Requests
 
         public string? Label { get; set; }
         public string? ViewId { get; set; }
-        public string? LinkedViewWidgetId { get; set; }
     }
 
     // Places an existing Widget Library chart onto this dashboard by reference: unlike the
@@ -46,10 +45,6 @@ namespace Operum.Model.DTOs.Dashboard.Requests
             RuleFor(x => x.Label)
                 .MaximumLength(100).WithMessage("Label cannot exceed 100 characters.")
                 .When(x => !string.IsNullOrEmpty(x.Label));
-
-            RuleFor(x => x)
-                .Must(x => string.IsNullOrEmpty(x.ViewId) || string.IsNullOrEmpty(x.LinkedViewWidgetId))
-                .WithMessage("A source cannot both filter by a fixed view and follow a view widget.");
         }
     }
 

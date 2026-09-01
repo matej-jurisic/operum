@@ -11,16 +11,16 @@ namespace Operum.Model.Constants
         // analytic definition — just Config, a QuickAddWidgetConfigDto naming the tracker.
         public const string QuickAdd = "quickAdd";
 
-        // A dropdown over one tracker's views. Carries no analytic definition either — just
-        // Config, a ViewWidgetConfigDto naming the tracker and the currently selected view.
-        // Any DashboardItemSource can point its LinkedViewWidgetId at one of these instead of
-        // a fixed ViewId, so changing the dropdown here re-filters every source linked to it.
-        public const string View = "view";
+        // A dropdown over a set of the board's DashboardViews ("Current Month", "All Time").
+        // Carries no analytic definition — just Config, a ViewSelectorWidgetConfigDto holding
+        // the option ids, the current selection, and per followed widget which of its
+        // tracker's fields each clause runs against. Picking an option re-filters every widget
+        // wired to it, on top of whatever fixed view that widget already reads through.
+        public const string ViewSelector = "viewSelector";
 
         // A read-only table of one tracker's entries. Carries no analytic definition either
-        // — just Config, an EntriesWidgetConfigDto naming the tracker and, at most one of, a
-        // fixed ViewId or a LinkedViewWidgetId to follow instead, the same duality a
-        // DashboardItemSource has.
+        // — just Config, an EntriesWidgetConfigDto naming the fixed ViewId it reads through
+        // (for its columns and base filter).
         public const string Entries = "entries";
 
         // A short line of user-entered text that reads as a section title rather than a
@@ -37,7 +37,7 @@ namespace Operum.Model.Constants
         public const string Note = "note";
 
         public static readonly HashSet<string> All =
-            [Analytic, QuickAdd, View, Entries, Header, Divider, Note];
+            [Analytic, QuickAdd, ViewSelector, Entries, Header, Divider, Note];
 
         public static bool IsValid(string type) => All.Contains(type);
     }

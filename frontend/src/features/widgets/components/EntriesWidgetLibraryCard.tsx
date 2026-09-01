@@ -14,7 +14,7 @@ interface Props {
 }
 
 /** One Entries table definition as a row in the Library list. The whole row adds it to the
-    board; edit and delete are the quiet icons on the right. */
+    board; edit and delete are the outlined action icons on the right. */
 export function EntriesWidgetLibraryCard({
     entriesWidget,
     color,
@@ -71,7 +71,7 @@ export function EntriesWidgetLibraryCard({
                 <Menu position="bottom-end" withinPortal width={200}>
                     <Menu.Target>
                         <ActionIcon
-                            variant="subtle"
+                            variant="outline"
                             color="gray"
                             size={44}
                             ml={4}
@@ -114,7 +114,7 @@ export function EntriesWidgetLibraryCard({
                         Add
                     </Button>
                     <ActionIcon
-                        variant="subtle"
+                        variant="outline"
                         color="gray"
                         aria-label="Edit entries table"
                         onClick={(event) => {
@@ -125,7 +125,7 @@ export function EntriesWidgetLibraryCard({
                         <MdEdit size={16} />
                     </ActionIcon>
                     <ActionIcon
-                        variant="subtle"
+                        variant="outline"
                         color="gray"
                         aria-label="Delete entries table"
                         onClick={(event) => {

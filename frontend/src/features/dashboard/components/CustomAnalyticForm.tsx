@@ -24,10 +24,9 @@ import { trackersController } from "../../trackers/api/trackersController";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { viewsController } from "../../views/api/viewsController";
 import { ViewDto } from "../../views/types/ViewDto";
-import { useDashboard } from "../context/DashboardContext";
 import { CreateAndPlaceWidgetDto } from "../types/DashboardDto";
 import { ExpandableOptionFields } from "./ExpandableOptionFields";
-import { linkableViewWidgets, SourceViewSelect } from "./SourceViewSelect";
+import { SourceViewSelect } from "./SourceViewSelect";
 
 interface Props {
     /** Steps back to the widget type picker. */
@@ -40,9 +39,8 @@ interface Props {
 interface TrackerRow {
     trackerId: string | null;
     fieldMappings: Record<string, string>;
-    // At most one of these is set — see the "Filter by view" Select below.
+    // The fixed tracker view this source reads through, if any.
     viewId: string | null;
-    linkedViewWidgetId: string | null;
     // Loaded per tracker
     fields: FieldDto[];
     views: ViewDto[];
@@ -69,7 +67,6 @@ const makeEmptyRow = (): TrackerRow => ({
     trackerId: null,
     fieldMappings: {},
     viewId: null,
-    linkedViewWidgetId: null,
     fields: [],
     views: [],
 });
@@ -81,7 +78,6 @@ const makeEmptyRow = (): TrackerRow => ({
  * the Library, and editing it there updates every placement, this one included.
  */
 export function CustomAnalyticForm({ onBack, onAdd }: Props) {
-    const { widgets } = useDashboard();
     const [trackers, setTrackers] = useState<TrackerDto[]>([]);
     const [config, setConfig] = useState<AnalyticConfigDto>();
     const [resultType, setResultType] = useState<string | null>(null);
@@ -150,7 +146,6 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
             trackerId,
             fieldMappings: {},
             viewId: null,
-            linkedViewWidgetId: null,
             fields: [],
             views: [],
         });
@@ -219,8 +214,7 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
                 analyticFields: Object.entries(row.fieldMappings)
                     .filter(([, fieldId]) => !!fieldId)
                     .map(([purpose, fieldId]) => ({ purpose, fieldId })),
-                viewId: row.linkedViewWidgetId ? null : row.viewId,
-                linkedViewWidgetId: row.linkedViewWidgetId,
+                viewId: row.viewId,
             })),
         });
         setIsSubmitting(false);
@@ -265,13 +259,6 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
             />
 
             {rows.map((row, index) => {
-                // The board's own View widgets built for this row's tracker are the only
-                // ones it can link to.
-                const linkableWidgets = linkableViewWidgets(
-                    widgets,
-                    row.trackerId,
-                );
-
                 return (
                     <Paper key={index} withBorder p="sm" radius="md">
                         <Stack gap="sm">
@@ -279,7 +266,7 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
                                 <Group justify="flex-end">
                                     <ActionIcon
                                         size="sm"
-                                        variant="subtle"
+                                        variant="outline"
                                         color="red"
                                         onClick={() => removeRow(index)}
                                     >
@@ -327,11 +314,7 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
 
                             <SourceViewSelect
                                 views={row.views}
-                                linkableWidgets={linkableWidgets}
-                                value={{
-                                    viewId: row.viewId,
-                                    linkedViewWidgetId: row.linkedViewWidgetId,
-                                }}
+                                value={{ viewId: row.viewId }}
                                 onChange={(selection) =>
                                     updateRow(index, selection)
                                 }

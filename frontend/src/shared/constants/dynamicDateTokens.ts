@@ -170,6 +170,12 @@ export function formatDynamicDateToken(token: string): string {
             return anchor === DateAnchors.EndOfDay ? `End of ${day}` : capitalize(day);
         }
 
+        // "Start of this month" reads better than "Start of month (this month)". Only the
+        // near offsets fold together cleanly; a far one keeps the parenthesised form.
+        if (Math.abs(offset) <= 1) {
+            const boundary = anchor.startsWith("start_of") ? "Start" : "End";
+            return `${boundary} of ${describeOffset(anchor, offset)}`;
+        }
         return `${anchorLabels[anchor]} (${describeOffset(anchor, offset)})`;
     }
 

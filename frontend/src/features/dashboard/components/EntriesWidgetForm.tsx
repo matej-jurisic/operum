@@ -4,10 +4,9 @@ import { trackersController } from "../../trackers/api/trackersController";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { viewsController } from "../../views/api/viewsController";
 import { ViewDto } from "../../views/types/ViewDto";
-import { useDashboard } from "../context/DashboardContext";
 import { CreateAndPlaceEntriesWidgetDto } from "../types/DashboardDto";
 import { ExpandableOptionFields } from "./ExpandableOptionFields";
-import { linkableViewWidgets, SourceViewSelect } from "./SourceViewSelect";
+import { SourceViewSelect } from "./SourceViewSelect";
 
 interface Props {
     /** Steps back to the widget type picker. */
@@ -22,13 +21,11 @@ interface Props {
  * choice a chart's source gets from CustomAnalyticForm.
  */
 export function EntriesWidgetForm({ onBack, onAdd }: Props) {
-    const { widgets } = useDashboard();
     const [trackers, setTrackers] = useState<TrackerDto[]>([]);
     const [trackerId, setTrackerId] = useState<string | null>(null);
     const [name, setName] = useState("");
     const [views, setViews] = useState<ViewDto[]>([]);
     const [viewId, setViewId] = useState<string | null>(null);
-    const [linkedViewWidgetId, setLinkedViewWidgetId] = useState<string | null>(null);
     const [expandable, setExpandable] = useState(false);
     const [mobileExpandable, setMobileExpandable] = useState(false);
     const [isLoadingTracker, setIsLoadingTracker] = useState(false);
@@ -43,7 +40,6 @@ export function EntriesWidgetForm({ onBack, onAdd }: Props) {
     const handleTrackerChange = async (value: string | null) => {
         setTrackerId(value);
         setViewId(null);
-        setLinkedViewWidgetId(null);
         setViews([]);
         if (!value) return;
 
@@ -60,14 +56,11 @@ export function EntriesWidgetForm({ onBack, onAdd }: Props) {
             trackerId,
             name: name.trim() || undefined,
             viewId,
-            linkedViewWidgetId,
             expandable,
             mobileExpandable,
         });
         setIsSubmitting(false);
     };
-
-    const linkableWidgets = linkableViewWidgets(widgets, trackerId);
 
     return (
         <Stack gap="md">
@@ -91,12 +84,8 @@ export function EntriesWidgetForm({ onBack, onAdd }: Props) {
 
             <SourceViewSelect
                 views={views}
-                linkableWidgets={linkableWidgets}
-                value={{ viewId, linkedViewWidgetId }}
-                onChange={(selection) => {
-                    setViewId(selection.viewId);
-                    setLinkedViewWidgetId(selection.linkedViewWidgetId);
-                }}
+                value={{ viewId }}
+                onChange={(selection) => setViewId(selection.viewId)}
                 disabled={!trackerId || isLoadingTracker}
                 placeholder={isLoadingTracker ? "Loading..." : "All entries"}
             />

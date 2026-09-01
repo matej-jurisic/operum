@@ -15,10 +15,8 @@ namespace Operum.Model.DTOs.Dashboard.Requests
         // the way an item added without a label does.
         public string? Label { get; set; }
 
-        // At most one of these, exactly as when the source was created — see
-        // DashboardItemSourceRequestDto.
+        // The fixed tracker view this source reads through, if any. Cleared when left blank.
         public string? ViewId { get; set; }
-        public string? LinkedViewWidgetId { get; set; }
     }
 
     // Edits an analytic widget in place. Only the parts that belong to the board are
@@ -49,10 +47,6 @@ namespace Operum.Model.DTOs.Dashboard.Requests
             RuleFor(x => x.Label)
                 .MaximumLength(100).WithMessage("Label cannot exceed 100 characters.")
                 .When(x => !string.IsNullOrEmpty(x.Label));
-
-            RuleFor(x => x)
-                .Must(x => string.IsNullOrEmpty(x.ViewId) || string.IsNullOrEmpty(x.LinkedViewWidgetId))
-                .WithMessage("A source cannot both filter by a fixed view and follow a view widget.");
         }
     }
 

@@ -25,33 +25,27 @@ namespace Operum.Model.DTOs.Dashboard
         public string? Icon { get; set; }
     }
 
-    // One view a View widget's dropdown can be set to.
-    public class ViewOptionDto
+    // One option a view selector widget's dropdown can be set to -- a DashboardView on the
+    // same board, resolved to just its id and name for the card to render.
+    public class ViewSelectorOptionDto
     {
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
     }
 
-    // What a DashboardWidgetTypes.View widget's dropdown needs — resolved server-side from
-    // Config the same way QuickAddTrackerDto is, plus the tracker's own views and which one
-    // Config currently names. ViewId is the persisted, current selection: it changes (and is
-    // saved) whenever the dropdown does, so every DashboardItemSource with a matching
-    // LinkedViewWidgetId is resolved against it.
-    public class ViewWidgetDto
+    // What a DashboardWidgetTypes.ViewSelector widget's dropdown needs -- resolved
+    // server-side from Config the same way QuickAddTrackerDto is: the DashboardViews it
+    // offers (id + name), and which one Config currently names.
+    public class ViewSelectorWidgetDto
     {
-        public string TrackerId { get; set; } = string.Empty;
-        public string TrackerName { get; set; } = string.Empty;
-        public string? Color { get; set; }
-        public string? Icon { get; set; }
-        public string? ViewId { get; set; }
-        public List<ViewOptionDto> Views { get; set; } = [];
+        public List<ViewSelectorOptionDto> Options { get; set; } = [];
+        public string? SelectedId { get; set; }
     }
 
     // What a DashboardWidgetTypes.Entries widget's table needs — resolved server-side the
-    // same way ViewWidgetDto is: the tracker it reads from, the view it's currently filtered
-    // by (ViewId — fixed, or resolved from a linked View widget the same way an analytic
-    // source's LinkedViewWidgetId is), and the columns that view wants shown, in its order.
-    // A view naming none shows every field, the same fallback the tracker page uses.
+    // same way QuickAddTrackerDto is: the tracker it reads from, the fixed view it is
+    // filtered by, and the columns that view wants shown, in its order. A view naming none
+    // shows every field, the same fallback the tracker page uses.
     public class EntriesWidgetDto
     {
         public string TrackerId { get; set; } = string.Empty;
@@ -79,7 +73,7 @@ namespace Operum.Model.DTOs.Dashboard
         public string? Config { get; set; }
         public AnalyticDto? Analytic { get; set; }
         public QuickAddTrackerDto? QuickAddTracker { get; set; }
-        public ViewWidgetDto? ViewWidget { get; set; }
+        public ViewSelectorWidgetDto? ViewSelector { get; set; }
         public EntriesWidgetDto? EntriesWidget { get; set; }
         // The color of the single tracker every source of this widget reads from. Null when
         // the widget has no single owning tracker — a combined chart spanning more than one —

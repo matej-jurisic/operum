@@ -71,11 +71,7 @@ namespace Operum.Tests.Tests.Views
                 ColumnFieldIds = [fixture.NoteFieldId]
             });
 
-            // Columns cost the tracker no query budget and never show up in its query list,
-            // which is the whole reason they are not queries.
-            var trackerQueries = await TestApi.Data(await client.GetAsync($"trackers/{fixture.TrackerId}/queries"));
-            Assert.Empty(trackerQueries.EnumerateArray());
-
+            // Columns are not clauses, so the view carries none.
             var view = await TestApi.Data(await client.GetAsync($"trackers/{fixture.TrackerId}/views/{viewId}"));
             Assert.Empty(view.GetProperty("queries").EnumerateArray());
         }
@@ -130,8 +126,8 @@ namespace Operum.Tests.Tests.Views
                 Name = "Big amounts, note only",
                 Queries =
                 [
-                    new ViewQueryRefDto { NewQuery = TestApi.FilterClause(fixture.AmountFieldId, OperatorTypes.GreaterThan, "1") },
-                    new ViewQueryRefDto { NewQuery = TestApi.SortClause(fixture.AmountFieldId, descending: true) },
+                    TestApi.FilterClause(fixture.AmountFieldId, OperatorTypes.GreaterThan, "1"),
+                    TestApi.SortClause(fixture.AmountFieldId, descending: true),
                 ],
                 ColumnFieldIds = [fixture.NoteFieldId]
             });

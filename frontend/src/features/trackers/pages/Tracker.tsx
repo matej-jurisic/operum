@@ -22,7 +22,7 @@ import Notifications from "../../notifications/components/Notifications";
 import { areNotificationsEnabled } from "../../notifications/config/notificationsFeature";
 import SidebarBurger from "../../../shared/components/navigation/SidebarBurger";
 import SelectView from "../../views/components/SelectView";
-import ViewsAndQueries from "../../views/components/ViewsAndQueries";
+import Views from "../../views/components/Views";
 import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
 import { trackersController } from "../api/trackersController";
 import TrackerActions from "../components/TrackerActions";
@@ -50,8 +50,6 @@ export default function Tracker() {
             ? "entries"
             : requestedTab;
     const action = urlParts[1];
-    const viewsSubTab =
-        rawTab === "queries" || action === "queries" ? "queries" : "views";
 
     const fetchTracker = useCallback(async () => {
         if (trackerId) {
@@ -230,19 +228,7 @@ export default function Tracker() {
                                 <Entries autoOpenCreate={action === "create"} />
                             </Tabs.Panel>
                             <Tabs.Panel value="views" h="100%">
-                                <ViewsAndQueries
-                                    tracker={tracker}
-                                    activeSubTab={viewsSubTab}
-                                    onSubTabChange={(value) =>
-                                        navigate(
-                                            `/trackers/${trackerId}/views${
-                                                value === "queries"
-                                                    ? "/queries"
-                                                    : ""
-                                            }`,
-                                        )
-                                    }
-                                />
+                                <Views tracker={tracker} />
                             </Tabs.Panel>
                             <Tabs.Panel value="fields" h="100%">
                                 <Fields tracker={tracker} />

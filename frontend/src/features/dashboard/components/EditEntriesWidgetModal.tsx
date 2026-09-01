@@ -5,7 +5,7 @@ import { ViewDto } from "../../views/types/ViewDto";
 import { useDashboard } from "../context/DashboardContext";
 import { UpdateDashboardEntriesItemDto, WidgetTypes } from "../types/DashboardDto";
 import { ExpandableOptionFields } from "./ExpandableOptionFields";
-import { linkableViewWidgets, SourceViewSelect, ViewSelection } from "./SourceViewSelect";
+import { SourceViewSelect, ViewSelection } from "./SourceViewSelect";
 
 interface Props {
     itemId: string;
@@ -16,7 +16,6 @@ interface Props {
 
 interface EntriesWidgetConfig {
     viewId?: string | null;
-    linkedViewWidgetId?: string | null;
 }
 
 // The widget's own Config is already sitting in the board the context holds — same as a
@@ -47,7 +46,6 @@ export function EditEntriesWidgetModal({ itemId, color, onClose, onSave }: Props
     const [views, setViews] = useState<ViewDto[] | null>(null);
     const [selection, setSelection] = useState<ViewSelection>({
         viewId: config?.viewId ?? null,
-        linkedViewWidgetId: config?.linkedViewWidgetId ?? null,
     });
     const [expandable, setExpandable] = useState(widget?.layout.expandable ?? false);
     const [mobileExpandable, setMobileExpandable] = useState(widget?.mobileLayout.expandable ?? false);
@@ -69,7 +67,6 @@ export function EditEntriesWidgetModal({ itemId, color, onClose, onSave }: Props
         try {
             await onSave(itemId, {
                 viewId: selection.viewId,
-                linkedViewWidgetId: selection.linkedViewWidgetId,
                 expandable,
                 mobileExpandable,
             });
@@ -88,7 +85,6 @@ export function EditEntriesWidgetModal({ itemId, color, onClose, onSave }: Props
                 <Stack gap="md">
                     <SourceViewSelect
                         views={views}
-                        linkableWidgets={linkableViewWidgets(widgets, trackerId)}
                         value={selection}
                         onChange={setSelection}
                     />

@@ -46,7 +46,7 @@ function resultTypeIcon(resultType: string): IconType {
 /** One chart Widget as a row in the Library list. There's no calculated preview here (the
     Library manages definitions, not renders) -- see DashboardWidget for the actual chart,
     drawn once a widget is placed on a board. The whole row adds the widget to the board;
-    edit and delete are the quiet icons on the right. */
+    edit and delete are the outlined action icons on the right. */
 export function WidgetCard({ widget, color, isMobile, onAdd, onEdit, onDelete }: Props) {
     const { hovered, ref } = useHover<HTMLDivElement>();
     const trackerNames = [...new Set(widget.sources.map((s) => s.trackerName))];
@@ -94,7 +94,7 @@ export function WidgetCard({ widget, color, isMobile, onAdd, onEdit, onDelete }:
                 <Menu position="bottom-end" withinPortal width={200}>
                     <Menu.Target>
                         <ActionIcon
-                            variant="subtle"
+                            variant="outline"
                             color="gray"
                             size={44}
                             ml={4}
@@ -137,7 +137,7 @@ export function WidgetCard({ widget, color, isMobile, onAdd, onEdit, onDelete }:
                         Add
                     </Button>
                     <ActionIcon
-                        variant="subtle"
+                        variant="outline"
                         color="gray"
                         aria-label="Edit widget"
                         onClick={(event) => {
@@ -148,7 +148,7 @@ export function WidgetCard({ widget, color, isMobile, onAdd, onEdit, onDelete }:
                         <MdEdit size={16} />
                     </ActionIcon>
                     <ActionIcon
-                        variant="subtle"
+                        variant="outline"
                         color="gray"
                         aria-label="Delete widget"
                         onClick={(event) => {

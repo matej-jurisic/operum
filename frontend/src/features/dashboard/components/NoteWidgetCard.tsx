@@ -116,7 +116,7 @@ export function NoteWidgetCard({
                             <ActionIcon
                                 size="md"
                                 color={color}
-                                variant="subtle"
+                                variant="outline"
                                 aria-label="Edit note"
                                 style={{ pointerEvents: "auto" }}
                                 onClick={startEditing}

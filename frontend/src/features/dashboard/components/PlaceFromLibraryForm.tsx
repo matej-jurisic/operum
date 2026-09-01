@@ -6,10 +6,9 @@ import { viewsController } from "../../views/api/viewsController";
 import { ViewDto } from "../../views/types/ViewDto";
 import { WidgetDto, EntriesWidgetDefinitionDto } from "../../widgets/types/WidgetDto";
 import { useWidgets } from "../../widgets/context/WidgetsContext";
-import { useDashboard } from "../context/DashboardContext";
 import { PlaceEntriesWidgetDto, PlaceWidgetDto } from "../types/DashboardDto";
 import { ExpandableOptionFields } from "./ExpandableOptionFields";
-import { linkableViewWidgets, SourceViewSelect, ViewSelection } from "./SourceViewSelect";
+import { SourceViewSelect, ViewSelection } from "./SourceViewSelect";
 
 interface Props {
     /** Steps back to the widget type picker. */
@@ -43,7 +42,6 @@ export function PlaceFromLibraryForm({
     presetWidget,
     presetEntriesWidget,
 }: Props) {
-    const { widgets: boardWidgets } = useDashboard();
     const { widgets, entriesWidgets, isLoading: isLoadingLibrary } = useWidgets();
     const preset = presetWidget
         ? `${WIDGET_PREFIX}${presetWidget.id}`
@@ -57,7 +55,6 @@ export function PlaceFromLibraryForm({
     const [sourceOverrides, setSourceOverrides] = useState<Record<string, SourceOverride>>({});
     const [entriesSelection, setEntriesSelection] = useState<ViewSelection>({
         viewId: null,
-        linkedViewWidgetId: null,
     });
     const [expandable, setExpandable] = useState(false);
     const [mobileExpandable, setMobileExpandable] = useState(false);
@@ -106,12 +103,12 @@ export function PlaceFromLibraryForm({
                 ? Object.fromEntries(
                       selectedWidget.sources.map((s) => [
                           s.id,
-                          { viewId: null, linkedViewWidgetId: null, label: "" },
+                          { viewId: null, label: "" },
                       ])
                   )
                 : {}
         );
-        setEntriesSelection({ viewId: null, linkedViewWidgetId: null });
+        setEntriesSelection({ viewId: null });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selection]);
 
@@ -128,16 +125,14 @@ export function PlaceFromLibraryForm({
                         return {
                             widgetSourceId: source.id,
                             label: override?.label.trim() || undefined,
-                            viewId: override?.linkedViewWidgetId ? null : override?.viewId ?? null,
-                            linkedViewWidgetId: override?.linkedViewWidgetId ?? null,
+                            viewId: override?.viewId ?? null,
                         };
                     }),
                 });
             } else if (selectedEntriesWidget) {
                 await onPlaceEntriesWidget({
                     entriesWidgetId: selectedEntriesWidget.id,
-                    viewId: entriesSelection.linkedViewWidgetId ? null : entriesSelection.viewId,
-                    linkedViewWidgetId: entriesSelection.linkedViewWidgetId,
+                    viewId: entriesSelection.viewId,
                     expandable,
                     mobileExpandable,
                 });
@@ -205,10 +200,8 @@ export function PlaceFromLibraryForm({
                 selectedWidget.sources.map((source) => {
                     const override = sourceOverrides[source.id] ?? {
                         viewId: null,
-                        linkedViewWidgetId: null,
                         label: "",
                     };
-                    const linkableWidgets = linkableViewWidgets(boardWidgets, source.trackerId);
 
                     return (
                         <Paper key={source.id} withBorder p="sm" radius="md">
@@ -233,11 +226,7 @@ export function PlaceFromLibraryForm({
                                 />
                                 <SourceViewSelect
                                     views={viewsByTracker.get(source.trackerId) ?? []}
-                                    linkableWidgets={linkableWidgets}
-                                    value={{
-                                        viewId: override.viewId,
-                                        linkedViewWidgetId: override.linkedViewWidgetId,
-                                    }}
+                                    value={{ viewId: override.viewId }}
                                     onChange={(selectionValue) =>
                                         setSourceOverrides((prev) => ({
                                             ...prev,
@@ -253,7 +242,6 @@ export function PlaceFromLibraryForm({
             {selectedEntriesWidget && (
                 <SourceViewSelect
                     views={viewsByTracker.get(selectedEntriesWidget.trackerId) ?? []}
-                    linkableWidgets={linkableViewWidgets(boardWidgets, selectedEntriesWidget.trackerId)}
                     value={entriesSelection}
                     onChange={setEntriesSelection}
                 />

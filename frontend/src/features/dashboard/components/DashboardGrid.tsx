@@ -4,6 +4,7 @@ import {
   getBreakpointFromWidth,
   Layout,
   LayoutItem,
+  noCompactor,
   Responsive,
   useContainerWidth,
   verticalCompactor,
@@ -24,15 +25,18 @@ export const DASHBOARD_GRID_COLUMNS = 24;
 /** Kept in step with DashboardGrid.MobileColumns. */
 export const DASHBOARD_MOBILE_GRID_COLUMNS = 4;
 
-// 20px, half what it was, so a drag or resize snaps to half the vertical step it used to.
-// The IncreaseDashboardGridResolution migration doubled every stored y/h to match, the same
-// way DASHBOARD_GRID_COLUMNS going 12 -> 24 doubled every stored x/w.
-const ROW_HEIGHT = 20;
+// 2px. A row unit is dwarfed by the 16px vertical margin baked into every widget's
+// height, so what a drag or resize actually snaps to is rowHeight + margin: 18px here,
+// half the 36px step it was at rowHeight 20. HalveDashboardGridRowHeight doubled every
+// stored y/h to match, so (row + margin) * 2y and rowHeight * 2h land on the same pixels
+// a board was already laid out on -- see that migration.
+const ROW_HEIGHT = 2;
 const MIN_WIDTH = 2;
-// One row -- a 20px sliver. A divider or a header is a layout accent, not content, and a
-// board full of them reads better when they can be squeezed right down. The arrange-mode
-// controls that would overflow a cell this short are capped to it in DashboardGrid.css.
-const MIN_HEIGHT = 1;
+// Two rows: 2*2 + 16 == a 20px sliver, the same floor as before HalveDashboardGridRowHeight.
+// A divider or a header is a layout accent, not content, and a board full of them reads
+// better when they can be squeezed right down. The arrange-mode controls that would
+// overflow a cell this short are capped to it in DashboardGrid.css.
+const MIN_HEIGHT = 2;
 
 // Grabbed by the drag handle below, and by react-grid-layout to tell that handle apart
 // from the rest of the card.
@@ -85,7 +89,7 @@ const VARIANTS: Record<LayoutVariant, VariantConfig> = {
   },
 };
 
-const FALLBACK_HEIGHT = 12;
+const FALLBACK_HEIGHT = 24;
 
 const toLayoutItem = (
   widget: DashboardWidgetDto,
@@ -132,7 +136,7 @@ interface Props {
   onRemove?: (itemId: string) => void;
   onEdit?: (itemId: string) => void;
   onEntryClick?: (entryId: string) => void;
-  onViewSelect?: (itemId: string, viewId: string | null) => void;
+  onViewSelectorSelect?: (itemId: string, selectedId: string | null) => void;
 }
 
 export function DashboardGrid({
@@ -143,7 +147,7 @@ export function DashboardGrid({
   onRemove,
   onEdit,
   onEntryClick,
-  onViewSelect,
+  onViewSelectorSelect,
 }: Props) {
   // Measured before the first render, so the grid never lays itself out at the hook's
   // assumed default width and overflows a narrower container for a frame.
@@ -182,10 +186,8 @@ export function DashboardGrid({
           rowHeight={ROW_HEIGHT}
           margin={config.margin}
           containerPadding={[0, 0]}
-          // Widgets stay exactly where they are dropped: no pulling up into the
-          // gap above them, so a board can be laid out with deliberate empty
-          // space. Collisions are still resolved, they just are not compacted
-          // away afterwards.
+          // Widgets don't stay exactly where they are dropped: they get pullied up into the
+          // gap above them.
           compactor={verticalCompactor}
           dragConfig={{
             enabled: isConfiguring,
@@ -222,7 +224,7 @@ export function DashboardGrid({
                 onRemove={onRemove}
                 onEdit={onEdit}
                 onEntryClick={onEntryClick}
-                onViewSelect={onViewSelect}
+                onViewSelectorSelect={onViewSelectorSelect}
               />
             </div>
           ))}

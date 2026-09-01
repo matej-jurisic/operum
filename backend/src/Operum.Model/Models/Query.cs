@@ -4,12 +4,14 @@ using Operum.Model.Constants;
 
 namespace Operum.Model.Models
 {
-    // A reusable, independently administrable single clause: one filter or one sort over a
-    // field of its tracker. Views are composed of one or more Queries (see ViewQuery); a
-    // Query can be attached to several Views at once. It has no name of its own - what it
-    // does is read off the field, operator and value.
+    // A reusable, field-agnostic single clause: one filter or one sort expressed by data
+    // type rather than by a concrete field ("date >= start_of_month", "number descending").
+    // The field it actually runs against is bound at the point of use -- ViewQuery.FieldId
+    // for a tracker view, or a view selector's per-widget map on a dashboard.
     //
-    // Which columns a view shows is not a clause and is not stored here (see ViewColumn).
+    // Rows are value-deduplicated per owner (see QueryPool): two clauses that read the same
+    // share one row. A Query has no name and is never surfaced to the client on its own --
+    // what it does is read off the kind, data type, operator and value.
     public class Query
     {
         [Key]
@@ -18,13 +20,13 @@ namespace Operum.Model.Models
         // QueryKinds.Filter or QueryKinds.Sort.
         public string Kind { get; set; } = QueryKinds.Filter;
 
-        public string TrackerId { get; set; } = string.Empty;
-        [ForeignKey(nameof(TrackerId))]
-        public virtual Tracker Tracker { get; set; } = null!;
+        public string OwnerId { get; set; } = string.Empty;
+        [ForeignKey(nameof(OwnerId))]
+        public virtual User Owner { get; set; } = null!;
 
-        public string FieldId { get; set; } = string.Empty;
-        [ForeignKey(nameof(FieldId))]
-        public virtual Field Field { get; set; } = null!;
+        // A Constants.Fields.DataTypes value. Whatever field this clause is later bound to
+        // must be of this type.
+        public string DataType { get; set; } = string.Empty;
 
         // Filters only. A null Value means "has no value".
         public string? Operator { get; set; }

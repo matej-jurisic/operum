@@ -672,11 +672,7 @@ function SidebarList({
 
     return (
         <Box>
-            {collapsed ? (
-                // Reserve the same vertical space the title occupies when expanded
-                // so the icon column does not slide up/down as the rail toggles.
-                <Box h={32} mb={6} />
-            ) : (
+            {!collapsed && (
                 <Group
                     justify="space-between"
                     wrap="nowrap"

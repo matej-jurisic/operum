@@ -33,18 +33,13 @@ namespace Operum.Model
                 .HasForeignKey(v => v.TrackerId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // A Query is a field-agnostic, user-owned clause pooled across every view and
+            // dashboard view that reads the same way. It outlives any one of them; only
+            // deleting the user takes it down.
             builder.Entity<Query>()
-                .HasOne(q => q.Tracker)
-                .WithMany(t => t.Queries)
-                .HasForeignKey(q => q.TrackerId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            // A query is a clause over one field, so it cannot outlive it: deleting the
-            // field drops the query, which in turn drops it from whichever views used it.
-            builder.Entity<Query>()
-                .HasOne(q => q.Field)
+                .HasOne(q => q.Owner)
                 .WithMany()
-                .HasForeignKey(q => q.FieldId)
+                .HasForeignKey(q => q.OwnerId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.Entity<ViewQuery>()
@@ -59,6 +54,33 @@ namespace Operum.Model
                 .HasOne(vq => vq.Query)
                 .WithMany()
                 .HasForeignKey(vq => vq.QueryId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // A ViewQuery binds its clause to one concrete field; deleting the field drops
+            // the binding (and so the clause) from whichever views used it -- the same edge
+            // the old field-bound Query had.
+            builder.Entity<ViewQuery>()
+                .HasOne(vq => vq.Field)
+                .WithMany()
+                .HasForeignKey(vq => vq.FieldId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<DashboardView>()
+                .HasOne(dv => dv.Dashboard)
+                .WithMany()
+                .HasForeignKey(dv => dv.DashboardId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<DashboardViewQuery>()
+                .HasOne(dvq => dvq.DashboardView)
+                .WithMany(dv => dv.DashboardViewQueries)
+                .HasForeignKey(dvq => dvq.DashboardViewId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<DashboardViewQuery>()
+                .HasOne(dvq => dvq.Query)
+                .WithMany()
+                .HasForeignKey(dvq => dvq.QueryId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.Entity<ViewColumn>()
@@ -110,14 +132,6 @@ namespace Operum.Model
                 .WithMany(i => i.Sources)
                 .HasForeignKey(s => s.DashboardItemId)
                 .OnDelete(DeleteBehavior.Cascade);
-
-            // Removing the View widget a source follows un-links it rather than taking the
-            // source's own item down with it — the chart just falls back to unfiltered.
-            builder.Entity<DashboardItemSource>()
-                .HasOne(s => s.LinkedViewWidget)
-                .WithMany()
-                .HasForeignKey(s => s.LinkedViewWidgetId)
-                .OnDelete(DeleteBehavior.SetNull);
 
             builder.Entity<Widget>()
                 .HasOne(w => w.Owner)
@@ -252,6 +266,8 @@ namespace Operum.Model
         public DbSet<Dashboard> Dashboards { get; set; }
         public DbSet<DashboardItem> DashboardItems { get; set; }
         public DbSet<DashboardItemSource> DashboardItemSources { get; set; }
+        public DbSet<DashboardView> DashboardViews { get; set; }
+        public DbSet<DashboardViewQuery> DashboardViewQueries { get; set; }
         public DbSet<Widget> Widgets { get; set; }
         public DbSet<WidgetSource> WidgetSources { get; set; }
         public DbSet<WidgetSourceField> WidgetSourceFields { get; set; }

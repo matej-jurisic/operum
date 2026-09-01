@@ -261,9 +261,6 @@ namespace Operum.Model.Migrations
                     b.Property<string>("Label")
                         .HasColumnType("text");
 
-                    b.Property<string>("LinkedViewWidgetId")
-                        .HasColumnType("text");
-
                     b.Property<int>("Order")
                         .HasColumnType("integer");
 
@@ -278,11 +275,57 @@ namespace Operum.Model.Migrations
 
                     b.HasIndex("DashboardItemId");
 
-                    b.HasIndex("LinkedViewWidgetId");
-
                     b.HasIndex("WidgetSourceId");
 
                     b.ToTable("DashboardItemSources");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.DashboardView", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DashboardId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DashboardId");
+
+                    b.ToTable("DashboardViews");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.DashboardViewQuery", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DashboardViewId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("QueryId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DashboardViewId");
+
+                    b.HasIndex("QueryId");
+
+                    b.ToTable("DashboardViewQueries");
                 });
 
             modelBuilder.Entity("Operum.Model.Models.EntriesWidget", b =>
@@ -567,12 +610,12 @@ namespace Operum.Model.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("text");
 
-                    b.Property<bool>("Descending")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("FieldId")
+                    b.Property<string>("DataType")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<bool>("Descending")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Kind")
                         .IsRequired()
@@ -581,7 +624,7 @@ namespace Operum.Model.Migrations
                     b.Property<string>("Operator")
                         .HasColumnType("text");
 
-                    b.Property<string>("TrackerId")
+                    b.Property<string>("OwnerId")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -590,9 +633,7 @@ namespace Operum.Model.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("FieldId");
-
-                    b.HasIndex("TrackerId");
+                    b.HasIndex("OwnerId");
 
                     b.ToTable("Queries");
                 });
@@ -1008,6 +1049,10 @@ namespace Operum.Model.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("text");
 
+                    b.Property<string>("FieldId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<int>("Order")
                         .HasColumnType("integer");
 
@@ -1020,6 +1065,8 @@ namespace Operum.Model.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("FieldId");
 
                     b.HasIndex("QueryId");
 
@@ -1209,11 +1256,6 @@ namespace Operum.Model.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Operum.Model.Models.DashboardItem", "LinkedViewWidget")
-                        .WithMany()
-                        .HasForeignKey("LinkedViewWidgetId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("Operum.Model.Models.WidgetSource", "WidgetSource")
                         .WithMany()
                         .HasForeignKey("WidgetSourceId")
@@ -1222,9 +1264,37 @@ namespace Operum.Model.Migrations
 
                     b.Navigation("DashboardItem");
 
-                    b.Navigation("LinkedViewWidget");
-
                     b.Navigation("WidgetSource");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.DashboardView", b =>
+                {
+                    b.HasOne("Operum.Model.Models.Dashboard", "Dashboard")
+                        .WithMany()
+                        .HasForeignKey("DashboardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dashboard");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.DashboardViewQuery", b =>
+                {
+                    b.HasOne("Operum.Model.Models.DashboardView", "DashboardView")
+                        .WithMany("DashboardViewQueries")
+                        .HasForeignKey("DashboardViewId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Operum.Model.Models.Query", "Query")
+                        .WithMany()
+                        .HasForeignKey("QueryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DashboardView");
+
+                    b.Navigation("Query");
                 });
 
             modelBuilder.Entity("Operum.Model.Models.EntriesWidget", b =>
@@ -1367,21 +1437,13 @@ namespace Operum.Model.Migrations
 
             modelBuilder.Entity("Operum.Model.Models.Query", b =>
                 {
-                    b.HasOne("Operum.Model.Models.Field", "Field")
+                    b.HasOne("Operum.Model.Models.User", "Owner")
                         .WithMany()
-                        .HasForeignKey("FieldId")
+                        .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Operum.Model.Models.Tracker", "Tracker")
-                        .WithMany("Queries")
-                        .HasForeignKey("TrackerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Field");
-
-                    b.Navigation("Tracker");
+                    b.Navigation("Owner");
                 });
 
             modelBuilder.Entity("Operum.Model.Models.RefreshToken", b =>
@@ -1529,6 +1591,12 @@ namespace Operum.Model.Migrations
 
             modelBuilder.Entity("Operum.Model.Models.ViewQuery", b =>
                 {
+                    b.HasOne("Operum.Model.Models.Field", "Field")
+                        .WithMany()
+                        .HasForeignKey("FieldId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("Operum.Model.Models.Query", "Query")
                         .WithMany()
                         .HasForeignKey("QueryId")
@@ -1540,6 +1608,8 @@ namespace Operum.Model.Migrations
                         .HasForeignKey("ViewId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Field");
 
                     b.Navigation("Query");
 
@@ -1605,6 +1675,11 @@ namespace Operum.Model.Migrations
                     b.Navigation("Sources");
                 });
 
+            modelBuilder.Entity("Operum.Model.Models.DashboardView", b =>
+                {
+                    b.Navigation("DashboardViewQueries");
+                });
+
             modelBuilder.Entity("Operum.Model.Models.Entry", b =>
                 {
                     b.Navigation("FieldValues");
@@ -1629,8 +1704,6 @@ namespace Operum.Model.Migrations
                     b.Navigation("Fields");
 
                     b.Navigation("Notifications");
-
-                    b.Navigation("Queries");
 
                     b.Navigation("TrackerConstants");
 

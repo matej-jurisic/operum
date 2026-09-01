@@ -195,6 +195,7 @@ export function CalendarCard({
                                                     </Stack>
                                                     {onEntryClick && (
                                                         <ActionIcon
+                                                            variant="outline"
                                                             color={color}
                                                             onClick={() =>
                                                                 onEntryClick(

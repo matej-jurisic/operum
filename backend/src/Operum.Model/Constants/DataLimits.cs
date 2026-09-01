@@ -12,7 +12,12 @@
         public const int MaxConstantCount = 25;
         public const int MaxConstantValueCount = 6;
         public const int MaxViewCount = 25;
-        public const int MaxQueryCount = 50;
+        // Per-user cap on the field-agnostic clause pool (see QueryPool). Clauses are
+        // value-deduplicated, so this counts distinct clauses across every view and
+        // dashboard view the user has authored.
+        public const int MaxQueryCount = 200;
+        // Named clause sets a single dashboard can offer through its view selectors.
+        public const int MaxDashboardViewCount = 15;
         public const int MaxSorts = 3;
         public const int MaxFilters = 6;
         // A column names one field, so a view showing every field shows this many.

@@ -25,7 +25,6 @@ namespace Operum.Model.Models
 
         public virtual List<Field> Fields { get; set; } = [];
         public virtual List<View> Views { get; set; } = [];
-        public virtual List<Query> Queries { get; set; } = [];
         public virtual List<UserTracker> ApplicationUserTrackers { get; set; } = [];
         public virtual List<TrackerConstant> TrackerConstants { get; set; } = [];
         public virtual List<TrackerNotification> Notifications { get; set; } = [];

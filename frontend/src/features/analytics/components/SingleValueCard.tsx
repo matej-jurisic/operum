@@ -75,6 +75,7 @@ export function SingleValueCard({
                         analytic.entryId &&
                         onEntryClick && (
                             <ActionIcon
+                                variant="outline"
                                 color={color}
                                 onClick={() => onEntryClick(analytic.entryId!)}
                             >

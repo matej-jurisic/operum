@@ -16,19 +16,17 @@ namespace Operum.Model.DTOs.Dashboard.Requests
         // only ever supplies the tracker-specific half of it.
         public List<CreateAnalyticFieldDto> AnalyticFields { get; set; } = [];
 
-        // At most one of these narrows this placement's entries: ViewId fixes it,
-        // LinkedViewWidgetId instead follows a DashboardWidgetTypes.View item already on the
-        // board, so the filter changes live with its dropdown.
+        // The fixed tracker view this placement's entries read through, if any. A view
+        // selector widget on the board can narrow it further after the fact.
         public string? ViewId { get; set; }
-        public string? LinkedViewWidgetId { get; set; }
         public string? Label { get; set; }
     }
 
     // Defines a new Widget Library chart and places it on this dashboard in one call --
     // the single-round-trip convenience CustomAnalyticForm relies on. Splits into
     // WidgetsService.CreateWidget (the definition: ResultType/Code/AnalyticFields) followed
-    // by PlaceWidget (the placement: Label/ViewId/LinkedViewWidgetId/layout), so the widget
-    // this creates is exactly as reusable afterwards as one built from the Library directly.
+    // by PlaceWidget (the placement: Label/ViewId/layout), so the widget this creates is
+    // exactly as reusable afterwards as one built from the Library directly.
     public class CreateAndPlaceWidgetDto
     {
         // Optional: left unset, the widget falls back to its definition's own label (e.g.
@@ -67,10 +65,6 @@ namespace Operum.Model.DTOs.Dashboard.Requests
             RuleFor(x => x.Label)
                 .MaximumLength(100).WithMessage("Label cannot exceed 100 characters.")
                 .When(x => !string.IsNullOrEmpty(x.Label));
-
-            RuleFor(x => x)
-                .Must(x => string.IsNullOrEmpty(x.ViewId) || string.IsNullOrEmpty(x.LinkedViewWidgetId))
-                .WithMessage("A source cannot both filter by a fixed view and follow a view widget.");
 
             RuleForEach(x => x.AnalyticFields)
                 .SetValidator(new CreateAnalyticFieldDtoValidator());

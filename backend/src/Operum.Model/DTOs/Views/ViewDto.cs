@@ -1,5 +1,3 @@
-using Operum.Model.DTOs.Queries;
-
 namespace Operum.Model.DTOs.Views
 {
     public class ViewDto
@@ -9,7 +7,7 @@ namespace Operum.Model.DTOs.Views
         public string? Description { get; set; }
 
         // Ordered: precedence for sort-merge (first-field-wins) and display order.
-        public List<QueryDto> Queries { get; set; } = [];
+        public List<ViewQueryDto> Queries { get; set; } = [];
 
         // The fields this view shows, in the order it shows them. Empty means every field.
         // Ids alone: the client already has the tracker's fields.

@@ -4,7 +4,7 @@ import {
     QueryKindColor,
     QueryKindLabel,
 } from "../../../shared/constants/QueryKinds";
-import { describeQuery } from "../../../shared/utils/formatters/QueryFormatter";
+import { describeClause } from "../../../shared/utils/formatters/QueryFormatter";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { viewsController } from "../api/viewsController";
 import { ViewDto } from "../types/ViewDto";
@@ -62,7 +62,7 @@ export default function ViewDetailsDialog(props: Props) {
                     </Text>
                 ) : (
                     view.queries.map((query, index) => (
-                        <Paper key={query.id} p="sm" withBorder>
+                        <Paper key={index} p="sm" withBorder>
                             <Group justify="space-between" wrap="nowrap">
                                 <Group gap="xs" wrap="nowrap">
                                     <Badge
@@ -77,7 +77,7 @@ export default function ViewDetailsDialog(props: Props) {
                                         size="sm"
                                         className="wrapped-text"
                                     >
-                                        {describeQuery(query)}
+                                        {describeClause(query)}
                                     </Text>
                                 </Group>
                                 <Badge variant="outline" color="gray" size="xs">

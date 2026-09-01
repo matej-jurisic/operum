@@ -102,7 +102,7 @@ export function UsersCards({
                                 {currentUserId !== undefined &&
                                     user.id !== currentUserId && (
                                         <ActionIcon
-                                            variant="light"
+                                            variant="outline"
                                             color="blue"
                                             onClick={() => onEditRoles(user)}
                                         >
@@ -111,7 +111,7 @@ export function UsersCards({
                                     )}
                                 {!user.mailConfirmed && (
                                     <ActionIcon
-                                        variant="light"
+                                        variant="outline"
                                         color="blue"
                                         onClick={() => onConfirmMail(user)}
                                     >

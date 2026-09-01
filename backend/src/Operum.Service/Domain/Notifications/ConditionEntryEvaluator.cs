@@ -18,7 +18,8 @@ namespace Operum.Service.Domain.Notifications
 
             var view = !string.IsNullOrEmpty(notification.ViewId)
                 ? await db.Views
-                    .Include(v => v.ViewQueries.OrderBy(vq => vq.Order)).ThenInclude(vq => vq.Query).ThenInclude(q => q.Field)
+                    .Include(v => v.ViewQueries.OrderBy(vq => vq.Order)).ThenInclude(vq => vq.Query)
+                    .Include(v => v.ViewQueries).ThenInclude(vq => vq.Field)
                     .FirstOrDefaultAsync(v => v.Id == notification.ViewId, ct)
                 : null;
 
@@ -29,17 +30,10 @@ namespace Operum.Service.Domain.Notifications
             if (view != null)
                 entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, ViewQueryBuilder.ResolveFilters(view), tz);
 
-            // Project condition filters to filter Queries so the view filter builder can be reused
+            // Project condition filters to resolved clauses so the view filter builder can be reused
             var conditionFilters = condition.Filters
                 .Where(f => f.FieldId != null && f.Field != null)
-                .Select(f => new Query
-                {
-                    Kind = QueryKinds.Filter,
-                    FieldId = f.FieldId!,
-                    Operator = f.Operator,
-                    Value = f.Value,
-                    Field = f.Field!
-                })
+                .Select(f => new ResolvedClause(f.FieldId!, f.Field!.Type, f.Operator, f.Value, false))
                 .ToList();
 
             if (conditionFilters.Count > 0)

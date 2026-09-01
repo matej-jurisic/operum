@@ -346,7 +346,7 @@ export default function TrackerWizard({ onClose }: Props) {
                                                 size="sm"
                                             />
                                             <ActionIcon
-                                                variant="subtle"
+                                                variant="outline"
                                                 color="red"
                                                 onClick={() =>
                                                     removeField(f.id)

@@ -17,10 +17,16 @@ import {
 import { useMediaQuery } from "@mantine/hooks";
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { IconType } from "react-icons";
-import { CiFilter } from "react-icons/ci";
 import { FiChevronRight, FiPlus, FiPlusSquare, FiSearch } from "react-icons/fi";
 import { MdOutlineHorizontalRule } from "react-icons/md";
-import { TbChartHistogram, TbHeading, TbLayoutGrid, TbNote, TbTable } from "react-icons/tb";
+import {
+    TbChartHistogram,
+    TbFilter,
+    TbHeading,
+    TbLayoutGrid,
+    TbNote,
+    TbTable,
+} from "react-icons/tb";
 import EmptyState from "../../../shared/components/EmptyState";
 import { CustomAnalyticForm } from "../../dashboard/components/CustomAnalyticForm";
 import { EntriesWidgetForm } from "../../dashboard/components/EntriesWidgetForm";
@@ -28,7 +34,7 @@ import { HeaderWidgetForm } from "../../dashboard/components/HeaderWidgetForm";
 import { NoteWidgetForm } from "../../dashboard/components/NoteWidgetForm";
 import { PlaceFromLibraryForm } from "../../dashboard/components/PlaceFromLibraryForm";
 import { QuickAddTrackerForm } from "../../dashboard/components/QuickAddTrackerForm";
-import { ViewWidgetForm } from "../../dashboard/components/ViewWidgetForm";
+import { ViewSelectorWidgetForm } from "../../dashboard/components/ViewSelectorWidgetForm";
 import { useDashboard } from "../../dashboard/context/DashboardContext";
 import { trackersController } from "../../trackers/api/trackersController";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
@@ -82,7 +88,7 @@ interface InstantOption {
 
 const CONTROL_OPTIONS: InstantOption[] = [
     { key: "quickAdd", title: "Quick-add button", icon: FiPlusSquare },
-    { key: "view", title: "View selector", icon: CiFilter },
+    { key: "view", title: "View selector", icon: TbFilter },
 ];
 
 const LAYOUT_OPTIONS: InstantOption[] = [
@@ -140,7 +146,7 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
         createAndPlaceEntriesWidget,
         placeEntriesWidget,
         addQuickAddItem,
-        addViewItem,
+        addViewSelectorItem,
         addHeaderItem,
         addDividerItem,
         addNoteItem,
@@ -249,7 +255,8 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
         subPanel.kind === "new-chart" ||
         subPanel.kind === "new-table" ||
         subPanel.kind === "place-chart" ||
-        subPanel.kind === "place-table";
+        subPanel.kind === "place-table" ||
+        (subPanel.kind === "config" && subPanel.widgetKind === "view");
 
     // Search + tracker filter share one row across the Charts and Tables tabs on desktop.
     // On mobile the modal is too narrow for that: search gets its own row, and the tracker
@@ -569,7 +576,11 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
                 )}
 
                 {subPanel.kind === "config" && subPanel.widgetKind === "view" && (
-                    <ViewWidgetForm onBack={backToList} onAdd={closeAfter(addViewItem)} />
+                    <ViewSelectorWidgetForm
+                        color={color}
+                        onBack={backToList}
+                        onAdd={closeAfter(addViewSelectorItem)}
+                    />
                 )}
 
                 {subPanel.kind === "config" && subPanel.widgetKind === "header" && (

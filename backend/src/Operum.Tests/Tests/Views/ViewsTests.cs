@@ -1,6 +1,5 @@
 using Operum.Model.Constants;
 using Operum.Model.Constants.Fields;
-using Operum.Model.DTOs.Queries.Requests;
 using Operum.Model.DTOs.Views.Requests;
 using Operum.Tests.Util;
 using System.Net;
@@ -35,15 +34,15 @@ namespace Operum.Tests.Tests.Views
         private static Task<HttpResponseMessage> PutView(HttpClient client, string trackerId, string viewId, UpdateViewDto view) =>
             client.PutAsJsonAsync($"trackers/{trackerId}/views/{viewId}", view);
 
-        /// <summary>A View made of the given ad-hoc clauses, each of which becomes a Query of its own.</summary>
-        private static CreateViewDto ViewOf(string name, params CreateQueryDto[] clauses) =>
+        /// <summary>A View made of the given clauses.</summary>
+        private static CreateViewDto ViewOf(string name, params ViewClauseDto[] clauses) =>
             ViewOf(name, null, clauses);
 
-        private static CreateViewDto ViewOf(string name, string? description, params CreateQueryDto[] clauses) => new()
+        private static CreateViewDto ViewOf(string name, string? description, params ViewClauseDto[] clauses) => new()
         {
             Name = name,
             Description = description,
-            Queries = [.. clauses.Select(c => new ViewQueryRefDto { NewQuery = c })]
+            Queries = [.. clauses]
         };
 
         [Fact]
@@ -83,38 +82,6 @@ namespace Operum.Tests.Tests.Views
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(["Everything"], await ViewNames(client, fixture.TrackerId));
-        }
-
-        [Fact]
-        public async Task CreateView_FromAnExistingQuery_ReusesIt()
-        {
-            var client = await OwnerClient();
-            var fixture = await CreateTracker(client, "Reuse query");
-            var queryId = await TestApi.CreateFilterQuery(client, fixture.TrackerId, fixture.AmountFieldId, OperatorTypes.GreaterThan, "5");
-
-            var viewId = await TestApi.CreateViewFromQueries(client, fixture.TrackerId, "Big", queryId);
-
-            var view = await TestApi.Data(await client.GetAsync($"trackers/{fixture.TrackerId}/views/{viewId}"));
-            var query = view.GetProperty("queries").EnumerateArray().Single();
-            Assert.Equal(queryId, query.GetProperty("id").GetString());
-        }
-
-        [Fact]
-        public async Task CreateView_ReferencingAQueryOfAnotherTracker_ReturnsBadRequest()
-        {
-            var client = await OwnerClient();
-            var fixture = await CreateTracker(client, "Query borrower");
-            var other = await CreateTracker(client, "Query owner");
-            var queryId = await TestApi.CreateFilterQuery(client, other.TrackerId, other.AmountFieldId, OperatorTypes.GreaterThan, "5");
-
-            var response = await TestApi.PostView(client, fixture.TrackerId, new CreateViewDto
-            {
-                Name = "Foreign query",
-                Queries = [new ViewQueryRefDto { QueryId = queryId }]
-            });
-
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-            Assert.Contains(Messages.ItemNotFound("query"), await TestApi.Messages(response));
         }
 
         [Fact]
@@ -293,10 +260,7 @@ namespace Operum.Tests.Tests.Views
             var response = await PutView(client, fixture.TrackerId, viewId, new UpdateViewDto
             {
                 Name = "Rewritten",
-                Queries = [new ViewQueryRefDto
-                {
-                    NewQuery = TestApi.FilterClause(fixture.NoteFieldId, OperatorTypes.Contains, "walk")
-                }]
+                Queries = [TestApi.FilterClause(fixture.NoteFieldId, OperatorTypes.Contains, "walk")]
             });
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -319,10 +283,7 @@ namespace Operum.Tests.Tests.Views
             var response = await PutView(client, fixture.TrackerId, viewId, new UpdateViewDto
             {
                 Name = "Original",
-                Queries = [new ViewQueryRefDto
-                {
-                    NewQuery = TestApi.FilterClause(fixture.AmountFieldId, OperatorTypes.Contains, "5")
-                }]
+                Queries = [TestApi.FilterClause(fixture.AmountFieldId, OperatorTypes.Contains, "5")]
             });
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -372,19 +333,17 @@ namespace Operum.Tests.Tests.Views
         }
 
         [Fact]
-        public async Task DeleteView_LeavesASharedQueryIntact()
+        public async Task DeleteView_LeavesOtherViewsUsingTheSameClauseIntact()
         {
             var client = await OwnerClient();
-            var fixture = await CreateTracker(client, "Delete view keeps query");
-            var queryId = await TestApi.CreateFilterQuery(client, fixture.TrackerId, fixture.AmountFieldId, OperatorTypes.GreaterThan, "5");
-            var viewId = await TestApi.CreateViewFromQueries(client, fixture.TrackerId, "Uses shared", queryId);
-            await TestApi.CreateViewFromQueries(client, fixture.TrackerId, "Also uses shared", queryId);
+            var fixture = await CreateTracker(client, "Delete view keeps clause");
+            var viewId = await TestApi.CreateFilterView(client, fixture.TrackerId, "Uses clause", fixture.AmountFieldId, OperatorTypes.GreaterThan, "5");
+            await TestApi.CreateFilterView(client, fixture.TrackerId, "Also uses clause", fixture.AmountFieldId, OperatorTypes.GreaterThan, "5");
 
             var response = await client.DeleteAsync($"trackers/{fixture.TrackerId}/views/{viewId}");
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            var query = await TestApi.Data(await client.GetAsync($"trackers/{fixture.TrackerId}/queries/{queryId}"));
-            Assert.Equal("Amount", query.GetProperty("field").GetProperty("name").GetString());
+            Assert.Equal(["Also uses clause"], await ViewNames(client, fixture.TrackerId));
         }
 
         [Fact]
