@@ -14,6 +14,7 @@ import {
     UnstyledButton,
     useMantineTheme,
 } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { IconType } from "react-icons";
 import { CiFilter } from "react-icons/ci";
@@ -66,6 +67,13 @@ type Panel =
     | { kind: "delete-table"; entriesWidget: EntriesWidgetDefinitionDto }
     | { kind: "config"; widgetKind: "quickAdd" | "view" | "header" | "note" };
 
+const TAB_META: { value: TabValue; label: string; icon: IconType }[] = [
+    { value: "charts", label: "Charts", icon: TbChartHistogram },
+    { value: "tables", label: "Tables", icon: TbTable },
+    { value: "controls", label: "Controls", icon: FiPlusSquare },
+    { value: "layout", label: "Layout", icon: TbLayoutGrid },
+];
+
 interface InstantOption {
     key: "quickAdd" | "view" | "header" | "divider" | "note";
     title: string;
@@ -115,6 +123,7 @@ function panelTitle(panel: Panel): string {
 
 export function WidgetLibraryModal({ color, onClose }: Props) {
     const theme = useMantineTheme();
+    const isMobile = useMediaQuery("(max-width: 48em)");
     const {
         widgets,
         entriesWidgets,
@@ -242,29 +251,46 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
         subPanel.kind === "place-chart" ||
         subPanel.kind === "place-table";
 
-    // Search + tracker filter share one row across the Charts and Tables tabs; the tab's
-    // "New" button sits at the end and wraps under on a narrow modal.
-    const listToolbar = (newButton: ReactNode) => (
-        <Group gap="sm" wrap="wrap" align="center">
-            <TextInput
-                placeholder="Search by name"
-                leftSection={<FiSearch size={15} />}
-                value={search}
-                onChange={(event) => setSearch(event.currentTarget.value)}
-                style={{ flex: 1, minWidth: 200 }}
-            />
-            <Select
-                placeholder="All trackers"
-                data={trackers.map((t) => ({ value: t.id, label: t.name }))}
-                value={trackerFilter}
-                onChange={setTrackerFilter}
-                clearable
-                searchable
-                w={190}
-            />
-            {newButton}
-        </Group>
+    // Search + tracker filter share one row across the Charts and Tables tabs on desktop.
+    // On mobile the modal is too narrow for that: search gets its own row, and the tracker
+    // filter shares the next row with the tab's "New" button.
+    const searchInput = (
+        <TextInput
+            placeholder="Search by name"
+            leftSection={<FiSearch size={15} />}
+            value={search}
+            onChange={(event) => setSearch(event.currentTarget.value)}
+            style={{ flex: 1, minWidth: isMobile ? 0 : 200 }}
+        />
     );
+    const filterSelect = (
+        <Select
+            placeholder="All trackers"
+            data={trackers.map((t) => ({ value: t.id, label: t.name }))}
+            value={trackerFilter}
+            onChange={setTrackerFilter}
+            clearable
+            searchable
+            w={isMobile ? undefined : 190}
+            style={isMobile ? { flex: 1 } : undefined}
+        />
+    );
+    const listToolbar = (newButton: ReactNode) =>
+        isMobile ? (
+            <Stack gap="sm">
+                {searchInput}
+                <Group gap="sm" wrap="nowrap" align="center">
+                    {filterSelect}
+                    {newButton}
+                </Group>
+            </Stack>
+        ) : (
+            <Group gap="sm" wrap="wrap" align="center">
+                {searchInput}
+                {filterSelect}
+                {newButton}
+            </Group>
+        );
 
     // The list is one bordered surface of quiet rows rather than a grid of standalone
     // cards -- easier to scan down when there are a lot of saved widgets.
@@ -321,13 +347,15 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
                 title="Widgets"
                 size={960}
                 centered
+                fullScreen={isMobile}
                 styles={{
                     // Fixed height so the modal doesn't jump around as the search or
                     // tracker filter changes how many rows are shown. The body itself
                     // never scrolls -- the tab header and toolbar stay put while each
-                    // tab's list area scrolls on its own.
+                    // tab's list area scrolls on its own. Full-screen on mobile, where
+                    // the height is just whatever the viewport gives us.
                     content: {
-                        height: "min(92vh, 840px)",
+                        height: isMobile ? "100%" : "min(92vh, 840px)",
                         display: "flex",
                         flexDirection: "column",
                     },
@@ -357,19 +385,20 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
                         panel: { flex: 1, minHeight: 0 },
                     }}
                 >
-                    <Tabs.List mb="md">
-                        <Tabs.Tab value="charts" leftSection={<TbChartHistogram size={16} />}>
-                            Charts
-                        </Tabs.Tab>
-                        <Tabs.Tab value="tables" leftSection={<TbTable size={16} />}>
-                            Tables
-                        </Tabs.Tab>
-                        <Tabs.Tab value="controls" leftSection={<FiPlusSquare size={16} />}>
-                            Controls
-                        </Tabs.Tab>
-                        <Tabs.Tab value="layout" leftSection={<TbLayoutGrid size={16} />}>
-                            Layout
-                        </Tabs.Tab>
+                    {/* On mobile the four labels don't fit on one line, so we show just the
+                        icon for every tab and the label only for the selected one -- the
+                        same treatment as the tracker page. */}
+                    <Tabs.List mb="md" grow={!!isMobile}>
+                        {TAB_META.map(({ value, label, icon: Icon }) => (
+                            <Tabs.Tab
+                                key={value}
+                                value={value}
+                                px={isMobile ? "xs" : undefined}
+                                leftSection={<Icon size={16} />}
+                            >
+                                {(!isMobile || tab === value) && label}
+                            </Tabs.Tab>
+                        ))}
                     </Tabs.List>
 
                     <Tabs.Panel value="charts" style={{ display: "flex", flexDirection: "column" }}>
@@ -378,8 +407,9 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
                                 <Button
                                     leftSection={<FiPlus size={16} />}
                                     onClick={() => setPanel({ kind: "new-chart" })}
+                                    style={{ flexShrink: 0 }}
                                 >
-                                    New chart
+                                    {isMobile ? "New" : "New chart"}
                                 </Button>
                             )}
 
@@ -405,6 +435,7 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
                                             key={widget.id}
                                             widget={widget}
                                             color={color}
+                                            isMobile={!!isMobile}
                                             onAdd={() =>
                                                 setPanel({ kind: "place-chart", widget })
                                             }
@@ -427,8 +458,9 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
                                 <Button
                                     leftSection={<FiPlus size={16} />}
                                     onClick={() => setPanel({ kind: "new-table" })}
+                                    style={{ flexShrink: 0 }}
                                 >
-                                    New table
+                                    {isMobile ? "New" : "New table"}
                                 </Button>
                             )}
 
@@ -454,6 +486,7 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
                                             key={entriesWidget.id}
                                             entriesWidget={entriesWidget}
                                             color={color}
+                                            isMobile={!!isMobile}
                                             onAdd={() =>
                                                 setPanel({
                                                     kind: "place-table",
@@ -494,6 +527,7 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
                 title={panelTitle(subPanel)}
                 size={isWideSub ? "lg" : "md"}
                 centered
+                fullScreen={isMobile}
                 // Lighter overlay so the library stays legible behind the stacked dialog
                 // instead of stacking two full-strength scrims.
                 overlayProps={{ backgroundOpacity: 0.35 }}

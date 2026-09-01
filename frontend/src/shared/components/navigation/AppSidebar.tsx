@@ -18,6 +18,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import {
     ActionIcon,
+    Avatar,
     Box,
     CloseButton,
     Divider,
@@ -67,6 +68,10 @@ import navigationStore from "../../stores/NavigationStore";
 interface Props {
     collapsed: boolean;
     showCollapseToggle: boolean;
+    // Collapses the theme/profile/admin/logout rows into a single account menu.
+    // On the mobile drawer, four stacked footer rows crowd out the tracker and
+    // dashboard lists that are the reason the drawer was opened.
+    compactFooter: boolean;
     // Shown everywhere the rail is expanded -- on desktop and in the mobile
     // drawer, which has no app header of its own to carry the wordmark.
     showBrand: boolean;
@@ -105,6 +110,7 @@ const AppSidebar = observer(
     ({
         collapsed,
         showCollapseToggle,
+        compactFooter,
         showBrand,
         onToggleCollapse,
         onNavigate,
@@ -125,6 +131,11 @@ const AppSidebar = observer(
         const go = (to: string) => {
             navigate(to);
             onNavigate();
+        };
+
+        const logout = async () => {
+            await auth.logout();
+            navigate("/home");
         };
 
         const isRouteActive = (base: string) =>
@@ -341,43 +352,58 @@ const AppSidebar = observer(
 
                 {/* Footer */}
                 <Box px={px}>
-                    <NavItem
-                        collapsed={collapsed}
-                        label={colorScheme === "dark" ? "Light theme" : "Dark theme"}
-                        icon={
-                            colorScheme === "dark" ? (
-                                <GoSun size={18} />
-                            ) : (
-                                <IoMoonOutline size={18} />
-                            )
-                        }
-                        onClick={() => toggleColorScheme()}
-                    />
-                    <NavItem
-                        collapsed={collapsed}
-                        label="Profile"
-                        icon={<TbUser size={18} />}
-                        active={pathname === "/profile"}
-                        onClick={() => go("/profile")}
-                    />
-                    {isAdmin && (
-                        <NavItem
-                            collapsed={collapsed}
-                            label="Admin panel"
-                            icon={<TbSettings size={18} />}
-                            active={isRouteActive("/admin-panel")}
-                            onClick={() => go("/admin-panel")}
+                    {compactFooter ? (
+                        <AccountMenu
+                            userName={globalStore.currentUser?.userName}
+                            colorScheme={colorScheme}
+                            isAdmin={isAdmin}
+                            onToggleColorScheme={toggleColorScheme}
+                            onProfile={() => go("/profile")}
+                            onAdmin={() => go("/admin-panel")}
+                            onLogout={logout}
                         />
+                    ) : (
+                        <>
+                            <NavItem
+                                collapsed={collapsed}
+                                label={
+                                    colorScheme === "dark"
+                                        ? "Light theme"
+                                        : "Dark theme"
+                                }
+                                icon={
+                                    colorScheme === "dark" ? (
+                                        <GoSun size={18} />
+                                    ) : (
+                                        <IoMoonOutline size={18} />
+                                    )
+                                }
+                                onClick={() => toggleColorScheme()}
+                            />
+                            <NavItem
+                                collapsed={collapsed}
+                                label="Profile"
+                                icon={<TbUser size={18} />}
+                                active={pathname === "/profile"}
+                                onClick={() => go("/profile")}
+                            />
+                            {isAdmin && (
+                                <NavItem
+                                    collapsed={collapsed}
+                                    label="Admin panel"
+                                    icon={<TbSettings size={18} />}
+                                    active={isRouteActive("/admin-panel")}
+                                    onClick={() => go("/admin-panel")}
+                                />
+                            )}
+                            <NavItem
+                                collapsed={collapsed}
+                                label="Logout"
+                                icon={<TbLogout size={18} />}
+                                onClick={logout}
+                            />
+                        </>
                     )}
-                    <NavItem
-                        collapsed={collapsed}
-                        label="Logout"
-                        icon={<TbLogout size={18} />}
-                        onClick={async () => {
-                            await auth.logout();
-                            navigate("/home");
-                        }}
-                    />
                 </Box>
             </Stack>
         );
@@ -387,6 +413,91 @@ const AppSidebar = observer(
 export default AppSidebar;
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * The footer's four utility rows folded into one. Used in the mobile drawer,
+ * where stacked rows steal vertical space from the tracker/dashboard lists.
+ */
+function AccountMenu({
+    userName,
+    colorScheme,
+    isAdmin,
+    onToggleColorScheme,
+    onProfile,
+    onAdmin,
+    onLogout,
+}: {
+    userName?: string;
+    colorScheme: string;
+    isAdmin: boolean;
+    onToggleColorScheme: () => void;
+    onProfile: () => void;
+    onAdmin: () => void;
+    onLogout: () => void;
+}) {
+    return (
+        <Menu shadow="md" position="top-start" withinPortal width="target">
+            <Menu.Target>
+                <UnstyledButton
+                    h={ROW_HEIGHT}
+                    px="xs"
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        width: "100%",
+                        borderRadius: "var(--mantine-radius-sm)",
+                    }}
+                >
+                    <Avatar size={ROW_ICON_BOX} radius="xl" color="gray">
+                        {userName?.[0]?.toUpperCase()}
+                    </Avatar>
+                    <Text size="md" truncate flex={1}>
+                        {userName ?? "Account"}
+                    </Text>
+                    <TbChevronRight size={16} />
+                </UnstyledButton>
+            </Menu.Target>
+            <Menu.Dropdown>
+                <Menu.Item
+                    closeMenuOnClick={false}
+                    leftSection={
+                        colorScheme === "dark" ? (
+                            <GoSun size={16} />
+                        ) : (
+                            <IoMoonOutline size={16} />
+                        )
+                    }
+                    onClick={onToggleColorScheme}
+                >
+                    {colorScheme === "dark" ? "Light theme" : "Dark theme"}
+                </Menu.Item>
+                <Menu.Item
+                    leftSection={<TbUser size={16} />}
+                    onClick={onProfile}
+                >
+                    Profile
+                </Menu.Item>
+                {isAdmin && (
+                    <Menu.Item
+                        leftSection={<TbSettings size={16} />}
+                        onClick={onAdmin}
+                    >
+                        Admin panel
+                    </Menu.Item>
+                )}
+                <Menu.Divider />
+                <Menu.Item
+                    color="red"
+                    leftSection={<TbLogout size={16} />}
+                    onClick={onLogout}
+                >
+                    Logout
+                </Menu.Item>
+            </Menu.Dropdown>
+        </Menu>
+    );
+}
 
 interface ListItem {
     id: string;

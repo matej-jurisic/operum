@@ -1,7 +1,7 @@
-import { ActionIcon, Button, Group, Stack, Text, ThemeIcon } from "@mantine/core";
+import { ActionIcon, Button, Group, Menu, Stack, Text, ThemeIcon } from "@mantine/core";
 import { useHover } from "@mantine/hooks";
 import { IconType } from "react-icons";
-import { MdAdd, MdDelete, MdEdit } from "react-icons/md";
+import { MdAdd, MdDelete, MdEdit, MdMoreVert } from "react-icons/md";
 import {
     TbCalendar,
     TbChartBar,
@@ -16,6 +16,7 @@ import { WidgetDto } from "../types/WidgetDto";
 interface Props {
     widget: WidgetDto;
     color: string;
+    isMobile?: boolean;
     onAdd: () => void;
     onEdit: () => void;
     onDelete: () => void;
@@ -46,7 +47,7 @@ function resultTypeIcon(resultType: string): IconType {
     Library manages definitions, not renders) -- see DashboardWidget for the actual chart,
     drawn once a widget is placed on a board. The whole row adds the widget to the board;
     edit and delete are the quiet icons on the right. */
-export function WidgetCard({ widget, color, onAdd, onEdit, onDelete }: Props) {
+export function WidgetCard({ widget, color, isMobile, onAdd, onEdit, onDelete }: Props) {
     const { hovered, ref } = useHover<HTMLDivElement>();
     const trackerNames = [...new Set(widget.sources.map((s) => s.trackerName))];
     const Icon = resultTypeIcon(widget.resultType);
@@ -85,40 +86,74 @@ export function WidgetCard({ widget, color, onAdd, onEdit, onDelete }: Props) {
                 </Text>
             </Stack>
 
-            <Button
-                variant={hovered ? "light" : "subtle"}
-                size="compact-sm"
-                color={color}
-                leftSection={<MdAdd size={14} />}
-                onClick={(event) => {
-                    event.stopPropagation();
-                    onAdd();
-                }}
-            >
-                Add
-            </Button>
-            <ActionIcon
-                variant="subtle"
-                color="gray"
-                aria-label="Edit widget"
-                onClick={(event) => {
-                    event.stopPropagation();
-                    onEdit();
-                }}
-            >
-                <MdEdit size={16} />
-            </ActionIcon>
-            <ActionIcon
-                variant="subtle"
-                color="gray"
-                aria-label="Delete widget"
-                onClick={(event) => {
-                    event.stopPropagation();
-                    onDelete();
-                }}
-            >
-                <MdDelete size={16} />
-            </ActionIcon>
+            {isMobile ? (
+                // Tapping the row already adds; the actions collapse into one menu so the
+                // name gets the width instead of three side-by-side controls.
+                <Menu position="bottom-end" withinPortal>
+                    <Menu.Target>
+                        <ActionIcon
+                            variant="subtle"
+                            color="gray"
+                            aria-label="Widget actions"
+                            onClick={(event) => event.stopPropagation()}
+                        >
+                            <MdMoreVert size={18} />
+                        </ActionIcon>
+                    </Menu.Target>
+                    <Menu.Dropdown onClick={(event) => event.stopPropagation()}>
+                        <Menu.Item leftSection={<MdAdd size={14} />} onClick={onAdd}>
+                            Add to board
+                        </Menu.Item>
+                        <Menu.Item leftSection={<MdEdit size={14} />} onClick={onEdit}>
+                            Edit
+                        </Menu.Item>
+                        <Menu.Item
+                            color="red"
+                            leftSection={<MdDelete size={14} />}
+                            onClick={onDelete}
+                        >
+                            Delete
+                        </Menu.Item>
+                    </Menu.Dropdown>
+                </Menu>
+            ) : (
+                <>
+                    <Button
+                        variant={hovered ? "light" : "subtle"}
+                        size="compact-sm"
+                        color={color}
+                        leftSection={<MdAdd size={14} />}
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            onAdd();
+                        }}
+                    >
+                        Add
+                    </Button>
+                    <ActionIcon
+                        variant="subtle"
+                        color="gray"
+                        aria-label="Edit widget"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            onEdit();
+                        }}
+                    >
+                        <MdEdit size={16} />
+                    </ActionIcon>
+                    <ActionIcon
+                        variant="subtle"
+                        color="gray"
+                        aria-label="Delete widget"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            onDelete();
+                        }}
+                    >
+                        <MdDelete size={16} />
+                    </ActionIcon>
+                </>
+            )}
         </Group>
     );
 }
