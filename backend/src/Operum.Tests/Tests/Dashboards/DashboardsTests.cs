@@ -1348,19 +1348,27 @@ namespace Operum.Tests.Tests.Dashboards
 
         // "Amount greater than ?" -- the value is left for the parameter widget to supply on
         // the board. The seeded entry's Amount is 5.
-        private static SaveDashboardViewDto AmountOverSet() => new()
+        private static List<ClauseDto> AmountOverClauses() =>
+        [
+            new ClauseDto
+            {
+                Kind = QueryKinds.Filter,
+                DataType = DataTypes.Number,
+                Operator = OperatorTypes.GreaterThan
+            }
+        ];
+
+        // The pooled query id the parameter widget's first clause resolved to -- the key
+        // SetParameterValues expects, read back off the board.
+        private static async Task<string> ParameterQueryId(HttpClient client, string dashboardId, string paramId)
         {
-            Name = "Amount over",
-            Clauses =
-            [
-                new ClauseDto
-                {
-                    Kind = QueryKinds.Filter,
-                    DataType = DataTypes.Number,
-                    Operator = OperatorTypes.GreaterThan
-                }
-            ]
-        };
+            var widgets = await Widgets(client, dashboardId);
+            foreach (var w in widgets.EnumerateArray())
+                if (w.GetProperty("id").GetString() == paramId)
+                    return w.GetProperty("parameter").GetProperty("clauses")[0]
+                        .GetProperty("queryId").GetString()!;
+            throw new InvalidOperationException("parameter widget not on the board");
+        }
 
         [Fact]
         public async Task Parameter_TypedValue_NarrowsLinkedChartAndClearsWhenBlank()
@@ -1372,27 +1380,23 @@ namespace Operum.Tests.Tests.Dashboards
             var dashboardId = await CreateDashboard(client);
             var chartId = await PlaceLineChart(client, dashboardId, tracker);
 
-            var view = await Data(await client.PostAsJsonAsync(
-                $"dashboard/{dashboardId}/views", AmountOverSet()));
-            var viewId = view.GetProperty("id").GetString()!;
-            var queryId = view.GetProperty("clauses")[0].GetProperty("queryId").GetString()!;
-
             var item = await Data(await client.PostAsJsonAsync(
                 $"dashboard/{dashboardId}/items/parameter",
                 new SaveParameterItemDto
                 {
-                    ViewId = viewId,
+                    Clauses = AmountOverClauses(),
                     Links =
                     [
                         new ViewSelectorLinkDto
                         {
                             ItemId = chartId,
                             TrackerId = tracker.Id,
-                            FieldByQuery = new() { [queryId] = tracker.AmountFieldId }
+                            FieldByQuery = new() { ["0"] = tracker.AmountFieldId }
                         }
                     ]
                 }));
             var paramId = item.GetProperty("id").GetString()!;
+            var queryId = await ParameterQueryId(client, dashboardId, paramId);
 
             // No value yet -- the clause is not applied, so the entry is still there.
             Assert.Equal(1, PointsOf(await Widgets(client, dashboardId), chartId));
@@ -1420,27 +1424,23 @@ namespace Operum.Tests.Tests.Dashboards
             var dashboardId = await CreateDashboard(client);
             var itemId = await PlaceEntriesTable(client, dashboardId, tracker);
 
-            var view = await Data(await client.PostAsJsonAsync(
-                $"dashboard/{dashboardId}/views", AmountOverSet()));
-            var viewId = view.GetProperty("id").GetString()!;
-            var queryId = view.GetProperty("clauses")[0].GetProperty("queryId").GetString()!;
-
             var param = await Data(await client.PostAsJsonAsync(
                 $"dashboard/{dashboardId}/items/parameter",
                 new SaveParameterItemDto
                 {
-                    ViewId = viewId,
+                    Clauses = AmountOverClauses(),
                     Links =
                     [
                         new ViewSelectorLinkDto
                         {
                             ItemId = itemId,
                             TrackerId = tracker.Id,
-                            FieldByQuery = new() { [queryId] = tracker.AmountFieldId }
+                            FieldByQuery = new() { ["0"] = tracker.AmountFieldId }
                         }
                     ]
                 }));
             var paramId = param.GetProperty("id").GetString()!;
+            var queryId = await ParameterQueryId(client, dashboardId, paramId);
 
             var narrowed = await client.PutAsJsonAsync(
                 $"dashboard/{dashboardId}/items/{paramId}/parameter-values",
@@ -1449,10 +1449,10 @@ namespace Operum.Tests.Tests.Dashboards
         }
 
         [Fact]
-        public async Task AddParameter_UnknownView_ReturnsBadRequest()
+        public async Task AddParameter_NoClauses_ReturnsBadRequest()
         {
             await _factory.SeedDatabaseAsync();
-            var client = await _factory.NewUserClient("paramunknownview");
+            var client = await _factory.NewUserClient("paramnoclauses");
 
             var tracker = await CreateCapableTracker(client, "Weight");
             var dashboardId = await CreateDashboard(client);
@@ -1460,7 +1460,35 @@ namespace Operum.Tests.Tests.Dashboards
 
             var response = await client.PostAsJsonAsync(
                 $"dashboard/{dashboardId}/items/parameter",
-                new SaveParameterItemDto { ViewId = "no-such-view" });
+                new SaveParameterItemDto());
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task AddParameter_SortClause_ReturnsBadRequest()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("paramsortclause");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            await PlaceLineChart(client, dashboardId, tracker);
+
+            var response = await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/items/parameter",
+                new SaveParameterItemDto
+                {
+                    Clauses =
+                    [
+                        new ClauseDto
+                        {
+                            Kind = QueryKinds.Sort,
+                            DataType = DataTypes.Number,
+                            Descending = true
+                        }
+                    ]
+                });
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
@@ -1475,16 +1503,11 @@ namespace Operum.Tests.Tests.Dashboards
             var dashboardId = await CreateDashboard(client);
             var chartId = await PlaceLineChart(client, dashboardId, tracker);
 
-            var view = await Data(await client.PostAsJsonAsync(
-                $"dashboard/{dashboardId}/views", AmountOverSet()));
-            var viewId = view.GetProperty("id").GetString()!;
-            var queryId = view.GetProperty("clauses")[0].GetProperty("queryId").GetString()!;
-
             var response = await client.PostAsJsonAsync(
                 $"dashboard/{dashboardId}/items/parameter",
                 new SaveParameterItemDto
                 {
-                    ViewId = viewId,
+                    Clauses = AmountOverClauses(),
                     Links =
                     [
                         new ViewSelectorLinkDto
@@ -1492,7 +1515,7 @@ namespace Operum.Tests.Tests.Dashboards
                             ItemId = chartId,
                             TrackerId = tracker.Id,
                             // Day is a date field, but the clause is a number clause.
-                            FieldByQuery = new() { [queryId] = tracker.DayFieldId }
+                            FieldByQuery = new() { ["0"] = tracker.DayFieldId }
                         }
                     ]
                 });
@@ -1510,27 +1533,23 @@ namespace Operum.Tests.Tests.Dashboards
             var dashboardId = await CreateDashboard(client);
             var chartId = await PlaceLineChart(client, dashboardId, tracker);
 
-            var view = await Data(await client.PostAsJsonAsync(
-                $"dashboard/{dashboardId}/views", AmountOverSet()));
-            var viewId = view.GetProperty("id").GetString()!;
-            var queryId = view.GetProperty("clauses")[0].GetProperty("queryId").GetString()!;
-
             var item = await Data(await client.PostAsJsonAsync(
                 $"dashboard/{dashboardId}/items/parameter",
                 new SaveParameterItemDto
                 {
-                    ViewId = viewId,
+                    Clauses = AmountOverClauses(),
                     Links =
                     [
                         new ViewSelectorLinkDto
                         {
                             ItemId = chartId,
                             TrackerId = tracker.Id,
-                            FieldByQuery = new() { [queryId] = tracker.AmountFieldId }
+                            FieldByQuery = new() { ["0"] = tracker.AmountFieldId }
                         }
                     ]
                 }));
             var paramId = item.GetProperty("id").GetString()!;
+            var queryId = await ParameterQueryId(client, dashboardId, paramId);
 
             var badValue = await client.PutAsJsonAsync(
                 $"dashboard/{dashboardId}/items/{paramId}/parameter-values",

@@ -76,7 +76,34 @@ function lookbackTemplate(
     };
 }
 
+/** A lower + upper bound with no values filled in — the caller (or the board, for a
+ *  parameter widget) supplies the ends. Lets someone build a customizable range without
+ *  starting from a preset period like "Current Month". */
+function blankRangeTemplate(
+    id: string,
+    name: string,
+    fieldTypes: string[],
+    icon: React.ReactNode,
+): FilterTemplate {
+    return {
+        id,
+        name,
+        icon,
+        fieldTypes,
+        filters: [
+            { operator: OperatorTypes.GreaterThanOrEqual },
+            { operator: OperatorTypes.LessThanOrEqual },
+        ],
+    };
+}
+
 export const filterTemplates: FilterTemplate[] = [
+    blankRangeTemplate(
+        "date_range",
+        "Date range",
+        DATE_FIELD_TYPES,
+        <FiCalendar size={16} />,
+    ),
     {
         id: "today",
         name: "Today",
@@ -154,6 +181,12 @@ export const filterTemplates: FilterTemplate[] = [
         DateAnchors.StartOfYear,
         DateAnchors.EndOfYear,
         -1,
+    ),
+    blankRangeTemplate(
+        "number_range",
+        "Number range",
+        [FieldTypes.Number],
+        <FiTrendingUp size={16} />,
     ),
     {
         id: "positive_values",

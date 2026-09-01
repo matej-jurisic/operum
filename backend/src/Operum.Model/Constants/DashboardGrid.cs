@@ -59,10 +59,10 @@ namespace Operum.Model.Constants
         // button so the current selection's clauses can be summarised beneath it.
         public static readonly (int Width, int Height) ViewSelectorSize = (6, 16);
 
-        // A parameter widget stacks one value input per clause of the view it drives, so it
-        // starts taller than a view selector; the user resizes it to fit however many
-        // inputs the chosen filter set has.
-        public static readonly (int Width, int Height) ParameterSize = (6, 24);
+        // A parameter widget shows as a compact filter chip -- an icon and a one-line
+        // summary of the values currently set -- and opens a modal to edit them, so it needs
+        // only a little more room than a quick-add button.
+        public static readonly (int Width, int Height) ParameterSize = (6, 12);
 
         // An entries table wants the same room a chart does: enough width for a few
         // columns and enough height to show more than a couple of rows.

@@ -116,11 +116,11 @@ export interface SetViewSelectorSelectionDto {
     selectedId?: string | null;
 }
 
-/** The Config payload of a WidgetTypes.Parameter widget: the single DashboardView it
-    drives, the current value per clause (keyed by the pooled query id), and the followed
-    widgets — links reuse the view selector's shape. */
+/** The Config payload of a WidgetTypes.Parameter widget: its own ordered clause set
+    (pooled query ids), the current value per clause (keyed by the pooled query id), and the
+    followed widgets — links reuse the view selector's shape. */
 export interface ParameterWidgetConfig {
-    viewId: string;
+    queryIds: string[];
     valueByQuery: Record<string, string | null>;
     links: ViewSelectorLink[];
 }
@@ -141,10 +141,12 @@ export interface ParameterWidgetDto {
     clauses: ParameterClauseDto[];
 }
 
-/** Adds or edits a WidgetTypes.Parameter item. */
+/** Adds or edits a WidgetTypes.Parameter item. The widget owns its clauses (all filters,
+    never sorts); each carries the value it starts out filtering on. A link's fieldByQuery is
+    keyed by the clause's index in `clauses` — the client has no pooled query id until the
+    save resolves one — and the backend rewrites those keys to the ids it stores. */
 export interface SaveParameterItemDto {
-    viewId: string;
-    values: Record<string, string | null>;
+    clauses: ClauseDto[];
     links: ViewSelectorLink[];
 }
 

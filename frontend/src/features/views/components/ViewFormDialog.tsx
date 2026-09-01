@@ -450,11 +450,11 @@ export default function ViewFormDialog({
                                                             data={[
                                                                 {
                                                                     value: "asc",
-                                                                    label: "Ascending",
+                                                                    label: "Asc",
                                                                 },
                                                                 {
                                                                     value: "desc",
-                                                                    label: "Descending",
+                                                                    label: "Desc",
                                                                 },
                                                             ]}
                                                             value={

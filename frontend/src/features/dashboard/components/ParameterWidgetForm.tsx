@@ -7,7 +7,7 @@ interface Props {
     onAdd: (dto: SaveParameterItemDto) => Promise<void>;
 }
 
-/** Adds a parameter widget: a filter set whose clause values are typed on the board,
+/** Adds a parameter widget: a set of filter clauses whose values are typed on the board,
     re-filtering the Analytic/Entries widgets wired to it. */
 export function ParameterWidgetForm({ color, onBack, onAdd }: Props) {
     return (

@@ -1,25 +1,44 @@
 import { Button, Checkbox, Group, Select, Stack, Text } from "@mantine/core";
+import { useForm } from "@mantine/form";
 import { useEffect, useMemo, useState } from "react";
 import { fieldTypesCompatible } from "../../../shared/constants/DataTypes";
-import { describeAbstractClause } from "../../../shared/utils/formatters/QueryFormatter";
+import { fieldTypes } from "../../../shared/constants/DataTypesForSelect";
+import { QueryKinds } from "../../../shared/constants/QueryKinds";
+import { formatOperator } from "../../../shared/utils/formatters/OperatorFormatter";
 import { fieldsController } from "../../fields/api/fieldsController";
 import { FieldDto } from "../../fields/types/FieldDto";
 import { dashboardController } from "../api/dashboardController";
 import { useDashboard } from "../context/DashboardContext";
 import {
+    ClauseDto,
     DashboardItemDto,
-    DashboardViewClauseDto,
-    DashboardViewDto,
     SaveParameterItemDto,
     ViewSelectorLink,
     WidgetTypes,
 } from "../types/DashboardDto";
-import { DashboardViewsPanel } from "./DashboardViewsPanel";
+import AbstractClauseListEditor, {
+    AbstractClauseRow,
+} from "./AbstractClauseListEditor";
 
 interface Candidate {
     itemId: string;
     trackerId: string;
     label: string;
+}
+
+/** One of the widget's own clauses, identified by its position in the list — the key its
+    links use, since a clause has no pooled query id until the save resolves one. */
+interface ParameterClause {
+    key: string;
+    dataType: string;
+    operator: string;
+}
+
+/** The string form the backend stores a clause value in — mirrors DashboardViewsPanel. */
+function normalizeClauseValue(value: unknown): string | null {
+    if (value === undefined || value === null || value === "") return null;
+    if (value instanceof Date) return value.toISOString();
+    return String(value);
 }
 
 // The Analytic/Entries widgets a parameter widget can narrow — identical to the view
@@ -59,13 +78,15 @@ function candidatesFor(items: DashboardItemDto[]): Candidate[] {
 }
 
 interface Props {
-    initial?: SaveParameterItemDto;
+    initial?: { clauses: AbstractClauseRow[]; links: ViewSelectorLink[] };
     submitLabel: string;
     color?: string;
     onBack: () => void;
     onSubmit: (dto: SaveParameterItemDto) => Promise<void>;
 }
 
+/** Adds or edits a parameter widget: a set of filter clauses whose values are typed on the
+    board, re-filtering the Analytic/Entries widgets wired to it. */
 export function ParameterForm({
     initial,
     submitLabel,
@@ -74,14 +95,16 @@ export function ParameterForm({
     onSubmit,
 }: Props) {
     const { dashboardId } = useDashboard();
-    const [views, setViews] = useState<DashboardViewDto[]>([]);
     const [items, setItems] = useState<DashboardItemDto[]>([]);
     const [fieldsByTracker, setFieldsByTracker] = useState<Record<string, FieldDto[]>>(
         {},
     );
     const [busy, setBusy] = useState(false);
 
-    const [viewId, setViewId] = useState<string | null>(initial?.viewId ?? null);
+    const form = useForm<{ clauses: AbstractClauseRow[] }>({
+        initialValues: { clauses: initial?.clauses ?? [] },
+    });
+
     const [links, setLinks] = useState<ViewSelectorLink[]>(initial?.links ?? []);
 
     useEffect(() => {
@@ -105,18 +128,27 @@ export function ParameterForm({
         });
     }, [candidates, fieldsByTracker]);
 
-    // The clauses of the chosen view, each with the data type its mapped field must be.
-    const viewQueries = useMemo<DashboardViewClauseDto[]>(() => {
-        const view = views.find((v) => v.id === viewId);
-        if (!view) return [];
-        const map = new Map<string, DashboardViewClauseDto>();
-        for (const c of view.clauses) if (!map.has(c.queryId)) map.set(c.queryId, c);
-        return [...map.values()];
-    }, [views, viewId]);
+    const rows = form.values.clauses;
 
-    const eligibleFields = (trackerId: string, q: DashboardViewClauseDto) =>
+    // The complete clauses, each keyed by its list position — the key the links map to.
+    const parameterClauses = useMemo<ParameterClause[]>(
+        () =>
+            rows
+                .map((c, i) => ({
+                    key: String(i),
+                    dataType: c.dataType,
+                    operator: c.operator,
+                }))
+                .filter((c) => c.dataType && c.operator),
+        [rows],
+    );
+
+    const clausesComplete =
+        rows.length > 0 && parameterClauses.length === rows.length;
+
+    const eligibleFields = (trackerId: string, c: ParameterClause) =>
         (fieldsByTracker[trackerId] ?? []).filter((f) =>
-            fieldTypesCompatible(f.type, q.dataType),
+            fieldTypesCompatible(f.type, c.dataType),
         );
 
     // Pin the field automatically wherever a tracker offers exactly one of the right type —
@@ -126,12 +158,12 @@ export function ParameterForm({
             let changed = false;
             const next = cur.map((l) => {
                 let fieldByQuery = l.fieldByQuery;
-                for (const q of viewQueries) {
-                    if (fieldByQuery[q.queryId]) continue;
-                    const matches = eligibleFields(l.trackerId, q);
+                for (const c of parameterClauses) {
+                    if (fieldByQuery[c.key]) continue;
+                    const matches = eligibleFields(l.trackerId, c);
                     if (matches.length !== 1) continue;
                     if (fieldByQuery === l.fieldByQuery) fieldByQuery = { ...fieldByQuery };
-                    fieldByQuery[q.queryId] = matches[0].id;
+                    fieldByQuery[c.key] = matches[0].id;
                     changed = true;
                 }
                 return fieldByQuery === l.fieldByQuery ? l : { ...l, fieldByQuery };
@@ -139,7 +171,7 @@ export function ParameterForm({
             return changed ? next : cur;
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [fieldsByTracker, viewQueries, links]);
+    }, [fieldsByTracker, parameterClauses]);
 
     const linkFor = (c: Candidate) =>
         links.find((l) => l.itemId === c.itemId && l.trackerId === c.trackerId);
@@ -151,68 +183,80 @@ export function ParameterForm({
         setLinks(link ? [...rest, link] : rest);
     };
 
-    const optionData = views.map((v) => ({ value: v.id, label: v.name }));
+    const describe = (c: ParameterClause) => {
+        const type =
+            fieldTypes.find((t) => t.value === c.dataType)?.label ?? c.dataType;
+        return `${type} ${formatOperator(c.operator)}`.trim();
+    };
 
+    // Only clauses that still exist can carry a mapping — a link keeps working as clauses
+    // are added, and stale keys from a removed clause are ignored on submit.
     const linksComplete = links.every((l) =>
-        viewQueries.every((q) => {
-            const fieldId = l.fieldByQuery[q.queryId];
+        parameterClauses.every((c) => {
+            const fieldId = l.fieldByQuery[c.key];
             if (!fieldId) return false;
             const field = (fieldsByTracker[l.trackerId] ?? []).find(
                 (f) => f.id === fieldId,
             );
-            return field != null && fieldTypesCompatible(field.type, q.dataType);
+            return field != null && fieldTypesCompatible(field.type, c.dataType);
         }),
     );
 
-    const canSubmit = !!viewId && linksComplete;
+    const canSubmit = clausesComplete && linksComplete;
 
     const handleSubmit = async () => {
-        if (!viewId || !canSubmit) return;
+        if (!canSubmit) return;
         setBusy(true);
-        await onSubmit({
-            viewId,
-            // Values are typed on the board itself, so a fresh widget starts with none.
-            // Editing keeps whatever was already entered for a clause still in the view.
-            values: Object.fromEntries(
-                Object.entries(initial?.values ?? {}).filter(([queryId]) =>
-                    viewQueries.some((q) => q.queryId === queryId),
+        const clauses: ClauseDto[] = rows.map((c) => ({
+            kind: QueryKinds.Filter,
+            dataType: c.dataType,
+            operator: c.operator,
+            value: normalizeClauseValue(c.value),
+            descending: false,
+        }));
+        // Drop mappings for clauses that no longer exist so the payload is clean.
+        const cleanLinks = links.map((l) => ({
+            ...l,
+            fieldByQuery: Object.fromEntries(
+                Object.entries(l.fieldByQuery).filter(([key]) =>
+                    parameterClauses.some((c) => c.key === key),
                 ),
             ),
-            links,
-        });
+        }));
+        await onSubmit({ clauses, links: cleanLinks });
         setBusy(false);
     };
 
     return (
         <Stack gap="lg">
-            <DashboardViewsPanel onChange={setViews} color={color} />
-
             <Stack gap="md">
                 <Text fw={500} size="md">
-                    Filter set
+                    What this widget filters
                 </Text>
-                <Select
-                    label="The clauses this widget's inputs drive"
-                    placeholder="Pick a filter set"
-                    data={optionData}
-                    value={viewId}
-                    onChange={setViewId}
-                    allowDeselect={false}
+                <Text size="xs" c="dimmed">
+                    Each clause becomes an input on the board. Leave a value blank here to
+                    let it be set on the dashboard.
+                </Text>
+                <AbstractClauseListEditor
+                    form={form}
+                    path="clauses"
+                    color={color}
+                    filterOnly
                 />
             </Stack>
 
-            {viewId && candidates.length > 0 && (
+            {clausesComplete && candidates.length > 0 && (
                 <Stack gap="md">
                     <Text fw={500} size="md">
                         Followed widgets
                     </Text>
                     {candidates.map((c) => {
-                        const eligible = viewQueries.every(
+                        const eligible = parameterClauses.every(
                             (q) => eligibleFields(c.trackerId, q).length > 0,
                         );
                         const link = linkFor(c);
                         const choices = link
-                            ? viewQueries.filter(
+                            ? parameterClauses.filter(
                                   (q) => eligibleFields(c.trackerId, q).length > 1,
                               )
                             : [];
@@ -244,10 +288,10 @@ export function ParameterForm({
                                     <Group gap="sm" pl="lg" wrap="wrap">
                                         {choices.map((q) => (
                                             <Select
-                                                key={q.queryId}
+                                                key={q.key}
                                                 size="xs"
                                                 w={200}
-                                                label={describeAbstractClause(q)}
+                                                label={describe(q)}
                                                 placeholder="Field"
                                                 allowDeselect={false}
                                                 data={eligibleFields(
@@ -258,8 +302,7 @@ export function ParameterForm({
                                                     label: f.name,
                                                 }))}
                                                 value={
-                                                    link.fieldByQuery[q.queryId] ??
-                                                    null
+                                                    link.fieldByQuery[q.key] ?? null
                                                 }
                                                 onChange={(fieldId) =>
                                                     setLink(c, {
@@ -267,10 +310,7 @@ export function ParameterForm({
                                                         fieldByQuery: {
                                                             ...link.fieldByQuery,
                                                             ...(fieldId
-                                                                ? {
-                                                                      [q.queryId]:
-                                                                          fieldId,
-                                                                  }
+                                                                ? { [q.key]: fieldId }
                                                                 : {}),
                                                         },
                                                     })

@@ -60,6 +60,9 @@ interface Props {
     path: string;
     color?: string;
     max?: number;
+    /** Only filter clauses — hide the filter/sort toggle and force every row to a filter.
+        Used by the parameter widget, whose clauses are all values typed on the board. */
+    filterOnly?: boolean;
 }
 
 /**
@@ -72,6 +75,7 @@ export default function AbstractClauseListEditor({
     path,
     color,
     max = 9,
+    filterOnly = false,
 }: Props) {
     const rows: AbstractClauseRow[] = form.values[path] ?? [];
     const canAdd = rows.length < max;
@@ -155,7 +159,7 @@ export default function AbstractClauseListEditor({
                             leftSection={<CiFilter size={16} />}
                             onClick={() => addRow()}
                         >
-                            Filter or sort
+                            {filterOnly ? "Filter" : "Filter or sort"}
                         </Menu.Item>
                         <Menu.Item
                             leftSection={<FiPlusSquare size={14} />}
@@ -184,28 +188,35 @@ export default function AbstractClauseListEditor({
                         <Paper key={index} p="md" withBorder radius="md">
                             <Stack gap="sm">
                                 <Group justify="space-between" wrap="nowrap">
-                                    <SegmentedControl
-                                        size="xs"
-                                        data={[
-                                            {
-                                                value: QueryKinds.Filter,
-                                                label: QueryKindLabel.filter,
-                                            },
-                                            {
-                                                value: QueryKinds.Sort,
-                                                label: QueryKindLabel.sort,
-                                            },
-                                        ]}
-                                        value={row.kind}
-                                        onChange={(kind) =>
-                                            form.setFieldValue(`${path}.${index}`, {
-                                                ...row,
-                                                kind: kind as QueryKind,
-                                                operator: "",
-                                                value: undefined,
-                                            })
-                                        }
-                                    />
+                                    {filterOnly ? (
+                                        <span />
+                                    ) : (
+                                        <SegmentedControl
+                                            size="xs"
+                                            data={[
+                                                {
+                                                    value: QueryKinds.Filter,
+                                                    label: QueryKindLabel.filter,
+                                                },
+                                                {
+                                                    value: QueryKinds.Sort,
+                                                    label: QueryKindLabel.sort,
+                                                },
+                                            ]}
+                                            value={row.kind}
+                                            onChange={(kind) =>
+                                                form.setFieldValue(
+                                                    `${path}.${index}`,
+                                                    {
+                                                        ...row,
+                                                        kind: kind as QueryKind,
+                                                        operator: "",
+                                                        value: undefined,
+                                                    },
+                                                )
+                                            }
+                                        />
+                                    )}
                                     <ActionIcon
                                         color="red"
                                         variant="outline"
@@ -249,8 +260,8 @@ export default function AbstractClauseListEditor({
                                     ) : (
                                         <SegmentedControl
                                             data={[
-                                                { value: "asc", label: "Ascending" },
-                                                { value: "desc", label: "Descending" },
+                                                { value: "asc", label: "Asc" },
+                                                { value: "desc", label: "Desc" },
                                             ]}
                                             value={row.descending ? "desc" : "asc"}
                                             onChange={(v) =>
