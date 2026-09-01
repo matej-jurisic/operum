@@ -7,8 +7,7 @@ import { FieldDto } from "../../fields/types/FieldDto";
 export const WidgetTypes = {
     Analytic: "analytic",
     QuickAdd: "quickAdd",
-    ViewSelector: "viewSelector",
-    Parameter: "parameter",
+    Filter: "filter",
     Entries: "entries",
     Header: "header",
     Divider: "divider",
@@ -37,7 +36,7 @@ export interface QuickAddTrackerDto {
 }
 
 /** A field-agnostic clause as the client sends it. The field it runs against is bound
-    elsewhere (per clause in the View editor, per followed widget on a view selector). */
+    elsewhere (per clause in the View editor, per followed widget on a filter widget). */
 export interface ClauseDto {
     kind: string;
     dataType: string;
@@ -46,36 +45,18 @@ export interface ClauseDto {
     descending?: boolean;
 }
 
-/** One option a view selector's dropdown can be set to. */
-export interface ViewSelectorOptionDto {
-    id: string;
-    name: string;
-}
-
-/** What a WidgetTypes.ViewSelector widget's dropdown needs, resolved server-side the same
-    way quickAddTracker is: the DashboardViews it offers and the current selection. */
-export interface ViewSelectorWidgetDto {
-    options: ViewSelectorOptionDto[];
-    selectedId?: string | null;
-}
-
-/** Per followed Analytic widget + tracker, which of that tracker's fields each clause runs
-    against, keyed by the pooled query id. */
-export interface ViewSelectorLink {
+/** Names one followed Analytic/Entries widget + tracker a filter widget narrows, and
+    which of that tracker's fields each clause runs against, keyed by the clause's pooled
+    query id. Shared by both of a filter widget's independent link lists -- `links` (its
+    own typed clauses) and `presetLinks` (whichever preset is selected). */
+export interface WidgetLink {
     itemId: string;
     trackerId: string;
     fieldByQuery: Record<string, string>;
 }
 
-/** The Config payload of a WidgetTypes.ViewSelector widget. */
-export interface ViewSelectorWidgetConfig {
-    optionIds: string[];
-    selectedId?: string | null;
-    links: ViewSelectorLink[];
-}
-
-/** One clause of a DashboardView as the client reads it back. queryId keys a view
-    selector's fieldByQuery map. */
+/** One clause of a DashboardView as the client reads it back. queryId keys a filter
+    widget's presetLinks fieldByQuery map. */
 export interface DashboardViewClauseDto {
     queryId: string;
     kind: string;
@@ -85,7 +66,7 @@ export interface DashboardViewClauseDto {
     descending: boolean;
 }
 
-/** A named clause set the board's view selectors can offer. */
+/** A named clause set the board's filter widgets can offer as a preset. */
 export interface DashboardViewDto {
     id: string;
     name: string;
@@ -104,30 +85,32 @@ export interface ReorderDashboardViewsDto {
     dashboardViewIds: string[];
 }
 
-/** Adds or edits a WidgetTypes.ViewSelector item. */
-export interface SaveViewSelectorItemDto {
-    optionIds: string[];
-    selectedId?: string | null;
-    links: ViewSelectorLink[];
+/** One preset a WidgetTypes.Filter widget's dropdown can be set to -- a DashboardView on
+    the same board, resolved to just its id and name for the card to render. */
+export interface FilterPresetOptionDto {
+    id: string;
+    name: string;
 }
 
-/** Changes what a WidgetTypes.ViewSelector item's dropdown is currently set to. */
-export interface SetViewSelectorSelectionDto {
-    selectedId?: string | null;
-}
-
-/** The Config payload of a WidgetTypes.Parameter widget: its own ordered clause set
-    (pooled query ids), the current value per clause (keyed by the pooled query id), and the
-    followed widgets — links reuse the view selector's shape. */
-export interface ParameterWidgetConfig {
+/** The Config payload of a WidgetTypes.Filter widget. Two independent facets:
+    - Own typed clauses: an ordered clause set (pooled query ids), the current value per
+      clause (keyed by the pooled query id), and the followed widgets in `links`.
+    - Presets: the board's DashboardViews it offers as quick-apply presets, the current
+      selection, and the followed widgets in `presetLinks` -- functionally what the old
+      standalone view selector widget was, folded in here as a second facet. */
+export interface FilterWidgetConfig {
     queryIds: string[];
     valueByQuery: Record<string, string | null>;
-    links: ViewSelectorLink[];
+    links: WidgetLink[];
+
+    presetIds: string[];
+    selectedPresetId?: string | null;
+    presetLinks: WidgetLink[];
 }
 
-/** One filter clause of the DashboardView a parameter widget drives, resolved server-side
-    for the card to render an input for. queryId keys the widget's valueByQuery map. */
-export interface ParameterClauseDto {
+/** One clause of a filter widget's own typed clause set, resolved server-side for the
+    card to render an input for. queryId keys the widget's valueByQuery map. */
+export interface FilterClauseDto {
     queryId: string;
     kind: string;
     dataType: string;
@@ -135,31 +118,49 @@ export interface ParameterClauseDto {
     value?: string | null;
 }
 
-/** What a WidgetTypes.Parameter widget's card needs, resolved server-side the same way
-    viewSelector is: the filter clauses of the view it drives, each with its current value. */
-export interface ParameterWidgetDto {
-    clauses: ParameterClauseDto[];
+/** What a WidgetTypes.Filter widget's card needs, resolved server-side the same way
+    quickAddTracker is: its own typed clauses with their current values, and the DashboardViews
+    it offers as presets plus which one is currently selected. */
+export interface FilterWidgetDto {
+    clauses: FilterClauseDto[];
+    presets: FilterPresetOptionDto[];
+    selectedPresetId?: string | null;
 }
 
-/** Adds or edits a WidgetTypes.Parameter item. The widget owns its clauses (all filters,
-    never sorts); each carries the value it starts out filtering on. A link's fieldByQuery is
-    keyed by the clause's index in `clauses` — the client has no pooled query id until the
-    save resolves one — and the backend rewrites those keys to the ids it stores. */
-export interface SaveParameterItemDto {
+/** Adds or edits a WidgetTypes.Filter item. Two independent facets, at least one of which
+    must be present:
+    - Own clauses: `clauses` are all filters, never sorts; each carries the value it starts
+      out filtering on. A `links` entry's fieldByQuery is keyed by the clause's index in
+      `clauses` — the client has no pooled query id until the save resolves one — and the
+      backend rewrites those keys to the ids it stores.
+    - Presets: `presetIds` names the board's DashboardViews this widget offers, `selectedPresetId`
+      the starting selection, and `presetLinks` the followed widgets for whichever preset is
+      applied, keyed directly by pooled DashboardViewQuery ids (no index rewrite needed). */
+export interface SaveFilterItemDto {
     clauses: ClauseDto[];
-    links: ViewSelectorLink[];
+    links: WidgetLink[];
+
+    presetIds: string[];
+    selectedPresetId?: string | null;
+    presetLinks: WidgetLink[];
 }
 
-/** Changes the values a WidgetTypes.Parameter item's clauses are currently set to. */
-export interface SetParameterValuesDto {
+/** Changes the values a WidgetTypes.Filter item's own typed clauses are currently set
+    to. */
+export interface SetFilterValuesDto {
     values: Record<string, string | null>;
+}
+
+/** Changes what a WidgetTypes.Filter item's preset dropdown is currently set to. */
+export interface SetFilterPresetDto {
+    selectedPresetId?: string | null;
 }
 
 /** What a WidgetTypes.Entries widget's table needs, resolved server-side: the tracker it
     reads from, the columns to show in order (Config's columnFieldIds, or every field when it
-    names none), and the rows themselves — already filtered/sorted by the view selectors this
-    placement follows and capped to the most recent handful. The card renders these directly
-    rather than fetching its own. */
+    names none), and the rows themselves — already filtered/sorted by the filter widgets
+    this placement follows and capped to the most recent handful. The card renders these
+    directly rather than fetching its own. */
 export interface EntriesWidgetDto {
     trackerId: string;
     trackerName: string;
@@ -196,8 +197,7 @@ export interface DashboardWidgetDto {
     config?: string;
     analytic?: AnalyticDto;
     quickAddTracker?: QuickAddTrackerDto;
-    viewSelector?: ViewSelectorWidgetDto;
-    parameter?: ParameterWidgetDto;
+    filter?: FilterWidgetDto;
     entriesWidget?: EntriesWidgetDto;
     trackerColor?: string;
 }
@@ -231,7 +231,7 @@ export interface DashboardItemSourceDto {
     fields: DashboardItemSourceFieldDto[];
     trackerId: string;
     trackerName: string;
-    /** The fixed tracker view this source reads through, if any. A view selector on the
+    /** The fixed tracker view this source reads through, if any. A filter widget on the
         board can layer further clauses on top of it. */
     viewId?: string;
     label?: string;

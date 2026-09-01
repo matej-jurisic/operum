@@ -3,7 +3,9 @@ import {
     Badge,
     Button,
     Group,
+    MultiSelect,
     Paper,
+    Select,
     Stack,
     Text,
     TextInput,
@@ -33,10 +35,25 @@ interface Props {
     onChange: (views: DashboardViewDto[]) => void;
     /** Board colour, so the panel's controls match the rest of the dashboard chrome. */
     color?: string;
+    /** Which of the board's preset filters this widget offers, and which one it starts
+        on — this widget's own selection, not the board-wide set managed above it. */
+    presetIds: string[];
+    onPresetIdsChange: (ids: string[]) => void;
+    selectedPresetId: string | null;
+    onSelectedPresetIdChange: (id: string | null) => void;
 }
 
-/** Manage the board's DashboardViews — the named clause sets a view selector offers. */
-export function DashboardViewsPanel({ onChange, color }: Props) {
+/** Manage the board's DashboardViews — the named clause sets a filter widget can offer
+    as presets — and, right alongside them, which of those this particular widget offers
+    and starts on. Both facets are only ever meaningful together, so they share one section. */
+export function DashboardViewsPanel({
+    onChange,
+    color,
+    presetIds,
+    onPresetIdsChange,
+    selectedPresetId,
+    onSelectedPresetIdChange,
+}: Props) {
     const { dashboardId } = useDashboard();
     const [views, setViews] = useState<DashboardViewDto[]>([]);
     const [adding, setAdding] = useState(false);
@@ -97,11 +114,13 @@ export function DashboardViewsPanel({ onChange, color }: Props) {
         await load();
     };
 
+    const presetData = views.map((v) => ({ value: v.id, label: v.name }));
+
     return (
         <Stack gap="md">
             <Group justify="space-between" wrap="nowrap">
                 <Text fw={500} size="md">
-                    Filter sets
+                    Preset filters
                     {views.length > 0 && (
                         <Text span c="dimmed" size="sm" ml="xs">
                             ({views.length})
@@ -124,8 +143,8 @@ export function DashboardViewsPanel({ onChange, color }: Props) {
             {views.length === 0 && !adding && (
                 <Paper p="md" withBorder radius="md">
                     <Text c="dimmed" ta="center" size="sm">
-                        No filter sets yet. Add one (e.g. "Current Month") for the
-                        selector to offer.
+                        No preset filters yet. Add one (e.g. "Current Month") for the
+                        widget to offer.
                     </Text>
                 </Paper>
             )}
@@ -157,7 +176,7 @@ export function DashboardViewsPanel({ onChange, color }: Props) {
                             variant="outline"
                             disabled={busy}
                             onClick={() => handleDelete(v.id)}
-                            aria-label="Delete filter set"
+                            aria-label="Delete preset filter"
                         >
                             <MdDelete size={16} />
                         </ActionIcon>
@@ -200,6 +219,26 @@ export function DashboardViewsPanel({ onChange, color }: Props) {
                         </Group>
                     </Stack>
                 </Paper>
+            )}
+
+            {views.length > 0 && (
+                <Stack gap="sm">
+                    <MultiSelect
+                        label="Offered on this widget"
+                        placeholder="Pick preset filters"
+                        data={presetData}
+                        value={presetIds}
+                        onChange={onPresetIdsChange}
+                    />
+                    <Select
+                        label="Starting preset"
+                        placeholder="None"
+                        data={presetData.filter((o) => presetIds.includes(o.value))}
+                        value={selectedPresetId}
+                        onChange={onSelectedPresetIdChange}
+                        clearable
+                    />
+                </Stack>
             )}
         </Stack>
     );

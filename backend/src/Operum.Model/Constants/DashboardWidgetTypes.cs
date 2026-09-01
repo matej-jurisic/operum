@@ -11,25 +11,21 @@ namespace Operum.Model.Constants
         // analytic definition — just Config, a QuickAddWidgetConfigDto naming the tracker.
         public const string QuickAdd = "quickAdd";
 
-        // A dropdown over a set of the board's DashboardViews ("Current Month", "All Time").
-        // Carries no analytic definition — just Config, a ViewSelectorWidgetConfigDto holding
-        // the option ids, the current selection, and per followed widget (Analytic or Entries)
-        // which of its tracker's fields each clause runs against. Picking an option re-filters
-        // every widget wired to it.
-        public const string ViewSelector = "viewSelector";
-
         // A read-only table of one tracker's entries. Carries no analytic definition either
         // — just Config, an EntriesWidgetConfigDto naming the fields it shows as columns. How
-        // it's filtered comes only from the view selector widgets it's linked to.
+        // it's filtered comes only from the filter widgets it's linked to.
         public const string Entries = "entries";
 
-        // Like ViewSelector, but instead of switching between whole DashboardViews it points
-        // at exactly one and exposes an input per clause so the value is typed on the board.
-        // Carries no analytic definition — just Config, a ParameterWidgetConfigDto holding
-        // the view id, the current per-clause values, and (as ViewSelector) per followed
-        // widget which of its tracker's fields each clause runs against. A clause with no
-        // value yet is simply not applied.
-        public const string Parameter = "parameter";
+        // A board filter widget with two independent facets, both narrowing whichever
+        // Analytic/Entries widgets it's linked to. First, it owns a set of filter clauses
+        // with a value typed directly on the board (its own QueryIds/ValueByQuery/Links).
+        // Second, it can offer a dropdown of the board's DashboardViews as quick-apply
+        // presets (PresetIds/SelectedPresetId/PresetLinks) — picking one applies that view's
+        // whole clause set (filters AND sorts) to its followers, same as the old standalone
+        // "view selector" widget did before being folded in here. Carries no analytic
+        // definition — just Config, a FilterWidgetConfigDto. A typed clause left blank is
+        // simply not applied; a preset left unselected contributes nothing.
+        public const string Filter = "filter";
 
         // A short line of user-entered text that reads as a section title rather than a
         // chart. Carries no tracker or analytic — just Config, a TextWidgetConfigDto.
@@ -45,7 +41,7 @@ namespace Operum.Model.Constants
         public const string Note = "note";
 
         public static readonly HashSet<string> All =
-            [Analytic, QuickAdd, ViewSelector, Entries, Parameter, Header, Divider, Note];
+            [Analytic, QuickAdd, Entries, Filter, Header, Divider, Note];
 
         public static bool IsValid(string type) => All.Contains(type);
     }

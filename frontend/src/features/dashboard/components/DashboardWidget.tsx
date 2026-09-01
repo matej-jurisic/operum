@@ -14,9 +14,8 @@ import { EntriesWidgetCard } from "./EntriesWidgetCard";
 import { ExpandableWidgetCard } from "./ExpandableWidgetCard";
 import { HeaderWidgetCard } from "./HeaderWidgetCard";
 import { NoteWidgetCard } from "./NoteWidgetCard";
-import { ParameterWidgetCard } from "./ParameterWidgetCard";
+import { FilterWidgetCard } from "./FilterWidgetCard";
 import { QuickAddWidgetCard } from "./QuickAddWidgetCard";
-import { ViewSelectorWidgetCard } from "./ViewSelectorWidgetCard";
 
 interface Props {
     widget: DashboardWidgetDto;
@@ -27,16 +26,17 @@ interface Props {
     color: string | undefined;
     isConfiguring: boolean;
     onRemove?: (itemId: string) => void;
-    /** Opens the widget's edit dialog. Analytic, Entries, Header, Note and View widgets: a
-        View selector's edit dialog sets its starting view and which widgets follow it. A
-        QuickAdd widget's tracker is fixed at add time and a Divider has nothing to edit. */
+    /** Opens the widget's edit dialog. Analytic, Entries, Header, Note and Filter widgets:
+        a Filter widget's edit dialog sets its clauses, its presets and which widgets
+        follow it in either facet. A QuickAdd widget's tracker is fixed at add time and a
+        Divider has nothing to edit. */
     onEdit?: (itemId: string) => void;
     onEntryClick?: (entryId: string) => void;
-    onViewSelectorSelect?: (itemId: string, selectedId: string | null) => void;
-    onParameterSetValues?: (
+    onFilterSetValues?: (
         itemId: string,
         values: Record<string, string | null>,
     ) => void;
+    onFilterSelectPreset?: (itemId: string, selectedPresetId: string | null) => void;
 }
 
 // Whether the current grid draws this widget as its collapsed button instead of inline —
@@ -82,8 +82,8 @@ export function DashboardWidget({
     onRemove,
     onEdit,
     onEntryClick,
-    onViewSelectorSelect,
-    onParameterSetValues,
+    onFilterSetValues,
+    onFilterSelectPreset,
 }: Props) {
     switch (widget.type) {
         case WidgetTypes.Analytic: {
@@ -141,28 +141,17 @@ export function DashboardWidget({
                 />
             ) : null;
         }
-        case WidgetTypes.ViewSelector:
+        case WidgetTypes.Filter:
             return (
-                <ViewSelectorWidgetCard
+                <FilterWidgetCard
                     widgetId={widget.id}
-                    viewSelector={widget.viewSelector}
+                    filter={widget.filter}
                     color={color}
                     isConfiguring={isConfiguring}
                     onRemove={onRemove}
                     onEdit={onEdit}
-                    onSelect={onViewSelectorSelect ?? (() => {})}
-                />
-            );
-        case WidgetTypes.Parameter:
-            return (
-                <ParameterWidgetCard
-                    widgetId={widget.id}
-                    parameter={widget.parameter}
-                    color={color}
-                    isConfiguring={isConfiguring}
-                    onRemove={onRemove}
-                    onEdit={onEdit}
-                    onSetValues={onParameterSetValues ?? (() => {})}
+                    onSetValues={onFilterSetValues ?? (() => {})}
+                    onSelectPreset={onFilterSelectPreset ?? (() => {})}
                 />
             );
         case WidgetTypes.Entries: {

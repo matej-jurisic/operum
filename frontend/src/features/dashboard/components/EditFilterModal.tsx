@@ -3,22 +3,22 @@ import { useMediaQuery } from "@mantine/hooks";
 import { QueryKinds } from "../../../shared/constants/QueryKinds";
 import { useDashboard } from "../context/DashboardContext";
 import {
-    ParameterWidgetConfig,
-    SaveParameterItemDto,
-    ViewSelectorLink,
+    FilterWidgetConfig,
+    SaveFilterItemDto,
+    WidgetLink,
     WidgetTypes,
 } from "../types/DashboardDto";
 import { AbstractClauseRow } from "./AbstractClauseListEditor";
-import { ParameterForm } from "./ParameterForm";
+import { FilterForm } from "./FilterForm";
 
 interface Props {
     itemId: string;
     color: string;
     onClose: () => void;
-    onSave: (itemId: string, dto: SaveParameterItemDto) => Promise<void>;
+    onSave: (itemId: string, dto: SaveFilterItemDto) => Promise<void>;
 }
 
-function parseConfig(config: string | undefined): ParameterWidgetConfig | null {
+function parseConfig(config: string | undefined): FilterWidgetConfig | null {
     if (!config) return null;
     try {
         const parsed = JSON.parse(config);
@@ -27,6 +27,9 @@ function parseConfig(config: string | undefined): ParameterWidgetConfig | null {
                   queryIds: parsed.queryIds,
                   valueByQuery: parsed.valueByQuery ?? {},
                   links: parsed.links ?? [],
+                  presetIds: parsed.presetIds ?? [],
+                  selectedPresetId: parsed.selectedPresetId ?? null,
+                  presetLinks: parsed.presetLinks ?? [],
               }
             : null;
     } catch {
@@ -34,16 +37,17 @@ function parseConfig(config: string | undefined): ParameterWidgetConfig | null {
     }
 }
 
-export function EditParameterModal({ itemId, color, onClose, onSave }: Props) {
+export function EditFilterModal({ itemId, color, onClose, onSave }: Props) {
     const { widgets } = useDashboard();
     const isMobile = useMediaQuery("(max-width: 48em)");
     const widget = widgets.find((w) => w.id === itemId);
-    const isParameter = widget?.type === WidgetTypes.Parameter;
-    const config = isParameter ? parseConfig(widget.config) : null;
-    const clauseDtos = (isParameter && widget.parameter?.clauses) || [];
+    const isFilter = widget?.type === WidgetTypes.Filter;
+    const config = isFilter ? parseConfig(widget.config) : null;
+    const clauseDtos = (isFilter && widget.filter?.clauses) || [];
 
-    // The form works in clause indices; the stored links are keyed by pooled query id, so
-    // translate them back through the clause order the widget reports.
+    // The form works in clause indices; the stored own-clause links are keyed by pooled
+    // query id, so translate them back through the clause order the widget reports. Preset
+    // links are already keyed by real pooled query ids and pass through untouched.
     const indexByQueryId = new Map<string, string>(
         clauseDtos.map((c, i) => [c.queryId, String(i)]),
     );
@@ -56,7 +60,7 @@ export function EditParameterModal({ itemId, color, onClose, onSave }: Props) {
         descending: false,
     }));
 
-    const links: ViewSelectorLink[] = (config?.links ?? []).map((l) => ({
+    const links: WidgetLink[] = (config?.links ?? []).map((l) => ({
         itemId: l.itemId,
         trackerId: l.trackerId,
         fieldByQuery: Object.fromEntries(
@@ -71,13 +75,19 @@ export function EditParameterModal({ itemId, color, onClose, onSave }: Props) {
         <Modal
             opened
             onClose={onClose}
-            title="Edit parameter widget"
+            title="Edit filter widget"
             size="lg"
             centered
             fullScreen={isMobile}
         >
-            <ParameterForm
-                initial={{ clauses, links }}
+            <FilterForm
+                initial={{
+                    clauses,
+                    links,
+                    presetIds: config?.presetIds ?? [],
+                    selectedPresetId: config?.selectedPresetId ?? null,
+                    presetLinks: config?.presetLinks ?? [],
+                }}
                 submitLabel="Save"
                 color={color}
                 onBack={onClose}

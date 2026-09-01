@@ -78,6 +78,8 @@ export default function FieldValueInput<T extends Record<string, any> = any>({
                     value={baseProps.value || null}
                     modalProps={{
                         centered: true,
+                        // Clears nested edit dialogs (e.g. "Set filters"), which sit at zIndex 400.
+                        zIndex: 500,
                     }}
                 />
             );
@@ -112,6 +114,8 @@ export default function FieldValueInput<T extends Record<string, any> = any>({
                     }}
                     modalProps={{
                         centered: true,
+                        // Clears nested edit dialogs (e.g. "Set filters"), which sit at zIndex 400.
+                        zIndex: 500,
                     }}
                 />
             );

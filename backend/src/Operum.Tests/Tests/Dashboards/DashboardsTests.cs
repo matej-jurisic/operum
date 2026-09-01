@@ -1208,10 +1208,11 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(HttpStatusCode.NotFound, updateResponse.StatusCode);
         }
 
-        // ----- View selector widget -----
+        // ----- Filter widget -----
 
         // The seeded entry is dated 2026-01-01, so a "later than mid-year" date clause keeps
-        // nothing once it is selected, and everything again once it is cleared.
+        // nothing once it is selected, and everything again once it is cleared. Used as a
+        // preset DashboardView, the same way it drove the old standalone view selector.
         private static SaveDashboardViewDto LateInYearSet() => new()
         {
             Name = "Late in year",
@@ -1227,126 +1228,7 @@ namespace Operum.Tests.Tests.Dashboards
             ]
         };
 
-        [Fact]
-        public async Task ViewSelector_SelectedFilterSet_NarrowsLinkedChartAndClearsWhenDeselected()
-        {
-            await _factory.SeedDatabaseAsync();
-            var client = await _factory.NewUserClient("selectornarrows");
-
-            var tracker = await CreateCapableTracker(client, "Weight");
-            var dashboardId = await CreateDashboard(client);
-            var chartId = await PlaceLineChart(client, dashboardId, tracker);
-
-            var view = await Data(await client.PostAsJsonAsync(
-                $"dashboard/{dashboardId}/views", LateInYearSet()));
-            var viewId = view.GetProperty("id").GetString()!;
-            var queryId = view.GetProperty("clauses")[0].GetProperty("queryId").GetString()!;
-
-            var selectorItem = await Data(await client.PostAsJsonAsync(
-                $"dashboard/{dashboardId}/items/view-selector",
-                new SaveViewSelectorItemDto
-                {
-                    OptionIds = [viewId],
-                    SelectedId = viewId,
-                    Links =
-                    [
-                        new ViewSelectorLinkDto
-                        {
-                            ItemId = chartId,
-                            TrackerId = tracker.Id,
-                            FieldByQuery = new() { [queryId] = tracker.DayFieldId }
-                        }
-                    ]
-                }));
-            var selectorId = selectorItem.GetProperty("id").GetString()!;
-
-            Assert.Equal(0, PointsOf(await Widgets(client, dashboardId), chartId));
-
-            var cleared = await client.PutAsJsonAsync(
-                $"dashboard/{dashboardId}/items/{selectorId}/view-selector-selection",
-                new SetViewSelectorSelectionDto { SelectedId = null });
-            Assert.Equal(HttpStatusCode.OK, cleared.StatusCode);
-            Assert.Equal(1, PointsOf(await Data(cleared), chartId));
-        }
-
-        [Fact]
-        public async Task AddViewSelector_ClauseMappedToFieldOfWrongType_ReturnsBadRequest()
-        {
-            await _factory.SeedDatabaseAsync();
-            var client = await _factory.NewUserClient("selectorwrongtype");
-
-            var tracker = await CreateCapableTracker(client, "Weight");
-            var dashboardId = await CreateDashboard(client);
-            var chartId = await PlaceLineChart(client, dashboardId, tracker);
-
-            var view = await Data(await client.PostAsJsonAsync(
-                $"dashboard/{dashboardId}/views", LateInYearSet()));
-            var viewId = view.GetProperty("id").GetString()!;
-            var queryId = view.GetProperty("clauses")[0].GetProperty("queryId").GetString()!;
-
-            var response = await client.PostAsJsonAsync(
-                $"dashboard/{dashboardId}/items/view-selector",
-                new SaveViewSelectorItemDto
-                {
-                    OptionIds = [viewId],
-                    Links =
-                    [
-                        new ViewSelectorLinkDto
-                        {
-                            ItemId = chartId,
-                            TrackerId = tracker.Id,
-                            // Amount is a number field, but the clause is a date clause.
-                            FieldByQuery = new() { [queryId] = tracker.AmountFieldId }
-                        }
-                    ]
-                });
-
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        }
-
-        [Fact]
-        public async Task AddViewSelector_DateClauseMappedToDatetimeField_IsAccepted()
-        {
-            await _factory.SeedDatabaseAsync();
-            var client = await _factory.NewUserClient("selectordatedatetime");
-
-            var tracker = await CreateCapableTracker(client, "Weight");
-            var momentField = await Data(await client.PostAsJsonAsync($"trackers/{tracker.Id}/fields",
-                new CreateFieldDto { Name = "Moment", Type = DataTypes.DateTime }));
-            var momentFieldId = momentField.GetProperty("id").GetString()!;
-
-            var dashboardId = await CreateDashboard(client);
-            var chartId = await PlaceLineChart(client, dashboardId, tracker);
-
-            var view = await Data(await client.PostAsJsonAsync(
-                $"dashboard/{dashboardId}/views", LateInYearSet()));
-            var viewId = view.GetProperty("id").GetString()!;
-            var queryId = view.GetProperty("clauses")[0].GetProperty("queryId").GetString()!;
-
-            // The clause is a date clause; Moment is a datetime field -- the two filter
-            // identically, so the link is allowed.
-            var response = await client.PostAsJsonAsync(
-                $"dashboard/{dashboardId}/items/view-selector",
-                new SaveViewSelectorItemDto
-                {
-                    OptionIds = [viewId],
-                    Links =
-                    [
-                        new ViewSelectorLinkDto
-                        {
-                            ItemId = chartId,
-                            TrackerId = tracker.Id,
-                            FieldByQuery = new() { [queryId] = momentFieldId }
-                        }
-                    ]
-                });
-
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        }
-
-        // ----- Parameter widget -----
-
-        // "Amount greater than ?" -- the value is left for the parameter widget to supply on
+        // "Amount greater than ?" -- the value is left for the filter widget to supply on
         // the board. The seeded entry's Amount is 5.
         private static List<ClauseDto> AmountOverClauses() =>
         [
@@ -1358,36 +1240,36 @@ namespace Operum.Tests.Tests.Dashboards
             }
         ];
 
-        // The pooled query id the parameter widget's first clause resolved to -- the key
-        // SetParameterValues expects, read back off the board.
-        private static async Task<string> ParameterQueryId(HttpClient client, string dashboardId, string paramId)
+        // The pooled query id the filter widget's first clause resolved to -- the key
+        // SetFilterValues expects, read back off the board.
+        private static async Task<string> FilterQueryId(HttpClient client, string dashboardId, string filterId)
         {
             var widgets = await Widgets(client, dashboardId);
             foreach (var w in widgets.EnumerateArray())
-                if (w.GetProperty("id").GetString() == paramId)
-                    return w.GetProperty("parameter").GetProperty("clauses")[0]
+                if (w.GetProperty("id").GetString() == filterId)
+                    return w.GetProperty("filter").GetProperty("clauses")[0]
                         .GetProperty("queryId").GetString()!;
-            throw new InvalidOperationException("parameter widget not on the board");
+            throw new InvalidOperationException("filter widget not on the board");
         }
 
         [Fact]
-        public async Task Parameter_TypedValue_NarrowsLinkedChartAndClearsWhenBlank()
+        public async Task Filter_TypedValue_NarrowsLinkedChartAndClearsWhenBlank()
         {
             await _factory.SeedDatabaseAsync();
-            var client = await _factory.NewUserClient("paramnarrows");
+            var client = await _factory.NewUserClient("filternarrows");
 
             var tracker = await CreateCapableTracker(client, "Weight");
             var dashboardId = await CreateDashboard(client);
             var chartId = await PlaceLineChart(client, dashboardId, tracker);
 
             var item = await Data(await client.PostAsJsonAsync(
-                $"dashboard/{dashboardId}/items/parameter",
-                new SaveParameterItemDto
+                $"dashboard/{dashboardId}/items/filter",
+                new SaveFilterItemDto
                 {
                     Clauses = AmountOverClauses(),
                     Links =
                     [
-                        new ViewSelectorLinkDto
+                        new WidgetLinkDto
                         {
                             ItemId = chartId,
                             TrackerId = tracker.Id,
@@ -1395,43 +1277,43 @@ namespace Operum.Tests.Tests.Dashboards
                         }
                     ]
                 }));
-            var paramId = item.GetProperty("id").GetString()!;
-            var queryId = await ParameterQueryId(client, dashboardId, paramId);
+            var filterId = item.GetProperty("id").GetString()!;
+            var queryId = await FilterQueryId(client, dashboardId, filterId);
 
             // No value yet -- the clause is not applied, so the entry is still there.
             Assert.Equal(1, PointsOf(await Widgets(client, dashboardId), chartId));
 
             var narrowed = await client.PutAsJsonAsync(
-                $"dashboard/{dashboardId}/items/{paramId}/parameter-values",
-                new SetParameterValuesDto { Values = new() { [queryId] = "10" } });
+                $"dashboard/{dashboardId}/items/{filterId}/filter-values",
+                new SetFilterValuesDto { Values = new() { [queryId] = "10" } });
             Assert.Equal(HttpStatusCode.OK, narrowed.StatusCode);
             Assert.Equal(0, PointsOf(await Data(narrowed), chartId));
 
             var cleared = await client.PutAsJsonAsync(
-                $"dashboard/{dashboardId}/items/{paramId}/parameter-values",
-                new SetParameterValuesDto { Values = new() { [queryId] = "" } });
+                $"dashboard/{dashboardId}/items/{filterId}/filter-values",
+                new SetFilterValuesDto { Values = new() { [queryId] = "" } });
             Assert.Equal(HttpStatusCode.OK, cleared.StatusCode);
             Assert.Equal(1, PointsOf(await Data(cleared), chartId));
         }
 
         [Fact]
-        public async Task Parameter_ResolvedClausesReachAnEntriesWidget()
+        public async Task Filter_ResolvedClausesReachAnEntriesWidget()
         {
             await _factory.SeedDatabaseAsync();
-            var client = await _factory.NewUserClient("paramentries");
+            var client = await _factory.NewUserClient("filterentries");
 
             var tracker = await CreateCapableTracker(client, "Weight");
             var dashboardId = await CreateDashboard(client);
             var itemId = await PlaceEntriesTable(client, dashboardId, tracker);
 
-            var param = await Data(await client.PostAsJsonAsync(
-                $"dashboard/{dashboardId}/items/parameter",
-                new SaveParameterItemDto
+            var filterItem = await Data(await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/items/filter",
+                new SaveFilterItemDto
                 {
                     Clauses = AmountOverClauses(),
                     Links =
                     [
-                        new ViewSelectorLinkDto
+                        new WidgetLinkDto
                         {
                             ItemId = itemId,
                             TrackerId = tracker.Id,
@@ -1439,45 +1321,45 @@ namespace Operum.Tests.Tests.Dashboards
                         }
                     ]
                 }));
-            var paramId = param.GetProperty("id").GetString()!;
-            var queryId = await ParameterQueryId(client, dashboardId, paramId);
+            var filterId = filterItem.GetProperty("id").GetString()!;
+            var queryId = await FilterQueryId(client, dashboardId, filterId);
 
             var narrowed = await client.PutAsJsonAsync(
-                $"dashboard/{dashboardId}/items/{paramId}/parameter-values",
-                new SetParameterValuesDto { Values = new() { [queryId] = "10" } });
+                $"dashboard/{dashboardId}/items/{filterId}/filter-values",
+                new SetFilterValuesDto { Values = new() { [queryId] = "10" } });
             Assert.Equal(0, EntriesRowCount(await Data(narrowed), itemId));
         }
 
         [Fact]
-        public async Task AddParameter_NoClauses_ReturnsBadRequest()
+        public async Task AddFilter_NoClauses_ReturnsBadRequest()
         {
             await _factory.SeedDatabaseAsync();
-            var client = await _factory.NewUserClient("paramnoclauses");
+            var client = await _factory.NewUserClient("filternoclauses");
 
             var tracker = await CreateCapableTracker(client, "Weight");
             var dashboardId = await CreateDashboard(client);
             await PlaceLineChart(client, dashboardId, tracker);
 
             var response = await client.PostAsJsonAsync(
-                $"dashboard/{dashboardId}/items/parameter",
-                new SaveParameterItemDto());
+                $"dashboard/{dashboardId}/items/filter",
+                new SaveFilterItemDto());
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
         [Fact]
-        public async Task AddParameter_SortClause_ReturnsBadRequest()
+        public async Task AddFilter_SortClause_ReturnsBadRequest()
         {
             await _factory.SeedDatabaseAsync();
-            var client = await _factory.NewUserClient("paramsortclause");
+            var client = await _factory.NewUserClient("filtersortclause");
 
             var tracker = await CreateCapableTracker(client, "Weight");
             var dashboardId = await CreateDashboard(client);
             await PlaceLineChart(client, dashboardId, tracker);
 
             var response = await client.PostAsJsonAsync(
-                $"dashboard/{dashboardId}/items/parameter",
-                new SaveParameterItemDto
+                $"dashboard/{dashboardId}/items/filter",
+                new SaveFilterItemDto
                 {
                     Clauses =
                     [
@@ -1494,23 +1376,23 @@ namespace Operum.Tests.Tests.Dashboards
         }
 
         [Fact]
-        public async Task AddParameter_ClauseMappedToFieldOfWrongType_ReturnsBadRequest()
+        public async Task AddFilter_ClauseMappedToFieldOfWrongType_ReturnsBadRequest()
         {
             await _factory.SeedDatabaseAsync();
-            var client = await _factory.NewUserClient("paramwrongtype");
+            var client = await _factory.NewUserClient("filterwrongtype");
 
             var tracker = await CreateCapableTracker(client, "Weight");
             var dashboardId = await CreateDashboard(client);
             var chartId = await PlaceLineChart(client, dashboardId, tracker);
 
             var response = await client.PostAsJsonAsync(
-                $"dashboard/{dashboardId}/items/parameter",
-                new SaveParameterItemDto
+                $"dashboard/{dashboardId}/items/filter",
+                new SaveFilterItemDto
                 {
                     Clauses = AmountOverClauses(),
                     Links =
                     [
-                        new ViewSelectorLinkDto
+                        new WidgetLinkDto
                         {
                             ItemId = chartId,
                             TrackerId = tracker.Id,
@@ -1524,23 +1406,23 @@ namespace Operum.Tests.Tests.Dashboards
         }
 
         [Fact]
-        public async Task SetParameterValues_ValueOfWrongType_ReturnsBadRequest()
+        public async Task SetFilterValues_ValueOfWrongType_ReturnsBadRequest()
         {
             await _factory.SeedDatabaseAsync();
-            var client = await _factory.NewUserClient("paramvaluetype");
+            var client = await _factory.NewUserClient("filtervaluetype");
 
             var tracker = await CreateCapableTracker(client, "Weight");
             var dashboardId = await CreateDashboard(client);
             var chartId = await PlaceLineChart(client, dashboardId, tracker);
 
             var item = await Data(await client.PostAsJsonAsync(
-                $"dashboard/{dashboardId}/items/parameter",
-                new SaveParameterItemDto
+                $"dashboard/{dashboardId}/items/filter",
+                new SaveFilterItemDto
                 {
                     Clauses = AmountOverClauses(),
                     Links =
                     [
-                        new ViewSelectorLinkDto
+                        new WidgetLinkDto
                         {
                             ItemId = chartId,
                             TrackerId = tracker.Id,
@@ -1548,18 +1430,143 @@ namespace Operum.Tests.Tests.Dashboards
                         }
                     ]
                 }));
-            var paramId = item.GetProperty("id").GetString()!;
-            var queryId = await ParameterQueryId(client, dashboardId, paramId);
+            var filterId = item.GetProperty("id").GetString()!;
+            var queryId = await FilterQueryId(client, dashboardId, filterId);
 
             var badValue = await client.PutAsJsonAsync(
-                $"dashboard/{dashboardId}/items/{paramId}/parameter-values",
-                new SetParameterValuesDto { Values = new() { [queryId] = "not a number" } });
+                $"dashboard/{dashboardId}/items/{filterId}/filter-values",
+                new SetFilterValuesDto { Values = new() { [queryId] = "not a number" } });
             Assert.Equal(HttpStatusCode.BadRequest, badValue.StatusCode);
 
             var badKey = await client.PutAsJsonAsync(
-                $"dashboard/{dashboardId}/items/{paramId}/parameter-values",
-                new SetParameterValuesDto { Values = new() { ["not-a-query"] = "5" } });
+                $"dashboard/{dashboardId}/items/{filterId}/filter-values",
+                new SetFilterValuesDto { Values = new() { ["not-a-query"] = "5" } });
             Assert.Equal(HttpStatusCode.BadRequest, badKey.StatusCode);
+        }
+
+        // ----- Filter widget presets (the old standalone view selector, folded in) -----
+
+        [Fact]
+        public async Task AddFilter_WithPresetIds_ResolvesPresetsOnBoard()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("filterpresetresolve");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            await PlaceLineChart(client, dashboardId, tracker);
+
+            var view = await Data(await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/views", LateInYearSet()));
+            var viewId = view.GetProperty("id").GetString()!;
+
+            var item = await Data(await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/items/filter",
+                new SaveFilterItemDto { PresetIds = [viewId], SelectedPresetId = viewId }));
+            var filterId = item.GetProperty("id").GetString()!;
+
+            var widgets = await Widgets(client, dashboardId);
+            var filter = widgets.EnumerateArray().Single(w => w.GetProperty("id").GetString() == filterId)
+                .GetProperty("filter");
+            Assert.Equal(viewId, filter.GetProperty("selectedPresetId").GetString());
+            var presets = filter.GetProperty("presets").EnumerateArray().ToList();
+            Assert.Single(presets);
+            Assert.Equal(viewId, presets[0].GetProperty("id").GetString());
+            Assert.Equal("Late in year", presets[0].GetProperty("name").GetString());
+        }
+
+        [Fact]
+        public async Task AddFilter_PresetIdNotOnBoard_ReturnsBadRequest()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("filterpresetforeign");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            await PlaceLineChart(client, dashboardId, tracker);
+
+            var response = await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/items/filter",
+                new SaveFilterItemDto { PresetIds = ["not-a-view"] });
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task SetFilterPreset_SelectedPreset_NarrowsLinkedChartAndClearsWhenDeselected()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("filterpresetnarrows");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var chartId = await PlaceLineChart(client, dashboardId, tracker);
+
+            var view = await Data(await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/views", LateInYearSet()));
+            var viewId = view.GetProperty("id").GetString()!;
+            var queryId = view.GetProperty("clauses")[0].GetProperty("queryId").GetString()!;
+
+            var filterItem = await Data(await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/items/filter",
+                new SaveFilterItemDto
+                {
+                    PresetIds = [viewId],
+                    SelectedPresetId = viewId,
+                    PresetLinks =
+                    [
+                        new WidgetLinkDto
+                        {
+                            ItemId = chartId,
+                            TrackerId = tracker.Id,
+                            FieldByQuery = new() { [queryId] = tracker.DayFieldId }
+                        }
+                    ]
+                }));
+            var filterId = filterItem.GetProperty("id").GetString()!;
+
+            Assert.Equal(0, PointsOf(await Widgets(client, dashboardId), chartId));
+
+            var cleared = await client.PutAsJsonAsync(
+                $"dashboard/{dashboardId}/items/{filterId}/filter-preset",
+                new SetFilterPresetDto { SelectedPresetId = null });
+            Assert.Equal(HttpStatusCode.OK, cleared.StatusCode);
+            Assert.Equal(1, PointsOf(await Data(cleared), chartId));
+        }
+
+        [Fact]
+        public async Task AddFilter_PresetLinkClauseMappedToFieldOfWrongType_ReturnsBadRequest()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("filterpresetwrongtype");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var chartId = await PlaceLineChart(client, dashboardId, tracker);
+
+            var view = await Data(await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/views", LateInYearSet()));
+            var viewId = view.GetProperty("id").GetString()!;
+            var queryId = view.GetProperty("clauses")[0].GetProperty("queryId").GetString()!;
+
+            var response = await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/items/filter",
+                new SaveFilterItemDto
+                {
+                    PresetIds = [viewId],
+                    PresetLinks =
+                    [
+                        new WidgetLinkDto
+                        {
+                            ItemId = chartId,
+                            TrackerId = tracker.Id,
+                            // Amount is a number field, but the preset's clause is a date clause.
+                            FieldByQuery = new() { [queryId] = tracker.AmountFieldId }
+                        }
+                    ]
+                });
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
         [Fact]
@@ -1633,10 +1640,10 @@ namespace Operum.Tests.Tests.Dashboards
         }
 
         [Fact]
-        public async Task EntriesWidget_FollowsSelectedViewSelector_NarrowsRowsAndClearsWhenDeselected()
+        public async Task SetFilterPreset_EntriesWidgetFollowsSelectedPreset_NarrowsRowsAndClearsWhenDeselected()
         {
             await _factory.SeedDatabaseAsync();
-            var client = await _factory.NewUserClient("entriesselector");
+            var client = await _factory.NewUserClient("entriespreset");
 
             var tracker = await CreateCapableTracker(client, "Weight");
             var dashboardId = await CreateDashboard(client);
@@ -1647,15 +1654,15 @@ namespace Operum.Tests.Tests.Dashboards
             var viewId = view.GetProperty("id").GetString()!;
             var queryId = view.GetProperty("clauses")[0].GetProperty("queryId").GetString()!;
 
-            var selectorItem = await Data(await client.PostAsJsonAsync(
-                $"dashboard/{dashboardId}/items/view-selector",
-                new SaveViewSelectorItemDto
+            var filterItem = await Data(await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/items/filter",
+                new SaveFilterItemDto
                 {
-                    OptionIds = [viewId],
-                    SelectedId = viewId,
-                    Links =
+                    PresetIds = [viewId],
+                    SelectedPresetId = viewId,
+                    PresetLinks =
                     [
-                        new ViewSelectorLinkDto
+                        new WidgetLinkDto
                         {
                             ItemId = itemId,
                             TrackerId = tracker.Id,
@@ -1663,50 +1670,15 @@ namespace Operum.Tests.Tests.Dashboards
                         }
                     ]
                 }));
-            var selectorId = selectorItem.GetProperty("id").GetString()!;
+            var filterId = filterItem.GetProperty("id").GetString()!;
 
             Assert.Equal(0, EntriesRowCount(await Widgets(client, dashboardId), itemId));
 
             var cleared = await client.PutAsJsonAsync(
-                $"dashboard/{dashboardId}/items/{selectorId}/view-selector-selection",
-                new SetViewSelectorSelectionDto { SelectedId = null });
+                $"dashboard/{dashboardId}/items/{filterId}/filter-preset",
+                new SetFilterPresetDto { SelectedPresetId = null });
             Assert.Equal(HttpStatusCode.OK, cleared.StatusCode);
             Assert.Equal(1, EntriesRowCount(await Data(cleared), itemId));
-        }
-
-        [Fact]
-        public async Task AddViewSelector_EntriesLinkClauseMappedToWrongFieldType_ReturnsBadRequest()
-        {
-            await _factory.SeedDatabaseAsync();
-            var client = await _factory.NewUserClient("entriesselectorwrongtype");
-
-            var tracker = await CreateCapableTracker(client, "Weight");
-            var dashboardId = await CreateDashboard(client);
-            var itemId = await PlaceEntriesTable(client, dashboardId, tracker);
-
-            var view = await Data(await client.PostAsJsonAsync(
-                $"dashboard/{dashboardId}/views", LateInYearSet()));
-            var viewId = view.GetProperty("id").GetString()!;
-            var queryId = view.GetProperty("clauses")[0].GetProperty("queryId").GetString()!;
-
-            var response = await client.PostAsJsonAsync(
-                $"dashboard/{dashboardId}/items/view-selector",
-                new SaveViewSelectorItemDto
-                {
-                    OptionIds = [viewId],
-                    Links =
-                    [
-                        new ViewSelectorLinkDto
-                        {
-                            ItemId = itemId,
-                            TrackerId = tracker.Id,
-                            // Amount is a number field, but the clause is a date clause.
-                            FieldByQuery = new() { [queryId] = tracker.AmountFieldId }
-                        }
-                    ]
-                });
-
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
         [Fact]

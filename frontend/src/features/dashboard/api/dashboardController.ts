@@ -15,11 +15,10 @@ import {
     PlaceWidgetDto,
     ReorderDashboardViewsDto,
     SaveDashboardViewDto,
-    SaveParameterItemDto,
-    SaveViewSelectorItemDto,
-    SetParameterValuesDto,
+    SaveFilterItemDto,
+    SetFilterPresetDto,
+    SetFilterValuesDto,
     SetTextWidgetContentDto,
-    SetViewSelectorSelectionDto,
     UpdateDashboardDto,
     UpdateDashboardEntriesItemDto,
     UpdateDashboardItemDto,
@@ -83,18 +82,11 @@ export const dashboardController = {
         return await api.post(`/dashboard/${dashboardId}/items/quick-add`, dto);
     },
 
-    addViewSelectorItem: async (
+    addFilterItem: async (
         dashboardId: string,
-        dto: SaveViewSelectorItemDto
+        dto: SaveFilterItemDto
     ): Promise<ApiResponse<DashboardItemDto>> => {
-        return await api.post(`/dashboard/${dashboardId}/items/view-selector`, dto);
-    },
-
-    addParameterItem: async (
-        dashboardId: string,
-        dto: SaveParameterItemDto
-    ): Promise<ApiResponse<DashboardItemDto>> => {
-        return await api.post(`/dashboard/${dashboardId}/items/parameter`, dto);
+        return await api.post(`/dashboard/${dashboardId}/items/filter`, dto);
     },
 
     getDashboardViews: async (
@@ -182,42 +174,34 @@ export const dashboardController = {
         return await api.put(`/dashboard/${dashboardId}/items/${itemId}/entries`, dto);
     },
 
-    setViewSelectorSelection: async (
+    setFilterValues: async (
         dashboardId: string,
         itemId: string,
-        dto: SetViewSelectorSelectionDto
+        dto: SetFilterValuesDto
     ): Promise<ApiResponse<DashboardWidgetDto[]>> => {
         return await api.put(
-            `/dashboard/${dashboardId}/items/${itemId}/view-selector-selection`,
+            `/dashboard/${dashboardId}/items/${itemId}/filter-values`,
             dto
         );
     },
 
-    updateViewSelectorItem: async (
+    updateFilterItem: async (
         dashboardId: string,
         itemId: string,
-        dto: SaveViewSelectorItemDto
+        dto: SaveFilterItemDto
     ): Promise<ApiResponse<DashboardWidgetDto[]>> => {
-        return await api.put(`/dashboard/${dashboardId}/items/${itemId}/view-selector`, dto);
+        return await api.put(`/dashboard/${dashboardId}/items/${itemId}/filter`, dto);
     },
 
-    setParameterValues: async (
+    setFilterPreset: async (
         dashboardId: string,
         itemId: string,
-        dto: SetParameterValuesDto
+        dto: SetFilterPresetDto
     ): Promise<ApiResponse<DashboardWidgetDto[]>> => {
         return await api.put(
-            `/dashboard/${dashboardId}/items/${itemId}/parameter-values`,
+            `/dashboard/${dashboardId}/items/${itemId}/filter-preset`,
             dto
         );
-    },
-
-    updateParameterItem: async (
-        dashboardId: string,
-        itemId: string,
-        dto: SaveParameterItemDto
-    ): Promise<ApiResponse<DashboardWidgetDto[]>> => {
-        return await api.put(`/dashboard/${dashboardId}/items/${itemId}/parameter`, dto);
     },
 
     setTextWidgetContent: async (

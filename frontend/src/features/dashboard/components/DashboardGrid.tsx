@@ -135,11 +135,11 @@ interface Props {
   onRemove?: (itemId: string) => void;
   onEdit?: (itemId: string) => void;
   onEntryClick?: (entryId: string) => void;
-  onViewSelectorSelect?: (itemId: string, selectedId: string | null) => void;
-  onParameterSetValues?: (
+  onFilterSetValues?: (
     itemId: string,
     values: Record<string, string | null>,
   ) => void;
+  onFilterSelectPreset?: (itemId: string, selectedPresetId: string | null) => void;
 }
 
 export function DashboardGrid({
@@ -150,8 +150,8 @@ export function DashboardGrid({
   onRemove,
   onEdit,
   onEntryClick,
-  onViewSelectorSelect,
-  onParameterSetValues,
+  onFilterSetValues,
+  onFilterSelectPreset,
 }: Props) {
   // Measured before the first render, so the grid never lays itself out at the hook's
   // assumed default width and overflows a narrower container for a frame.
@@ -228,8 +228,8 @@ export function DashboardGrid({
                 onRemove={onRemove}
                 onEdit={onEdit}
                 onEntryClick={onEntryClick}
-                onViewSelectorSelect={onViewSelectorSelect}
-                onParameterSetValues={onParameterSetValues}
+                onFilterSetValues={onFilterSetValues}
+                onFilterSelectPreset={onFilterSelectPreset}
               />
             </div>
           ))}

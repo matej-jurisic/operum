@@ -22,7 +22,6 @@ import { MdOutlineHorizontalRule } from "react-icons/md";
 import {
     TbAdjustmentsHorizontal,
     TbChartHistogram,
-    TbFilter,
     TbHeading,
     TbLayoutGrid,
     TbNote,
@@ -35,8 +34,7 @@ import { HeaderWidgetForm } from "../../dashboard/components/HeaderWidgetForm";
 import { NoteWidgetForm } from "../../dashboard/components/NoteWidgetForm";
 import { PlaceFromLibraryForm } from "../../dashboard/components/PlaceFromLibraryForm";
 import { QuickAddTrackerForm } from "../../dashboard/components/QuickAddTrackerForm";
-import { ParameterWidgetForm } from "../../dashboard/components/ParameterWidgetForm";
-import { ViewSelectorWidgetForm } from "../../dashboard/components/ViewSelectorWidgetForm";
+import { FilterWidgetForm } from "../../dashboard/components/FilterWidgetForm";
 import { useDashboard } from "../../dashboard/context/DashboardContext";
 import { trackersController } from "../../trackers/api/trackersController";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
@@ -75,7 +73,7 @@ type Panel =
     | { kind: "delete-table"; entriesWidget: EntriesWidgetDefinitionDto }
     | {
           kind: "config";
-          widgetKind: "quickAdd" | "view" | "parameter" | "header" | "note";
+          widgetKind: "quickAdd" | "filter" | "header" | "note";
       };
 
 const TAB_META: { value: TabValue; label: string; icon: IconType }[] = [
@@ -86,15 +84,14 @@ const TAB_META: { value: TabValue; label: string; icon: IconType }[] = [
 ];
 
 interface InstantOption {
-    key: "quickAdd" | "view" | "parameter" | "header" | "divider" | "note";
+    key: "quickAdd" | "filter" | "header" | "divider" | "note";
     title: string;
     icon: IconType;
 }
 
 const CONTROL_OPTIONS: InstantOption[] = [
     { key: "quickAdd", title: "Quick-add button", icon: FiPlusSquare },
-    { key: "view", title: "View selector", icon: TbFilter },
-    { key: "parameter", title: "Parameter", icon: TbAdjustmentsHorizontal },
+    { key: "filter", title: "Filter", icon: TbAdjustmentsHorizontal },
 ];
 
 const LAYOUT_OPTIONS: InstantOption[] = [
@@ -125,10 +122,8 @@ function panelTitle(panel: Panel): string {
         case "config":
             return panel.widgetKind === "quickAdd"
                 ? "Add a quick-add button"
-                : panel.widgetKind === "view"
-                ? "Add a view selector"
-                : panel.widgetKind === "parameter"
-                ? "Add a parameter"
+                : panel.widgetKind === "filter"
+                ? "Add a filter"
                 : panel.widgetKind === "header"
                 ? "Add a header"
                 : "Add a note";
@@ -154,8 +149,7 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
         createAndPlaceEntriesWidget,
         placeEntriesWidget,
         addQuickAddItem,
-        addViewSelectorItem,
-        addParameterItem,
+        addFilterItem,
         addHeaderItem,
         addDividerItem,
         addNoteItem,
@@ -265,8 +259,7 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
         subPanel.kind === "new-table" ||
         subPanel.kind === "place-chart" ||
         subPanel.kind === "place-table" ||
-        (subPanel.kind === "config" &&
-            (subPanel.widgetKind === "view" || subPanel.widgetKind === "parameter"));
+        (subPanel.kind === "config" && subPanel.widgetKind === "filter");
 
     // Search + tracker filter share one row across the Charts and Tables tabs on desktop.
     // On mobile the modal is too narrow for that: search gets its own row, and the tracker
@@ -585,19 +578,11 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
                     <QuickAddTrackerForm onBack={backToList} onAdd={closeAfter(addQuickAddItem)} />
                 )}
 
-                {subPanel.kind === "config" && subPanel.widgetKind === "view" && (
-                    <ViewSelectorWidgetForm
+                {subPanel.kind === "config" && subPanel.widgetKind === "filter" && (
+                    <FilterWidgetForm
                         color={color}
                         onBack={backToList}
-                        onAdd={closeAfter(addViewSelectorItem)}
-                    />
-                )}
-
-                {subPanel.kind === "config" && subPanel.widgetKind === "parameter" && (
-                    <ParameterWidgetForm
-                        color={color}
-                        onBack={backToList}
-                        onAdd={closeAfter(addParameterItem)}
+                        onAdd={closeAfter(addFilterItem)}
                     />
                 )}
 

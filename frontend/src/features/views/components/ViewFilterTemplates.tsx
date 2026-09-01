@@ -77,7 +77,7 @@ function lookbackTemplate(
 }
 
 /** A lower + upper bound with no values filled in — the caller (or the board, for a
- *  parameter widget) supplies the ends. Lets someone build a customizable range without
+ *  filter widget) supplies the ends. Lets someone build a customizable range without
  *  starting from a preset period like "Current Month". */
 function blankRangeTemplate(
     id: string,

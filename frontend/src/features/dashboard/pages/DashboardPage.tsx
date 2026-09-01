@@ -8,6 +8,7 @@ import {
     useMantineTheme,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
+import { observer } from "mobx-react";
 import { createElement, useCallback, useEffect, useState } from "react";
 import { FiCheck, FiPlus } from "react-icons/fi";
 import { TbLayoutDashboard } from "react-icons/tb";
@@ -22,8 +23,7 @@ import BoardFormModal from "../components/BoardFormModal";
 import { DashboardGrid } from "../components/DashboardGrid";
 import { EditEntriesWidgetModal } from "../components/EditEntriesWidgetModal";
 import { EditTextWidgetModal } from "../components/EditTextWidgetModal";
-import { EditParameterModal } from "../components/EditParameterModal";
-import { EditViewSelectorModal } from "../components/EditViewSelectorModal";
+import { EditFilterModal } from "../components/EditFilterModal";
 import { EditWidgetModal } from "../components/EditWidgetModal";
 import { WidgetsProvider } from "../../widgets/context/WidgetsContext";
 import { WidgetLibraryModal } from "../../widgets/components/WidgetLibraryModal";
@@ -61,10 +61,9 @@ function DashboardContent({
         refreshWidgets,
         updateItem,
         updateEntriesItem,
-        setViewSelectorSelection,
-        updateViewSelectorItem,
-        setParameterValues,
-        updateParameterItem,
+        setFilterValues,
+        updateFilterItem,
+        setFilterPreset,
         setTextContent,
         removeItem,
         saveLayout,
@@ -186,8 +185,8 @@ function DashboardContent({
                     onLayoutSave={saveLayout}
                     onRemove={removeItem}
                     onEdit={setEditingItemId}
-                    onViewSelectorSelect={setViewSelectorSelection}
-                    onParameterSetValues={setParameterValues}
+                    onFilterSetValues={setFilterValues}
+                    onFilterSelectPreset={setFilterPreset}
                 />
             )}
 
@@ -228,23 +227,12 @@ function DashboardContent({
 
             {editingItemId &&
                 editingWidget &&
-                editingWidget.type === WidgetTypes.ViewSelector && (
-                    <EditViewSelectorModal
+                editingWidget.type === WidgetTypes.Filter && (
+                    <EditFilterModal
                         itemId={editingItemId}
                         color={color}
                         onClose={closeEditing}
-                        onSave={updateViewSelectorItem}
-                    />
-                )}
-
-            {editingItemId &&
-                editingWidget &&
-                editingWidget.type === WidgetTypes.Parameter && (
-                    <EditParameterModal
-                        itemId={editingItemId}
-                        color={color}
-                        onClose={closeEditing}
-                        onSave={updateParameterItem}
+                        onSave={updateFilterItem}
                     />
                 )}
 
@@ -253,8 +241,7 @@ function DashboardContent({
                 editingWidget.type !== WidgetTypes.Header &&
                 editingWidget.type !== WidgetTypes.Note &&
                 editingWidget.type !== WidgetTypes.Entries &&
-                editingWidget.type !== WidgetTypes.ViewSelector &&
-                editingWidget.type !== WidgetTypes.Parameter && (
+                editingWidget.type !== WidgetTypes.Filter && (
                     <EditWidgetModal
                         itemId={editingItemId}
                         color={color}
@@ -279,27 +266,20 @@ function DashboardContent({
     );
 }
 
-export default function DashboardPage() {
+const DashboardPage = observer(function DashboardPage() {
     const { dashboardId } = useParams<{ dashboardId: string }>();
     const navigate = useNavigate();
     const theme = useMantineTheme();
 
-    const [boards, setBoards] = useState<DashboardDto[]>([]);
-    const [isLoadingBoards, setIsLoadingBoards] = useState(true);
+    // The board list lives on navigationStore -- the sidebar, the command palette
+    // and this page all read the same array, so a board created or renamed from
+    // anywhere is visible here without a fetch of its own. AppLayout kicks off the
+    // initial load; this just waits for it.
+    const boards = navigationStore.dashboards;
+    const isLoadingBoards = !navigationStore.loaded;
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-
-    const loadBoards = useCallback(async () => {
-        const res = await dashboardController.getDashboards();
-        setBoards(res.data ?? []);
-        setIsLoadingBoards(false);
-        navigationStore.setDashboards(res.data ?? []);
-    }, []);
-
-    useEffect(() => {
-        loadBoards();
-    }, [loadBoards]);
 
     const activeBoard = boards.find((b) => b.id === dashboardId);
 
@@ -325,7 +305,7 @@ export default function DashboardPage() {
         try {
             const res = await dashboardController.createDashboard(values);
             setIsCreateOpen(false);
-            await loadBoards();
+            await navigationStore.refreshDashboards();
             navigate(`/dashboard/${res.data.id}`);
         } catch {
             // The api layer already surfaced the error
@@ -341,7 +321,7 @@ export default function DashboardPage() {
         try {
             await dashboardController.updateDashboard(activeBoard.id, values);
             setIsEditOpen(false);
-            await loadBoards();
+            await navigationStore.refreshDashboards();
         } catch {
             // The api layer already surfaced the error
         }
@@ -360,7 +340,7 @@ export default function DashboardPage() {
 
         const remaining = boards.filter((b) => b.id !== activeBoard.id);
         localStorage.removeItem(LAST_BOARD_KEY);
-        await loadBoards();
+        await navigationStore.refreshDashboards();
         navigate(
             remaining.length > 0
                 ? `/dashboard/${remaining[0].id}`
@@ -450,4 +430,6 @@ export default function DashboardPage() {
             />
         </>
     );
-}
+});
+
+export default DashboardPage;

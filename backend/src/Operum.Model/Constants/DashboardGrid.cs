@@ -55,14 +55,11 @@ namespace Operum.Model.Constants
         // room for an icon, a name and a button.
         public static readonly (int Width, int Height) QuickAddSize = (6, 12);
 
-        // A view selector is a dropdown under a label, a little taller than a quick-add
-        // button so the current selection's clauses can be summarised beneath it.
-        public static readonly (int Width, int Height) ViewSelectorSize = (6, 16);
-
-        // A parameter widget shows as a compact filter chip -- an icon and a one-line
-        // summary of the values currently set -- and opens a modal to edit them, so it needs
-        // only a little more room than a quick-add button.
-        public static readonly (int Width, int Height) ParameterSize = (6, 12);
+        // A filter widget shows as a compact filter chip -- an icon and a one-line
+        // summary of the values currently set -- and opens a modal to edit them. It also
+        // carries an optional preset dropdown as a second row when it has any, so it needs a
+        // little more headroom than a bare quick-add button.
+        public static readonly (int Width, int Height) FilterSize = (6, 16);
 
         // An entries table wants the same room a chart does: enough width for a few
         // columns and enough height to show more than a couple of rows.

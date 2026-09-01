@@ -8,8 +8,8 @@ namespace Operum.Model.DTOs.Dashboard
     //
     // ColumnFieldIds are the tracker's fields to show, already deduped and in display order.
     // Empty means every field, the same fallback the tracker page uses. How the table is
-    // filtered is not stored here at all -- that comes only from the view selector widgets
-    // this placement is linked to (see ViewSelectorWidgetConfigDto).
+    // filtered is not stored here at all -- that comes only from the filter widgets this
+    // placement is linked to (see FilterWidgetConfigDto).
     public class EntriesWidgetConfigDto
     {
         public List<string> ColumnFieldIds { get; set; } = [];

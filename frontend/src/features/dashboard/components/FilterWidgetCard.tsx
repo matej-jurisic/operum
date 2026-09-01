@@ -4,13 +4,14 @@ import {
     Modal,
     Paper,
     ScrollArea,
+    Select,
     Stack,
     Text,
     UnstyledButton,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useState } from "react";
-import { TbFilter } from "react-icons/tb";
+import { TbBookmark, TbFilter } from "react-icons/tb";
 import DynamicDateValueInput from "../../../shared/components/DynamicDateValueInput";
 import { fieldTypes } from "../../../shared/constants/DataTypesForSelect";
 import { formatOperator } from "../../../shared/utils/formatters/OperatorFormatter";
@@ -22,9 +23,10 @@ import {
     useCardLayout,
 } from "../../analytics/components/cardSizing";
 import { FieldDto } from "../../fields/types/FieldDto";
-import { ParameterWidgetDto } from "../types/DashboardDto";
+import { FilterWidgetDto } from "../types/DashboardDto";
 
 const DATE_TYPES = ["date", "datetime"];
+const NONE_VALUE = "";
 
 /** A synthetic field so the shared value input (which keys off a FieldDto) can render for a
     clause that names only a data type. Mirrors AbstractClauseListEditor. */
@@ -51,35 +53,43 @@ function normalizeValue(value: unknown): string | null {
 
 interface Props {
     widgetId: string;
-    /** The clauses + current values, resolved by the board itself. */
-    parameter: ParameterWidgetDto | undefined;
+    /** The clauses + current values, and the presets + current selection, both resolved by
+        the board itself. */
+    filter: FilterWidgetDto | undefined;
     color: string | undefined;
     isConfiguring: boolean;
     onRemove?: (itemId: string) => void;
-    /** Opens the widget's edit dialog: the clauses it drives and which widgets follow it. */
+    /** Opens the widget's edit dialog: its clauses, its presets, and which widgets follow it
+        in either facet. */
     onEdit?: (itemId: string) => void;
-    /** Persists the new values and recomputes every widget linked to this one. */
+    /** Persists the new typed values and recomputes every widget linked to those clauses. */
     onSetValues: (itemId: string, values: Record<string, string | null>) => void;
+    /** Persists the new preset selection and recomputes every widget linked to it. */
+    onSelectPreset: (itemId: string, selectedPresetId: string | null) => void;
 }
 
 /**
- * A compact board widget that reads as a filter chip: an icon and a one-line summary of the
- * values currently set. Clicking it opens a dialog to edit those values; every
- * Analytic/Entries widget wired to it is then recomputed against the widget's clauses using
- * what was entered. A clause left blank is simply not applied. Values are saved on the
- * widget, so they are what every viewer sees on the next load too.
+ * A compact board widget with two independent controls, both saved on the widget so they are
+ * what every viewer sees on the next load too. A preset dropdown (only shown when the widget
+ * offers any) instantly re-filters every widget wired to it -- filters and sorts alike -- the
+ * moment a preset is picked. A filter chip below it reads as an icon and a one-line summary
+ * of the typed values currently set; clicking it opens a dialog to edit those, which
+ * separately re-filters every widget wired to its own clauses. A clause left blank is simply
+ * not applied.
  */
-export function ParameterWidgetCard({
+export function FilterWidgetCard({
     widgetId,
-    parameter,
+    filter,
     color,
     isConfiguring,
     onRemove,
     onEdit,
     onSetValues,
+    onSelectPreset,
 }: Props) {
     const layout = useCardLayout(true);
-    const clauses = parameter?.clauses ?? [];
+    const clauses = filter?.clauses ?? [];
+    const presets = filter?.presets ?? [];
     const [editing, setEditing] = useState(false);
 
     const form = useForm<{ values: Record<string, unknown> }>({
@@ -129,7 +139,7 @@ export function ParameterWidgetCard({
     return (
         <Paper
             ref={layout.ref}
-            withBorder={isConfiguring}
+            withBorder
             p={0}
             radius="md"
             w="100%"
@@ -137,7 +147,7 @@ export function ParameterWidgetCard({
         >
             <Stack gap="xs" {...cardBodyProps(true)} h="100%">
                 <AnalyticCardHeader
-                    title="Parameters"
+                    title="Filters"
                     layout={layout}
                     color={color}
                     isConfiguring={isConfiguring}
@@ -146,40 +156,65 @@ export function ParameterWidgetCard({
                     onEdit={onEdit}
                     compact
                 />
-                <UnstyledButton
-                    onClick={openEditor}
-                    disabled={isConfiguring || clauses.length === 0}
-                    style={{
-                        flex: 1,
-                        minHeight: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        padding: "0 12px",
-                        pointerEvents: isConfiguring ? "none" : "auto",
-                    }}
-                >
-                    <TbFilter size={16} style={{ flexShrink: 0, opacity: 0.7 }} />
-                    {clauses.length === 0 ? (
-                        <Text size="sm" c="dimmed">
-                            This parameter widget is misconfigured.
-                        </Text>
-                    ) : summaryParts.length === 0 ? (
-                        <Text size="sm" c="dimmed">
-                            Set filters…
-                        </Text>
-                    ) : (
-                        <Text size="sm" truncate>
-                            {summaryParts.join("  ·  ")}
-                        </Text>
-                    )}
-                </UnstyledButton>
+                {presets.length > 0 && (
+                    <Select
+                        size="xs"
+                        px="xs"
+                        leftSection={<TbBookmark size={14} />}
+                        placeholder="Apply preset…"
+                        data={[
+                            { value: NONE_VALUE, label: "None" },
+                            ...presets.map((p) => ({ value: p.id, label: p.name })),
+                        ]}
+                        value={filter?.selectedPresetId ?? NONE_VALUE}
+                        onChange={(value) =>
+                            onSelectPreset(
+                                widgetId,
+                                value && value !== NONE_VALUE ? value : null,
+                            )
+                        }
+                        disabled={isConfiguring}
+                        allowDeselect={false}
+                        comboboxProps={{ withinPortal: true }}
+                        style={{ pointerEvents: isConfiguring ? "none" : "auto" }}
+                    />
+                )}
+                {clauses.length > 0 ? (
+                    <UnstyledButton
+                        onClick={openEditor}
+                        disabled={isConfiguring}
+                        style={{
+                            flex: 1,
+                            minHeight: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            padding: "0 12px",
+                            pointerEvents: isConfiguring ? "none" : "auto",
+                        }}
+                    >
+                        <TbFilter size={16} style={{ flexShrink: 0, opacity: 0.7 }} />
+                        {summaryParts.length === 0 ? (
+                            <Text size="sm" c="dimmed">
+                                Set filters…
+                            </Text>
+                        ) : (
+                            <Text size="sm" truncate>
+                                {summaryParts.join("  ·  ")}
+                            </Text>
+                        )}
+                    </UnstyledButton>
+                ) : presets.length === 0 ? (
+                    <Text size="sm" c="dimmed" px="xs">
+                        This filter widget is misconfigured.
+                    </Text>
+                ) : null}
             </Stack>
 
             <Modal
                 opened={editing}
                 onClose={() => setEditing(false)}
-                title="Set parameters"
+                title="Set filters"
                 centered
                 zIndex={400}
             >

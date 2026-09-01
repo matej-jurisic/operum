@@ -101,7 +101,7 @@ namespace Operum.Service.Services.Dashboards
         }
 
         // Shared by the plain read (GetDashboardWidgets) and anything that just wrote to the
-        // board and needs it recomputed from the same in-memory graph (SetViewSelectorSelection)
+        // board and needs it recomputed from the same in-memory graph (SetFilterPreset)
         // — every source is recalculated on every call today regardless of what changed, so
         // there is nothing to reconcile between the two.
         private async Task<List<DashboardWidgetDto>> BuildWidgets(Dashboard dashboard)
@@ -140,34 +140,26 @@ namespace Operum.Service.Services.Dashboards
                 .Where(x => x.Config != null)
                 .ToDictionary(x => x.ItemId, x => x.Config!);
 
-            // View selector widgets parsed once, plus every DashboardView on this board and
-            // the pooled clause behind each of its queries, so the analytic loop can layer
-            // the selected option's clauses on top of whatever fixed view a source reads
-            // through -- resolved against the field each link maps the clause to.
-            var selectorConfigsByItemId = items
-                .Where(i => i.Type == DashboardWidgetTypes.ViewSelector)
-                .Select(i => (ItemId: i.Id, Config: TryParseViewSelectorConfig(i.Config)))
+            // Filter widgets parsed once, plus every DashboardView on this board and the
+            // pooled clause behind each of its queries, so the analytic loop can layer both
+            // of a filter widget's facets -- its own typed clauses and, if one is
+            // selected, a preset's whole clause set -- on top of whatever fixed view a
+            // source reads through, resolved against the field each link maps a clause to.
+            var filterConfigsByItemId = items
+                .Where(i => i.Type == DashboardWidgetTypes.Filter)
+                .Select(i => (ItemId: i.Id, Config: TryParseFilterConfig(i.Config)))
                 .Where(x => x.Config != null)
                 .ToDictionary(x => x.ItemId, x => x.Config!);
 
-            // Parameter widgets are the same idea as view selectors -- clauses layered onto
-            // the widgets they follow -- but each owns its clause set (Config.QueryIds) with
-            // values typed on the board rather than switching between named views.
-            var parameterConfigsByItemId = items
-                .Where(i => i.Type == DashboardWidgetTypes.Parameter)
-                .Select(i => (ItemId: i.Id, Config: TryParseParameterConfig(i.Config)))
-                .Where(x => x.Config != null)
-                .ToDictionary(x => x.ItemId, x => x.Config!);
-
-            // The pooled clause behind every parameter widget's Config.QueryIds, so the loop
+            // The pooled clause behind every filter widget's Config.QueryIds, so the loop
             // below can render its inputs and layer it onto the widgets it follows.
-            var parameterQueryIds = parameterConfigsByItemId.Values
+            var filterQueryIds = filterConfigsByItemId.Values
                 .SelectMany(c => c.QueryIds)
                 .Distinct()
                 .ToList();
 
-            var parameterQueriesById = parameterQueryIds.Count > 0
-                ? await db.Queries.Where(q => parameterQueryIds.Contains(q.Id)).ToDictionaryAsync(q => q.Id)
+            var filterQueriesById = filterQueryIds.Count > 0
+                ? await db.Queries.Where(q => filterQueryIds.Contains(q.Id)).ToDictionaryAsync(q => q.Id)
                 : new Dictionary<string, Query>();
 
             var dashboardViewsById = (await db.DashboardViews
@@ -177,10 +169,11 @@ namespace Operum.Service.Services.Dashboards
                     .ToListAsync())
                 .ToDictionary(dv => dv.Id);
 
-            // Every tracker field a selector or parameter link maps to, loaded up front —
-            // ApplyViewFilters needs the field's Type to know how to filter on it.
-            var selectorFieldIds = selectorConfigsByItemId.Values.SelectMany(c => c.Links)
-                .Concat(parameterConfigsByItemId.Values.SelectMany(c => c.Links))
+            // Every tracker field a filter widget's own-clause or preset link maps to,
+            // loaded up front — ApplyViewFilters needs the field's Type to know how to
+            // filter on it.
+            var selectorFieldIds = filterConfigsByItemId.Values
+                .SelectMany(c => c.Links.Concat(c.PresetLinks))
                 .SelectMany(l => l.FieldByQuery.Values)
                 .Distinct()
                 .ToList();
@@ -203,39 +196,31 @@ namespace Operum.Service.Services.Dashboards
                             quickAddTrackers.TryGetValue(trackerId, out quickAddTracker);
                     }
 
-                    ViewSelectorWidgetDto? viewSelector = null;
-                    if (item.Type == DashboardWidgetTypes.ViewSelector &&
-                        selectorConfigsByItemId.TryGetValue(item.Id, out var selectorConfig))
+                    FilterWidgetDto? filter = null;
+                    if (item.Type == DashboardWidgetTypes.Filter &&
+                        filterConfigsByItemId.TryGetValue(item.Id, out var filterConfig))
                     {
-                        viewSelector = new ViewSelectorWidgetDto
+                        filter = new FilterWidgetDto
                         {
-                            SelectedId = selectorConfig.SelectedId,
-                            Options = selectorConfig.OptionIds
-                                .Where(dashboardViewsById.ContainsKey)
-                                .Select(id => new ViewSelectorOptionDto { Id = id, Name = dashboardViewsById[id].Name })
-                                .ToList()
-                        };
-                    }
-
-                    ParameterWidgetDto? parameter = null;
-                    if (item.Type == DashboardWidgetTypes.Parameter &&
-                        parameterConfigsByItemId.TryGetValue(item.Id, out var parameterConfig))
-                    {
-                        parameter = new ParameterWidgetDto
-                        {
-                            Clauses = parameterConfig.QueryIds
+                            Clauses = filterConfig.QueryIds
                                 .Distinct()
-                                .Where(parameterQueriesById.ContainsKey)
-                                .Select(id => parameterQueriesById[id])
+                                .Where(filterQueriesById.ContainsKey)
+                                .Select(id => filterQueriesById[id])
                                 .Where(q => q.Kind == QueryKinds.Filter)
-                                .Select(q => new ParameterClauseDto
+                                .Select(q => new FilterClauseDto
                                 {
                                     QueryId = q.Id,
                                     Kind = q.Kind,
                                     DataType = q.DataType,
                                     Operator = q.Operator,
-                                    Value = parameterConfig.ValueByQuery.GetValueOrDefault(q.Id)
+                                    Value = filterConfig.ValueByQuery.GetValueOrDefault(q.Id)
                                 })
+                                .ToList(),
+                            SelectedPresetId = filterConfig.SelectedPresetId,
+                            Presets = filterConfig.PresetIds
+                                .Distinct()
+                                .Where(dashboardViewsById.ContainsKey)
+                                .Select(id => new FilterPresetOptionDto { Id = id, Name = dashboardViewsById[id].Name })
                                 .ToList()
                         };
                     }
@@ -247,13 +232,13 @@ namespace Operum.Service.Services.Dashboards
                     {
                         entriesWidget = await BuildEntriesWidget(
                             item.Id, item.EntriesWidget, entriesConfig,
-                            selectorConfigsByItemId.Values, parameterConfigsByItemId.Values,
-                            dashboardViewsById, parameterQueriesById, selectorFieldsById,
+                            filterConfigsByItemId.Values,
+                            dashboardViewsById, filterQueriesById, selectorFieldsById,
                             currentUserService.GetCurrentUserTimeZone());
                     }
 
-                    results.Add(MapToWidgetDto(item, null, quickAddTracker, viewSelector: viewSelector,
-                        entriesWidget: entriesWidget, parameter: parameter));
+                    results.Add(MapToWidgetDto(item, null, quickAddTracker,
+                        entriesWidget: entriesWidget, filter: filter));
                     continue;
                 }
 
@@ -288,21 +273,23 @@ namespace Operum.Service.Services.Dashboards
                         entriesQuery = ViewQueryBuilder.ApplyViewSorting(entriesQuery, ViewQueryBuilder.ResolveSorts(view));
                     }
 
-                    // Every view selector this widget follows narrows it further, ANDed on top
-                    // of the fixed view above: the selected option's clauses, each run against
-                    // the field the link maps that clause to on this source's tracker.
-                    var (selFilters, selSorts) = ResolveSelectorClauses(
-                        item.Id, widgetSource.TrackerId, selectorConfigsByItemId.Values,
+                    // Every filter widget this widget follows narrows it further, ANDed on
+                    // top of the fixed view above -- from two independent facets. Whichever
+                    // preset is currently selected contributes its clauses, each run against
+                    // the field the preset link maps that clause to on this source's tracker.
+                    var (presetFilters, presetSorts) = ResolvePresetClauses(
+                        item.Id, widgetSource.TrackerId, filterConfigsByItemId.Values,
                         dashboardViewsById, selectorFieldsById);
 
-                    // Parameter widgets narrow it the same way, using the values typed on the
-                    // board -- a clause left blank is skipped rather than filtering on nothing.
-                    var (paramFilters, paramSorts) = ResolveParameterClauses(
-                        item.Id, widgetSource.TrackerId, parameterConfigsByItemId.Values,
-                        parameterQueriesById, selectorFieldsById);
+                    // The widget's own typed clauses narrow it the same way, using the values
+                    // typed on the board -- a clause left blank is skipped rather than
+                    // filtering on nothing.
+                    var (ownFilters, ownSorts) = ResolveFilterClauses(
+                        item.Id, widgetSource.TrackerId, filterConfigsByItemId.Values,
+                        filterQueriesById, selectorFieldsById);
 
-                    var followFilters = selFilters.Concat(paramFilters).ToList();
-                    var followSorts = selSorts.Concat(paramSorts).ToList();
+                    var followFilters = presetFilters.Concat(ownFilters).ToList();
+                    var followSorts = presetSorts.Concat(ownSorts).ToList();
 
                     if (followFilters.Count > 0)
                         entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, followFilters, tz);
@@ -643,128 +630,14 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(MapToItemDto(item));
         }
 
-        // A dropdown over a set of the board's DashboardViews. Carries no analytic definition
-        // — just Config: the option ids, the current selection, and per following Analytic
-        // widget the field each clause runs against. Everything worth checking is in
-        // ValidateViewSelectorConfig.
-        public async Task<Result<DashboardItemDto>> AddViewSelectorItem(string dashboardId, SaveViewSelectorItemDto dto)
-        {
-            var dashboard = await GetUserDashboard(dashboardId);
-            if (dashboard == null)
-                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
-
-            if (dashboard.Items.Count >= DataLimits.MaxDashboardItemCount)
-                return Result.Failure(ResultStatusCodes.Conflict, Messages.MaxNumberReached("dashboard items", DataLimits.MaxDashboardItemCount));
-
-            var validation = await ValidateViewSelectorConfig(dashboard, dto);
-            if (!validation.IsSuccess)
-                return Result.Failure(validation.StatusCode, validation.Messages);
-
-            var config = JsonSerializer.Serialize(new ViewSelectorWidgetConfigDto
-            {
-                OptionIds = dto.OptionIds,
-                SelectedId = dto.SelectedId,
-                Links = dto.Links
-            }, ConfigJsonOptions);
-
-            var item = BuildLayoutItem(dashboard, dashboardId, DashboardWidgetTypes.ViewSelector, DashboardGrid.ViewSelectorSize, config);
-
-            db.DashboardItems.Add(item);
-            await db.SaveChangesAsync();
-
-            return Result.Success(MapToItemDto(item));
-        }
-
-        // Edits a view selector in place: its options, its current selection, and the full
-        // set of widgets that follow it with their field maps. The payload stands for the
-        // whole widget, and the whole board comes back recomputed since a changed selection
-        // or map changes what every follower draws.
-        public async Task<Result<List<DashboardWidgetDto>>> UpdateViewSelectorItem(string dashboardId, string itemId, SaveViewSelectorItemDto dto)
-        {
-            var dashboard = await GetUserDashboard(dashboardId);
-            if (dashboard == null)
-                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
-
-            var item = dashboard.Items.FirstOrDefault(i => i.Id == itemId && i.Type == DashboardWidgetTypes.ViewSelector);
-            if (item == null)
-                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("view selector"));
-
-            var validation = await ValidateViewSelectorConfig(dashboard, dto);
-            if (!validation.IsSuccess)
-                return Result.Failure(validation.StatusCode, validation.Messages);
-
-            item.Config = JsonSerializer.Serialize(new ViewSelectorWidgetConfigDto
-            {
-                OptionIds = dto.OptionIds,
-                SelectedId = dto.SelectedId,
-                Links = dto.Links
-            }, ConfigJsonOptions);
-            await db.SaveChangesAsync();
-
-            return Result.Success(await BuildWidgets(dashboard));
-        }
-
-        // Changes what a view selector's dropdown is currently set to and persists it onto
-        // the item's Config, so it's what every future load starts from. Returns the whole
-        // board recomputed, since every widget the selector links re-filters by it.
-        public async Task<Result<List<DashboardWidgetDto>>> SetViewSelectorSelection(string dashboardId, string itemId, SetViewSelectorSelectionDto dto)
-        {
-            var dashboard = await GetUserDashboard(dashboardId);
-            if (dashboard == null)
-                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
-
-            var item = dashboard.Items.FirstOrDefault(i => i.Id == itemId && i.Type == DashboardWidgetTypes.ViewSelector);
-            var config = item != null ? TryParseViewSelectorConfig(item.Config) : null;
-            if (item == null || config == null)
-                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("view selector"));
-
-            if (!string.IsNullOrEmpty(dto.SelectedId) && !config.OptionIds.Contains(dto.SelectedId))
-                return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("selected option"));
-
-            config.SelectedId = dto.SelectedId;
-            item.Config = JsonSerializer.Serialize(config, ConfigJsonOptions);
-            await db.SaveChangesAsync();
-
-            return Result.Success(await BuildWidgets(dashboard));
-        }
-
-        // Shared by AddViewSelectorItem and UpdateViewSelectorItem: every option is a
-        // DashboardView on this board, the selection is one of the options (or none), and
-        // every link names an Analytic widget on this board, a tracker it reads from, and a
-        // real field of that tracker of the right data type for every clause across the
-        // selected options.
-        private async Task<Result> ValidateViewSelectorConfig(Dashboard dashboard, SaveViewSelectorItemDto dto)
-        {
-            var optionIds = dto.OptionIds.Distinct().ToList();
-            if (optionIds.Count == 0)
-                return Result.Failure(ResultStatusCodes.BadRequest, Messages.Required("option"));
-
-            var dashboardViews = await db.DashboardViews
-                .Where(dv => dv.DashboardId == dashboard.Id && optionIds.Contains(dv.Id))
-                .Include(dv => dv.DashboardViewQueries).ThenInclude(q => q.Query)
-                .ToListAsync();
-
-            if (dashboardViews.Count != optionIds.Count)
-                return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("view selector option"));
-
-            if (!string.IsNullOrEmpty(dto.SelectedId) && !optionIds.Contains(dto.SelectedId))
-                return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("selected option"));
-
-            var queriesById = dashboardViews
-                .SelectMany(dv => dv.DashboardViewQueries.Select(q => q.Query))
-                .DistinctBy(q => q.Id)
-                .ToDictionary(q => q.Id);
-
-            return await ValidateFollowerLinks(dashboard, dto.Links, queriesById, "view selector");
-        }
-
-        // Shared by the view selector and parameter validators: every link names an
-        // Analytic/Entries widget on this board, a tracker it reads from, and — for every
-        // clause it maps — a real field of that tracker whose data type the clause allows.
-        // `label` is folded into the error messages so each widget's failures read naturally.
+        // Shared by both of a Filter widget's link lists (its own typed clauses' Links and
+        // a preset's PresetLinks): every link names an Analytic/Entries widget on this board,
+        // a tracker it reads from, and — for every clause it maps — a real field of that
+        // tracker whose data type the clause allows. `label` is folded into the error
+        // messages so each facet's failures read naturally.
         private async Task<Result> ValidateFollowerLinks(
             Dashboard dashboard,
-            List<ViewSelectorLinkDto> links,
+            List<WidgetLinkDto> links,
             IReadOnlyDictionary<string, Query> queriesById,
             string label)
         {
@@ -802,13 +675,13 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success();
         }
 
-        // ----- Parameter widget (its own clause set, values typed on the board) -----
+        // ----- Filter widget (own clause set typed on the board + preset dropdown) -----
 
-        // Like AddViewSelectorItem, but the widget owns a set of filter clauses outright
-        // (pooled into Query rows here) and carries the value each one starts out filtering
-        // on instead of a dropdown selection. Everything worth checking is in
-        // BuildParameterConfig.
-        public async Task<Result<DashboardItemDto>> AddParameterItem(string dashboardId, SaveParameterItemDto dto)
+        // The widget owns a set of filter clauses outright (pooled into Query rows here),
+        // each carrying the value it starts out filtering on, and can independently offer a
+        // dropdown of the board's DashboardViews as quick-apply presets. Everything worth
+        // checking is in BuildFilterConfig.
+        public async Task<Result<DashboardItemDto>> AddFilterItem(string dashboardId, SaveFilterItemDto dto)
         {
             var user = currentUserService.GetCurrentUser();
             var dashboard = await GetUserDashboard(dashboardId);
@@ -818,13 +691,13 @@ namespace Operum.Service.Services.Dashboards
             if (dashboard.Items.Count >= DataLimits.MaxDashboardItemCount)
                 return Result.Failure(ResultStatusCodes.Conflict, Messages.MaxNumberReached("dashboard items", DataLimits.MaxDashboardItemCount));
 
-            var built = await BuildParameterConfig(dashboard, user.Id, dto);
+            var built = await BuildFilterConfig(dashboard, user.Id, dto);
             if (!built.IsSuccess)
                 return Result.Failure(built.StatusCode, built.Messages);
 
             var config = JsonSerializer.Serialize(built.Data, ConfigJsonOptions);
 
-            var item = BuildLayoutItem(dashboard, dashboardId, DashboardWidgetTypes.Parameter, DashboardGrid.ParameterSize, config);
+            var item = BuildLayoutItem(dashboard, dashboardId, DashboardWidgetTypes.Filter, DashboardGrid.FilterSize, config);
 
             db.DashboardItems.Add(item);
             await db.SaveChangesAsync();
@@ -832,21 +705,21 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(MapToItemDto(item));
         }
 
-        // Edits a parameter widget in place: its clauses, their starting values, and the full
+        // Edits a filter widget in place: its clauses, their starting values, and the full
         // set of widgets that follow it. The whole board comes back recomputed, since a
         // changed clause or value changes what every follower draws.
-        public async Task<Result<List<DashboardWidgetDto>>> UpdateParameterItem(string dashboardId, string itemId, SaveParameterItemDto dto)
+        public async Task<Result<List<DashboardWidgetDto>>> UpdateFilterItem(string dashboardId, string itemId, SaveFilterItemDto dto)
         {
             var user = currentUserService.GetCurrentUser();
             var dashboard = await GetUserDashboard(dashboardId);
             if (dashboard == null)
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
 
-            var item = dashboard.Items.FirstOrDefault(i => i.Id == itemId && i.Type == DashboardWidgetTypes.Parameter);
+            var item = dashboard.Items.FirstOrDefault(i => i.Id == itemId && i.Type == DashboardWidgetTypes.Filter);
             if (item == null)
-                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("parameter widget"));
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("filter widget"));
 
-            var built = await BuildParameterConfig(dashboard, user.Id, dto);
+            var built = await BuildFilterConfig(dashboard, user.Id, dto);
             if (!built.IsSuccess)
                 return Result.Failure(built.StatusCode, built.Messages);
 
@@ -856,25 +729,25 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(await BuildWidgets(dashboard));
         }
 
-        // Changes the values a parameter widget's clauses are currently set to and persists
+        // Changes the values a filter widget's clauses are currently set to and persists
         // them onto the item's Config, so they're what every future load starts from. Returns
-        // the whole board recomputed, since every widget the parameter links re-filters by it.
-        public async Task<Result<List<DashboardWidgetDto>>> SetParameterValues(string dashboardId, string itemId, SetParameterValuesDto dto)
+        // the whole board recomputed, since every widget the filter links re-filters by it.
+        public async Task<Result<List<DashboardWidgetDto>>> SetFilterValues(string dashboardId, string itemId, SetFilterValuesDto dto)
         {
             var dashboard = await GetUserDashboard(dashboardId);
             if (dashboard == null)
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
 
-            var item = dashboard.Items.FirstOrDefault(i => i.Id == itemId && i.Type == DashboardWidgetTypes.Parameter);
-            var config = item != null ? TryParseParameterConfig(item.Config) : null;
+            var item = dashboard.Items.FirstOrDefault(i => i.Id == itemId && i.Type == DashboardWidgetTypes.Filter);
+            var config = item != null ? TryParseFilterConfig(item.Config) : null;
             if (item == null || config == null)
-                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("parameter widget"));
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("filter widget"));
 
             var queries = await db.Queries
                 .Where(q => config.QueryIds.Contains(q.Id))
                 .ToListAsync();
 
-            var valueCheck = ValidateParameterValues(queries, dto.Values);
+            var valueCheck = ValidateFilterValues(queries, dto.Values);
             if (!valueCheck.IsSuccess)
                 return Result.Failure(valueCheck.StatusCode, valueCheck.Messages);
 
@@ -885,11 +758,42 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(await BuildWidgets(dashboard));
         }
 
-        // Resolves a SaveParameterItemDto into the Config the widget stores: the sent clauses
-        // pooled into Query rows (ResolveDashboardViewClauses validates them and enforces the
-        // filter/query limits), each link's index-keyed FieldByQuery rewritten to those
-        // pooled ids and checked against its follower, and the starting value per clause.
-        private async Task<Result<ParameterWidgetConfigDto>> BuildParameterConfig(Dashboard dashboard, string ownerId, SaveParameterItemDto dto)
+        // Changes what a filter widget's preset dropdown is currently set to and persists
+        // it onto the item's Config, so it's what every future load starts from. Returns the
+        // whole board recomputed, since every widget the preset links re-filters by it.
+        public async Task<Result<List<DashboardWidgetDto>>> SetFilterPreset(string dashboardId, string itemId, SetFilterPresetDto dto)
+        {
+            var dashboard = await GetUserDashboard(dashboardId);
+            if (dashboard == null)
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
+
+            var item = dashboard.Items.FirstOrDefault(i => i.Id == itemId && i.Type == DashboardWidgetTypes.Filter);
+            var config = item != null ? TryParseFilterConfig(item.Config) : null;
+            if (item == null || config == null)
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("filter widget"));
+
+            if (!string.IsNullOrEmpty(dto.SelectedPresetId) && !config.PresetIds.Contains(dto.SelectedPresetId))
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("selected preset"));
+
+            config.SelectedPresetId = dto.SelectedPresetId;
+            item.Config = JsonSerializer.Serialize(config, ConfigJsonOptions);
+            await db.SaveChangesAsync();
+
+            return Result.Success(await BuildWidgets(dashboard));
+        }
+
+        // Resolves a SaveFilterItemDto into the Config the widget stores.
+        //
+        // Own clauses: the sent clauses pooled into Query rows (ResolveDashboardViewClauses
+        // validates them and enforces the filter/query limits), each link's index-keyed
+        // FieldByQuery rewritten to those pooled ids and checked against its follower, and
+        // the starting value per clause.
+        //
+        // Presets: every id must be a DashboardView on this board, the selection is one of
+        // them (or none), and PresetLinks — already keyed by real pooled DashboardViewQuery
+        // ids, unlike Links — is checked the same way against the union of clauses across
+        // the chosen presets.
+        private async Task<Result<FilterWidgetConfigDto>> BuildFilterConfig(Dashboard dashboard, string ownerId, SaveFilterItemDto dto)
         {
             var resolved = await ResolveDashboardViewClauses(ownerId, dto.Clauses);
             if (resolved.IsFailure)
@@ -900,17 +804,17 @@ namespace Operum.Service.Services.Dashboards
             var queryIds = resolved.Data!.Select(q => q.Id).ToList();
             var queriesById = resolved.Data!.DistinctBy(q => q.Id).ToDictionary(q => q.Id);
 
-            var mappedLinks = new List<ViewSelectorLinkDto>();
+            var mappedLinks = new List<WidgetLinkDto>();
             foreach (var link in dto.Links)
             {
                 var fieldByQuery = new Dictionary<string, string>();
                 foreach (var (key, fieldId) in link.FieldByQuery)
                 {
                     if (!int.TryParse(key, out var index) || index < 0 || index >= queryIds.Count)
-                        return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("clause for this parameter widget"));
+                        return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("clause for this filter widget"));
                     fieldByQuery[queryIds[index]] = fieldId;
                 }
-                mappedLinks.Add(new ViewSelectorLinkDto
+                mappedLinks.Add(new WidgetLinkDto
                 {
                     ItemId = link.ItemId,
                     TrackerId = link.TrackerId,
@@ -918,7 +822,7 @@ namespace Operum.Service.Services.Dashboards
                 });
             }
 
-            var linkCheck = await ValidateFollowerLinks(dashboard, mappedLinks, queriesById, "parameter widget");
+            var linkCheck = await ValidateFollowerLinks(dashboard, mappedLinks, queriesById, "filter widget");
             if (linkCheck.IsFailure)
                 return Result.Failure(linkCheck.StatusCode, linkCheck.Messages);
 
@@ -930,17 +834,45 @@ namespace Operum.Service.Services.Dashboards
                     valueByQuery[queryIds[i]] = value;
             }
 
-            return Result.Success(new ParameterWidgetConfigDto
+            var presetIds = dto.PresetIds.Distinct().ToList();
+            var presetViews = new List<DashboardView>();
+            if (presetIds.Count > 0)
+            {
+                presetViews = await db.DashboardViews
+                    .Where(dv => dv.DashboardId == dashboard.Id && presetIds.Contains(dv.Id))
+                    .Include(dv => dv.DashboardViewQueries).ThenInclude(q => q.Query)
+                    .ToListAsync();
+
+                if (presetViews.Count != presetIds.Count)
+                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("preset"));
+            }
+
+            if (!string.IsNullOrEmpty(dto.SelectedPresetId) && !presetIds.Contains(dto.SelectedPresetId))
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("selected preset"));
+
+            var presetQueriesById = presetViews
+                .SelectMany(dv => dv.DashboardViewQueries.Select(q => q.Query))
+                .DistinctBy(q => q.Id)
+                .ToDictionary(q => q.Id);
+
+            var presetLinkCheck = await ValidateFollowerLinks(dashboard, dto.PresetLinks, presetQueriesById, "filter widget preset");
+            if (presetLinkCheck.IsFailure)
+                return Result.Failure(presetLinkCheck.StatusCode, presetLinkCheck.Messages);
+
+            return Result.Success(new FilterWidgetConfigDto
             {
                 QueryIds = queryIds,
                 ValueByQuery = valueByQuery,
-                Links = mappedLinks
+                Links = mappedLinks,
+                PresetIds = presetIds,
+                SelectedPresetId = dto.SelectedPresetId,
+                PresetLinks = dto.PresetLinks
             });
         }
 
         // Every key names a filter clause the widget holds; every non-empty value parses for
         // that clause's operator and data type (the same check the clause editor runs).
-        private static Result ValidateParameterValues(IEnumerable<Query> queries, Dictionary<string, string?> values)
+        private static Result ValidateFilterValues(IEnumerable<Query> queries, Dictionary<string, string?> values)
         {
             var filtersById = queries
                 .Where(q => q.Kind == QueryKinds.Filter)
@@ -950,7 +882,7 @@ namespace Operum.Service.Services.Dashboards
             foreach (var (queryId, value) in values)
             {
                 if (!filtersById.TryGetValue(queryId, out var query))
-                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("clause for this parameter widget"));
+                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("clause for this filter widget"));
 
                 if (string.IsNullOrEmpty(value))
                     continue;
@@ -1305,7 +1237,7 @@ namespace Operum.Service.Services.Dashboards
         // through. The shared definition (result type, code, field mapping) lives on the
         // Widget instead and isn't editable here — changing that is what the Widget
         // Library is for. Returns the whole board recomputed, the same as
-        // SetViewSelectorSelection, since a changed view changes what the chart draws.
+        // SetFilterPreset, since a changed view changes what the chart draws.
         public async Task<Result<List<DashboardWidgetDto>>> UpdateDashboardItem(string dashboardId, string itemId, UpdateDashboardItemDto dto)
         {
             var dashboard = await GetUserDashboard(dashboardId);
@@ -1361,8 +1293,8 @@ namespace Operum.Service.Services.Dashboards
         // Edits an Entries widget's placement in place: only which columns it shows and
         // whether it collapses to a button on each grid — the tracker it reads from lives on
         // the EntriesWidget and is fixed the same way an Analytic widget's definition is (see
-        // UpdateDashboardItem), and how it's filtered comes only from the view selectors it
-        // follows. Returns the whole board recomputed, the same as SetViewSelectorSelection,
+        // UpdateDashboardItem), and how it's filtered comes only from the filter widgets
+        // it follows. Returns the whole board recomputed, the same as SetFilterPreset,
         // since a changed column set changes what the table shows.
         public async Task<Result<List<DashboardWidgetDto>>> UpdateEntriesItem(string dashboardId, string itemId, UpdateDashboardEntriesItemDto dto)
         {
@@ -1495,29 +1427,30 @@ namespace Operum.Service.Services.Dashboards
             item.Y = Math.Max(y, 0);
         }
 
-        // The clauses every view selector on the board contributes to one widget's
-        // (item, tracker) pair: for each selector currently set to an option, the option's
-        // DashboardView clauses run against the field the matching link maps each one to.
-        // Shared by the analytic source loop and BuildEntriesWidget so both narrow the same
-        // way. Filters all AND together; sorts keep the order they resolve in. The caller
-        // hands the results to ViewQueryBuilder.ApplyViewFilters / ApplyViewSorting.
-        private static (List<ResolvedClause> Filters, List<ResolvedClause> Sorts) ResolveSelectorClauses(
+        // The clauses every filter widget's preset facet contributes to one widget's
+        // (item, tracker) pair: for each filter widget currently set to a preset, the
+        // preset's DashboardView clauses run against the field the matching preset link maps
+        // each one to. Shared by the analytic source loop and BuildEntriesWidget so both
+        // narrow the same way. Filters all AND together; sorts keep the order they resolve
+        // in. The caller hands the results to ViewQueryBuilder.ApplyViewFilters /
+        // ApplyViewSorting.
+        private static (List<ResolvedClause> Filters, List<ResolvedClause> Sorts) ResolvePresetClauses(
             string itemId,
             string trackerId,
-            IEnumerable<ViewSelectorWidgetConfigDto> selectorConfigs,
+            IEnumerable<FilterWidgetConfigDto> filterConfigs,
             IReadOnlyDictionary<string, DashboardView> dashboardViewsById,
             IReadOnlyDictionary<string, Field> selectorFieldsById)
         {
             var filters = new List<ResolvedClause>();
             var sorts = new List<ResolvedClause>();
 
-            foreach (var selectorConfig in selectorConfigs)
+            foreach (var config in filterConfigs)
             {
-                if (string.IsNullOrEmpty(selectorConfig.SelectedId) ||
-                    !dashboardViewsById.TryGetValue(selectorConfig.SelectedId, out var selectedView))
+                if (string.IsNullOrEmpty(config.SelectedPresetId) ||
+                    !dashboardViewsById.TryGetValue(config.SelectedPresetId, out var selectedView))
                     continue;
 
-                var link = selectorConfig.Links.FirstOrDefault(l =>
+                var link = config.PresetLinks.FirstOrDefault(l =>
                     l.ItemId == itemId && l.TrackerId == trackerId);
                 if (link == null) continue;
 
@@ -1537,23 +1470,23 @@ namespace Operum.Service.Services.Dashboards
             return (filters, sorts);
         }
 
-        // The clauses every parameter widget on the board contributes to one widget's
-        // (item, tracker) pair. Like ResolveSelectorClauses, but the widget owns its clause
+        // The clauses every filter widget's own-clauses facet contributes to one widget's
+        // (item, tracker) pair. Like ResolvePresetClauses, but the widget owns its clause
         // set (Config.QueryIds) and the filter value is the one typed on the board
         // (Config.ValueByQuery). A filter whose value is blank is dropped entirely -- the
-        // parameter just hasn't been set yet -- unless its operator is one that reads a
+        // filter just hasn't been set yet -- unless its operator is one that reads a
         // blank as "is empty" / "has a value" on its own.
-        private static (List<ResolvedClause> Filters, List<ResolvedClause> Sorts) ResolveParameterClauses(
+        private static (List<ResolvedClause> Filters, List<ResolvedClause> Sorts) ResolveFilterClauses(
             string itemId,
             string trackerId,
-            IEnumerable<ParameterWidgetConfigDto> parameterConfigs,
-            IReadOnlyDictionary<string, Query> parameterQueriesById,
+            IEnumerable<FilterWidgetConfigDto> filterConfigs,
+            IReadOnlyDictionary<string, Query> filterQueriesById,
             IReadOnlyDictionary<string, Field> selectorFieldsById)
         {
             var filters = new List<ResolvedClause>();
             var sorts = new List<ResolvedClause>();
 
-            foreach (var config in parameterConfigs)
+            foreach (var config in filterConfigs)
             {
                 var link = config.Links.FirstOrDefault(l =>
                     l.ItemId == itemId && l.TrackerId == trackerId);
@@ -1561,7 +1494,7 @@ namespace Operum.Service.Services.Dashboards
 
                 foreach (var queryId in config.QueryIds.Distinct())
                 {
-                    if (!parameterQueriesById.TryGetValue(queryId, out var query))
+                    if (!filterQueriesById.TryGetValue(queryId, out var query))
                         continue;
 
                     if (!link.FieldByQuery.TryGetValue(queryId, out var fieldId) ||
@@ -1577,7 +1510,7 @@ namespace Operum.Service.Services.Dashboards
                     var value = config.ValueByQuery.GetValueOrDefault(queryId);
 
                     // A blank value only means something for the two equality operators
-                    // ("is empty" / "has a value"); for anything else it means the parameter
+                    // ("is empty" / "has a value"); for anything else it means the filter
                     // is unset, so leave the clause off rather than filter on nothing.
                     if (string.IsNullOrEmpty(value) &&
                         query.Operator != OperatorTypes.EqualsOperator &&
@@ -1812,9 +1745,8 @@ namespace Operum.Service.Services.Dashboards
             AnalyticDto? analytic,
             QuickAddTrackerDto? quickAddTracker = null,
             string? trackerColor = null,
-            ViewSelectorWidgetDto? viewSelector = null,
             EntriesWidgetDto? entriesWidget = null,
-            ParameterWidgetDto? parameter = null) => new()
+            FilterWidgetDto? filter = null) => new()
         {
             Id = item.Id,
             Type = item.Type,
@@ -1823,8 +1755,7 @@ namespace Operum.Service.Services.Dashboards
             Config = item.Config,
             Analytic = analytic,
             QuickAddTracker = quickAddTracker,
-            ViewSelector = viewSelector,
-            Parameter = parameter,
+            Filter = filter,
             EntriesWidget = entriesWidget,
             TrackerColor = trackerColor
         };
@@ -1844,29 +1775,14 @@ namespace Operum.Service.Services.Dashboards
             }
         }
 
-        private static ViewSelectorWidgetConfigDto? TryParseViewSelectorConfig(string? config)
+        private static FilterWidgetConfigDto? TryParseFilterConfig(string? config)
         {
             if (string.IsNullOrEmpty(config))
                 return null;
 
             try
             {
-                return JsonSerializer.Deserialize<ViewSelectorWidgetConfigDto>(config, ConfigJsonOptions);
-            }
-            catch (JsonException)
-            {
-                return null;
-            }
-        }
-
-        private static ParameterWidgetConfigDto? TryParseParameterConfig(string? config)
-        {
-            if (string.IsNullOrEmpty(config))
-                return null;
-
-            try
-            {
-                return JsonSerializer.Deserialize<ParameterWidgetConfigDto>(config, ConfigJsonOptions);
+                return JsonSerializer.Deserialize<FilterWidgetConfigDto>(config, ConfigJsonOptions);
             }
             catch (JsonException)
             {
@@ -1907,10 +1823,9 @@ namespace Operum.Service.Services.Dashboards
             string itemId,
             EntriesWidget entriesWidget,
             EntriesWidgetConfigDto config,
-            IEnumerable<ViewSelectorWidgetConfigDto> selectorConfigs,
-            IEnumerable<ParameterWidgetConfigDto> parameterConfigs,
+            IEnumerable<FilterWidgetConfigDto> filterConfigs,
             IReadOnlyDictionary<string, DashboardView> dashboardViewsById,
-            IReadOnlyDictionary<string, Query> parameterQueriesById,
+            IReadOnlyDictionary<string, Query> filterQueriesById,
             IReadOnlyDictionary<string, Field> selectorFieldsById,
             TimeZoneInfo tz)
         {
@@ -1934,13 +1849,13 @@ namespace Operum.Service.Services.Dashboards
                 .Include(e => e.FieldValues).ThenInclude(fv => fv.Field)
                 .Where(e => e.TrackerId == entriesWidget.TrackerId);
 
-            var (selFilters, selSorts) = ResolveSelectorClauses(
-                itemId, entriesWidget.TrackerId, selectorConfigs, dashboardViewsById, selectorFieldsById);
-            var (paramFilters, paramSorts) = ResolveParameterClauses(
-                itemId, entriesWidget.TrackerId, parameterConfigs, parameterQueriesById, selectorFieldsById);
+            var (presetFilters, presetSorts) = ResolvePresetClauses(
+                itemId, entriesWidget.TrackerId, filterConfigs, dashboardViewsById, selectorFieldsById);
+            var (ownFilters, ownSorts) = ResolveFilterClauses(
+                itemId, entriesWidget.TrackerId, filterConfigs, filterQueriesById, selectorFieldsById);
 
-            entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, selFilters.Concat(paramFilters).ToList(), tz);
-            entriesQuery = ViewQueryBuilder.ApplyViewSorting(entriesQuery, selSorts.Concat(paramSorts).ToList());
+            entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, presetFilters.Concat(ownFilters).ToList(), tz);
+            entriesQuery = ViewQueryBuilder.ApplyViewSorting(entriesQuery, presetSorts.Concat(ownSorts).ToList());
 
             var entries = await entriesQuery.Take(EntriesWidgetRowLimit).ToListAsync();
 

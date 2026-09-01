@@ -26,28 +26,11 @@ namespace Operum.Model.DTOs.Dashboard
         public string? Icon { get; set; }
     }
 
-    // One option a view selector widget's dropdown can be set to -- a DashboardView on the
-    // same board, resolved to just its id and name for the card to render.
-    public class ViewSelectorOptionDto
-    {
-        public string Id { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
-    }
-
-    // What a DashboardWidgetTypes.ViewSelector widget's dropdown needs -- resolved
-    // server-side from Config the same way QuickAddTrackerDto is: the DashboardViews it
-    // offers (id + name), and which one Config currently names.
-    public class ViewSelectorWidgetDto
-    {
-        public List<ViewSelectorOptionDto> Options { get; set; } = [];
-        public string? SelectedId { get; set; }
-    }
-
-    // One clause of the DashboardView a parameter widget drives, resolved for the card to
+    // One clause of a Filter widget's own typed clause set, resolved for the card to
     // render an input for: what it filters (data type + operator, shown as a label) and the
     // value currently typed on the board (null when unset -- the clause is then not applied).
-    // QueryId is the pooled query id, the key SetParameterValues writes back under.
-    public class ParameterClauseDto
+    // QueryId is the pooled query id, the key SetFilterValues writes back under.
+    public class FilterClauseDto
     {
         public string QueryId { get; set; } = string.Empty;
         public string Kind { get; set; } = string.Empty;
@@ -56,12 +39,23 @@ namespace Operum.Model.DTOs.Dashboard
         public string? Value { get; set; }
     }
 
-    // What a DashboardWidgetTypes.Parameter widget's card needs -- resolved server-side from
-    // Config the same way ViewSelectorWidgetDto is: the filter clauses of the view it drives,
-    // each with its current value.
-    public class ParameterWidgetDto
+    // One preset a Filter widget's dropdown can be set to -- a DashboardView on the same
+    // board, resolved to just its id and name for the card to render.
+    public class FilterPresetOptionDto
     {
-        public List<ParameterClauseDto> Clauses { get; set; } = [];
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+    }
+
+    // What a DashboardWidgetTypes.Filter widget's card needs -- resolved server-side from
+    // Config the same way QuickAddTrackerDto is: the widget's own typed clauses with their
+    // current values, and (its second, independent facet) the DashboardViews it offers as
+    // presets plus which one is currently selected.
+    public class FilterWidgetDto
+    {
+        public List<FilterClauseDto> Clauses { get; set; } = [];
+        public List<FilterPresetOptionDto> Presets { get; set; } = [];
+        public string? SelectedPresetId { get; set; }
     }
 
     // What a DashboardWidgetTypes.Entries widget's table needs — resolved server-side the
@@ -83,8 +77,8 @@ namespace Operum.Model.DTOs.Dashboard
     // One item of a dashboard as the client renders it: where it sits on each of the two
     // grids, what kind of widget it is, and the payload that kind needs. An analytic widget
     // carries the chart calculated for it; a QuickAdd widget carries the tracker its button
-    // opens instead; a View widget carries its dropdown's tracker, options and selection; an
-    // Entries widget carries its table's tracker, columns and rows.
+    // opens instead; a Filter widget carries its typed clauses and presets; an Entries
+    // widget carries its table's tracker, columns and rows.
     public class DashboardWidgetDto
     {
         public string Id { get; set; } = string.Empty;
@@ -97,8 +91,7 @@ namespace Operum.Model.DTOs.Dashboard
         public string? Config { get; set; }
         public AnalyticDto? Analytic { get; set; }
         public QuickAddTrackerDto? QuickAddTracker { get; set; }
-        public ViewSelectorWidgetDto? ViewSelector { get; set; }
-        public ParameterWidgetDto? Parameter { get; set; }
+        public FilterWidgetDto? Filter { get; set; }
         public EntriesWidgetDto? EntriesWidget { get; set; }
         // The color of the single tracker every source of this widget reads from. Null when
         // the widget has no single owning tracker — a combined chart spanning more than one —

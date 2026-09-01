@@ -61,7 +61,7 @@ interface Props {
     color?: string;
     max?: number;
     /** Only filter clauses — hide the filter/sort toggle and force every row to a filter.
-        Used by the parameter widget, whose clauses are all values typed on the board. */
+        Used by the filter widget, whose clauses are all values typed on the board. */
     filterOnly?: boolean;
 }
 
@@ -69,6 +69,11 @@ interface Props {
  * Edits a list of field-agnostic clauses (kind + data type + operator/value or direction) —
  * what a DashboardView is made of. The concrete field each runs against is chosen per
  * followed widget on the view selector, not here.
+ *
+ * In `filterOnly` mode (a filter widget's own live clauses) a row collects only type +
+ * operator — no value input, no summary badge. Those clauses sit inactive until a value
+ * is typed on the board itself; a baked-in starting value belongs in a preset filter
+ * instead.
  */
 export default function AbstractClauseListEditor({
     form,
@@ -125,7 +130,9 @@ export default function AbstractClauseListEditor({
                     kind: QueryKinds.Filter,
                     dataType: templateDataType,
                     operator: f.operator,
-                    value: f.value,
+                    // filterOnly rows never carry a value -- a template just seeds the
+                    // type + operator shortcut, same as picking them by hand.
+                    value: filterOnly ? undefined : f.value,
                 }),
             );
         closeTemplateModal();
@@ -135,7 +142,7 @@ export default function AbstractClauseListEditor({
         <Stack gap="sm">
             <Group justify="space-between" wrap="nowrap">
                 <Text fw={500} size="sm">
-                    Clauses
+                    {filterOnly ? "Live Clauses" : "Clauses"}
                     {rows.length > 0 && (
                         <Text span c="dimmed" size="sm" ml="xs">
                             ({rows.length}/{max})
@@ -181,7 +188,11 @@ export default function AbstractClauseListEditor({
             ) : (
                 rows.map((row, index) => {
                     const isDate = DATE_TYPES.includes(row.dataType);
+                    // filterOnly rows have no value to describe -- type + operator are
+                    // already visible in the selects above, so the badge would just repeat
+                    // "Amount ≥ empty" for every complete row.
                     const described =
+                        !filterOnly &&
                         row.dataType &&
                         (row.kind === QueryKinds.Sort || row.operator);
                     return (
@@ -273,7 +284,7 @@ export default function AbstractClauseListEditor({
                                         />
                                     )}
                                 </Group>
-                                {row.kind === QueryKinds.Filter && row.dataType && (
+                                {!filterOnly && row.kind === QueryKinds.Filter && row.dataType && (
                                     <DynamicDateValueInput
                                         isDateType={isDate}
                                         value={

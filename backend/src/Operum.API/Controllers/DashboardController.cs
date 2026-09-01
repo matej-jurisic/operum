@@ -74,16 +74,10 @@ namespace Operum.API.Controllers
             return GetApiResponse(await dashboardService.AddQuickAddItem(dashboardId, dto));
         }
 
-        [HttpPost("{dashboardId}/items/view-selector")]
-        public async Task<IActionResult> AddViewSelectorItem([FromRoute] string dashboardId, [FromBody] SaveViewSelectorItemDto dto)
+        [HttpPost("{dashboardId}/items/filter")]
+        public async Task<IActionResult> AddFilterItem([FromRoute] string dashboardId, [FromBody] SaveFilterItemDto dto)
         {
-            return GetApiResponse(await dashboardService.AddViewSelectorItem(dashboardId, dto));
-        }
-
-        [HttpPost("{dashboardId}/items/parameter")]
-        public async Task<IActionResult> AddParameterItem([FromRoute] string dashboardId, [FromBody] SaveParameterItemDto dto)
-        {
-            return GetApiResponse(await dashboardService.AddParameterItem(dashboardId, dto));
+            return GetApiResponse(await dashboardService.AddFilterItem(dashboardId, dto));
         }
 
         [HttpGet("{dashboardId}/views")]
@@ -156,34 +150,26 @@ namespace Operum.API.Controllers
             return GetApiResponse(await dashboardService.UpdateDashboardItem(dashboardId, itemId, dto));
         }
 
-        // A view selector's current selection alone -- the swappable dropdown on the board.
-        [HttpPut("{dashboardId}/items/{itemId}/view-selector-selection")]
-        public async Task<IActionResult> SetViewSelectorSelection([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] SetViewSelectorSelectionDto dto)
+        // A filter widget's current per-clause values alone -- the inputs on the board.
+        [HttpPut("{dashboardId}/items/{itemId}/filter-values")]
+        public async Task<IActionResult> SetFilterValues([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] SetFilterValuesDto dto)
         {
-            return GetApiResponse(await dashboardService.SetViewSelectorSelection(dashboardId, itemId, dto));
+            return GetApiResponse(await dashboardService.SetFilterValues(dashboardId, itemId, dto));
         }
 
-        // A view selector's options, selection and the full set of Analytic widgets that
-        // follow it with their per-clause field maps.
-        [HttpPut("{dashboardId}/items/{itemId}/view-selector")]
-        public async Task<IActionResult> UpdateViewSelectorItem([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] SaveViewSelectorItemDto dto)
+        // A filter widget's current preset selection alone -- the dropdown on the board.
+        [HttpPut("{dashboardId}/items/{itemId}/filter-preset")]
+        public async Task<IActionResult> SetFilterPreset([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] SetFilterPresetDto dto)
         {
-            return GetApiResponse(await dashboardService.UpdateViewSelectorItem(dashboardId, itemId, dto));
+            return GetApiResponse(await dashboardService.SetFilterPreset(dashboardId, itemId, dto));
         }
 
-        // A parameter widget's current per-clause values alone -- the inputs on the board.
-        [HttpPut("{dashboardId}/items/{itemId}/parameter-values")]
-        public async Task<IActionResult> SetParameterValues([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] SetParameterValuesDto dto)
+        // A filter widget's own clauses, presets and the full set of widgets that follow
+        // it (in either facet) with their per-clause field maps.
+        [HttpPut("{dashboardId}/items/{itemId}/filter")]
+        public async Task<IActionResult> UpdateFilterItem([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] SaveFilterItemDto dto)
         {
-            return GetApiResponse(await dashboardService.SetParameterValues(dashboardId, itemId, dto));
-        }
-
-        // A parameter widget's view, values and the full set of widgets that follow it with
-        // their per-clause field maps.
-        [HttpPut("{dashboardId}/items/{itemId}/parameter")]
-        public async Task<IActionResult> UpdateParameterItem([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] SaveParameterItemDto dto)
-        {
-            return GetApiResponse(await dashboardService.UpdateParameterItem(dashboardId, itemId, dto));
+            return GetApiResponse(await dashboardService.UpdateFilterItem(dashboardId, itemId, dto));
         }
 
         // Only how an Entries widget is filtered, and whether it collapses to a button — the

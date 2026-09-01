@@ -17,8 +17,7 @@ import {
     LayoutVariants,
     PlaceEntriesWidgetDto,
     PlaceWidgetDto,
-    SaveParameterItemDto,
-    SaveViewSelectorItemDto,
+    SaveFilterItemDto,
     UpdateDashboardEntriesItemDto,
     UpdateDashboardItemDto,
 } from "../types/DashboardDto";
@@ -32,8 +31,7 @@ type DashboardContextType = {
     createAndPlaceWidget: (dto: CreateAndPlaceWidgetDto) => Promise<void>;
     placeWidget: (dto: PlaceWidgetDto) => Promise<void>;
     addQuickAddItem: (dto: AddDashboardQuickAddItemDto) => Promise<void>;
-    addViewSelectorItem: (dto: SaveViewSelectorItemDto) => Promise<void>;
-    addParameterItem: (dto: SaveParameterItemDto) => Promise<void>;
+    addFilterItem: (dto: SaveFilterItemDto) => Promise<void>;
     createAndPlaceEntriesWidget: (dto: CreateAndPlaceEntriesWidgetDto) => Promise<void>;
     placeEntriesWidget: (dto: PlaceEntriesWidgetDto) => Promise<void>;
     addHeaderItem: (dto: AddDashboardHeaderItemDto) => Promise<void>;
@@ -41,13 +39,12 @@ type DashboardContextType = {
     addNoteItem: (dto: AddDashboardNoteItemDto) => Promise<void>;
     updateItem: (itemId: string, dto: UpdateDashboardItemDto) => Promise<void>;
     updateEntriesItem: (itemId: string, dto: UpdateDashboardEntriesItemDto) => Promise<void>;
-    setViewSelectorSelection: (itemId: string, selectedId: string | null) => Promise<void>;
-    updateViewSelectorItem: (itemId: string, dto: SaveViewSelectorItemDto) => Promise<void>;
-    setParameterValues: (
+    setFilterValues: (
         itemId: string,
         values: Record<string, string | null>
     ) => Promise<void>;
-    updateParameterItem: (itemId: string, dto: SaveParameterItemDto) => Promise<void>;
+    updateFilterItem: (itemId: string, dto: SaveFilterItemDto) => Promise<void>;
+    setFilterPreset: (itemId: string, selectedPresetId: string | null) => Promise<void>;
     setTextContent: (itemId: string, text: string) => Promise<void>;
     removeItem: (itemId: string) => Promise<void>;
     saveLayout: (
@@ -87,13 +84,8 @@ export const DashboardProvider: React.FC<{
         await refreshWidgets();
     };
 
-    const addViewSelectorItem = async (dto: SaveViewSelectorItemDto) => {
-        await dashboardController.addViewSelectorItem(dashboardId, dto);
-        await refreshWidgets();
-    };
-
-    const addParameterItem = async (dto: SaveParameterItemDto) => {
-        await dashboardController.addParameterItem(dashboardId, dto);
+    const addFilterItem = async (dto: SaveFilterItemDto) => {
+        await dashboardController.addFilterItem(dashboardId, dto);
         await refreshWidgets();
     };
 
@@ -142,43 +134,33 @@ export const DashboardProvider: React.FC<{
         setWidgets(res.data ?? []);
     };
 
-    // The selector re-renders from the response immediately, and so does every widget it
-    // links — the selection is saved server-side, so this is the same "recompute the whole
-    // board" the server does on every load, not a client-only toggle.
-    const setViewSelectorSelection = async (
-        itemId: string,
-        selectedId: string | null
-    ) => {
-        const res = await dashboardController.setViewSelectorSelection(dashboardId, itemId, {
-            selectedId,
-        });
-        setWidgets(res.data ?? []);
-    };
-
-    // Same "recompute the whole board": the edit changes the selector's options, selection
-    // and which widgets follow it, all of which change what those widgets draw.
-    const updateViewSelectorItem = async (
-        itemId: string,
-        dto: SaveViewSelectorItemDto
-    ) => {
-        const res = await dashboardController.updateViewSelectorItem(dashboardId, itemId, dto);
-        setWidgets(res.data ?? []);
-    };
-
-    // Same "recompute the whole board" as setViewSelectorSelection: the typed value is
-    // saved server-side and every widget the parameter links re-filters by it.
-    const setParameterValues = async (
+    // Same "recompute the whole board" as setFilterPreset: the typed value is saved
+    // server-side and every widget the filter widget's own clauses link re-filters by it.
+    const setFilterValues = async (
         itemId: string,
         values: Record<string, string | null>
     ) => {
-        const res = await dashboardController.setParameterValues(dashboardId, itemId, {
+        const res = await dashboardController.setFilterValues(dashboardId, itemId, {
             values,
         });
         setWidgets(res.data ?? []);
     };
 
-    const updateParameterItem = async (itemId: string, dto: SaveParameterItemDto) => {
-        const res = await dashboardController.updateParameterItem(dashboardId, itemId, dto);
+    const updateFilterItem = async (itemId: string, dto: SaveFilterItemDto) => {
+        const res = await dashboardController.updateFilterItem(dashboardId, itemId, dto);
+        setWidgets(res.data ?? []);
+    };
+
+    // The widget re-renders from the response immediately, and so does every widget its
+    // preset links — the selection is saved server-side, so this is the same "recompute the
+    // whole board" the server does on every load, not a client-only toggle.
+    const setFilterPreset = async (
+        itemId: string,
+        selectedPresetId: string | null
+    ) => {
+        const res = await dashboardController.setFilterPreset(dashboardId, itemId, {
+            selectedPresetId,
+        });
         setWidgets(res.data ?? []);
     };
 
@@ -250,8 +232,7 @@ export const DashboardProvider: React.FC<{
                 createAndPlaceWidget,
                 placeWidget,
                 addQuickAddItem,
-                addViewSelectorItem,
-                addParameterItem,
+                addFilterItem,
                 createAndPlaceEntriesWidget,
                 placeEntriesWidget,
                 addHeaderItem,
@@ -259,10 +240,9 @@ export const DashboardProvider: React.FC<{
                 addNoteItem,
                 updateItem,
                 updateEntriesItem,
-                setViewSelectorSelection,
-                updateViewSelectorItem,
-                setParameterValues,
-                updateParameterItem,
+                setFilterValues,
+                updateFilterItem,
+                setFilterPreset,
                 setTextContent,
                 removeItem,
                 saveLayout,
