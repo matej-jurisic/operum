@@ -134,7 +134,10 @@ export function ViewSelectorForm({
 
     // When a tracker offers exactly one field of the right type there is no choice to make,
     // so fill it in automatically. On a board where every widget has a single date field
-    // this leaves nothing to map by hand.
+    // this leaves nothing to map by hand. Runs on `links` too so a widget just checked
+    // gets its fields pinned right away, not only when the options or fields next change --
+    // otherwise its link stays incomplete and the submit button never enables. Safe against
+    // a loop: the updater returns `cur` unchanged once everything single-valued is filled.
     useEffect(() => {
         setLinks((cur) => {
             let changed = false;
@@ -153,7 +156,7 @@ export function ViewSelectorForm({
             return changed ? next : cur;
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [fieldsByTracker, optionQueries]);
+    }, [fieldsByTracker, optionQueries, links]);
 
     const linkFor = (c: Candidate) =>
         links.find((l) => l.itemId === c.itemId && l.trackerId === c.trackerId);
