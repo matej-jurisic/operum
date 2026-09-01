@@ -126,6 +126,32 @@ export function ViewSelectorForm({
         return [...map.values()];
     }, [views, optionIds]);
 
+    const eligibleFields = (trackerId: string, q: DashboardViewClauseDto) =>
+        (fieldsByTracker[trackerId] ?? []).filter((f) => f.type === q.dataType);
+
+    // When a tracker offers exactly one field of the right type there is no choice to make,
+    // so fill it in automatically. On a board where every widget has a single date field
+    // this leaves nothing to map by hand.
+    useEffect(() => {
+        setLinks((cur) => {
+            let changed = false;
+            const next = cur.map((l) => {
+                let fieldByQuery = l.fieldByQuery;
+                for (const q of optionQueries) {
+                    if (fieldByQuery[q.queryId]) continue;
+                    const matches = eligibleFields(l.trackerId, q);
+                    if (matches.length !== 1) continue;
+                    if (fieldByQuery === l.fieldByQuery) fieldByQuery = { ...fieldByQuery };
+                    fieldByQuery[q.queryId] = matches[0].id;
+                    changed = true;
+                }
+                return fieldByQuery === l.fieldByQuery ? l : { ...l, fieldByQuery };
+            });
+            return changed ? next : cur;
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [fieldsByTracker, optionQueries]);
+
     const linkFor = (c: Candidate) =>
         links.find((l) => l.itemId === c.itemId && l.trackerId === c.trackerId);
 
@@ -195,11 +221,17 @@ export function ViewSelectorForm({
                         Followed widgets
                     </Text>
                     {candidates.map((c) => {
-                        const fields = fieldsByTracker[c.trackerId] ?? [];
-                        const eligible = optionQueries.every((q) =>
-                            fields.some((f) => f.type === q.dataType),
+                        const eligible = optionQueries.every(
+                            (q) => eligibleFields(c.trackerId, q).length > 0,
                         );
                         const link = linkFor(c);
+                        // Only the queries with more than one candidate field need a
+                        // dropdown; the rest are pinned automatically by the effect above.
+                        const choices = link
+                            ? optionQueries.filter(
+                                  (q) => eligibleFields(c.trackerId, q).length > 1,
+                              )
+                            : [];
                         return (
                             <Stack key={`${c.itemId}:${c.trackerId}`} gap={4}>
                                 <Checkbox
@@ -219,9 +251,14 @@ export function ViewSelectorForm({
                                         )
                                     }
                                 />
-                                {link && (
+                                {link && choices.length === 0 && (
+                                    <Text size="xs" c="dimmed" pl="lg">
+                                        Fields matched automatically
+                                    </Text>
+                                )}
+                                {link && choices.length > 0 && (
                                     <Group gap="sm" pl="lg" wrap="wrap">
-                                        {optionQueries.map((q) => (
+                                        {choices.map((q) => (
                                             <Select
                                                 key={q.queryId}
                                                 size="xs"
@@ -229,14 +266,13 @@ export function ViewSelectorForm({
                                                 label={describeAbstractClause(q)}
                                                 placeholder="Field"
                                                 allowDeselect={false}
-                                                data={fields
-                                                    .filter(
-                                                        (f) => f.type === q.dataType,
-                                                    )
-                                                    .map((f) => ({
-                                                        value: f.id,
-                                                        label: f.name,
-                                                    }))}
+                                                data={eligibleFields(
+                                                    c.trackerId,
+                                                    q,
+                                                ).map((f) => ({
+                                                    value: f.id,
+                                                    label: f.name,
+                                                }))}
                                                 value={
                                                     link.fieldByQuery[q.queryId] ??
                                                     null
