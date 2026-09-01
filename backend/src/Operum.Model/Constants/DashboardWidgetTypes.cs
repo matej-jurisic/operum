@@ -13,14 +13,14 @@ namespace Operum.Model.Constants
 
         // A dropdown over a set of the board's DashboardViews ("Current Month", "All Time").
         // Carries no analytic definition — just Config, a ViewSelectorWidgetConfigDto holding
-        // the option ids, the current selection, and per followed widget which of its
-        // tracker's fields each clause runs against. Picking an option re-filters every widget
-        // wired to it, on top of whatever fixed view that widget already reads through.
+        // the option ids, the current selection, and per followed widget (Analytic or Entries)
+        // which of its tracker's fields each clause runs against. Picking an option re-filters
+        // every widget wired to it.
         public const string ViewSelector = "viewSelector";
 
         // A read-only table of one tracker's entries. Carries no analytic definition either
-        // — just Config, an EntriesWidgetConfigDto naming the fixed ViewId it reads through
-        // (for its columns and base filter).
+        // — just Config, an EntriesWidgetConfigDto naming the fields it shows as columns. How
+        // it's filtered comes only from the view selector widgets it's linked to.
         public const string Entries = "entries";
 
         // A short line of user-entered text that reads as a section title rather than a

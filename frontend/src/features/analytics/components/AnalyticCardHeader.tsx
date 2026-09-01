@@ -42,9 +42,12 @@ export function AnalyticCardHeader({
   // On a full-size card the edit / remove controls used to sit in the header row, so
   // turning arrange mode on grew that row and pushed the widget's content down -- the
   // board you were arranging was never quite the board you had been looking at. While
-  // arranging, float them over the card's top-right corner instead, on a solid chip so
-  // they stay legible over whatever they cover, and leave the widget's layout untouched.
-  // A compact card already floats its whole header, so this only kicks in for the rest.
+  // arranging, float them over the top of the card instead, on a solid chip so they stay
+  // legible over whatever they cover, and leave the widget's layout untouched. They sit
+  // horizontally centred: the drag grip takes the top-left corner and the resize handle
+  // the bottom-right, so the middle is the one spot on a short widget that clashes with
+  // neither. A compact card already centres its whole header, so this only kicks in for
+  // the rest.
   const floatControls = isConfiguring && !compact;
 
   return (
@@ -99,9 +102,10 @@ export function AnalyticCardHeader({
         align="center"
         pos={floatControls ? "absolute" : undefined}
         top={floatControls ? 0 : undefined}
-        right={floatControls ? 0 : undefined}
+        left={floatControls ? "50%" : undefined}
         style={{
           zIndex: floatControls ? 10 : undefined,
+          transform: floatControls ? "translateX(-50%)" : undefined,
           background: floatControls ? "var(--mantine-color-body)" : undefined,
           borderRadius: floatControls
             ? "var(--mantine-radius-sm)"

@@ -33,11 +33,21 @@ function candidatesFor(items: DashboardItemDto[]): Candidate[] {
     const out: Candidate[] = [];
     const seen = new Map<string, number>();
     for (const item of items) {
-        if (item.type !== WidgetTypes.Analytic) continue;
+        // An Analytic widget reads from one tracker per source; an Entries widget from
+        // exactly one (on item.trackerIds, since it has no sources). Every other kind reads
+        // no tracker and can't be narrowed.
         const byTracker = new Map<string, string>();
-        for (const s of item.sources) byTracker.set(s.trackerId, s.trackerName);
+        if (item.type === WidgetTypes.Analytic) {
+            for (const s of item.sources) byTracker.set(s.trackerId, s.trackerName);
+        } else if (item.type === WidgetTypes.Entries) {
+            for (const trackerId of item.trackerIds) byTracker.set(trackerId, "");
+        } else {
+            continue;
+        }
 
-        const base = item.name || "Untitled widget";
+        const base =
+            item.name ||
+            (item.type === WidgetTypes.Entries ? "Entries table" : "Untitled widget");
         const n = (seen.get(base) ?? 0) + 1;
         seen.set(base, n);
         const name = n > 1 ? `${base} (${n})` : base;
@@ -47,7 +57,9 @@ function candidatesFor(items: DashboardItemDto[]): Candidate[] {
                 itemId: item.id,
                 trackerId,
                 label:
-                    byTracker.size > 1 ? `${name} · ${trackerName}` : name,
+                    byTracker.size > 1 && trackerName
+                        ? `${name} · ${trackerName}`
+                        : name,
             });
         }
     }

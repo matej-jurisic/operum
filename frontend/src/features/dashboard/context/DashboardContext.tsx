@@ -123,8 +123,8 @@ export const DashboardProvider: React.FC<{
     };
 
     // Same shape as updateItem: the tracker an Entries widget reads from is fixed, so only
-    // its filter and its expandable flags can change, but a changed filter still changes
-    // what the table shows, so the whole board comes back recomputed.
+    // its columns and its expandable flags can change, but a changed column set still
+    // changes what the table shows, so the whole board comes back recomputed.
     const updateEntriesItem = async (itemId: string, dto: UpdateDashboardEntriesItemDto) => {
         const res = await dashboardController.updateEntriesItem(dashboardId, itemId, dto);
         setWidgets(res.data ?? []);

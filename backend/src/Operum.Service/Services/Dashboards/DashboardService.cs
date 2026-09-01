@@ -9,6 +9,7 @@ using Operum.Model.Constants.Fields;
 using Operum.Model.DTOs.Analytics;
 using Operum.Model.DTOs.Dashboard;
 using Operum.Model.DTOs.Dashboard.Requests;
+using Operum.Model.DTOs.Entries;
 using Operum.Model.DTOs.Fields;
 using Operum.Model.DTOs.Queries;
 using Operum.Model.DTOs.Widgets;
@@ -201,7 +202,10 @@ namespace Operum.Service.Services.Dashboards
                         item.EntriesWidget != null &&
                         entriesConfigsByItemId.TryGetValue(item.Id, out var entriesConfig))
                     {
-                        entriesWidget = await BuildEntriesWidget(item.EntriesWidget, entriesConfig);
+                        entriesWidget = await BuildEntriesWidget(
+                            item.Id, item.EntriesWidget, entriesConfig,
+                            selectorConfigsByItemId.Values, dashboardViewsById, selectorFieldsById,
+                            currentUserService.GetCurrentUserTimeZone());
                     }
 
                     results.Add(MapToWidgetDto(item, null, quickAddTracker, viewSelector: viewSelector, entriesWidget: entriesWidget));
@@ -242,35 +246,14 @@ namespace Operum.Service.Services.Dashboards
                     // Every view selector this widget follows narrows it further, ANDed on top
                     // of the fixed view above: the selected option's clauses, each run against
                     // the field the link maps that clause to on this source's tracker.
-                    foreach (var selectorConfig in selectorConfigsByItemId.Values)
-                    {
-                        if (string.IsNullOrEmpty(selectorConfig.SelectedId) ||
-                            !dashboardViewsById.TryGetValue(selectorConfig.SelectedId, out var selectedView))
-                            continue;
+                    var (selFilters, selSorts) = ResolveSelectorClauses(
+                        item.Id, widgetSource.TrackerId, selectorConfigsByItemId.Values,
+                        dashboardViewsById, selectorFieldsById);
 
-                        var link = selectorConfig.Links.FirstOrDefault(l =>
-                            l.ItemId == item.Id && l.TrackerId == widgetSource.TrackerId);
-                        if (link == null) continue;
-
-                        var selFilters = new List<ResolvedClause>();
-                        var selSorts = new List<ResolvedClause>();
-                        foreach (var dvq in selectedView.DashboardViewQueries.OrderBy(q => q.Order))
-                        {
-                            if (!link.FieldByQuery.TryGetValue(dvq.QueryId, out var fieldId) ||
-                                !selectorFieldsById.TryGetValue(fieldId, out var field))
-                                continue;
-
-                            if (dvq.Query.Kind == QueryKinds.Sort)
-                                selSorts.Add(new ResolvedClause(field.Id, field.Type, null, null, dvq.Query.Descending));
-                            else
-                                selFilters.Add(new ResolvedClause(field.Id, field.Type, dvq.Query.Operator, dvq.Query.Value, false));
-                        }
-
-                        if (selFilters.Count > 0)
-                            entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, selFilters, tz);
-                        if (selSorts.Count > 0)
-                            entriesQuery = ViewQueryBuilder.ApplyViewSorting(entriesQuery, selSorts);
-                    }
+                    if (selFilters.Count > 0)
+                        entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, selFilters, tz);
+                    if (selSorts.Count > 0)
+                        entriesQuery = ViewQueryBuilder.ApplyViewSorting(entriesQuery, selSorts);
 
                     var entries = await entriesQuery.ToListAsync();
 
@@ -730,7 +713,8 @@ namespace Operum.Service.Services.Dashboards
                     return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("duplicate view selector link"));
 
                 var target = dashboard.Items.FirstOrDefault(i => i.Id == link.ItemId);
-                if (target == null || target.Type != DashboardWidgetTypes.Analytic)
+                if (target == null ||
+                    (target.Type != DashboardWidgetTypes.Analytic && target.Type != DashboardWidgetTypes.Entries))
                     return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("widget to link"));
 
                 if (!ResolveItemTrackerIds(target).Contains(link.TrackerId))
@@ -934,7 +918,7 @@ namespace Operum.Service.Services.Dashboards
             return await PlaceEntriesWidgetOnDashboard(dashboard, entriesWidget, new PlaceEntriesWidgetDto
             {
                 EntriesWidgetId = entriesWidget.Id,
-                ViewId = dto.ViewId,
+                ColumnFieldIds = dto.ColumnFieldIds,
                 Expandable = dto.Expandable,
                 MobileExpandable = dto.MobileExpandable
             });
@@ -961,12 +945,9 @@ namespace Operum.Service.Services.Dashboards
 
         private async Task<Result<DashboardItemDto>> PlaceEntriesWidgetOnDashboard(Dashboard dashboard, EntriesWidget entriesWidget, PlaceEntriesWidgetDto dto)
         {
-            if (!string.IsNullOrEmpty(dto.ViewId))
-            {
-                var exists = await db.Views.AnyAsync(v => v.Id == dto.ViewId && v.TrackerId == entriesWidget.TrackerId);
-                if (!exists)
-                    return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("view"));
-            }
+            var columns = await ResolveEntriesColumns(entriesWidget.TrackerId, dto.ColumnFieldIds);
+            if (columns.IsFailure)
+                return Result.Failure(columns.StatusCode, columns.Messages);
 
             var nextOrder = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.Order) + 1 : 0;
             var nextRow = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.Y + i.H) : 0;
@@ -981,7 +962,7 @@ namespace Operum.Service.Services.Dashboards
                 EntriesWidgetId = entriesWidget.Id,
                 Config = JsonSerializer.Serialize(new EntriesWidgetConfigDto
                 {
-                    ViewId = dto.ViewId
+                    ColumnFieldIds = columns.Data!
                 }, ConfigJsonOptions),
                 X = 0,
                 Y = nextRow,
@@ -1142,11 +1123,12 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(await BuildWidgets(dashboard));
         }
 
-        // Edits an Entries widget's placement in place: only how it's filtered, and whether
-        // it collapses to a button on each grid — the tracker it reads from lives on the
-        // EntriesWidget and is fixed the same way an Analytic widget's definition is (see
-        // UpdateDashboardItem). Returns the whole board recomputed, the same as
-        // SetViewSelectorSelection, since a changed view changes what the table shows.
+        // Edits an Entries widget's placement in place: only which columns it shows and
+        // whether it collapses to a button on each grid — the tracker it reads from lives on
+        // the EntriesWidget and is fixed the same way an Analytic widget's definition is (see
+        // UpdateDashboardItem), and how it's filtered comes only from the view selectors it
+        // follows. Returns the whole board recomputed, the same as SetViewSelectorSelection,
+        // since a changed column set changes what the table shows.
         public async Task<Result<List<DashboardWidgetDto>>> UpdateEntriesItem(string dashboardId, string itemId, UpdateDashboardEntriesItemDto dto)
         {
             var dashboard = await GetUserDashboard(dashboardId);
@@ -1157,18 +1139,13 @@ namespace Operum.Service.Services.Dashboards
             if (item?.EntriesWidget == null)
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("entries widget"));
 
-            var trackerId = item.EntriesWidget.TrackerId;
-
-            if (!string.IsNullOrEmpty(dto.ViewId))
-            {
-                var exists = await db.Views.AnyAsync(v => v.Id == dto.ViewId && v.TrackerId == trackerId);
-                if (!exists)
-                    return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("view"));
-            }
+            var columns = await ResolveEntriesColumns(item.EntriesWidget.TrackerId, dto.ColumnFieldIds);
+            if (columns.IsFailure)
+                return Result.Failure(columns.StatusCode, columns.Messages);
 
             item.Config = JsonSerializer.Serialize(new EntriesWidgetConfigDto
             {
-                ViewId = string.IsNullOrEmpty(dto.ViewId) ? null : dto.ViewId
+                ColumnFieldIds = columns.Data!
             }, ConfigJsonOptions);
             item.Expandable = dto.Expandable;
             item.MobileExpandable = dto.MobileExpandable;
@@ -1281,6 +1258,78 @@ namespace Operum.Service.Services.Dashboards
             item.H = height;
             item.X = Math.Clamp(x, 0, columns - width);
             item.Y = Math.Max(y, 0);
+        }
+
+        // The clauses every view selector on the board contributes to one widget's
+        // (item, tracker) pair: for each selector currently set to an option, the option's
+        // DashboardView clauses run against the field the matching link maps each one to.
+        // Shared by the analytic source loop and BuildEntriesWidget so both narrow the same
+        // way. Filters all AND together; sorts keep the order they resolve in. The caller
+        // hands the results to ViewQueryBuilder.ApplyViewFilters / ApplyViewSorting.
+        private static (List<ResolvedClause> Filters, List<ResolvedClause> Sorts) ResolveSelectorClauses(
+            string itemId,
+            string trackerId,
+            IEnumerable<ViewSelectorWidgetConfigDto> selectorConfigs,
+            IReadOnlyDictionary<string, DashboardView> dashboardViewsById,
+            IReadOnlyDictionary<string, Field> selectorFieldsById)
+        {
+            var filters = new List<ResolvedClause>();
+            var sorts = new List<ResolvedClause>();
+
+            foreach (var selectorConfig in selectorConfigs)
+            {
+                if (string.IsNullOrEmpty(selectorConfig.SelectedId) ||
+                    !dashboardViewsById.TryGetValue(selectorConfig.SelectedId, out var selectedView))
+                    continue;
+
+                var link = selectorConfig.Links.FirstOrDefault(l =>
+                    l.ItemId == itemId && l.TrackerId == trackerId);
+                if (link == null) continue;
+
+                foreach (var dvq in selectedView.DashboardViewQueries.OrderBy(q => q.Order))
+                {
+                    if (!link.FieldByQuery.TryGetValue(dvq.QueryId, out var fieldId) ||
+                        !selectorFieldsById.TryGetValue(fieldId, out var field))
+                        continue;
+
+                    if (dvq.Query.Kind == QueryKinds.Sort)
+                        sorts.Add(new ResolvedClause(field.Id, field.Type, null, null, dvq.Query.Descending));
+                    else
+                        filters.Add(new ResolvedClause(field.Id, field.Type, dvq.Query.Operator, dvq.Query.Value, false));
+                }
+            }
+
+            return (filters, sorts);
+        }
+
+        // Validates a placement's chosen columns against its tracker: every id must be one of
+        // the tracker's fields, duplicates collapse keeping first-seen order, and the list is
+        // capped like a view's own columns. Empty in, empty out -- which the renderer reads
+        // as "every field".
+        private async Task<Result<List<string>>> ResolveEntriesColumns(string trackerId, List<string> columnFieldIds)
+        {
+            if (columnFieldIds.Count == 0)
+                return Result.Success(new List<string>());
+
+            var trackerFieldIds = (await db.Fields
+                    .Where(f => f.TrackerId == trackerId)
+                    .Select(f => f.Id)
+                    .ToListAsync())
+                .ToHashSet();
+
+            var resolved = new List<string>();
+            foreach (var fieldId in columnFieldIds)
+            {
+                if (!trackerFieldIds.Contains(fieldId))
+                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.ItemNotFound("column field"));
+                if (!resolved.Contains(fieldId))
+                    resolved.Add(fieldId);
+            }
+
+            if (resolved.Count > DataLimits.MaxColumns)
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("columns", DataLimits.MaxColumns));
+
+            return Result.Success(resolved);
         }
 
         // Purpose -> Field for the mappings that still resolve. Deleting a field cascades its
@@ -1526,7 +1575,11 @@ namespace Operum.Service.Services.Dashboards
 
             try
             {
-                return JsonSerializer.Deserialize<EntriesWidgetConfigDto>(config, ConfigJsonOptions);
+                // Legacy placements stored { "viewId": "..." } here; that key is gone now and
+                // deserializes away, leaving an empty column list -- which renders as "every
+                // field", exactly the fallback those widgets had before.
+                return JsonSerializer.Deserialize<EntriesWidgetConfigDto>(config, ConfigJsonOptions)
+                    ?? new EntriesWidgetConfigDto();
             }
             catch (JsonException)
             {
@@ -1534,28 +1587,52 @@ namespace Operum.Service.Services.Dashboards
             }
         }
 
-        // Resolves everything an Entries widget's table needs to render: the fixed view it's
-        // filtered by, and the columns that view wants shown, in its order. A view naming no
-        // columns (or no view at all) shows every field, the same fallback the tracker
-        // page's own column picker uses. Which tracker to read from is the EntriesWidget's
-        // own -- fixed at creation, not part of the placement's Config.
-        private async Task<EntriesWidgetDto> BuildEntriesWidget(EntriesWidget entriesWidget, EntriesWidgetConfigDto config)
+        // A board widget is a window onto a tracker's recent activity, not its own paginated
+        // table -- this many rows is plenty without the card growing pagination of its own.
+        private const int EntriesWidgetRowLimit = 25;
+
+        // Resolves everything an Entries widget's table needs to render: the columns to show
+        // in order (Config's ColumnFieldIds, or every field when it names none), and the rows
+        // themselves -- filtered and sorted by whatever view selectors this placement follows,
+        // then capped. Unlike the analytic pipeline this returns the entries directly rather
+        // than an aggregate, so the card renders them without a fetch of its own. Which
+        // tracker to read from is the EntriesWidget's own -- fixed at creation.
+        private async Task<EntriesWidgetDto> BuildEntriesWidget(
+            string itemId,
+            EntriesWidget entriesWidget,
+            EntriesWidgetConfigDto config,
+            IEnumerable<ViewSelectorWidgetConfigDto> selectorConfigs,
+            IReadOnlyDictionary<string, DashboardView> dashboardViewsById,
+            IReadOnlyDictionary<string, Field> selectorFieldsById,
+            TimeZoneInfo tz)
         {
-            var effectiveViewId = config.ViewId;
+            var trackerFields = await db.Fields
+                .Where(f => f.TrackerId == entriesWidget.TrackerId)
+                .OrderBy(f => f.Order)
+                .ToListAsync();
 
-            var columnFields = new List<Field>();
-            if (!string.IsNullOrEmpty(effectiveViewId))
-            {
-                var view = await db.Views
-                    .Include(v => v.ViewColumns.OrderBy(vc => vc.Order)).ThenInclude(vc => vc.Field)
-                    .FirstOrDefaultAsync(v => v.Id == effectiveViewId && v.TrackerId == entriesWidget.TrackerId);
-
-                if (view != null && view.ViewColumns.Count > 0)
-                    columnFields = view.ViewColumns.OrderBy(vc => vc.Order).Select(vc => vc.Field).ToList();
-            }
-
+            // The chosen columns in the order Config stores them, skipping any the tracker
+            // has since lost so a deleted field never breaks the table. Falls back to every
+            // field when Config names none, or when none of the ones it names still resolve.
+            var fieldsById = trackerFields.ToDictionary(f => f.Id);
+            var columnFields = config.ColumnFieldIds
+                .Where(fieldsById.ContainsKey)
+                .Select(id => fieldsById[id])
+                .ToList();
             if (columnFields.Count == 0)
-                columnFields = await db.Fields.Where(f => f.TrackerId == entriesWidget.TrackerId).OrderBy(f => f.Order).ToListAsync();
+                columnFields = trackerFields;
+
+            var entriesQuery = db.Entries
+                .Include(e => e.FieldValues).ThenInclude(fv => fv.Field)
+                .Where(e => e.TrackerId == entriesWidget.TrackerId);
+
+            var (selFilters, selSorts) = ResolveSelectorClauses(
+                itemId, entriesWidget.TrackerId, selectorConfigs, dashboardViewsById, selectorFieldsById);
+
+            entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, selFilters, tz);
+            entriesQuery = ViewQueryBuilder.ApplyViewSorting(entriesQuery, selSorts);
+
+            var entries = await entriesQuery.Take(EntriesWidgetRowLimit).ToListAsync();
 
             return new EntriesWidgetDto
             {
@@ -1563,8 +1640,8 @@ namespace Operum.Service.Services.Dashboards
                 TrackerName = entriesWidget.Tracker.Name,
                 Color = entriesWidget.Tracker.Color,
                 Icon = entriesWidget.Tracker.Icon,
-                ViewId = effectiveViewId,
-                Columns = mapper.Map<List<Field>, List<FieldDto>>(columnFields)
+                Columns = mapper.Map<List<Field>, List<FieldDto>>(columnFields),
+                Entries = mapper.Map<List<Entry>, List<EntryDto>>(entries)
             };
         }
 

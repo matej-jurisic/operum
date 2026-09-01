@@ -1330,5 +1330,211 @@ namespace Operum.Tests.Tests.Dashboards
                 });
             Assert.Equal(HttpStatusCode.BadRequest, overflow.StatusCode);
         }
+
+        // ----- Entries widget rows & columns -----
+
+        // Places a new Entries table widget on the board and returns its item id.
+        private static async Task<string> PlaceEntriesTable(
+            HttpClient client, string dashboardId, CapableTracker tracker, List<string>? columnFieldIds = null)
+        {
+            var response = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/entries",
+                new CreateAndPlaceEntriesWidgetDto
+                {
+                    TrackerId = tracker.Id,
+                    ColumnFieldIds = columnFieldIds ?? []
+                });
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            return (await Data(response)).GetProperty("id").GetString()!;
+        }
+
+        private static JsonElement EntriesWidgetFor(JsonElement widgets, string itemId)
+            => widgets.EnumerateArray().Single(w => w.GetProperty("id").GetString() == itemId)
+                .GetProperty("entriesWidget");
+
+        private static int EntriesRowCount(JsonElement widgets, string itemId)
+            => EntriesWidgetFor(widgets, itemId).GetProperty("entries").GetArrayLength();
+
+        private static List<string> EntriesColumnNames(JsonElement widgets, string itemId)
+            => [.. EntriesWidgetFor(widgets, itemId).GetProperty("columns").EnumerateArray()
+                .Select(c => c.GetProperty("name").GetString()!)];
+
+        [Fact]
+        public async Task EntriesWidget_BuildWidgets_ReturnsRowsResolvedByTheBoard()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("entriesrows");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await PlaceEntriesTable(client, dashboardId, tracker);
+
+            var widgets = await Widgets(client, dashboardId);
+            Assert.Equal(1, EntriesRowCount(widgets, itemId));
+            // The fixed-view binding is gone -- the payload no longer carries a viewId.
+            Assert.False(EntriesWidgetFor(widgets, itemId).TryGetProperty("viewId", out _));
+        }
+
+        [Fact]
+        public async Task EntriesWidget_FollowsSelectedViewSelector_NarrowsRowsAndClearsWhenDeselected()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("entriesselector");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await PlaceEntriesTable(client, dashboardId, tracker);
+
+            var view = await Data(await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/views", LateInYearSet()));
+            var viewId = view.GetProperty("id").GetString()!;
+            var queryId = view.GetProperty("clauses")[0].GetProperty("queryId").GetString()!;
+
+            var selectorItem = await Data(await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/items/view-selector",
+                new SaveViewSelectorItemDto
+                {
+                    OptionIds = [viewId],
+                    SelectedId = viewId,
+                    Links =
+                    [
+                        new ViewSelectorLinkDto
+                        {
+                            ItemId = itemId,
+                            TrackerId = tracker.Id,
+                            FieldByQuery = new() { [queryId] = tracker.DayFieldId }
+                        }
+                    ]
+                }));
+            var selectorId = selectorItem.GetProperty("id").GetString()!;
+
+            Assert.Equal(0, EntriesRowCount(await Widgets(client, dashboardId), itemId));
+
+            var cleared = await client.PutAsJsonAsync(
+                $"dashboard/{dashboardId}/items/{selectorId}/view-selector-selection",
+                new SetViewSelectorSelectionDto { SelectedId = null });
+            Assert.Equal(HttpStatusCode.OK, cleared.StatusCode);
+            Assert.Equal(1, EntriesRowCount(await Data(cleared), itemId));
+        }
+
+        [Fact]
+        public async Task AddViewSelector_EntriesLinkClauseMappedToWrongFieldType_ReturnsBadRequest()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("entriesselectorwrongtype");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await PlaceEntriesTable(client, dashboardId, tracker);
+
+            var view = await Data(await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/views", LateInYearSet()));
+            var viewId = view.GetProperty("id").GetString()!;
+            var queryId = view.GetProperty("clauses")[0].GetProperty("queryId").GetString()!;
+
+            var response = await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/items/view-selector",
+                new SaveViewSelectorItemDto
+                {
+                    OptionIds = [viewId],
+                    Links =
+                    [
+                        new ViewSelectorLinkDto
+                        {
+                            ItemId = itemId,
+                            TrackerId = tracker.Id,
+                            // Amount is a number field, but the clause is a date clause.
+                            FieldByQuery = new() { [queryId] = tracker.AmountFieldId }
+                        }
+                    ]
+                });
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task CreateAndPlaceEntriesWidget_ColumnFieldIds_LimitAndOrderTheColumns()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("entriescolumns");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await PlaceEntriesTable(client, dashboardId, tracker,
+                [tracker.AmountFieldId, tracker.DayFieldId]);
+
+            var columns = EntriesColumnNames(await Widgets(client, dashboardId), itemId);
+            Assert.Equal(["Amount", "Day"], columns);
+        }
+
+        [Fact]
+        public async Task CreateAndPlaceEntriesWidget_NoColumnFieldIds_ShowsEveryField()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("entriesallcolumns");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await PlaceEntriesTable(client, dashboardId, tracker);
+
+            var columns = EntriesColumnNames(await Widgets(client, dashboardId), itemId);
+            Assert.Equal(["Day", "Amount", "Category"], columns);
+        }
+
+        [Fact]
+        public async Task CreateAndPlaceEntriesWidget_UnknownColumnFieldId_ReturnsBadRequest()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("entriesbadcolumn");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+
+            var response = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/entries",
+                new CreateAndPlaceEntriesWidgetDto
+                {
+                    TrackerId = tracker.Id,
+                    ColumnFieldIds = ["not-a-real-field"]
+                });
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task UpdateEntriesItem_ColumnFieldIds_Persist()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("entriesupdatecolumns");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await PlaceEntriesTable(client, dashboardId, tracker);
+
+            var updated = await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{itemId}/entries",
+                new UpdateDashboardEntriesItemDto { ColumnFieldIds = [tracker.AmountFieldId] });
+            Assert.Equal(HttpStatusCode.OK, updated.StatusCode);
+            Assert.Equal(["Amount"], EntriesColumnNames(await Data(updated), itemId));
+
+            // And it stays put on the next plain load.
+            Assert.Equal(["Amount"], EntriesColumnNames(await Widgets(client, dashboardId), itemId));
+        }
+
+        [Fact]
+        public async Task EntriesWidget_ColumnFieldDeletedAfterPick_FallsBackGracefully()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("entriescolumngone");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await PlaceEntriesTable(client, dashboardId, tracker,
+                [tracker.AmountFieldId, tracker.DayFieldId]);
+
+            var deleted = await client.DeleteAsync($"trackers/{tracker.Id}/fields/{tracker.AmountFieldId}");
+            Assert.Equal(HttpStatusCode.OK, deleted.StatusCode);
+
+            var widgets = await Widgets(client, dashboardId);
+            Assert.Equal(["Day"], EntriesColumnNames(widgets, itemId));
+            Assert.Equal(1, EntriesRowCount(widgets, itemId));
+        }
     }
 }

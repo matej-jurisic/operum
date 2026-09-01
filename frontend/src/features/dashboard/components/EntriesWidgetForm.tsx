@@ -1,12 +1,11 @@
-import { Button, Group, Select, Stack, TextInput } from "@mantine/core";
+import { Button, Group, MultiSelect, Select, Stack, TextInput } from "@mantine/core";
 import { useEffect, useState } from "react";
+import { fieldsController } from "../../fields/api/fieldsController";
+import { FieldDto } from "../../fields/types/FieldDto";
 import { trackersController } from "../../trackers/api/trackersController";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
-import { viewsController } from "../../views/api/viewsController";
-import { ViewDto } from "../../views/types/ViewDto";
 import { CreateAndPlaceEntriesWidgetDto } from "../types/DashboardDto";
 import { ExpandableOptionFields } from "./ExpandableOptionFields";
-import { SourceViewSelect } from "./SourceViewSelect";
 
 interface Props {
     /** Steps back to the widget type picker. */
@@ -16,16 +15,16 @@ interface Props {
 
 /**
  * Defines a new Widget Library Entries table and places it on this board in one step: the
- * tracker it reads from, and how this placement is filtered -- one of the tracker's own
- * views, or a View widget already on the board whose dropdown it follows instead, the same
- * choice a chart's source gets from CustomAnalyticForm.
+ * tracker it reads from and which of that tracker's fields it shows as columns. How the
+ * table is filtered isn't chosen here — that comes from linking it to a View Selector
+ * widget on the board afterwards.
  */
 export function EntriesWidgetForm({ onBack, onAdd }: Props) {
     const [trackers, setTrackers] = useState<TrackerDto[]>([]);
     const [trackerId, setTrackerId] = useState<string | null>(null);
     const [name, setName] = useState("");
-    const [views, setViews] = useState<ViewDto[]>([]);
-    const [viewId, setViewId] = useState<string | null>(null);
+    const [fields, setFields] = useState<FieldDto[]>([]);
+    const [columnFieldIds, setColumnFieldIds] = useState<string[]>([]);
     const [expandable, setExpandable] = useState(false);
     const [mobileExpandable, setMobileExpandable] = useState(false);
     const [isLoadingTracker, setIsLoadingTracker] = useState(false);
@@ -39,13 +38,13 @@ export function EntriesWidgetForm({ onBack, onAdd }: Props) {
 
     const handleTrackerChange = async (value: string | null) => {
         setTrackerId(value);
-        setViewId(null);
-        setViews([]);
+        setColumnFieldIds([]);
+        setFields([]);
         if (!value) return;
 
         setIsLoadingTracker(true);
-        const res = await viewsController.getViewList(value);
-        setViews(res.data ?? []);
+        const res = await fieldsController.getFields(value);
+        setFields(res.data ?? []);
         setIsLoadingTracker(false);
     };
 
@@ -55,7 +54,7 @@ export function EntriesWidgetForm({ onBack, onAdd }: Props) {
         await onAdd({
             trackerId,
             name: name.trim() || undefined,
-            viewId,
+            columnFieldIds: columnFieldIds.length ? columnFieldIds : undefined,
             expandable,
             mobileExpandable,
         });
@@ -82,12 +81,22 @@ export function EntriesWidgetForm({ onBack, onAdd }: Props) {
                 onChange={(event) => setName(event.currentTarget.value)}
             />
 
-            <SourceViewSelect
-                views={views}
-                value={{ viewId }}
-                onChange={(selection) => setViewId(selection.viewId)}
+            <MultiSelect
+                label="Columns"
+                description="Leave empty to show every field"
+                placeholder={
+                    isLoadingTracker
+                        ? "Loading..."
+                        : columnFieldIds.length > 0
+                          ? undefined
+                          : "Every field"
+                }
+                data={fields.map((f) => ({ value: f.id, label: f.name }))}
+                value={columnFieldIds}
+                onChange={setColumnFieldIds}
                 disabled={!trackerId || isLoadingTracker}
-                placeholder={isLoadingTracker ? "Loading..." : "All entries"}
+                searchable
+                clearable
             />
 
             <ExpandableOptionFields

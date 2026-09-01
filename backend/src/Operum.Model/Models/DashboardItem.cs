@@ -19,7 +19,7 @@ namespace Operum.Model.Models
 
         // Widget settings as JSON, for widget types whose configuration isn't a placed
         // definition. Null for Analytic widgets; for Entries, just the placement-only
-        // filter (see EntriesWidgetConfigDto) since the tracker lives on EntriesWidget.
+        // column list (see EntriesWidgetConfigDto) since the tracker lives on EntriesWidget.
         public string? Config { get; set; }
 
         // Where the item sits on the wide grid, in DashboardGrid.Columns columns.

@@ -1,5 +1,6 @@
 import { AnalyticDto } from "../../analytics/types/AnalyticDto";
 import { CreateAnalyticFieldDto } from "../../analytics/types/requests/CreateAnalyticDto";
+import { EntryDto } from "../../entries/types/EntryDto";
 import { FieldDto } from "../../fields/types/FieldDto";
 
 /** The kinds of widget a dashboard item can be. */
@@ -115,15 +116,17 @@ export interface SetViewSelectorSelectionDto {
 }
 
 /** What a WidgetTypes.Entries widget's table needs, resolved server-side: the tracker it
-    reads from, the fixed view it's filtered by, and the columns that view wants shown, in
-    its order. A view naming none shows every field. */
+    reads from, the columns to show in order (Config's columnFieldIds, or every field when it
+    names none), and the rows themselves — already filtered/sorted by the view selectors this
+    placement follows and capped to the most recent handful. The card renders these directly
+    rather than fetching its own. */
 export interface EntriesWidgetDto {
     trackerId: string;
     trackerName: string;
     color?: string;
     icon?: string;
-    viewId?: string | null;
     columns: FieldDto[];
+    entries: EntryDto[];
 }
 
 /** Placement on one of the dashboard's grids, in that grid's columns. */
@@ -262,14 +265,16 @@ export interface AddDashboardQuickAddItemDto {
 export interface CreateAndPlaceEntriesWidgetDto {
     trackerId: string;
     name?: string;
-    viewId?: string | null;
+    /** Tracker fields to show as columns, in order. Empty/omitted shows every field. */
+    columnFieldIds?: string[];
     expandable?: boolean;
     mobileExpandable?: boolean;
 }
 
 export interface PlaceEntriesWidgetDto {
     entriesWidgetId: string;
-    viewId?: string | null;
+    /** Tracker fields to show as columns, in order. Empty/omitted shows every field. */
+    columnFieldIds?: string[];
     expandable?: boolean;
     mobileExpandable?: boolean;
 }
@@ -297,7 +302,8 @@ export interface UpdateDashboardItemDto {
 }
 
 export interface UpdateDashboardEntriesItemDto {
-    viewId?: string | null;
+    /** Tracker fields to show as columns, in order. Empty/omitted shows every field. */
+    columnFieldIds?: string[];
     expandable: boolean;
     mobileExpandable: boolean;
 }

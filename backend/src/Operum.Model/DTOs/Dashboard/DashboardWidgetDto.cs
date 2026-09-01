@@ -1,4 +1,5 @@
 using Operum.Model.DTOs.Analytics;
+using Operum.Model.DTOs.Entries;
 using Operum.Model.DTOs.Fields;
 
 namespace Operum.Model.DTOs.Dashboard
@@ -43,24 +44,26 @@ namespace Operum.Model.DTOs.Dashboard
     }
 
     // What a DashboardWidgetTypes.Entries widget's table needs — resolved server-side the
-    // same way QuickAddTrackerDto is: the tracker it reads from, the fixed view it is
-    // filtered by, and the columns that view wants shown, in its order. A view naming none
-    // shows every field, the same fallback the tracker page uses.
+    // same way QuickAddTrackerDto is: the tracker it reads from, the columns to show in
+    // order (Config's ColumnFieldIds, or every field when it names none), and the rows
+    // themselves, already filtered/sorted by whatever view selectors this placement follows
+    // and capped to the most recent handful. Unlike the tracker page, the card does not
+    // fetch its own rows -- the board hands them over.
     public class EntriesWidgetDto
     {
         public string TrackerId { get; set; } = string.Empty;
         public string TrackerName { get; set; } = string.Empty;
         public string? Color { get; set; }
         public string? Icon { get; set; }
-        public string? ViewId { get; set; }
         public List<FieldDto> Columns { get; set; } = [];
+        public List<EntryDto> Entries { get; set; } = [];
     }
 
     // One item of a dashboard as the client renders it: where it sits on each of the two
     // grids, what kind of widget it is, and the payload that kind needs. An analytic widget
     // carries the chart calculated for it; a QuickAdd widget carries the tracker its button
     // opens instead; a View widget carries its dropdown's tracker, options and selection; an
-    // Entries widget carries its table's tracker, columns and current view.
+    // Entries widget carries its table's tracker, columns and rows.
     public class DashboardWidgetDto
     {
         public string Id { get; set; } = string.Empty;

@@ -1,11 +1,10 @@
-import { Button, Group, Modal, Stack } from "@mantine/core";
+import { Button, Group, Modal, MultiSelect, Stack } from "@mantine/core";
 import { useEffect, useState } from "react";
-import { viewsController } from "../../views/api/viewsController";
-import { ViewDto } from "../../views/types/ViewDto";
+import { fieldsController } from "../../fields/api/fieldsController";
+import { FieldDto } from "../../fields/types/FieldDto";
 import { useDashboard } from "../context/DashboardContext";
 import { UpdateDashboardEntriesItemDto, WidgetTypes } from "../types/DashboardDto";
 import { ExpandableOptionFields } from "./ExpandableOptionFields";
-import { SourceViewSelect, ViewSelection } from "./SourceViewSelect";
 
 interface Props {
     itemId: string;
@@ -15,7 +14,7 @@ interface Props {
 }
 
 interface EntriesWidgetConfig {
-    viewId?: string | null;
+    columnFieldIds?: string[];
 }
 
 // The widget's own Config is already sitting in the board the context holds — same as a
@@ -33,20 +32,19 @@ function parseEntriesConfig(config: string | undefined): EntriesWidgetConfig | n
 
 /**
  * Edits an Entries widget after it has been placed. Only what the board itself decides is
- * here: which view its table reads through (or which View widget it follows instead), and
- * whether it collapses to a button on each grid. The tracker it reads from is fixed at add
- * time, the same as an Analytic widget's definition is — changing that means adding a new
- * widget rather than quietly turning this one into a table over something else.
+ * here: which of the tracker's fields it shows as columns, and whether it collapses to a
+ * button on each grid. The tracker it reads from is fixed at add time, and how it's
+ * filtered comes only from the View Selector widgets it's linked to.
  */
 export function EditEntriesWidgetModal({ itemId, color, onClose, onSave }: Props) {
     const { widgets } = useDashboard();
     const widget = widgets.find((w) => w.id === itemId);
     const config = widget?.type === WidgetTypes.Entries ? parseEntriesConfig(widget.config) : null;
 
-    const [views, setViews] = useState<ViewDto[] | null>(null);
-    const [selection, setSelection] = useState<ViewSelection>({
-        viewId: config?.viewId ?? null,
-    });
+    const [fields, setFields] = useState<FieldDto[] | null>(null);
+    const [columnFieldIds, setColumnFieldIds] = useState<string[]>(
+        config?.columnFieldIds ?? [],
+    );
     const [expandable, setExpandable] = useState(widget?.layout.expandable ?? false);
     const [mobileExpandable, setMobileExpandable] = useState(widget?.mobileLayout.expandable ?? false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,14 +57,14 @@ export function EditEntriesWidgetModal({ itemId, color, onClose, onSave }: Props
             onClose();
             return;
         }
-        viewsController.getViewList(trackerId).then((res) => setViews(res.data ?? []));
+        fieldsController.getFields(trackerId).then((res) => setFields(res.data ?? []));
     }, [trackerId, onClose]);
 
     const handleSubmit = async () => {
         setIsSubmitting(true);
         try {
             await onSave(itemId, {
-                viewId: selection.viewId,
+                columnFieldIds: columnFieldIds.length ? columnFieldIds : undefined,
                 expandable,
                 mobileExpandable,
             });
@@ -81,12 +79,17 @@ export function EditEntriesWidgetModal({ itemId, color, onClose, onSave }: Props
         <Modal opened onClose={onClose} title="Edit widget" size="md" centered>
             {/* The global request loader already covers the fetch above, so this renders
                 nothing rather than stacking a second spinner on top of it. */}
-            {views && (
+            {fields && (
                 <Stack gap="md">
-                    <SourceViewSelect
-                        views={views}
-                        value={selection}
-                        onChange={setSelection}
+                    <MultiSelect
+                        label="Columns"
+                        description="Leave empty to show every field"
+                        placeholder={columnFieldIds.length > 0 ? undefined : "Every field"}
+                        data={fields.map((f) => ({ value: f.id, label: f.name }))}
+                        value={columnFieldIds}
+                        onChange={setColumnFieldIds}
+                        searchable
+                        clearable
                     />
 
                     <ExpandableOptionFields

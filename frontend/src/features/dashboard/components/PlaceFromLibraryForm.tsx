@@ -1,5 +1,7 @@
-import { Alert, Button, Group, Paper, Select, Stack, Text, TextInput } from "@mantine/core";
+import { Alert, Button, Group, MultiSelect, Paper, Select, Stack, Text, TextInput } from "@mantine/core";
 import { useEffect, useState } from "react";
+import { fieldsController } from "../../fields/api/fieldsController";
+import { FieldDto } from "../../fields/types/FieldDto";
 import { trackersController } from "../../trackers/api/trackersController";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { viewsController } from "../../views/api/viewsController";
@@ -53,9 +55,8 @@ export function PlaceFromLibraryForm({
     const [selection, setSelection] = useState<string | null>(preset);
     const [viewsByTracker, setViewsByTracker] = useState<Map<string, ViewDto[]>>(new Map());
     const [sourceOverrides, setSourceOverrides] = useState<Record<string, SourceOverride>>({});
-    const [entriesSelection, setEntriesSelection] = useState<ViewSelection>({
-        viewId: null,
-    });
+    const [entriesFields, setEntriesFields] = useState<FieldDto[]>([]);
+    const [entriesColumnFieldIds, setEntriesColumnFieldIds] = useState<string[]>([]);
     const [expandable, setExpandable] = useState(false);
     const [mobileExpandable, setMobileExpandable] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -80,22 +81,22 @@ export function PlaceFromLibraryForm({
         ? entriesWidgets.find((w) => w.id === selection.slice(ENTRIES_PREFIX.length))
         : undefined;
 
-    // Loads the views of every tracker the current pick touches, and resets the
-    // placement-only fields below it -- they belong to whatever was selected before.
+    // Loads what the current pick needs -- a chart's per-tracker views, or an Entries
+    // table's tracker fields for its column picker -- and resets the placement-only fields
+    // below it, which belong to whatever was selected before.
     useEffect(() => {
-        const trackerIds = selectedWidget
-            ? [...new Set(selectedWidget.sources.map((s) => s.trackerId))]
-            : selectedEntriesWidget
-            ? [selectedEntriesWidget.trackerId]
-            : [];
-
-        if (trackerIds.length > 0) {
+        if (selectedWidget) {
+            const trackerIds = [...new Set(selectedWidget.sources.map((s) => s.trackerId))];
             Promise.all(
                 trackerIds.map(async (trackerId) => {
                     const res = await viewsController.getViewList(trackerId);
                     return [trackerId, res.data ?? []] as const;
                 })
             ).then((entries) => setViewsByTracker(new Map(entries)));
+        } else if (selectedEntriesWidget) {
+            fieldsController
+                .getFields(selectedEntriesWidget.trackerId)
+                .then((res) => setEntriesFields(res.data ?? []));
         }
 
         setSourceOverrides(
@@ -108,7 +109,8 @@ export function PlaceFromLibraryForm({
                   )
                 : {}
         );
-        setEntriesSelection({ viewId: null });
+        setEntriesFields([]);
+        setEntriesColumnFieldIds([]);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selection]);
 
@@ -132,7 +134,9 @@ export function PlaceFromLibraryForm({
             } else if (selectedEntriesWidget) {
                 await onPlaceEntriesWidget({
                     entriesWidgetId: selectedEntriesWidget.id,
-                    viewId: entriesSelection.viewId,
+                    columnFieldIds: entriesColumnFieldIds.length
+                        ? entriesColumnFieldIds
+                        : undefined,
                     expandable,
                     mobileExpandable,
                 });
@@ -240,10 +244,17 @@ export function PlaceFromLibraryForm({
                 })}
 
             {selectedEntriesWidget && (
-                <SourceViewSelect
-                    views={viewsByTracker.get(selectedEntriesWidget.trackerId) ?? []}
-                    value={entriesSelection}
-                    onChange={setEntriesSelection}
+                <MultiSelect
+                    label="Columns"
+                    description="Leave empty to show every field"
+                    placeholder={
+                        entriesColumnFieldIds.length > 0 ? undefined : "Every field"
+                    }
+                    data={entriesFields.map((f) => ({ value: f.id, label: f.name }))}
+                    value={entriesColumnFieldIds}
+                    onChange={setEntriesColumnFieldIds}
+                    searchable
+                    clearable
                 />
             )}
 

@@ -13,7 +13,8 @@ namespace Operum.Model.DTOs.Dashboard.Requests
         public string TrackerId { get; set; } = string.Empty;
         public string? Name { get; set; }
 
-        public string? ViewId { get; set; }
+        // The tracker fields to show as columns, in order. Empty shows every field.
+        public List<string> ColumnFieldIds { get; set; } = [];
 
         public bool Expandable { get; set; }
         public bool MobileExpandable { get; set; }

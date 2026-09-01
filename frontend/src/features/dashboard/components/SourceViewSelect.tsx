@@ -1,23 +1,7 @@
 import { Select } from "@mantine/core";
 
-/** The filter half of a WidgetTypes.Entries item's Config — the only part a placement
-    stores. Parsed defensively: Config is free-form JSON per widget type. */
-interface EntriesItemConfig {
-    viewId?: string | null;
-}
-
-export function parseEntriesItemConfig(config: string | undefined): EntriesItemConfig | null {
-    if (!config) return null;
-    try {
-        const parsed = JSON.parse(config);
-        return typeof parsed === "object" && parsed !== null ? parsed : null;
-    } catch {
-        return null;
-    }
-}
-
-/** How one source or Entries table is filtered: a fixed view of its own tracker, or none.
-    A view selector widget on the board can layer further clauses on top. */
+/** How one analytic source is filtered: a fixed view of its own tracker, or none. A view
+    selector widget on the board can layer further clauses on top. */
 export interface ViewSelection {
     viewId: string | null;
 }
@@ -31,7 +15,7 @@ interface Props {
     placeholder?: string;
 }
 
-/** Picks the fixed tracker view a source or Entries table reads through. */
+/** Picks the fixed tracker view an analytic source reads through. */
 export function SourceViewSelect({
     views,
     value,
