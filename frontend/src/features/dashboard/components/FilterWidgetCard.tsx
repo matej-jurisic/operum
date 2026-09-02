@@ -11,10 +11,8 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useState } from "react";
-import { TbBookmark, TbFilter } from "react-icons/tb";
+import { TbFilter } from "react-icons/tb";
 import DynamicDateValueInput from "../../../shared/components/DynamicDateValueInput";
-import { fieldTypes } from "../../../shared/constants/DataTypesForSelect";
-import { formatOperator } from "../../../shared/utils/formatters/OperatorFormatter";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 import { AnalyticCardHeader } from "../../analytics/components/AnalyticCardHeader";
 import {
@@ -22,60 +20,35 @@ import {
     cardShellProps,
     useCardLayout,
 } from "../../analytics/components/cardSizing";
-import { FieldDto } from "../../fields/types/FieldDto";
 import { FilterWidgetDto } from "../types/DashboardDto";
-
-const DATE_TYPES = ["date", "datetime"];
-const NONE_VALUE = "";
-
-/** A synthetic field so the shared value input (which keys off a FieldDto) can render for a
-    clause that names only a data type. Mirrors AbstractClauseListEditor. */
-const syntheticField = (queryId: string, type: string): FieldDto => ({
-    id: queryId,
-    name: "Value",
-    type,
-    required: false,
-    isCalculated: false,
-});
-
-/** "Amount ≥", "Logged after" — the clause without a value, for the modal's input labels. */
-const clauseLabel = (dataType: string, operator?: string | null) => {
-    const type = fieldTypes.find((t) => t.value === dataType)?.label ?? dataType;
-    return `${type} ${operator ? formatOperator(operator) : ""}`.trim();
-};
-
-/** The string form the backend stores a clause value in — mirrors DashboardViewsPanel. */
-function normalizeValue(value: unknown): string | null {
-    if (value === undefined || value === null || value === "") return null;
-    if (value instanceof Date) return value.toISOString();
-    return String(value);
-}
+import {
+    clauseLabel,
+    DATE_TYPES,
+    normalizeClauseValue,
+    syntheticField,
+} from "./filterClauseInput";
 
 interface Props {
     widgetId: string;
-    /** The clauses + current values, and the presets + current selection, both resolved by
-        the board itself. */
+    /** The clauses + current values, and the matching-shape presets, resolved by the board
+        itself. */
     filter: FilterWidgetDto | undefined;
     color: string | undefined;
     isConfiguring: boolean;
     onRemove?: (itemId: string) => void;
-    /** Opens the widget's edit dialog: its clauses, its presets, and which widgets follow it
-        in either facet. */
+    /** Opens the widget's edit dialog: its clauses, its presets, and which widgets follow
+        it. */
     onEdit?: (itemId: string) => void;
     /** Persists the new typed values and recomputes every widget linked to those clauses. */
     onSetValues: (itemId: string, values: Record<string, string | null>) => void;
-    /** Persists the new preset selection and recomputes every widget linked to it. */
-    onSelectPreset: (itemId: string, selectedPresetId: string | null) => void;
 }
 
 /**
- * A compact board widget with two independent controls, both saved on the widget so they are
- * what every viewer sees on the next load too. A preset dropdown (only shown when the widget
- * offers any) instantly re-filters every widget wired to it -- filters and sorts alike -- the
- * moment a preset is picked. A filter chip below it reads as an icon and a one-line summary
- * of the typed values currently set; clicking it opens a dialog to edit those, which
- * separately re-filters every widget wired to its own clauses. A clause left blank is simply
- * not applied.
+ * A compact board widget that reads as one filter: an icon and a one-line summary of the
+ * values currently set. Clicking it opens a dialog to edit those values -- type them by
+ * hand, or pick one of the widget's presets to fill them in -- which then re-filters every
+ * widget wired to its clauses. A clause left blank is simply not applied. The card looks the
+ * same however the values were set.
  */
 export function FilterWidgetCard({
     widgetId,
@@ -85,7 +58,6 @@ export function FilterWidgetCard({
     onRemove,
     onEdit,
     onSetValues,
-    onSelectPreset,
 }: Props) {
     const layout = useCardLayout(true);
     const clauses = filter?.clauses ?? [];
@@ -117,13 +89,24 @@ export function FilterWidgetCard({
             Object.fromEntries(
                 clauses.map((c) => [
                     c.queryId,
-                    normalizeValue(form.values.values[c.queryId]),
+                    normalizeClauseValue(form.values.values[c.queryId]),
                 ]),
             ),
         );
 
     const clearAll = () =>
         commit(Object.fromEntries(clauses.map((c) => [c.queryId, null])));
+
+    // Picking a preset only fills the inputs -- the user still reviews and hits Apply.
+    const applyPreset = (presetId: string) => {
+        const preset = presets.find((p) => p.id === presetId);
+        if (!preset) return;
+        form.setValues({
+            values: Object.fromEntries(
+                clauses.map((c, i) => [c.queryId, preset.values[i] ?? ""]),
+            ),
+        });
+    };
 
     // What each set clause reads as — "Date & time ≥ Jan 1", "Amount ≥ 10".
     const summaryParts = clauses
@@ -156,29 +139,6 @@ export function FilterWidgetCard({
                     onEdit={onEdit}
                     compact
                 />
-                {presets.length > 0 && (
-                    <Select
-                        size="xs"
-                        px="xs"
-                        leftSection={<TbBookmark size={14} />}
-                        placeholder="Apply preset…"
-                        data={[
-                            { value: NONE_VALUE, label: "None" },
-                            ...presets.map((p) => ({ value: p.id, label: p.name })),
-                        ]}
-                        value={filter?.selectedPresetId ?? NONE_VALUE}
-                        onChange={(value) =>
-                            onSelectPreset(
-                                widgetId,
-                                value && value !== NONE_VALUE ? value : null,
-                            )
-                        }
-                        disabled={isConfiguring}
-                        allowDeselect={false}
-                        comboboxProps={{ withinPortal: true }}
-                        style={{ pointerEvents: isConfiguring ? "none" : "auto" }}
-                    />
-                )}
                 {clauses.length > 0 ? (
                     <UnstyledButton
                         onClick={openEditor}
@@ -204,11 +164,11 @@ export function FilterWidgetCard({
                             </Text>
                         )}
                     </UnstyledButton>
-                ) : presets.length === 0 ? (
+                ) : (
                     <Text size="sm" c="dimmed" px="xs">
                         This filter widget is misconfigured.
                     </Text>
-                ) : null}
+                )}
             </Stack>
 
             <Modal
@@ -219,6 +179,16 @@ export function FilterWidgetCard({
                 zIndex={400}
             >
                 <Stack gap="md">
+                    {presets.length > 0 && (
+                        <Select
+                            label="Apply a preset"
+                            placeholder="Pick a preset…"
+                            data={presets.map((p) => ({ value: p.id, label: p.name }))}
+                            value={null}
+                            onChange={(value) => value && applyPreset(value)}
+                            comboboxProps={{ withinPortal: true, zIndex: 500 }}
+                        />
+                    )}
                     <ScrollArea.Autosize mah="60vh">
                         <Stack gap="sm">
                             {clauses.map((c) => (

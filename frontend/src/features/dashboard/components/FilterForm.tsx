@@ -5,7 +5,6 @@ import { fieldTypesCompatible } from "../../../shared/constants/DataTypes";
 import { fieldTypes } from "../../../shared/constants/DataTypesForSelect";
 import { QueryKinds } from "../../../shared/constants/QueryKinds";
 import { formatOperator } from "../../../shared/utils/formatters/OperatorFormatter";
-import { describeAbstractClause } from "../../../shared/utils/formatters/QueryFormatter";
 import { fieldsController } from "../../fields/api/fieldsController";
 import { FieldDto } from "../../fields/types/FieldDto";
 import { dashboardController } from "../api/dashboardController";
@@ -13,14 +12,13 @@ import { useDashboard } from "../context/DashboardContext";
 import {
     ClauseDto,
     DashboardItemDto,
-    DashboardViewDto,
     SaveFilterItemDto,
     WidgetLink,
 } from "../types/DashboardDto";
 import AbstractClauseListEditor, {
     AbstractClauseRow,
 } from "./AbstractClauseListEditor";
-import { DashboardViewsPanel } from "./DashboardViewsPanel";
+import { FilterPresetsSection } from "./FilterPresetsSection";
 import { candidatesFor, FollowedWidgetsSection } from "./FollowedWidgetsSection";
 
 /** One of the widget's own clauses, identified by its position in the list — the key its
@@ -36,8 +34,6 @@ interface Props {
         clauses: AbstractClauseRow[];
         links: WidgetLink[];
         presetIds: string[];
-        selectedPresetId: string | null;
-        presetLinks: WidgetLink[];
     };
     submitLabel: string;
     color?: string;
@@ -46,9 +42,9 @@ interface Props {
 }
 
 /** Adds or edits a filter widget: an ordered set of filter clauses whose values are typed
-    on the board, plus an optional dropdown of the board's saved DashboardViews to quick-apply
-    as presets (filters and sorts alike) -- both facets independently re-filter the
-    Analytic/Entries widgets wired to them. */
+    on the board, re-filtering every Analytic/Entries widget wired to it. The clauses come
+    first; once they are complete the widget can offer matching-shape presets -- named value
+    sets picked on the board to fill those clauses in one go. */
 export function FilterForm({
     initial,
     submitLabel,
@@ -68,15 +64,7 @@ export function FilterForm({
     });
 
     const [links, setLinks] = useState<WidgetLink[]>(initial?.links ?? []);
-
-    const [views, setViews] = useState<DashboardViewDto[]>([]);
     const [presetIds, setPresetIds] = useState<string[]>(initial?.presetIds ?? []);
-    const [selectedPresetId, setSelectedPresetId] = useState<string | null>(
-        initial?.selectedPresetId ?? null,
-    );
-    const [presetLinks, setPresetLinks] = useState<WidgetLink[]>(
-        initial?.presetLinks ?? [],
-    );
 
     useEffect(() => {
         dashboardController.getDashboard(dashboardId).then((res) => {
@@ -114,8 +102,7 @@ export function FilterForm({
         [rows],
     );
 
-    const clausesComplete =
-        rows.length > 0 && filterClauses.length === rows.length;
+    const clausesComplete = rows.length > 0 && filterClauses.length === rows.length;
 
     const describe = (c: FilterClause) => {
         const type =
@@ -133,49 +120,29 @@ export function FilterForm({
         [filterClauses],
     );
 
-    // Distinct queries across the chosen presets, each with the data type its field must be.
-    const presetQueries = useMemo(() => {
-        const map = new Map<string, DashboardViewDto["clauses"][number]>();
-        for (const v of views) {
-            if (!presetIds.includes(v.id)) continue;
-            for (const c of v.clauses) if (!map.has(c.queryId)) map.set(c.queryId, c);
-        }
-        return [...map.values()].map((q) => ({
-            key: q.queryId,
-            dataType: q.dataType,
-            describe: describeAbstractClause(q),
-        }));
-    }, [views, presetIds]);
-
     const eligibleFields = (trackerId: string, dataType: string) =>
-        (fieldsByTracker[trackerId] ?? []).filter((f) => fieldTypesCompatible(f.type, dataType));
+        (fieldsByTracker[trackerId] ?? []).filter((f) =>
+            fieldTypesCompatible(f.type, dataType),
+        );
 
     const linksComplete = links.every((l) =>
         ownQueries.every((q) => {
             const fieldId = l.fieldByQuery[q.key];
             if (!fieldId) return false;
-            const field = eligibleFields(l.trackerId, q.dataType).find((f) => f.id === fieldId);
+            const field = eligibleFields(l.trackerId, q.dataType).find(
+                (f) => f.id === fieldId,
+            );
             return field != null;
         }),
     );
 
-    const presetLinksComplete = presetLinks.every((l) =>
-        presetQueries.every((q) => {
-            const fieldId = l.fieldByQuery[q.key];
-            if (!fieldId) return false;
-            const field = eligibleFields(l.trackerId, q.dataType).find((f) => f.id === fieldId);
-            return field != null;
-        }),
-    );
-
-    const canSubmit =
-        (clausesComplete || presetIds.length > 0) && linksComplete && presetLinksComplete;
+    const canSubmit = clausesComplete && linksComplete;
 
     const handleSubmit = async () => {
         if (!canSubmit) return;
         setBusy(true);
         // Own clauses always start inactive -- no value is ever collected here, only
-        // type + operator. A baked-in starting value belongs in a preset filter instead.
+        // type + operator. A baked-in starting value belongs in a preset instead.
         const clauses: ClauseDto[] = rows.map((c) => ({
             kind: QueryKinds.Filter,
             dataType: c.dataType,
@@ -192,16 +159,7 @@ export function FilterForm({
                 ),
             ),
         }));
-        await onSubmit({
-            clauses,
-            links: cleanLinks,
-            presetIds,
-            selectedPresetId:
-                selectedPresetId && presetIds.includes(selectedPresetId)
-                    ? selectedPresetId
-                    : null,
-            presetLinks,
-        });
+        await onSubmit({ clauses, links: cleanLinks, presetIds });
         setBusy(false);
     };
 
@@ -212,7 +170,7 @@ export function FilterForm({
                     What this widget filters
                 </Text>
                 <Text size="xs" c="dimmed">
-                    Each clause becomes an input on the board — its value is typed in
+                    Each clause becomes an input on the board. Its value is typed in
                     there, not here.
                 </Text>
                 <AbstractClauseListEditor
@@ -225,7 +183,7 @@ export function FilterForm({
 
             {clausesComplete && (
                 <FollowedWidgetsSection
-                    title="Followed by typed filters"
+                    title="Followed by"
                     candidates={candidates}
                     fieldsByTracker={fieldsByTracker}
                     queries={ownQueries}
@@ -234,23 +192,12 @@ export function FilterForm({
                 />
             )}
 
-            <DashboardViewsPanel
-                onChange={setViews}
-                color={color}
-                presetIds={presetIds}
-                onPresetIdsChange={setPresetIds}
-                selectedPresetId={selectedPresetId}
-                onSelectedPresetIdChange={setSelectedPresetId}
-            />
-
-            {presetIds.length > 0 && (
-                <FollowedWidgetsSection
-                    title="Followed by presets"
-                    candidates={candidates}
-                    fieldsByTracker={fieldsByTracker}
-                    queries={presetQueries}
-                    links={presetLinks}
-                    onLinksChange={setPresetLinks}
+            {clausesComplete && (
+                <FilterPresetsSection
+                    clauses={rows}
+                    presetIds={presetIds}
+                    onPresetIdsChange={setPresetIds}
+                    color={color}
                 />
             )}
 

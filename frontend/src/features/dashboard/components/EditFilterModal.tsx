@@ -28,8 +28,6 @@ function parseConfig(config: string | undefined): FilterWidgetConfig | null {
                   valueByQuery: parsed.valueByQuery ?? {},
                   links: parsed.links ?? [],
                   presetIds: parsed.presetIds ?? [],
-                  selectedPresetId: parsed.selectedPresetId ?? null,
-                  presetLinks: parsed.presetLinks ?? [],
               }
             : null;
     } catch {
@@ -45,9 +43,8 @@ export function EditFilterModal({ itemId, color, onClose, onSave }: Props) {
     const config = isFilter ? parseConfig(widget.config) : null;
     const clauseDtos = (isFilter && widget.filter?.clauses) || [];
 
-    // The form works in clause indices; the stored own-clause links are keyed by pooled
-    // query id, so translate them back through the clause order the widget reports. Preset
-    // links are already keyed by real pooled query ids and pass through untouched.
+    // The form works in clause indices; the stored links are keyed by pooled query id, so
+    // translate them back through the clause order the widget reports.
     const indexByQueryId = new Map<string, string>(
         clauseDtos.map((c, i) => [c.queryId, String(i)]),
     );
@@ -85,8 +82,6 @@ export function EditFilterModal({ itemId, color, onClose, onSave }: Props) {
                     clauses,
                     links,
                     presetIds: config?.presetIds ?? [],
-                    selectedPresetId: config?.selectedPresetId ?? null,
-                    presetLinks: config?.presetLinks ?? [],
                 }}
                 submitLabel="Save"
                 color={color}

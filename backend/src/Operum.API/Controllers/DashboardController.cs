@@ -157,13 +157,6 @@ namespace Operum.API.Controllers
             return GetApiResponse(await dashboardService.SetFilterValues(dashboardId, itemId, dto));
         }
 
-        // A filter widget's current preset selection alone -- the dropdown on the board.
-        [HttpPut("{dashboardId}/items/{itemId}/filter-preset")]
-        public async Task<IActionResult> SetFilterPreset([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] SetFilterPresetDto dto)
-        {
-            return GetApiResponse(await dashboardService.SetFilterPreset(dashboardId, itemId, dto));
-        }
-
         // A filter widget's own clauses, presets and the full set of widgets that follow
         // it (in either facet) with their per-clause field maps.
         [HttpPut("{dashboardId}/items/{itemId}/filter")]

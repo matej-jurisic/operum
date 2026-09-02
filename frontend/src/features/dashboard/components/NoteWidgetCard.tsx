@@ -173,7 +173,7 @@ export function NoteWidgetCard({
                             {text ||
                                 (isConfiguring
                                     ? "This note is empty."
-                                    : "Empty note — click to add text.")}
+                                    : "Empty note. Click to add text.")}
                         </Text>
                     )}
                 </ScrollArea>

@@ -28,15 +28,14 @@ interface Props {
     onRemove?: (itemId: string) => void;
     /** Opens the widget's edit dialog. Analytic, Entries, Header, Note and Filter widgets:
         a Filter widget's edit dialog sets its clauses, its presets and which widgets
-        follow it in either facet. A QuickAdd widget's tracker is fixed at add time and a
-        Divider has nothing to edit. */
+        follow it. A QuickAdd widget's tracker is fixed at add time and a Divider has
+        nothing to edit. */
     onEdit?: (itemId: string) => void;
     onEntryClick?: (entryId: string) => void;
     onFilterSetValues?: (
         itemId: string,
         values: Record<string, string | null>,
     ) => void;
-    onFilterSelectPreset?: (itemId: string, selectedPresetId: string | null) => void;
 }
 
 // Whether the current grid draws this widget as its collapsed button instead of inline —
@@ -83,7 +82,6 @@ export function DashboardWidget({
     onEdit,
     onEntryClick,
     onFilterSetValues,
-    onFilterSelectPreset,
 }: Props) {
     switch (widget.type) {
         case WidgetTypes.Analytic: {
@@ -151,7 +149,6 @@ export function DashboardWidget({
                     onRemove={onRemove}
                     onEdit={onEdit}
                     onSetValues={onFilterSetValues ?? (() => {})}
-                    onSelectPreset={onFilterSelectPreset ?? (() => {})}
                 />
             );
         case WidgetTypes.Entries: {

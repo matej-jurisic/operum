@@ -101,7 +101,7 @@ namespace Operum.Service.Services.Dashboards
         }
 
         // Shared by the plain read (GetDashboardWidgets) and anything that just wrote to the
-        // board and needs it recomputed from the same in-memory graph (SetFilterPreset)
+        // board and needs it recomputed from the same in-memory graph (SetFilterValues)
         // — every source is recalculated on every call today regardless of what changed, so
         // there is nothing to reconcile between the two.
         private async Task<List<DashboardWidgetDto>> BuildWidgets(Dashboard dashboard)
@@ -141,10 +141,10 @@ namespace Operum.Service.Services.Dashboards
                 .ToDictionary(x => x.ItemId, x => x.Config!);
 
             // Filter widgets parsed once, plus every DashboardView on this board and the
-            // pooled clause behind each of its queries, so the analytic loop can layer both
-            // of a filter widget's facets -- its own typed clauses and, if one is
-            // selected, a preset's whole clause set -- on top of whatever fixed view a
-            // source reads through, resolved against the field each link maps a clause to.
+            // pooled clause behind each of its queries, so the analytic loop can layer a
+            // filter widget's typed clauses on top of whatever fixed view a source reads
+            // through, resolved against the field each link maps a clause to, and the read
+            // below can expose each widget's matching-shape presets with their values.
             var filterConfigsByItemId = items
                 .Where(i => i.Type == DashboardWidgetTypes.Filter)
                 .Select(i => (ItemId: i.Id, Config: TryParseFilterConfig(i.Config)))
@@ -169,11 +169,10 @@ namespace Operum.Service.Services.Dashboards
                     .ToListAsync())
                 .ToDictionary(dv => dv.Id);
 
-            // Every tracker field a filter widget's own-clause or preset link maps to,
-            // loaded up front — ApplyViewFilters needs the field's Type to know how to
-            // filter on it.
+            // Every tracker field a filter widget's clause link maps to, loaded up front —
+            // ApplyViewFilters needs the field's Type to know how to filter on it.
             var selectorFieldIds = filterConfigsByItemId.Values
-                .SelectMany(c => c.Links.Concat(c.PresetLinks))
+                .SelectMany(c => c.Links)
                 .SelectMany(l => l.FieldByQuery.Values)
                 .Distinct()
                 .ToList();
@@ -200,13 +199,16 @@ namespace Operum.Service.Services.Dashboards
                     if (item.Type == DashboardWidgetTypes.Filter &&
                         filterConfigsByItemId.TryGetValue(item.Id, out var filterConfig))
                     {
+                        var widgetClauses = filterConfig.QueryIds
+                            .Distinct()
+                            .Where(filterQueriesById.ContainsKey)
+                            .Select(id => filterQueriesById[id])
+                            .Where(q => q.Kind == QueryKinds.Filter)
+                            .ToList();
+
                         filter = new FilterWidgetDto
                         {
-                            Clauses = filterConfig.QueryIds
-                                .Distinct()
-                                .Where(filterQueriesById.ContainsKey)
-                                .Select(id => filterQueriesById[id])
-                                .Where(q => q.Kind == QueryKinds.Filter)
+                            Clauses = widgetClauses
                                 .Select(q => new FilterClauseDto
                                 {
                                     QueryId = q.Id,
@@ -216,11 +218,20 @@ namespace Operum.Service.Services.Dashboards
                                     Value = filterConfig.ValueByQuery.GetValueOrDefault(q.Id)
                                 })
                                 .ToList(),
-                            SelectedPresetId = filterConfig.SelectedPresetId,
+                            // Only presets whose clause shape still matches the widget's are
+                            // offered; each carries its value per clause in the widget's own
+                            // clause order, so the card just fills those inputs.
                             Presets = filterConfig.PresetIds
                                 .Distinct()
                                 .Where(dashboardViewsById.ContainsKey)
-                                .Select(id => new FilterPresetOptionDto { Id = id, Name = dashboardViewsById[id].Name })
+                                .Select(id => (Id: id, Values: PresetValuesForShape(dashboardViewsById[id], widgetClauses)))
+                                .Where(p => p.Values != null)
+                                .Select(p => new FilterPresetOptionDto
+                                {
+                                    Id = p.Id,
+                                    Name = dashboardViewsById[p.Id].Name,
+                                    Values = p.Values!
+                                })
                                 .ToList()
                         };
                     }
@@ -233,7 +244,7 @@ namespace Operum.Service.Services.Dashboards
                         entriesWidget = await BuildEntriesWidget(
                             item.Id, item.EntriesWidget, entriesConfig,
                             filterConfigsByItemId.Values,
-                            dashboardViewsById, filterQueriesById, selectorFieldsById,
+                            filterQueriesById, selectorFieldsById,
                             currentUserService.GetCurrentUserTimeZone());
                     }
 
@@ -274,22 +285,11 @@ namespace Operum.Service.Services.Dashboards
                     }
 
                     // Every filter widget this widget follows narrows it further, ANDed on
-                    // top of the fixed view above -- from two independent facets. Whichever
-                    // preset is currently selected contributes its clauses, each run against
-                    // the field the preset link maps that clause to on this source's tracker.
-                    var (presetFilters, presetSorts) = ResolvePresetClauses(
-                        item.Id, widgetSource.TrackerId, filterConfigsByItemId.Values,
-                        dashboardViewsById, selectorFieldsById);
-
-                    // The widget's own typed clauses narrow it the same way, using the values
-                    // typed on the board -- a clause left blank is skipped rather than
-                    // filtering on nothing.
-                    var (ownFilters, ownSorts) = ResolveFilterClauses(
+                    // top of the fixed view above, using the values typed on the board -- a
+                    // clause left blank is skipped rather than filtering on nothing.
+                    var (followFilters, followSorts) = ResolveFilterClauses(
                         item.Id, widgetSource.TrackerId, filterConfigsByItemId.Values,
                         filterQueriesById, selectorFieldsById);
-
-                    var followFilters = presetFilters.Concat(ownFilters).ToList();
-                    var followSorts = presetSorts.Concat(ownSorts).ToList();
 
                     if (followFilters.Count > 0)
                         entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, followFilters, tz);
@@ -630,11 +630,10 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(MapToItemDto(item));
         }
 
-        // Shared by both of a Filter widget's link lists (its own typed clauses' Links and
-        // a preset's PresetLinks): every link names an Analytic/Entries widget on this board,
-        // a tracker it reads from, and — for every clause it maps — a real field of that
-        // tracker whose data type the clause allows. `label` is folded into the error
-        // messages so each facet's failures read naturally.
+        // Checks a Filter widget's follower links: every link names an Analytic/Entries
+        // widget on this board, a tracker it reads from, and — for every clause it maps — a
+        // real field of that tracker whose data type the clause allows. `label` is folded
+        // into the error messages so the failures read naturally.
         private async Task<Result> ValidateFollowerLinks(
             Dashboard dashboard,
             List<WidgetLinkDto> links,
@@ -675,12 +674,12 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success();
         }
 
-        // ----- Filter widget (own clause set typed on the board + preset dropdown) -----
+        // ----- Filter widget (clause set typed on the board, with matching-shape presets) -----
 
         // The widget owns a set of filter clauses outright (pooled into Query rows here),
-        // each carrying the value it starts out filtering on, and can independently offer a
-        // dropdown of the board's DashboardViews as quick-apply presets. Everything worth
-        // checking is in BuildFilterConfig.
+        // each carrying the value it starts out filtering on, and offers the board's
+        // DashboardViews whose clause shape matches as presets. Everything worth checking is
+        // in BuildFilterConfig.
         public async Task<Result<DashboardItemDto>> AddFilterItem(string dashboardId, SaveFilterItemDto dto)
         {
             var user = currentUserService.GetCurrentUser();
@@ -758,41 +757,16 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(await BuildWidgets(dashboard));
         }
 
-        // Changes what a filter widget's preset dropdown is currently set to and persists
-        // it onto the item's Config, so it's what every future load starts from. Returns the
-        // whole board recomputed, since every widget the preset links re-filters by it.
-        public async Task<Result<List<DashboardWidgetDto>>> SetFilterPreset(string dashboardId, string itemId, SetFilterPresetDto dto)
-        {
-            var dashboard = await GetUserDashboard(dashboardId);
-            if (dashboard == null)
-                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
-
-            var item = dashboard.Items.FirstOrDefault(i => i.Id == itemId && i.Type == DashboardWidgetTypes.Filter);
-            var config = item != null ? TryParseFilterConfig(item.Config) : null;
-            if (item == null || config == null)
-                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("filter widget"));
-
-            if (!string.IsNullOrEmpty(dto.SelectedPresetId) && !config.PresetIds.Contains(dto.SelectedPresetId))
-                return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("selected preset"));
-
-            config.SelectedPresetId = dto.SelectedPresetId;
-            item.Config = JsonSerializer.Serialize(config, ConfigJsonOptions);
-            await db.SaveChangesAsync();
-
-            return Result.Success(await BuildWidgets(dashboard));
-        }
-
         // Resolves a SaveFilterItemDto into the Config the widget stores.
         //
-        // Own clauses: the sent clauses pooled into Query rows (ResolveDashboardViewClauses
+        // Clauses: the sent clauses pooled into Query rows (ResolveDashboardViewClauses
         // validates them and enforces the filter/query limits), each link's index-keyed
         // FieldByQuery rewritten to those pooled ids and checked against its follower, and
         // the starting value per clause.
         //
-        // Presets: every id must be a DashboardView on this board, the selection is one of
-        // them (or none), and PresetLinks — already keyed by real pooled DashboardViewQuery
-        // ids, unlike Links — is checked the same way against the union of clauses across
-        // the chosen presets.
+        // Presets: every id must be a DashboardView on this board whose filter clauses, in
+        // order, are the same (data type, operator) list as the widget's clauses -- a preset
+        // is just a named set of values for this exact clause set.
         private async Task<Result<FilterWidgetConfigDto>> BuildFilterConfig(Dashboard dashboard, string ownerId, SaveFilterItemDto dto)
         {
             var resolved = await ResolveDashboardViewClauses(ownerId, dto.Clauses);
@@ -835,38 +809,28 @@ namespace Operum.Service.Services.Dashboards
             }
 
             var presetIds = dto.PresetIds.Distinct().ToList();
-            var presetViews = new List<DashboardView>();
             if (presetIds.Count > 0)
             {
-                presetViews = await db.DashboardViews
+                var presetViews = await db.DashboardViews
                     .Where(dv => dv.DashboardId == dashboard.Id && presetIds.Contains(dv.Id))
                     .Include(dv => dv.DashboardViewQueries).ThenInclude(q => q.Query)
                     .ToListAsync();
 
                 if (presetViews.Count != presetIds.Count)
                     return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("preset"));
+
+                // A preset may only be offered if its clause shape still matches this
+                // widget's exactly -- it is a value set for this clause set, nothing else.
+                if (presetViews.Any(v => PresetValuesForShape(v, resolved.Data!) == null))
+                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("preset for this filter widget's clauses"));
             }
-
-            if (!string.IsNullOrEmpty(dto.SelectedPresetId) && !presetIds.Contains(dto.SelectedPresetId))
-                return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("selected preset"));
-
-            var presetQueriesById = presetViews
-                .SelectMany(dv => dv.DashboardViewQueries.Select(q => q.Query))
-                .DistinctBy(q => q.Id)
-                .ToDictionary(q => q.Id);
-
-            var presetLinkCheck = await ValidateFollowerLinks(dashboard, dto.PresetLinks, presetQueriesById, "filter widget preset");
-            if (presetLinkCheck.IsFailure)
-                return Result.Failure(presetLinkCheck.StatusCode, presetLinkCheck.Messages);
 
             return Result.Success(new FilterWidgetConfigDto
             {
                 QueryIds = queryIds,
                 ValueByQuery = valueByQuery,
                 Links = mappedLinks,
-                PresetIds = presetIds,
-                SelectedPresetId = dto.SelectedPresetId,
-                PresetLinks = dto.PresetLinks
+                PresetIds = presetIds
             });
         }
 
@@ -1237,7 +1201,7 @@ namespace Operum.Service.Services.Dashboards
         // through. The shared definition (result type, code, field mapping) lives on the
         // Widget instead and isn't editable here — changing that is what the Widget
         // Library is for. Returns the whole board recomputed, the same as
-        // SetFilterPreset, since a changed view changes what the chart draws.
+        // SetFilterValues, since a changed view changes what the chart draws.
         public async Task<Result<List<DashboardWidgetDto>>> UpdateDashboardItem(string dashboardId, string itemId, UpdateDashboardItemDto dto)
         {
             var dashboard = await GetUserDashboard(dashboardId);
@@ -1294,7 +1258,7 @@ namespace Operum.Service.Services.Dashboards
         // whether it collapses to a button on each grid — the tracker it reads from lives on
         // the EntriesWidget and is fixed the same way an Analytic widget's definition is (see
         // UpdateDashboardItem), and how it's filtered comes only from the filter widgets
-        // it follows. Returns the whole board recomputed, the same as SetFilterPreset,
+        // it follows. Returns the whole board recomputed, the same as SetFilterValues,
         // since a changed column set changes what the table shows.
         public async Task<Result<List<DashboardWidgetDto>>> UpdateEntriesItem(string dashboardId, string itemId, UpdateDashboardEntriesItemDto dto)
         {
@@ -1427,55 +1391,39 @@ namespace Operum.Service.Services.Dashboards
             item.Y = Math.Max(y, 0);
         }
 
-        // The clauses every filter widget's preset facet contributes to one widget's
-        // (item, tracker) pair: for each filter widget currently set to a preset, the
-        // preset's DashboardView clauses run against the field the matching preset link maps
-        // each one to. Shared by the analytic source loop and BuildEntriesWidget so both
-        // narrow the same way. Filters all AND together; sorts keep the order they resolve
-        // in. The caller hands the results to ViewQueryBuilder.ApplyViewFilters /
-        // ApplyViewSorting.
-        private static (List<ResolvedClause> Filters, List<ResolvedClause> Sorts) ResolvePresetClauses(
-            string itemId,
-            string trackerId,
-            IEnumerable<FilterWidgetConfigDto> filterConfigs,
-            IReadOnlyDictionary<string, DashboardView> dashboardViewsById,
-            IReadOnlyDictionary<string, Field> selectorFieldsById)
+        // Whether a preset (DashboardView) still fits a filter widget's clause set: its
+        // filter clauses, in order, must be the same (data type, operator) list as the
+        // widget's. Returns the preset's value per clause in the widget's clause order when
+        // it fits, so the card can drop those straight into its value inputs -- or null
+        // when the shapes have drifted apart and the preset should no longer be offered.
+        private static List<string?>? PresetValuesForShape(DashboardView view, IReadOnlyList<Query> widgetClauses)
         {
-            var filters = new List<ResolvedClause>();
-            var sorts = new List<ResolvedClause>();
+            var presetClauses = view.DashboardViewQueries
+                .OrderBy(q => q.Order)
+                .Select(q => q.Query)
+                .Where(q => q.Kind == QueryKinds.Filter)
+                .ToList();
 
-            foreach (var config in filterConfigs)
+            if (presetClauses.Count != widgetClauses.Count)
+                return null;
+
+            var values = new List<string?>();
+            for (var i = 0; i < widgetClauses.Count; i++)
             {
-                if (string.IsNullOrEmpty(config.SelectedPresetId) ||
-                    !dashboardViewsById.TryGetValue(config.SelectedPresetId, out var selectedView))
-                    continue;
-
-                var link = config.PresetLinks.FirstOrDefault(l =>
-                    l.ItemId == itemId && l.TrackerId == trackerId);
-                if (link == null) continue;
-
-                foreach (var dvq in selectedView.DashboardViewQueries.OrderBy(q => q.Order))
-                {
-                    if (!link.FieldByQuery.TryGetValue(dvq.QueryId, out var fieldId) ||
-                        !selectorFieldsById.TryGetValue(fieldId, out var field))
-                        continue;
-
-                    if (dvq.Query.Kind == QueryKinds.Sort)
-                        sorts.Add(new ResolvedClause(field.Id, field.Type, null, null, dvq.Query.Descending));
-                    else
-                        filters.Add(new ResolvedClause(field.Id, field.Type, dvq.Query.Operator, dvq.Query.Value, false));
-                }
+                if (presetClauses[i].DataType != widgetClauses[i].DataType ||
+                    presetClauses[i].Operator != widgetClauses[i].Operator)
+                    return null;
+                values.Add(presetClauses[i].Value);
             }
 
-            return (filters, sorts);
+            return values;
         }
 
-        // The clauses every filter widget's own-clauses facet contributes to one widget's
-        // (item, tracker) pair. Like ResolvePresetClauses, but the widget owns its clause
-        // set (Config.QueryIds) and the filter value is the one typed on the board
-        // (Config.ValueByQuery). A filter whose value is blank is dropped entirely -- the
-        // filter just hasn't been set yet -- unless its operator is one that reads a
-        // blank as "is empty" / "has a value" on its own.
+        // The clauses every filter widget contributes to one widget's (item, tracker) pair.
+        // The widget owns its clause set (Config.QueryIds) and the filter value is the one
+        // typed on the board (Config.ValueByQuery). A filter whose value is blank is dropped
+        // entirely -- the filter just hasn't been set yet -- unless its operator is one that
+        // reads a blank as "is empty" / "has a value" on its own.
         private static (List<ResolvedClause> Filters, List<ResolvedClause> Sorts) ResolveFilterClauses(
             string itemId,
             string trackerId,
@@ -1824,7 +1772,6 @@ namespace Operum.Service.Services.Dashboards
             EntriesWidget entriesWidget,
             EntriesWidgetConfigDto config,
             IEnumerable<FilterWidgetConfigDto> filterConfigs,
-            IReadOnlyDictionary<string, DashboardView> dashboardViewsById,
             IReadOnlyDictionary<string, Query> filterQueriesById,
             IReadOnlyDictionary<string, Field> selectorFieldsById,
             TimeZoneInfo tz)
@@ -1849,13 +1796,11 @@ namespace Operum.Service.Services.Dashboards
                 .Include(e => e.FieldValues).ThenInclude(fv => fv.Field)
                 .Where(e => e.TrackerId == entriesWidget.TrackerId);
 
-            var (presetFilters, presetSorts) = ResolvePresetClauses(
-                itemId, entriesWidget.TrackerId, filterConfigs, dashboardViewsById, selectorFieldsById);
-            var (ownFilters, ownSorts) = ResolveFilterClauses(
+            var (followFilters, followSorts) = ResolveFilterClauses(
                 itemId, entriesWidget.TrackerId, filterConfigs, filterQueriesById, selectorFieldsById);
 
-            entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, presetFilters.Concat(ownFilters).ToList(), tz);
-            entriesQuery = ViewQueryBuilder.ApplyViewSorting(entriesQuery, presetSorts.Concat(ownSorts).ToList());
+            entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, followFilters, tz);
+            entriesQuery = ViewQueryBuilder.ApplyViewSorting(entriesQuery, followSorts);
 
             var entries = await entriesQuery.Take(EntriesWidgetRowLimit).ToListAsync();
 

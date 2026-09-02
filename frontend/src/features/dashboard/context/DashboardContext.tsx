@@ -44,7 +44,6 @@ type DashboardContextType = {
         values: Record<string, string | null>
     ) => Promise<void>;
     updateFilterItem: (itemId: string, dto: SaveFilterItemDto) => Promise<void>;
-    setFilterPreset: (itemId: string, selectedPresetId: string | null) => Promise<void>;
     setTextContent: (itemId: string, text: string) => Promise<void>;
     removeItem: (itemId: string) => Promise<void>;
     saveLayout: (
@@ -151,19 +150,6 @@ export const DashboardProvider: React.FC<{
         setWidgets(res.data ?? []);
     };
 
-    // The widget re-renders from the response immediately, and so does every widget its
-    // preset links — the selection is saved server-side, so this is the same "recompute the
-    // whole board" the server does on every load, not a client-only toggle.
-    const setFilterPreset = async (
-        itemId: string,
-        selectedPresetId: string | null
-    ) => {
-        const res = await dashboardController.setFilterPreset(dashboardId, itemId, {
-            selectedPresetId,
-        });
-        setWidgets(res.data ?? []);
-    };
-
     // Unlike updateItem/setViewSelection, nothing else on the board ever depends on a text
     // widget's own content, so the response (just that one item) is patched into place
     // rather than the whole board being recomputed and re-rendered from scratch.
@@ -242,7 +228,6 @@ export const DashboardProvider: React.FC<{
                 updateEntriesItem,
                 setFilterValues,
                 updateFilterItem,
-                setFilterPreset,
                 setTextContent,
                 removeItem,
                 saveLayout,

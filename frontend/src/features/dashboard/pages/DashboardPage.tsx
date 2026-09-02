@@ -63,7 +63,6 @@ function DashboardContent({
         updateEntriesItem,
         setFilterValues,
         updateFilterItem,
-        setFilterPreset,
         setTextContent,
         removeItem,
         saveLayout,
@@ -186,7 +185,6 @@ function DashboardContent({
                     onRemove={removeItem}
                     onEdit={setEditingItemId}
                     onFilterSetValues={setFilterValues}
-                    onFilterSelectPreset={setFilterPreset}
                 />
             )}
 

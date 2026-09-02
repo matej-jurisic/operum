@@ -39,23 +39,23 @@ namespace Operum.Model.DTOs.Dashboard
         public string? Value { get; set; }
     }
 
-    // One preset a Filter widget's dropdown can be set to -- a DashboardView on the same
-    // board, resolved to just its id and name for the card to render.
+    // One preset a Filter widget offers -- a DashboardView on the same board whose clause
+    // shape matches the widget's, resolved to its id, name and the value per clause in the
+    // widget's own clause order, so picking it on the board just fills those value inputs.
     public class FilterPresetOptionDto
     {
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
+        public List<string?> Values { get; set; } = [];
     }
 
     // What a DashboardWidgetTypes.Filter widget's card needs -- resolved server-side from
-    // Config the same way QuickAddTrackerDto is: the widget's own typed clauses with their
-    // current values, and (its second, independent facet) the DashboardViews it offers as
-    // presets plus which one is currently selected.
+    // Config the same way QuickAddTrackerDto is: the widget's own filter clauses with their
+    // current values, and the matching-shape DashboardViews it offers as presets.
     public class FilterWidgetDto
     {
         public List<FilterClauseDto> Clauses { get; set; } = [];
         public List<FilterPresetOptionDto> Presets { get; set; } = [];
-        public string? SelectedPresetId { get; set; }
     }
 
     // What a DashboardWidgetTypes.Entries widget's table needs — resolved server-side the

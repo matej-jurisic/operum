@@ -85,27 +85,24 @@ export interface ReorderDashboardViewsDto {
     dashboardViewIds: string[];
 }
 
-/** One preset a WidgetTypes.Filter widget's dropdown can be set to -- a DashboardView on
-    the same board, resolved to just its id and name for the card to render. */
+/** One preset a WidgetTypes.Filter widget offers -- a DashboardView on the same board whose
+    clause shape matches the widget's, resolved to its id, name and value per clause (in the
+    widget's own clause order) so picking it just fills the value inputs. */
 export interface FilterPresetOptionDto {
     id: string;
     name: string;
+    values: (string | null)[];
 }
 
-/** The Config payload of a WidgetTypes.Filter widget. Two independent facets:
-    - Own typed clauses: an ordered clause set (pooled query ids), the current value per
-      clause (keyed by the pooled query id), and the followed widgets in `links`.
-    - Presets: the board's DashboardViews it offers as quick-apply presets, the current
-      selection, and the followed widgets in `presetLinks` -- functionally what the old
-      standalone view selector widget was, folded in here as a second facet. */
+/** The Config payload of a WidgetTypes.Filter widget: an ordered filter clause set (pooled
+    query ids), the current value per clause (keyed by the pooled query id), the followed
+    widgets in `links`, and `presetIds` -- the board's DashboardViews it offers as presets,
+    each a named value set whose clause shape matches these clauses exactly. */
 export interface FilterWidgetConfig {
     queryIds: string[];
     valueByQuery: Record<string, string | null>;
     links: WidgetLink[];
-
     presetIds: string[];
-    selectedPresetId?: string | null;
-    presetLinks: WidgetLink[];
 }
 
 /** One clause of a filter widget's own typed clause set, resolved server-side for the
@@ -119,41 +116,29 @@ export interface FilterClauseDto {
 }
 
 /** What a WidgetTypes.Filter widget's card needs, resolved server-side the same way
-    quickAddTracker is: its own typed clauses with their current values, and the DashboardViews
-    it offers as presets plus which one is currently selected. */
+    quickAddTracker is: its filter clauses with their current values, and the matching-shape
+    DashboardViews it offers as presets (each with its value per clause). */
 export interface FilterWidgetDto {
     clauses: FilterClauseDto[];
     presets: FilterPresetOptionDto[];
-    selectedPresetId?: string | null;
 }
 
-/** Adds or edits a WidgetTypes.Filter item. Two independent facets, at least one of which
-    must be present:
-    - Own clauses: `clauses` are all filters, never sorts; each carries the value it starts
-      out filtering on. A `links` entry's fieldByQuery is keyed by the clause's index in
-      `clauses` — the client has no pooled query id until the save resolves one — and the
-      backend rewrites those keys to the ids it stores.
-    - Presets: `presetIds` names the board's DashboardViews this widget offers, `selectedPresetId`
-      the starting selection, and `presetLinks` the followed widgets for whichever preset is
-      applied, keyed directly by pooled DashboardViewQuery ids (no index rewrite needed). */
+/** Adds or edits a WidgetTypes.Filter item. `clauses` are all filters, never sorts, and are
+    required; each carries the value it starts out filtering on. A `links` entry's
+    fieldByQuery is keyed by the clause's index in `clauses` — the client has no pooled query
+    id until the save resolves one — and the backend rewrites those keys to the ids it
+    stores. `presetIds` names the board's DashboardViews this widget offers as presets; each
+    must be a view whose filter-clause shape matches `clauses` exactly. */
 export interface SaveFilterItemDto {
     clauses: ClauseDto[];
     links: WidgetLink[];
-
     presetIds: string[];
-    selectedPresetId?: string | null;
-    presetLinks: WidgetLink[];
 }
 
 /** Changes the values a WidgetTypes.Filter item's own typed clauses are currently set
     to. */
 export interface SetFilterValuesDto {
     values: Record<string, string | null>;
-}
-
-/** Changes what a WidgetTypes.Filter item's preset dropdown is currently set to. */
-export interface SetFilterPresetDto {
-    selectedPresetId?: string | null;
 }
 
 /** What a WidgetTypes.Entries widget's table needs, resolved server-side: the tracker it

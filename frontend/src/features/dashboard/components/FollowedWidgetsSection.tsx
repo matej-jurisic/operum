@@ -148,11 +148,6 @@ export function FollowedWidgetsSection({
                                 )
                             }
                         />
-                        {link && choices.length === 0 && (
-                            <Text size="xs" c="dimmed" pl="lg">
-                                Fields matched automatically
-                            </Text>
-                        )}
                         {link && choices.length > 0 && (
                             <Group gap="sm" pl="lg" wrap="wrap">
                                 {choices.map((q) => (

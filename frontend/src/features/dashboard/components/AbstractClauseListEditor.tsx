@@ -27,10 +27,8 @@ import {
 } from "../../../shared/constants/QueryKinds";
 import { describeAbstractClause } from "../../../shared/utils/formatters/QueryFormatter";
 import { FieldDto } from "../../fields/types/FieldDto";
-import {
-    FilterTemplate,
-    filterTemplates,
-} from "../../views/components/ViewFilterTemplates";
+import { filterTemplates } from "../../views/components/ViewFilterTemplates";
+import { filterWidgetClauseTemplates } from "./filterWidgetClauseTemplates";
 
 export interface AbstractClauseRow {
     kind: QueryKind;
@@ -54,6 +52,17 @@ const syntheticField = (path: string, index: number, type: string): FieldDto => 
 
 const dataTypeLabel = (value: string) =>
     fieldTypes.find((t) => t.value === value)?.label ?? value;
+
+/** A view filter template and a filter-widget clause template flattened to the shape this
+    editor needs: a list of field types plus one operator (and, for views, a value) per row. */
+interface ClauseTemplateOption {
+    id: string;
+    name: string;
+    description?: string;
+    icon: React.ReactNode;
+    fieldTypes: string[];
+    clauses: Array<{ operator: string; value?: unknown }>;
+}
 
 interface Props {
     form: UseFormReturnType<any>;
@@ -98,16 +107,22 @@ export default function AbstractClauseListEditor({
             ...partial,
         });
 
+    // A filter widget's rows never hold a value, so a view's value-centric templates make
+    // no sense there -- it gets its own operator-shape templates instead.
+    const templates: ClauseTemplateOption[] = filterOnly
+        ? filterWidgetClauseTemplates
+        : filterTemplates.map((t) => ({ ...t, clauses: t.filters }));
+
     // Data types at least one template targets — the modal's type picker offers only these.
     const templateTypeOptions = fieldTypes.filter((t) =>
-        filterTemplates.some((tpl) => tpl.fieldTypes.includes(t.value)),
+        templates.some((tpl) => tpl.fieldTypes.includes(t.value)),
     );
 
     const availableTemplates = templateDataType
-        ? filterTemplates.filter(
+        ? templates.filter(
               (t) =>
                   t.fieldTypes.includes(templateDataType) &&
-                  rows.length + t.filters.length <= max,
+                  rows.length + t.clauses.length <= max,
           )
         : [];
 
@@ -121,9 +136,9 @@ export default function AbstractClauseListEditor({
         setTemplateDataType(null);
     };
 
-    const applyTemplate = (template: FilterTemplate) => {
+    const applyTemplate = (template: ClauseTemplateOption) => {
         if (!templateDataType) return;
-        template.filters
+        template.clauses
             .slice(0, max - rows.length)
             .forEach((f) =>
                 addRow({
@@ -188,46 +203,86 @@ export default function AbstractClauseListEditor({
             ) : (
                 rows.map((row, index) => {
                     const isDate = DATE_TYPES.includes(row.dataType);
-                    // filterOnly rows have no value to describe -- type + operator are
-                    // already visible in the selects above, so the badge would just repeat
-                    // "Amount ≥ empty" for every complete row.
+                    if (filterOnly) {
+                        // No filter/sort toggle, value input or summary badge in this mode --
+                        // a row is just type + operator, so keep it to a single compact line
+                        // with the delete button inline rather than a tall card.
+                        return (
+                            <Paper key={index} p="xs" withBorder radius="md">
+                                <Group gap="sm" wrap="nowrap" align="flex-end">
+                                    <Select
+                                        flex={1}
+                                        label="Type"
+                                        allowDeselect={false}
+                                        data={fieldTypes}
+                                        value={row.dataType || null}
+                                        onChange={(value) =>
+                                            form.setFieldValue(`${path}.${index}`, {
+                                                ...row,
+                                                dataType: value ?? "",
+                                                operator: "",
+                                                value: undefined,
+                                            })
+                                        }
+                                    />
+                                    <Select
+                                        flex={1}
+                                        label="Operator"
+                                        allowDeselect={false}
+                                        disabled={!row.dataType}
+                                        data={operatorsForFieldType(
+                                            row.dataType || undefined,
+                                        )}
+                                        {...form.getInputProps(
+                                            `${path}.${index}.operator`,
+                                        )}
+                                    />
+                                    <ActionIcon
+                                        color="red"
+                                        variant="outline"
+                                        aria-label="Remove clause"
+                                        onClick={() =>
+                                            form.removeListItem(path, index)
+                                        }
+                                    >
+                                        <MdDelete size={16} />
+                                    </ActionIcon>
+                                </Group>
+                            </Paper>
+                        );
+                    }
                     const described =
-                        !filterOnly &&
                         row.dataType &&
                         (row.kind === QueryKinds.Sort || row.operator);
                     return (
                         <Paper key={index} p="md" withBorder radius="md">
                             <Stack gap="sm">
                                 <Group justify="space-between" wrap="nowrap">
-                                    {filterOnly ? (
-                                        <span />
-                                    ) : (
-                                        <SegmentedControl
-                                            size="xs"
-                                            data={[
+                                    <SegmentedControl
+                                        size="xs"
+                                        data={[
+                                            {
+                                                value: QueryKinds.Filter,
+                                                label: QueryKindLabel.filter,
+                                            },
+                                            {
+                                                value: QueryKinds.Sort,
+                                                label: QueryKindLabel.sort,
+                                            },
+                                        ]}
+                                        value={row.kind}
+                                        onChange={(kind) =>
+                                            form.setFieldValue(
+                                                `${path}.${index}`,
                                                 {
-                                                    value: QueryKinds.Filter,
-                                                    label: QueryKindLabel.filter,
+                                                    ...row,
+                                                    kind: kind as QueryKind,
+                                                    operator: "",
+                                                    value: undefined,
                                                 },
-                                                {
-                                                    value: QueryKinds.Sort,
-                                                    label: QueryKindLabel.sort,
-                                                },
-                                            ]}
-                                            value={row.kind}
-                                            onChange={(kind) =>
-                                                form.setFieldValue(
-                                                    `${path}.${index}`,
-                                                    {
-                                                        ...row,
-                                                        kind: kind as QueryKind,
-                                                        operator: "",
-                                                        value: undefined,
-                                                    },
-                                                )
-                                            }
-                                        />
-                                    )}
+                                            )
+                                        }
+                                    />
                                     <ActionIcon
                                         color="red"
                                         variant="outline"
@@ -284,7 +339,7 @@ export default function AbstractClauseListEditor({
                                         />
                                     )}
                                 </Group>
-                                {!filterOnly && row.kind === QueryKinds.Filter && row.dataType && (
+                                {row.kind === QueryKinds.Filter && row.dataType && (
                                     <DynamicDateValueInput
                                         isDateType={isDate}
                                         value={
@@ -372,21 +427,30 @@ export default function AbstractClauseListEditor({
                                         style={{ cursor: "pointer" }}
                                         onClick={() => applyTemplate(t)}
                                     >
-                                        <Group
-                                            justify="space-between"
-                                            wrap="nowrap"
-                                        >
-                                            <Group gap="sm" wrap="nowrap">
-                                                {t.icon}
-                                                <Text fw={500} size="sm">
-                                                    {t.name}
+                                        <Stack gap={4}>
+                                            <Group
+                                                justify="space-between"
+                                                wrap="nowrap"
+                                            >
+                                                <Group gap="sm" wrap="nowrap">
+                                                    {t.icon}
+                                                    <Text fw={500} size="sm">
+                                                        {t.name}
+                                                    </Text>
+                                                </Group>
+                                                <Text c="dimmed" size="xs">
+                                                    +{t.clauses.length} clause
+                                                    {t.clauses.length > 1
+                                                        ? "s"
+                                                        : ""}
                                                 </Text>
                                             </Group>
-                                            <Text c="dimmed" size="xs">
-                                                +{t.filters.length} filter
-                                                {t.filters.length > 1 ? "s" : ""}
-                                            </Text>
-                                        </Group>
+                                            {t.description && (
+                                                <Text c="dimmed" size="xs">
+                                                    {t.description}
+                                                </Text>
+                                            )}
+                                        </Stack>
                                     </Card>
                                 ))
                             )}

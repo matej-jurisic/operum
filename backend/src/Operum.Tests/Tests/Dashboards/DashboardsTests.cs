@@ -1210,9 +1210,8 @@ namespace Operum.Tests.Tests.Dashboards
 
         // ----- Filter widget -----
 
-        // The seeded entry is dated 2026-01-01, so a "later than mid-year" date clause keeps
-        // nothing once it is selected, and everything again once it is cleared. Used as a
-        // preset DashboardView, the same way it drove the old standalone view selector.
+        // A date preset -- the wrong clause shape for AmountOverClauses(), used to prove a
+        // shape-mismatched preset is rejected.
         private static SaveDashboardViewDto LateInYearSet() => new()
         {
             Name = "Late in year",
@@ -1239,6 +1238,23 @@ namespace Operum.Tests.Tests.Dashboards
                 Operator = OperatorTypes.GreaterThan
             }
         ];
+
+        // A preset whose clause shape matches AmountOverClauses() -- "Amount greater than
+        // <value>" -- so a filter widget built from those clauses may offer it.
+        private static SaveDashboardViewDto AmountOverSet(string value) => new()
+        {
+            Name = $"Amount over {value}",
+            Clauses =
+            [
+                new ClauseDto
+                {
+                    Kind = QueryKinds.Filter,
+                    DataType = DataTypes.Number,
+                    Operator = OperatorTypes.GreaterThan,
+                    Value = value
+                }
+            ]
+        };
 
         // The pooled query id the filter widget's first clause resolved to -- the key
         // SetFilterValues expects, read back off the board.
@@ -1444,10 +1460,10 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(HttpStatusCode.BadRequest, badKey.StatusCode);
         }
 
-        // ----- Filter widget presets (the old standalone view selector, folded in) -----
+        // ----- Filter widget presets (named value sets matched to the clause shape) -----
 
         [Fact]
-        public async Task AddFilter_WithPresetIds_ResolvesPresetsOnBoard()
+        public async Task AddFilter_MatchingPreset_ExposesItsValuesOnTheCard()
         {
             await _factory.SeedDatabaseAsync();
             var client = await _factory.NewUserClient("filterpresetresolve");
@@ -1457,22 +1473,44 @@ namespace Operum.Tests.Tests.Dashboards
             await PlaceLineChart(client, dashboardId, tracker);
 
             var view = await Data(await client.PostAsJsonAsync(
-                $"dashboard/{dashboardId}/views", LateInYearSet()));
+                $"dashboard/{dashboardId}/views", AmountOverSet("10")));
             var viewId = view.GetProperty("id").GetString()!;
 
             var item = await Data(await client.PostAsJsonAsync(
                 $"dashboard/{dashboardId}/items/filter",
-                new SaveFilterItemDto { PresetIds = [viewId], SelectedPresetId = viewId }));
+                new SaveFilterItemDto { Clauses = AmountOverClauses(), PresetIds = [viewId] }));
             var filterId = item.GetProperty("id").GetString()!;
 
             var widgets = await Widgets(client, dashboardId);
             var filter = widgets.EnumerateArray().Single(w => w.GetProperty("id").GetString() == filterId)
                 .GetProperty("filter");
-            Assert.Equal(viewId, filter.GetProperty("selectedPresetId").GetString());
             var presets = filter.GetProperty("presets").EnumerateArray().ToList();
             Assert.Single(presets);
             Assert.Equal(viewId, presets[0].GetProperty("id").GetString());
-            Assert.Equal("Late in year", presets[0].GetProperty("name").GetString());
+            Assert.Equal("Amount over 10", presets[0].GetProperty("name").GetString());
+            Assert.Equal("10", presets[0].GetProperty("values")[0].GetString());
+        }
+
+        [Fact]
+        public async Task AddFilter_PresetOfMismatchedShape_ReturnsBadRequest()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("filterpresetshape");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            await PlaceLineChart(client, dashboardId, tracker);
+
+            // The preset is a date clause; the widget's clauses are a number clause.
+            var view = await Data(await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/views", LateInYearSet()));
+            var viewId = view.GetProperty("id").GetString()!;
+
+            var response = await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/items/filter",
+                new SaveFilterItemDto { Clauses = AmountOverClauses(), PresetIds = [viewId] });
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
         [Fact]
@@ -1487,83 +1525,23 @@ namespace Operum.Tests.Tests.Dashboards
 
             var response = await client.PostAsJsonAsync(
                 $"dashboard/{dashboardId}/items/filter",
-                new SaveFilterItemDto { PresetIds = ["not-a-view"] });
+                new SaveFilterItemDto { Clauses = AmountOverClauses(), PresetIds = ["not-a-view"] });
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
         [Fact]
-        public async Task SetFilterPreset_SelectedPreset_NarrowsLinkedChartAndClearsWhenDeselected()
+        public async Task AddDashboardView_SortClause_ReturnsBadRequest()
         {
             await _factory.SeedDatabaseAsync();
-            var client = await _factory.NewUserClient("filterpresetnarrows");
-
-            var tracker = await CreateCapableTracker(client, "Weight");
+            var client = await _factory.NewUserClient("viewsortclause");
             var dashboardId = await CreateDashboard(client);
-            var chartId = await PlaceLineChart(client, dashboardId, tracker);
 
-            var view = await Data(await client.PostAsJsonAsync(
-                $"dashboard/{dashboardId}/views", LateInYearSet()));
-            var viewId = view.GetProperty("id").GetString()!;
-            var queryId = view.GetProperty("clauses")[0].GetProperty("queryId").GetString()!;
-
-            var filterItem = await Data(await client.PostAsJsonAsync(
-                $"dashboard/{dashboardId}/items/filter",
-                new SaveFilterItemDto
+            var response = await client.PostAsJsonAsync($"dashboard/{dashboardId}/views",
+                new SaveDashboardViewDto
                 {
-                    PresetIds = [viewId],
-                    SelectedPresetId = viewId,
-                    PresetLinks =
-                    [
-                        new WidgetLinkDto
-                        {
-                            ItemId = chartId,
-                            TrackerId = tracker.Id,
-                            FieldByQuery = new() { [queryId] = tracker.DayFieldId }
-                        }
-                    ]
-                }));
-            var filterId = filterItem.GetProperty("id").GetString()!;
-
-            Assert.Equal(0, PointsOf(await Widgets(client, dashboardId), chartId));
-
-            var cleared = await client.PutAsJsonAsync(
-                $"dashboard/{dashboardId}/items/{filterId}/filter-preset",
-                new SetFilterPresetDto { SelectedPresetId = null });
-            Assert.Equal(HttpStatusCode.OK, cleared.StatusCode);
-            Assert.Equal(1, PointsOf(await Data(cleared), chartId));
-        }
-
-        [Fact]
-        public async Task AddFilter_PresetLinkClauseMappedToFieldOfWrongType_ReturnsBadRequest()
-        {
-            await _factory.SeedDatabaseAsync();
-            var client = await _factory.NewUserClient("filterpresetwrongtype");
-
-            var tracker = await CreateCapableTracker(client, "Weight");
-            var dashboardId = await CreateDashboard(client);
-            var chartId = await PlaceLineChart(client, dashboardId, tracker);
-
-            var view = await Data(await client.PostAsJsonAsync(
-                $"dashboard/{dashboardId}/views", LateInYearSet()));
-            var viewId = view.GetProperty("id").GetString()!;
-            var queryId = view.GetProperty("clauses")[0].GetProperty("queryId").GetString()!;
-
-            var response = await client.PostAsJsonAsync(
-                $"dashboard/{dashboardId}/items/filter",
-                new SaveFilterItemDto
-                {
-                    PresetIds = [viewId],
-                    PresetLinks =
-                    [
-                        new WidgetLinkDto
-                        {
-                            ItemId = chartId,
-                            TrackerId = tracker.Id,
-                            // Amount is a number field, but the preset's clause is a date clause.
-                            FieldByQuery = new() { [queryId] = tracker.AmountFieldId }
-                        }
-                    ]
+                    Name = "Has a sort",
+                    Clauses = [new ClauseDto { Kind = QueryKinds.Sort, DataType = DataTypes.Date, Descending = true }]
                 });
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -1578,21 +1556,11 @@ namespace Operum.Tests.Tests.Dashboards
 
             for (var i = 0; i < DataLimits.MaxDashboardViewCount; i++)
             {
-                var ok = await client.PostAsJsonAsync($"dashboard/{dashboardId}/views",
-                    new SaveDashboardViewDto
-                    {
-                        Name = $"Set {i}",
-                        Clauses = [new ClauseDto { Kind = QueryKinds.Sort, DataType = DataTypes.Date }]
-                    });
+                var ok = await client.PostAsJsonAsync($"dashboard/{dashboardId}/views", AmountOverSet($"{i}"));
                 Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
             }
 
-            var overflow = await client.PostAsJsonAsync($"dashboard/{dashboardId}/views",
-                new SaveDashboardViewDto
-                {
-                    Name = "One too many",
-                    Clauses = [new ClauseDto { Kind = QueryKinds.Sort, DataType = DataTypes.Date }]
-                });
+            var overflow = await client.PostAsJsonAsync($"dashboard/{dashboardId}/views", AmountOverSet("999"));
             Assert.Equal(HttpStatusCode.BadRequest, overflow.StatusCode);
         }
 
@@ -1637,48 +1605,6 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(1, EntriesRowCount(widgets, itemId));
             // The fixed-view binding is gone -- the payload no longer carries a viewId.
             Assert.False(EntriesWidgetFor(widgets, itemId).TryGetProperty("viewId", out _));
-        }
-
-        [Fact]
-        public async Task SetFilterPreset_EntriesWidgetFollowsSelectedPreset_NarrowsRowsAndClearsWhenDeselected()
-        {
-            await _factory.SeedDatabaseAsync();
-            var client = await _factory.NewUserClient("entriespreset");
-
-            var tracker = await CreateCapableTracker(client, "Weight");
-            var dashboardId = await CreateDashboard(client);
-            var itemId = await PlaceEntriesTable(client, dashboardId, tracker);
-
-            var view = await Data(await client.PostAsJsonAsync(
-                $"dashboard/{dashboardId}/views", LateInYearSet()));
-            var viewId = view.GetProperty("id").GetString()!;
-            var queryId = view.GetProperty("clauses")[0].GetProperty("queryId").GetString()!;
-
-            var filterItem = await Data(await client.PostAsJsonAsync(
-                $"dashboard/{dashboardId}/items/filter",
-                new SaveFilterItemDto
-                {
-                    PresetIds = [viewId],
-                    SelectedPresetId = viewId,
-                    PresetLinks =
-                    [
-                        new WidgetLinkDto
-                        {
-                            ItemId = itemId,
-                            TrackerId = tracker.Id,
-                            FieldByQuery = new() { [queryId] = tracker.DayFieldId }
-                        }
-                    ]
-                }));
-            var filterId = filterItem.GetProperty("id").GetString()!;
-
-            Assert.Equal(0, EntriesRowCount(await Widgets(client, dashboardId), itemId));
-
-            var cleared = await client.PutAsJsonAsync(
-                $"dashboard/{dashboardId}/items/{filterId}/filter-preset",
-                new SetFilterPresetDto { SelectedPresetId = null });
-            Assert.Equal(HttpStatusCode.OK, cleared.StatusCode);
-            Assert.Equal(1, EntriesRowCount(await Data(cleared), itemId));
         }
 
         [Fact]

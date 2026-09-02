@@ -4,10 +4,11 @@ using Operum.Model.DTOs.Queries;
 
 namespace Operum.Model.DTOs.Dashboard.Requests
 {
-    // Creates or replaces a DashboardView -- a named clause set the board's view selectors
-    // can offer. The payload stands for the whole thing: the clauses replace whatever was
-    // there. Clauses are field-agnostic; the field each runs against is chosen per following
-    // widget on the selector, not here.
+    // Creates or replaces a DashboardView -- a named set of filter clause values the board's
+    // filter widgets can offer as a preset. The payload stands for the whole thing: the
+    // clauses replace whatever was there. Clauses are field-agnostic (the field each runs
+    // against is chosen per following widget) and must all be filters, never sorts -- a
+    // preset is a value set, matched to a filter widget by its clause shape.
     public class SaveDashboardViewDto
     {
         public string Name { get; set; } = string.Empty;
@@ -27,7 +28,10 @@ namespace Operum.Model.DTOs.Dashboard.Requests
                 .Must(c => c.Count <= DataLimits.MaxQueriesPerView)
                     .WithMessage(x => Messages.MaxNumberReached("clauses", DataLimits.MaxQueriesPerView));
 
-            RuleForEach(x => x.Clauses).SetValidator(new ClauseDtoValidator());
+            RuleForEach(x => x.Clauses)
+                .SetValidator(new ClauseDtoValidator())
+                .Must(c => c.Kind == QueryKinds.Filter)
+                    .WithMessage(x => Messages.Invalid("clause kind for a preset"));
         }
     }
 }

@@ -36,46 +36,52 @@ namespace Operum.Model.Constants
         public static int MinWidthFor(string variant) =>
             Math.Min(MinWidth, ColumnsFor(variant));
 
-        // What a widget is worth on the grid before the user has resized it. Charts need
-        // room for their axes, a single value only needs a line of text.
+        // What a widget is worth on the grid before the user has resized it. The user
+        // moves it from here, so these aim for the smallest footprint each kind still
+        // reads well at rather than a generous one.
         //
-        // Heights below are in the 2px-row grid: each is twice what it was on the 20px-row
-        // grid (and four times the original 40px-row grid), so a widget added now lands at
-        // the same footprint it always did. Widths are untouched -- the column axis has not
-        // changed since IncreaseDashboardGridResolution.
+        // Heights are in the 2px-row grid, where the vertical step a drag snaps to is
+        // row + margin == 18px: a cell of height h is 18h - 16 pixels tall on the client.
+        // The client's card thresholds (see cardSizing.ts) are the reference points --
+        // a chart wants ~300px of plot under its ~48px header, and drops its axes below
+        // 300px wide / 200px tall.
         public static (int Width, int Height) DefaultSizeFor(string resultType) => resultType switch
         {
+            // A single number reads as well small as large; header + a line of value.
             AnalyticTypes.SingleValue => (6, 8),
-            AnalyticTypes.Donut => (8, 24),
-            AnalyticTypes.Calendar => (12, 32),
-            _ => (12, 24)
+            // A donut reads best near-square -- ~450px wide, ~290px of it plot + legend.
+            AnalyticTypes.Donut => (8, 18),
+            // A month grid can't reflow: it's ~280x250px whatever cell it sits in, so a
+            // wider or taller default just frames it in empty space.
+            AnalyticTypes.Calendar => (8, 18),
+            // Line/Bar/Scatter/Composed: half the wide grid, ~290px of plot under the header.
+            _ => (12, 20)
         };
 
-        // A quick-add button is a single row of chrome, not a chart — it only ever needs
-        // room for an icon, a name and a button.
-        public static readonly (int Width, int Height) QuickAddSize = (6, 12);
+        // A quick-add button is a single row of chrome, not a chart -- an icon, a name and
+        // a button is all it ever draws.
+        public static readonly (int Width, int Height) QuickAddSize = (6, 7);
 
-        // A filter widget shows as a compact filter chip -- an icon and a one-line
-        // summary of the values currently set -- and opens a modal to edit them. It also
-        // carries an optional preset dropdown as a second row when it has any, so it needs a
-        // little more headroom than a bare quick-add button.
-        public static readonly (int Width, int Height) FilterSize = (6, 16);
+        // A filter widget shows as a compact chip: a header and a one-line summary of the
+        // values currently set, opening a modal to edit them (presets included). It needs
+        // no more room than a quick-add button.
+        public static readonly (int Width, int Height) FilterSize = (6, 7);
 
         // An entries table wants the same room a chart does: enough width for a few
-        // columns and enough height to show more than a couple of rows.
+        // columns and enough height to show a dozen or so rows.
         public static readonly (int Width, int Height) EntriesSize = (12, 24);
 
-        // A header is one short line of text, but it reads as dividing the board into
-        // sections only if it spans the row it sits in rather than sitting in a column of
-        // its own.
-        public static readonly (int Width, int Height) HeaderSize = (Columns, 8);
+        // A header is one short line of text spanning its row -- that span is what makes it
+        // read as a section break rather than a stray label, so it takes the full width but
+        // only enough height for the line and the arrange-mode icons.
+        public static readonly (int Width, int Height) HeaderSize = (Columns, 5);
 
-        // A divider needs even less height than a header — just enough for a bare line to
-        // read as a deliberate gap rather than unfinished layout — but the same full width.
-        public static readonly (int Width, int Height) DividerSize = (Columns, 4);
+        // A divider is a bare rule: full width, and as short as it can be while still
+        // reading as a deliberate gap rather than unfinished layout.
+        public static readonly (int Width, int Height) DividerSize = (Columns, 3);
 
         // A note is read a paragraph at a time, so it gets a card-sized footprint rather
-        // than a full row.
-        public static readonly (int Width, int Height) NoteSize = (8, 16);
+        // than a full row -- room for roughly eight lines before it scrolls.
+        public static readonly (int Width, int Height) NoteSize = (8, 12);
     }
 }

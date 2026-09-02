@@ -25,7 +25,6 @@ namespace Operum.Service.Interfaces
         Task<Result<List<DashboardWidgetDto>>> UpdateDashboardItem(string dashboardId, string itemId, UpdateDashboardItemDto dto);
         Task<Result<List<DashboardWidgetDto>>> UpdateFilterItem(string dashboardId, string itemId, SaveFilterItemDto dto);
         Task<Result<List<DashboardWidgetDto>>> SetFilterValues(string dashboardId, string itemId, SetFilterValuesDto dto);
-        Task<Result<List<DashboardWidgetDto>>> SetFilterPreset(string dashboardId, string itemId, SetFilterPresetDto dto);
         Task<Result<List<DashboardWidgetDto>>> UpdateEntriesItem(string dashboardId, string itemId, UpdateDashboardEntriesItemDto dto);
         Task<Result<DashboardItemDto>> SetTextWidgetContent(string dashboardId, string itemId, SetTextWidgetContentDto dto);
         Task<Result> RemoveDashboardItem(string dashboardId, string itemId);

@@ -16,7 +16,6 @@ import {
     ReorderDashboardViewsDto,
     SaveDashboardViewDto,
     SaveFilterItemDto,
-    SetFilterPresetDto,
     SetFilterValuesDto,
     SetTextWidgetContentDto,
     UpdateDashboardDto,
@@ -191,17 +190,6 @@ export const dashboardController = {
         dto: SaveFilterItemDto
     ): Promise<ApiResponse<DashboardWidgetDto[]>> => {
         return await api.put(`/dashboard/${dashboardId}/items/${itemId}/filter`, dto);
-    },
-
-    setFilterPreset: async (
-        dashboardId: string,
-        itemId: string,
-        dto: SetFilterPresetDto
-    ): Promise<ApiResponse<DashboardWidgetDto[]>> => {
-        return await api.put(
-            `/dashboard/${dashboardId}/items/${itemId}/filter-preset`,
-            dto
-        );
     },
 
     setTextWidgetContent: async (
