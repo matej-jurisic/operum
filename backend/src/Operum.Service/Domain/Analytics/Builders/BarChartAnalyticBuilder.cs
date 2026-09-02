@@ -21,7 +21,11 @@ namespace Operum.Service.Domain.Analytics.Builders
             {
                 [AnalyticCodes.CountBarChart] = new CountBarChartProcessor(),
                 [AnalyticCodes.SumBarChart] = new SumBarChartProcessor(),
-                [AnalyticCodes.AverageBarChart] = new AverageBarChartProcessor()
+                [AnalyticCodes.AverageBarChart] = new AverageBarChartProcessor(),
+                [AnalyticCodes.DailyBarChart] = new DailyBarChartProcessor(),
+                [AnalyticCodes.WeeklyBarChart] = new WeeklyBarChartProcessor(),
+                [AnalyticCodes.MonthlyBarChart] = new MonthlyBarChartProcessor(),
+                [AnalyticCodes.YearlyBarChart] = new YearlyBarChartProcessor()
             };
         }
 

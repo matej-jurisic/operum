@@ -31,6 +31,10 @@
         public const string CountBarChart = "Count Bar Chart";
         public const string SumBarChart = "Sum Bar Chart";
         public const string AverageBarChart = "Average Bar Chart";
+        public const string DailyBarChart = "Daily Bar Chart";
+        public const string WeeklyBarChart = "Weekly Bar Chart";
+        public const string MonthlyBarChart = "Monthly Bar Chart";
+        public const string YearlyBarChart = "Yearly Bar Chart";
 
         public static readonly HashSet<string> All =
         [
@@ -40,7 +44,8 @@
             AggregatedSumLineChart, CumulativeLineChart, LineChart,
             DailyLineChart, WeeklyLineChart, MonthlyLineChart, YearlyLineChart,
             Calendar, ScatterChart, DonutChart,
-            CountBarChart, SumBarChart, AverageBarChart
+            CountBarChart, SumBarChart, AverageBarChart,
+            DailyBarChart, WeeklyBarChart, MonthlyBarChart, YearlyBarChart
         ];
 
         public static bool IsValid(string op) => All.Contains(op);

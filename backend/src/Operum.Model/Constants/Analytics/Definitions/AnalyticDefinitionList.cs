@@ -212,6 +212,42 @@ namespace Operum.Model.Constants.Analytics.Definitions
                                 [AnalyticPurposes.Name] = [.. DataTypes.All],
                                 [AnalyticPurposes.Value] = [DataTypes.Number, DataTypes.TimeSpan]
                             }
+                        },
+                        [AnalyticCodes.DailyBarChart] = new AnalyticPurposeDataTypes
+                        {
+                            Label = "Daily Totals",
+                            AllowedDataTypes = new()
+                            {
+                                [AnalyticPurposes.Name] = [DataTypes.Date, DataTypes.DateTime],
+                                [AnalyticPurposes.Value] = [DataTypes.Number, DataTypes.TimeSpan]
+                            }
+                        },
+                        [AnalyticCodes.WeeklyBarChart] = new AnalyticPurposeDataTypes
+                        {
+                            Label = "Weekly Totals",
+                            AllowedDataTypes = new()
+                            {
+                                [AnalyticPurposes.Name] = [DataTypes.Date, DataTypes.DateTime],
+                                [AnalyticPurposes.Value] = [DataTypes.Number, DataTypes.TimeSpan]
+                            }
+                        },
+                        [AnalyticCodes.MonthlyBarChart] = new AnalyticPurposeDataTypes
+                        {
+                            Label = "Monthly Totals",
+                            AllowedDataTypes = new()
+                            {
+                                [AnalyticPurposes.Name] = [DataTypes.Date, DataTypes.DateTime],
+                                [AnalyticPurposes.Value] = [DataTypes.Number, DataTypes.TimeSpan]
+                            }
+                        },
+                        [AnalyticCodes.YearlyBarChart] = new AnalyticPurposeDataTypes
+                        {
+                            Label = "Yearly Totals",
+                            AllowedDataTypes = new()
+                            {
+                                [AnalyticPurposes.Name] = [DataTypes.Date, DataTypes.DateTime],
+                                [AnalyticPurposes.Value] = [DataTypes.Number, DataTypes.TimeSpan]
+                            }
                         }
                     }
                 },

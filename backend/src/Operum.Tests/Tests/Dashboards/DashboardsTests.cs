@@ -596,6 +596,56 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(5, points[0].GetProperty("value").GetDouble());
         }
 
+        // The date-bucketed bar charts group the Name field's date into a period and sum the
+        // value over it, ordering the bars chronologically the same way the line chart's
+        // Monthly Totals does.
+        [Fact]
+        public async Task MonthlyBarChart_BucketsTheNameDateAndSumsEachPeriod()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("chartmonthlybar");
+
+            // Seeded entry: Day 2026-01-01, Amount 5. Add two more so January sums to 8 and
+            // March has its own bar, seeded out of order to prove the chronological sort.
+            var tracker = await CreateCapableTracker(client, "Weight");
+            await client.PostAsJsonAsync($"trackers/{tracker.Id}/entries", new CreateEntryDto
+            {
+                FieldValues = new() { ["Day"] = "2026-03-10", ["Amount"] = "7", ["Category"] = "Cardio" }
+            });
+            await client.PostAsJsonAsync($"trackers/{tracker.Id}/entries", new CreateEntryDto
+            {
+                FieldValues = new() { ["Day"] = "2026-01-20", ["Amount"] = "3", ["Category"] = "Cardio" }
+            });
+
+            var dashboardId = await CreateDashboard(client);
+            var response = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
+            {
+                ResultType = AnalyticTypes.BarChart,
+                Code = AnalyticCodes.MonthlyBarChart,
+                Sources =
+                [
+                    new CreateAndPlaceWidgetSourceDto
+                    {
+                        TrackerId = tracker.Id,
+                        AnalyticFields =
+                        [
+                            new CreateAnalyticFieldDto { FieldId = tracker.DayFieldId, Purpose = AnalyticPurposes.Name },
+                            new CreateAnalyticFieldDto { FieldId = tracker.AmountFieldId, Purpose = AnalyticPurposes.Value }
+                        ]
+                    }
+                ]
+            });
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var chartId = (await Data(response)).GetProperty("id").GetString()!;
+
+            var points = Analytic(ChartFor(await Widgets(client, dashboardId), chartId)).GetProperty("points");
+            Assert.Equal(2, points.GetArrayLength());
+            Assert.Equal("2026-01", points[0].GetProperty("name").GetString());
+            Assert.Equal(8, points[0].GetProperty("value").GetDouble());
+            Assert.Equal("2026-03", points[1].GetProperty("name").GetString());
+            Assert.Equal(7, points[1].GetProperty("value").GetDouble());
+        }
+
         [Fact]
         public async Task PlaceWidget_UnknownWidget_ReturnsNotFound()
         {
