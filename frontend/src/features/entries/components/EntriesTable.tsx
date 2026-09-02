@@ -99,7 +99,7 @@ export function EntriesTable({
             headers.push({
                 id: "actions",
                 label: "Actions",
-                minWidth: "125px",
+                minWidth: "130px",
                 width: "167px",
             });
         }
@@ -157,7 +157,7 @@ export function EntriesTable({
                     )}
                     {isColumnVisible(ExtraColumns.Actions) && (
                         <Table.Td>
-                            <Group gap="xs">
+                            <Group gap="xs" wrap="nowrap">
                                 <ActionIcon
                                     variant="outline"
                                     color={tracker.color}
