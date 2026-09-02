@@ -48,6 +48,7 @@ const IntegrationsPage = observer(function IntegrationsPage() {
     } | null>(null);
     const [webhookPanel, setWebhookPanel] = useState<{
         provider: ProviderDto;
+        integrationId: string;
         target: IntegrationTargetDto;
     } | null>(null);
     const [confirming, setConfirming] = useState<{
@@ -109,14 +110,31 @@ const IntegrationsPage = observer(function IntegrationsPage() {
 
         await refresh();
 
-        // A push target's secret comes back exactly once, on this response. If it is here,
-        // it has to be put in front of the user now or it is gone.
+        // A new push target still needs wiring to the provider: either its Operum-minted
+        // secret comes back on this one response and has to be shown now, or the provider
+        // mints the secret and the user needs the URL plus a field to paste it back into.
         const saved = response.data;
         const provider = providerFor(integration);
-        if (saved?.webhookSecret && provider) {
-            setWebhookPanel({ provider, target: saved });
+        if (!target && saved?.mode === "Push" && saved.webhookUrl && provider) {
+            setWebhookPanel({
+                provider,
+                integrationId: integration.id,
+                target: saved,
+            });
         }
 
+        return true;
+    };
+
+    const saveWebhookSecret = async (secret: string) => {
+        if (!webhookPanel) return false;
+        const response = await integrationsController.setWebhookSecret(
+            webhookPanel.integrationId,
+            webhookPanel.target.id,
+            secret,
+        );
+        if (!response?.isSuccess) return false;
+        await refresh();
         return true;
     };
 
@@ -168,21 +186,37 @@ const IntegrationsPage = observer(function IntegrationsPage() {
         }
     };
 
-    const rotateSecret = async (
+    const changeSecret = (
         integration: IntegrationDto,
         target: IntegrationTargetDto,
     ) => {
+        const provider = providerFor(integration);
+        if (!provider) return;
+
+        // Firefly mints the secret itself, so there is nothing to "issue": open the panel
+        // with the URL and a field to paste the provider's secret into.
+        if (provider.providerSuppliesSecret) {
+            setWebhookPanel({
+                provider,
+                integrationId: integration.id,
+                target,
+            });
+            return;
+        }
+
         setConfirming({
-            message: `Issue a new secret for ${target.trackerName}? The old one stops working right away, and deliveries fail until you paste the new one into ${providerFor(integration)?.displayName ?? "the provider"}.`,
+            message: `Issue a new secret for ${target.trackerName}? The old one stops working right away, and deliveries fail until you paste the new one into ${provider.displayName}.`,
             onConfirm: async () => {
-                const response =
-                    await integrationsController.rotateWebhookSecret(
-                        integration.id,
-                        target.id,
-                    );
-                const provider = providerFor(integration);
-                if (response?.isSuccess && response.data && provider) {
-                    setWebhookPanel({ provider, target: response.data });
+                const response = await integrationsController.setWebhookSecret(
+                    integration.id,
+                    target.id,
+                );
+                if (response?.isSuccess && response.data) {
+                    setWebhookPanel({
+                        provider,
+                        integrationId: integration.id,
+                        target: response.data,
+                    });
                 }
                 await refresh();
             },
@@ -298,8 +332,8 @@ const IntegrationsPage = observer(function IntegrationsPage() {
                                     onSyncAll={() =>
                                         syncIntegration(integration)
                                     }
-                                    onRotateSecret={(target) =>
-                                        rotateSecret(integration, target)
+                                    onChangeSecret={(target) =>
+                                        changeSecret(integration, target)
                                     }
                                     onDisconnect={() => disconnect(integration)}
                                 />
@@ -332,6 +366,7 @@ const IntegrationsPage = observer(function IntegrationsPage() {
                     onClose={() => setWebhookPanel(null)}
                     provider={webhookPanel.provider}
                     target={webhookPanel.target}
+                    onSaveSecret={saveWebhookSecret}
                 />
             )}
 

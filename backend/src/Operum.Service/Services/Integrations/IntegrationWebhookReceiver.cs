@@ -53,9 +53,12 @@ namespace Operum.Service.Services.Integrations
             if (provider == null)
                 return await Fail(target, $"No integration provider is installed for '{providerKey}'.", ResultStatusCodes.NotFound, ct);
 
+            if (string.IsNullOrEmpty(target.WebhookSecretCiphertext))
+                return await Fail(target, "This webhook has no secret yet. Add the one from your provider in Operum.", ResultStatusCodes.Forbidden, ct);
+
             var secret = credentialProtector.Unprotect(target.WebhookSecretCiphertext);
             if (secret == null)
-                return await Fail(target, "The webhook secret could not be read. Rotate it and update the provider.", ResultStatusCodes.Forbidden, ct);
+                return await Fail(target, "The webhook secret could not be read. Set it again and update the provider.", ResultStatusCodes.Forbidden, ct);
 
             var parsed = provider.VerifyAndParse(target.ResourceType, secret, rawBody, headers);
             if (parsed.IsFailure)

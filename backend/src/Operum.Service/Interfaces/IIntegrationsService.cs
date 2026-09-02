@@ -51,9 +51,11 @@ namespace Operum.Service.Interfaces
         Task<Result<SyncResultDto>> SyncIntegrationNow(string integrationId);
 
         /// <summary>
-        /// Issues a new webhook secret for a push target. The new value is in the response and
-        /// nowhere else afterwards.
+        /// Sets the signing secret for a push target. For a provider that mints its own
+        /// (Firefly III) this stores the value the user pasted from the provider; for one
+        /// Operum generates the secret for, passing no secret issues a fresh one, returned in
+        /// the response and nowhere else afterwards.
         /// </summary>
-        Task<Result<IntegrationTargetDto>> RotateWebhookSecret(string integrationId, string targetId);
+        Task<Result<IntegrationTargetDto>> SetWebhookSecret(string integrationId, string targetId, SetWebhookSecretDto dto);
     }
 }

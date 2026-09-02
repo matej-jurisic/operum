@@ -313,7 +313,9 @@ Tests: `IntervalsProviderTests` covers the activities route, the opaque-id exter
 
 ### Webhook contract
 
-Configured by the user in their own Firefly instance: trigger `STORE_TRANSACTION` / `UPDATE_TRANSACTION` / `DESTROY_TRANSACTION`, response `TRANSACTIONS`, URL = the Operum webhook URL, plus the secret Operum generated.
+Configured by the user in their own Firefly instance: trigger `STORE_TRANSACTION` / `UPDATE_TRANSACTION` / `DESTROY_TRANSACTION`, response `TRANSACTIONS`, URL = the Operum webhook URL.
+
+**The secret is Firefly's, not Operum's.** Firefly mints the signing secret when the webhook is created and offers no field to paste one in ([it can be regenerated but not set](https://docs.firefly-iii.org/how-to/firefly-iii/features/webhooks/)). So the flow is: create the target in Operum → copy the webhook URL → create the webhook in Firefly → copy the secret Firefly shows → paste it back into Operum. A push provider declares which way round it works with `IPushIntegrationProvider.ProviderSuppliesSecret`; Firefly returns `true`, and for such a provider `CreateTarget` stores no secret (the URL is needed first) and the secret is set afterward through `POST /targets/{id}/secret`. A provider that returns `false` keeps the original behaviour: Operum generates the secret and shows it once.
 
 Signature scheme **verified** against a working implementation:
 
@@ -415,7 +417,7 @@ var protector = provider.CreateProtector("Operum.Integrations.Credentials");
 
 Keys must persist across container restarts or every stored credential becomes undecryptable. `.env` gets `DataProtection__KeyPath`, docker-compose gets a volume. Applies to `CredentialCiphertext` and `WebhookSecret` alike.
 
-Credentials must never appear in a DTO returned to the frontend — expose a masked suffix (`…a91f`) only. The webhook secret is shown **once**, at target creation, and never again.
+Credentials must never appear in a DTO returned to the frontend — expose a masked suffix (`…a91f`) only. An Operum-generated webhook secret is shown **once**, at target creation, and never again; a provider-supplied one (Firefly) is only ever written *in* and is likewise never read back — `HasWebhookSecret` on the target DTO is a bool, not the value.
 
 ---
 
@@ -430,7 +432,7 @@ Decisions taken while building:
 - **A target's tracker and resource type are immutable.** Changing either would orphan everything already imported under the old pairing, since the idempotency key is `(tracker, source, external id)`. The API says to delete and remake instead.
 - **`Connect` verifies before it stores** for any pull-capable provider, so a bad key is refused where it was typed. A push-only provider has nothing to call, so its connection is made unverified and the first delivery proves it.
 - **Base URLs are validated at connect time**: https only, no loopback, and no literal private or link-local address. A hostname that *resolves* to a private address is not caught here — that check belongs at request time with the resolved address in hand, and is noted in the open questions.
-- **The webhook secret is returned exactly once**, on the response that creates the target or rotates it. It is stored encrypted and cannot be shown again.
+- **An Operum-generated webhook secret is returned exactly once**, on the response that creates the target or issues a new one. It is stored encrypted and cannot be shown again. For a provider that mints its own secret (Firefly), nothing is returned — the user pastes the provider's secret in via `POST /targets/{id}/secret`.
 - `MaxIntegrationCount` (10) and `MaxIntegrationTargetCount` (10) added to `DataLimits`, matching how everything else in the app is bounded.
 
 | Method | Route | Purpose |
@@ -440,11 +442,11 @@ Decisions taken while building:
 | `POST` | `/api/integrations` | Connect — validates the credential before storing (pull providers) |
 | `DELETE` | `/api/integrations/{id}` | Disconnect |
 | `GET` | `/api/integrations/{id}/targets` | Targets + mappings |
-| `POST` | `/api/integrations/{id}/targets` | Create target + mappings; returns webhook URL + secret **once** for push targets |
+| `POST` | `/api/integrations/{id}/targets` | Create target + mappings; returns the webhook URL for push targets, plus an Operum-generated secret **once** if the provider does not mint its own |
 | `PUT` | `/api/integrations/{id}/targets/{targetId}` | Update mappings / backfill / enabled |
 | `DELETE` | `/api/integrations/{id}/targets/{targetId}` | Remove target |
 | `POST` | `/api/integrations/{id}/targets/{targetId}/sync` | Sync now (pull targets) |
-| `POST` | `/api/integrations/{id}/targets/{targetId}/rotate-secret` | New webhook secret |
+| `POST` | `/api/integrations/{id}/targets/{targetId}/secret` | Set the signing secret: store the provider's value (Firefly), or issue a fresh Operum one (empty body) |
 | `POST` | `/api/integrations/webhooks/{provider}/{token}` | **Anonymous.** Push ingest |
 
 DTOs in `backend/src/Operum.Model/DTOs/Integrations/`, following the `Result<T>` / `ResultStatusCodes` conventions used throughout.
@@ -472,7 +474,7 @@ Also reject: a `FieldId` that isn't in the target tracker; a field with `IsCalcu
 - **`pages/IntegrationsPage.tsx`** — connection list, empty state, and the orchestration for every dialog.
 - **`components/ConnectProviderDialog.tsx`** — the connect flow, driven by the provider's declared capabilities: an API-key field for a pull provider, and for a push-only one an explanation that no key is needed because the instance calls Operum.
 - **`components/TargetFormDialog.tsx`** — the mapping editor. Source values on the left with their type, a tracker-field `Select` on the right filtered to type-compatible, non-calculated, not-already-mapped fields, and a per-row keep/clear switch for empty values.
-- **`components/WebhookSetupPanel.tsx`** — URL and secret with copy buttons and the literal steps for Firefly's webhook screen, shown once with a warning that the secret cannot be shown again.
+- **`components/WebhookSetupPanel.tsx`** — the literal steps for Firefly's webhook screen plus the webhook URL. For a provider that mints its own secret it carries a field to paste that secret back in; for one Operum generates, it shows the secret with a copy button and a warning it cannot be shown again.
 - **`components/IntegrationCard.tsx`** — per-target status, relative last-sync time, error text, "Sync now" for pull and "Waiting for first delivery" for push.
 - Gated on `VITE_REACT_INTEGRATIONS_ENABLED`, so the route and the sidebar entry do not exist when the feature is off and the frontend never has to ask the backend.
 

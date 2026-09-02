@@ -72,6 +72,14 @@ namespace Operum.Service.Integrations
     public interface IPushIntegrationProvider : IIntegrationProvider
     {
         /// <summary>
+        /// True when the provider mints the signing secret itself and the user copies it into
+        /// Operum. Firefly III works this way: its webhook screen shows a secret and offers no
+        /// field to paste one in, so Operum cannot choose it. False means Operum generates the
+        /// secret and the user pastes it into the provider.
+        /// </summary>
+        bool ProviderSuppliesSecret { get; }
+
+        /// <summary>
         /// Checks the delivery is genuine and turns it into records. One payload may produce
         /// several -- a transaction group fans out into its splits.
         /// <para>

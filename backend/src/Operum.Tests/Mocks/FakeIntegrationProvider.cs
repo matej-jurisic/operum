@@ -23,6 +23,7 @@ namespace Operum.Tests.Mocks
         public string DisplayName => "Fake Provider";
         public IntegrationCapabilities Capabilities => IntegrationCapabilities.Pull | IntegrationCapabilities.Push;
         public bool RequiresBaseUrl => false;
+        public bool ProviderSuppliesSecret => false;
         public IReadOnlyList<string> ResourceTypes => [ResourceType];
 
         /// <summary>What FetchAsync will yield; set by the test.</summary>

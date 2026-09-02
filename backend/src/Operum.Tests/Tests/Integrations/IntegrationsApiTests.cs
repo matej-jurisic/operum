@@ -8,6 +8,7 @@ using Operum.Model.DTOs.Fields.Requests;
 using Operum.Model.DTOs.Integrations;
 using Operum.Model.DTOs.Integrations.Requests;
 using Operum.Model.DTOs.Trackers.Requests;
+using Operum.Service.Integrations.Firefly;
 using Operum.Service.Integrations.Intervals;
 using Operum.Tests.Extensions;
 using Operum.Tests.Util;
@@ -112,6 +113,13 @@ namespace Operum.Tests.Tests.Integrations
             Assert.True(intervals.GetProperty("supportsPull").GetBoolean());
             Assert.False(intervals.GetProperty("supportsPush").GetBoolean());
             Assert.False(intervals.GetProperty("requiresBaseUrl").GetBoolean());
+            Assert.False(intervals.GetProperty("providerSuppliesSecret").GetBoolean());
+
+            var firefly = data.EnumerateArray()
+                .Single(p => p.GetProperty("key").GetString() == FireflyProvider.ProviderKey);
+            Assert.True(firefly.GetProperty("supportsPush").GetBoolean());
+            // Firefly mints its own webhook secret, so the connect UI asks the user to paste it.
+            Assert.True(firefly.GetProperty("providerSuppliesSecret").GetBoolean());
 
             var resources = intervals.GetProperty("resources").EnumerateArray().ToList();
 
@@ -618,7 +626,7 @@ namespace Operum.Tests.Tests.Integrations
         }
 
         [Fact]
-        public async Task RotateSecret_OnAPullTarget_IsRefused()
+        public async Task SetSecret_OnAPullTarget_IsRefused()
         {
             var client = await AuthenticatedClient();
             var integrationId = await Connect(client, "athlete-rotate");
@@ -627,7 +635,8 @@ namespace Operum.Tests.Tests.Integrations
             var created = await Data(await client.PostAsJsonAsync($"integrations/{integrationId}/targets", TargetFor(trackerId, fields)));
             var targetId = created.GetProperty("id").GetString()!;
 
-            var response = await client.PostAsync($"integrations/{integrationId}/targets/{targetId}/rotate-secret", null);
+            var response = await client.PostAsJsonAsync($"integrations/{integrationId}/targets/{targetId}/secret",
+                new SetWebhookSecretDto());
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 

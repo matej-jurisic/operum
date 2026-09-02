@@ -7,12 +7,14 @@ import {
     Group,
     List,
     Modal,
+    PasswordInput,
     Stack,
     Text,
     Tooltip,
     useMantineTheme,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
+import { useState } from "react";
 import { MdCheck, MdContentCopy, MdWarning } from "react-icons/md";
 import { IntegrationTargetDto, ProviderDto } from "../types/IntegrationDto";
 
@@ -21,21 +23,45 @@ interface WebhookSetupPanelProps {
     onClose: () => void;
     provider: ProviderDto;
     target: IntegrationTargetDto;
+    /**
+     * Stores the secret for a provider that mints its own (Firefly III). Returns whether the
+     * save succeeded.
+     */
+    onSaveSecret: (secret: string) => Promise<boolean>;
 }
 
 /**
- * Shown once, right after a push target is created or its secret rotated. The secret is
- * stored encrypted and is never returned again, so this is the only chance to copy it --
- * which the panel has to say plainly rather than assume.
+ * Shown once a push target exists, to finish wiring it to the provider. Two shapes:
+ *
+ * - The provider mints the secret (Firefly III): Operum shows the URL, the user creates the
+ *   webhook there, and pastes the secret the provider generates back into the field here.
+ * - Operum mints the secret: it is shown once, here, and never again, so the panel says so
+ *   and the user copies both values into the provider.
  */
 export default function WebhookSetupPanel({
     opened,
     onClose,
     provider,
     target,
+    onSaveSecret,
 }: WebhookSetupPanelProps) {
     const theme = useMantineTheme();
     const isMobile = useMediaQuery("(max-width: 48em)");
+
+    const providerSupplied = provider.providerSuppliesSecret;
+
+    const [secret, setSecret] = useState("");
+    const [saving, setSaving] = useState(false);
+
+    const saveSecret = async () => {
+        setSaving(true);
+        const ok = await onSaveSecret(secret.trim());
+        setSaving(false);
+        if (ok) {
+            setSecret("");
+            onClose();
+        }
+    };
 
     return (
         <Modal
@@ -47,63 +73,146 @@ export default function WebhookSetupPanel({
             fullScreen={isMobile}
         >
             <Stack gap="lg">
-                <Alert
-                    icon={<MdWarning size={18} />}
-                    color="orange"
-                    variant="light"
-                    title="Copy the secret now"
-                >
-                    <Text size="sm" className="wrapped-text">
-                        It is stored encrypted and cannot be shown again. If you
-                        lose it, issue a new one with the key button on the
-                        import.
-                    </Text>
-                </Alert>
+                {providerSupplied ? (
+                    <>
+                        <Stack gap={4}>
+                            <Text fw={500} size="md">
+                                In {provider.displayName}
+                            </Text>
+                            <List size="sm" spacing={4} c="dimmed" type="ordered">
+                                <List.Item>
+                                    Go to <b>Automation → Webhooks</b> and create
+                                    a new webhook.
+                                </List.Item>
+                                <List.Item>
+                                    Set <b>Trigger</b> to fire after a
+                                    transaction is created, updated and
+                                    destroyed.
+                                </List.Item>
+                                <List.Item>
+                                    Set <b>Response</b> to{" "}
+                                    <Code>TRANSACTIONS</Code>.
+                                </List.Item>
+                                <List.Item>
+                                    Paste the URL below as the webhook URL, then
+                                    save.
+                                </List.Item>
+                                <List.Item>
+                                    {provider.displayName} now shows a{" "}
+                                    <b>secret</b> for the webhook. Copy it and
+                                    paste it below.
+                                </List.Item>
+                            </List>
+                        </Stack>
 
-                <Stack gap="md">
-                    <CopyableValue
-                        label="Webhook URL"
-                        value={target.webhookUrl ?? ""}
-                    />
-                    <CopyableValue
-                        label="Secret"
-                        value={target.webhookSecret ?? ""}
-                    />
-                </Stack>
+                        <CopyableValue
+                            label="Webhook URL"
+                            value={target.webhookUrl ?? ""}
+                        />
 
-                <Stack gap={4}>
-                    <Text fw={500} size="md">
-                        In {provider.displayName}
-                    </Text>
-                    <List size="sm" spacing={4} c="dimmed">
-                        <List.Item>
-                            Go to <b>Automation → Webhooks</b> and create a new
-                            webhook.
-                        </List.Item>
-                        <List.Item>
-                            Set <b>Trigger</b> to fire after a transaction is
-                            created, updated and destroyed.
-                        </List.Item>
-                        <List.Item>
-                            Set <b>Response</b> to <Code>TRANSACTIONS</Code>, so
-                            the full detail is sent.
-                        </List.Item>
-                        <List.Item>
-                            Paste the URL and secret above, then save.
-                        </List.Item>
-                    </List>
-                </Stack>
+                        <Stack gap={4}>
+                            <PasswordInput
+                                label={`Secret from ${provider.displayName}`}
+                                description={
+                                    target.hasWebhookSecret
+                                        ? "A secret is already set. Saving replaces it."
+                                        : undefined
+                                }
+                                value={secret}
+                                onChange={(event) =>
+                                    setSecret(event.currentTarget.value)
+                                }
+                            />
+                        </Stack>
 
-                <Text size="xs" c="dimmed" className="wrapped-text">
-                    Your {provider.displayName} instance calls Operum, so it
-                    does not need to be reachable from the internet. Only
-                    transactions from the moment you connect are imported —
-                    there is no history to backfill.
-                </Text>
+                        <Text size="xs" c="dimmed" className="wrapped-text">
+                            Your {provider.displayName} instance calls Operum, so
+                            it does not need to be reachable from the internet.
+                            Only transactions from the moment you connect are
+                            imported.
+                        </Text>
 
-                <Button color={theme.primaryColor} size="md" onClick={onClose}>
-                    Done
-                </Button>
+                        <Group justify="flex-end" gap="sm">
+                            <Button variant="default" onClick={onClose}>
+                                Later
+                            </Button>
+                            <Button
+                                color={theme.primaryColor}
+                                onClick={saveSecret}
+                                disabled={secret.trim().length === 0}
+                                loading={saving}
+                            >
+                                Save secret
+                            </Button>
+                        </Group>
+                    </>
+                ) : (
+                    <>
+                        <Alert
+                            icon={<MdWarning size={18} />}
+                            color="orange"
+                            variant="light"
+                            title="Copy the secret now"
+                        >
+                            <Text size="sm" className="wrapped-text">
+                                It is stored encrypted and cannot be shown again.
+                                If you lose it, issue a new one with the key
+                                button on the import.
+                            </Text>
+                        </Alert>
+
+                        <Stack gap="md">
+                            <CopyableValue
+                                label="Webhook URL"
+                                value={target.webhookUrl ?? ""}
+                            />
+                            <CopyableValue
+                                label="Secret"
+                                value={target.webhookSecret ?? ""}
+                            />
+                        </Stack>
+
+                        <Stack gap={4}>
+                            <Text fw={500} size="md">
+                                In {provider.displayName}
+                            </Text>
+                            <List size="sm" spacing={4} c="dimmed">
+                                <List.Item>
+                                    Go to <b>Automation → Webhooks</b> and create
+                                    a new webhook.
+                                </List.Item>
+                                <List.Item>
+                                    Set <b>Trigger</b> to fire after a
+                                    transaction is created, updated and
+                                    destroyed.
+                                </List.Item>
+                                <List.Item>
+                                    Set <b>Response</b> to{" "}
+                                    <Code>TRANSACTIONS</Code>, so the full detail
+                                    is sent.
+                                </List.Item>
+                                <List.Item>
+                                    Paste the URL and secret above, then save.
+                                </List.Item>
+                            </List>
+                        </Stack>
+
+                        <Text size="xs" c="dimmed" className="wrapped-text">
+                            Your {provider.displayName} instance calls Operum, so
+                            it does not need to be reachable from the internet.
+                            Only transactions from the moment you connect are
+                            imported.
+                        </Text>
+
+                        <Button
+                            color={theme.primaryColor}
+                            size="md"
+                            onClick={onClose}
+                        >
+                            Done
+                        </Button>
+                    </>
+                )}
             </Stack>
         </Modal>
     );

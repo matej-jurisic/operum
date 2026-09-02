@@ -828,7 +828,7 @@ const Home = observer(() => {
                                 <Grid>
                                     {/* Line */}
                                     <Grid.Col span={{ base: 12, sm: 6 }}>
-                                        <Card withBorder radius="md" p="lg">
+                                        <Card withBorder radius="md" p="lg" h="100%">
                                             <Stack gap="xs" mb="md">
                                                 <Text fw={600} size="sm">
                                                     {ANALYTICS_CHARTS[0].title}
@@ -850,7 +850,7 @@ const Home = observer(() => {
                                                         label: "Entries",
                                                     },
                                                 ]}
-                                                h={200}
+                                                h={240}
                                                 gridAxis="x"
                                                 withDots={false}
                                                 withTooltip={false}
@@ -860,7 +860,7 @@ const Home = observer(() => {
 
                                     {/* Bar */}
                                     <Grid.Col span={{ base: 12, sm: 6 }}>
-                                        <Card withBorder radius="md" p="lg">
+                                        <Card withBorder radius="md" p="lg" h="100%">
                                             <Stack gap="xs" mb="md">
                                                 <Text fw={600} size="sm">
                                                     {ANALYTICS_CHARTS[1].title}
@@ -882,7 +882,7 @@ const Home = observer(() => {
                                                         label: "Count",
                                                     },
                                                 ]}
-                                                h={200}
+                                                h={240}
                                                 withTooltip={false}
                                                 gridAxis="x"
                                             />
@@ -891,7 +891,7 @@ const Home = observer(() => {
 
                                     {/* Donut */}
                                     <Grid.Col span={{ base: 12, sm: 6 }}>
-                                        <Card withBorder radius="md" p="lg">
+                                        <Card withBorder radius="md" p="lg" h="100%">
                                             <Stack gap="xs" mb="md">
                                                 <Text fw={600} size="sm">
                                                     {ANALYTICS_CHARTS[2].title}
@@ -918,7 +918,7 @@ const Home = observer(() => {
                                                     withLabelsLine
                                                     labelsType="percent"
                                                     tooltipDataSource="segment"
-                                                    h={200}
+                                                    h={240}
                                                 />
                                             </Box>
                                         </Card>
@@ -926,7 +926,7 @@ const Home = observer(() => {
 
                                     {/* Scatter */}
                                     <Grid.Col span={{ base: 12, sm: 6 }}>
-                                        <Card withBorder radius="md" p="lg">
+                                        <Card withBorder radius="md" p="lg" h="100%">
                                             <Stack gap="xs" mb="md">
                                                 <Text fw={600} size="sm">
                                                     {ANALYTICS_CHARTS[3].title}
@@ -941,7 +941,7 @@ const Home = observer(() => {
                                             <ScatterChart
                                                 data={SCATTER_DATA}
                                                 dataKey={{ x: "x", y: "y" }}
-                                                h={200}
+                                                h={240}
                                                 gridAxis="x"
                                                 withTooltip={false}
                                             />

@@ -61,12 +61,17 @@ export const integrationsController = {
     ): Promise<ApiResponse<SyncResultDto>> =>
         api.post(`/integrations/${integrationId}/sync`, {}),
 
-    rotateWebhookSecret: async (
+    /**
+     * Sets a push target's signing secret. For Firefly III, pass the secret copied from its
+     * webhook screen. For a provider Operum generates the secret for, pass nothing and a fresh
+     * one comes back on the response.
+     */
+    setWebhookSecret: async (
         integrationId: string,
         targetId: string,
+        secret?: string,
     ): Promise<ApiResponse<IntegrationTargetDto>> =>
-        api.post(
-            `/integrations/${integrationId}/targets/${targetId}/rotate-secret`,
-            {},
-        ),
+        api.post(`/integrations/${integrationId}/targets/${targetId}/secret`, {
+            secret,
+        }),
 };

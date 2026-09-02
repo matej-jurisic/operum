@@ -32,6 +32,7 @@ namespace Operum.Service.Services.Integrations
                 SupportsPull = provider.Capabilities.HasFlag(IntegrationCapabilities.Pull),
                 SupportsPush = provider.Capabilities.HasFlag(IntegrationCapabilities.Push),
                 RequiresBaseUrl = provider.RequiresBaseUrl,
+                ProviderSuppliesSecret = provider is IPushIntegrationProvider push && push.ProviderSuppliesSecret,
                 Resources = [.. provider.ResourceTypes.Select(resourceType => new ProviderResourceDto
                 {
                     ResourceType = resourceType,
@@ -176,9 +177,21 @@ namespace Operum.Service.Services.Integrations
             string? plaintextSecret = null;
             if (mode == IntegrationMode.Push)
             {
-                plaintextSecret = NewSecret();
                 target.WebhookToken = NewSecret();
-                target.WebhookSecretCiphertext = credentialProtector.Protect(plaintextSecret);
+
+                if (registry.GetPush(integration.Provider) is { ProviderSuppliesSecret: true })
+                {
+                    // Firefly mints the secret in its own webhook screen. It is usually not
+                    // known yet here, the user needs the URL below to create the webhook
+                    // first, so it is optional and set afterward through the secret endpoint.
+                    if (!string.IsNullOrWhiteSpace(dto.WebhookSecret))
+                        target.WebhookSecretCiphertext = credentialProtector.Protect(dto.WebhookSecret.Trim());
+                }
+                else
+                {
+                    plaintextSecret = NewSecret();
+                    target.WebhookSecretCiphertext = credentialProtector.Protect(plaintextSecret);
+                }
             }
 
             db.IntegrationTargets.Add(target);
@@ -307,7 +320,7 @@ namespace Operum.Service.Services.Integrations
             Errors = written.Errors,
         };
 
-        public async Task<Result<IntegrationTargetDto>> RotateWebhookSecret(string integrationId, string targetId)
+        public async Task<Result<IntegrationTargetDto>> SetWebhookSecret(string integrationId, string targetId, SetWebhookSecretDto dto)
         {
             var integration = await LoadOwned(integrationId);
             if (integration == null)
@@ -320,8 +333,23 @@ namespace Operum.Service.Services.Integrations
             if (target.Mode != IntegrationMode.Push)
                 return Result.Failure(ResultStatusCodes.BadRequest, "Only a webhook target has a secret.");
 
-            var plaintextSecret = NewSecret();
-            target.WebhookSecretCiphertext = credentialProtector.Protect(plaintextSecret);
+            string? plaintextSecret = null;
+            if (registry.GetPush(integration.Provider) is { ProviderSuppliesSecret: true })
+            {
+                // The provider chose the secret; Operum only stores what the user pasted in.
+                if (string.IsNullOrWhiteSpace(dto.Secret))
+                    return Result.Failure(ResultStatusCodes.BadRequest,
+                        $"Paste the webhook secret from {registry.Get(integration.Provider)?.DisplayName ?? "the provider"}.");
+
+                target.WebhookSecretCiphertext = credentialProtector.Protect(dto.Secret.Trim());
+            }
+            else
+            {
+                // Operum owns the secret here, so this issues a fresh one and hands it back once.
+                plaintextSecret = NewSecret();
+                target.WebhookSecretCiphertext = credentialProtector.Protect(plaintextSecret);
+            }
+
             await db.SaveChangesAsync();
 
             return Result.Success(ToDto(target, integration.Provider, plaintextSecret), Messages.Success);
@@ -489,6 +517,9 @@ namespace Operum.Service.Services.Integrations
                 ? null
                 : $"{configuration["ServerUrl"]?.TrimEnd('/')}/api/integrations/webhooks/{providerKey}/{target.WebhookToken}",
             WebhookSecret = plaintextSecret,
+            HasWebhookSecret = target.Mode == IntegrationMode.Push
+                ? !string.IsNullOrEmpty(target.WebhookSecretCiphertext)
+                : null,
             Mappings = [.. target.Mappings.Select(m => new FieldMappingDto
             {
                 SourceKey = m.SourceKey,

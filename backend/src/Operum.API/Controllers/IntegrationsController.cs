@@ -112,11 +112,16 @@ namespace Operum.API.Controllers
             return GetApiResponse(await integrationsService.SyncIntegrationNow(integrationId));
         }
 
-        [HttpPost("{integrationId}/targets/{targetId}/rotate-secret")]
-        public async Task<IActionResult> RotateWebhookSecret(
-            [FromRoute] string integrationId, [FromRoute] string targetId)
+        /// <summary>
+        /// Sets a push target's signing secret. Firefly III mints the secret in its own webhook
+        /// screen, so the user pastes it here; for a provider Operum generates the secret for,
+        /// an empty body issues a fresh one, returned once.
+        /// </summary>
+        [HttpPost("{integrationId}/targets/{targetId}/secret")]
+        public async Task<IActionResult> SetWebhookSecret(
+            [FromRoute] string integrationId, [FromRoute] string targetId, [FromBody] SetWebhookSecretDto dto)
         {
-            return GetApiResponse(await integrationsService.RotateWebhookSecret(integrationId, targetId));
+            return GetApiResponse(await integrationsService.SetWebhookSecret(integrationId, targetId, dto));
         }
     }
 }

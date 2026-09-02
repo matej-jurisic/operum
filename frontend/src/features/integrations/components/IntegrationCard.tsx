@@ -37,7 +37,7 @@ interface IntegrationCardProps {
     onSyncNow: (target: IntegrationTargetDto) => void;
     onResync: (target: IntegrationTargetDto) => void;
     onSyncAll: () => void;
-    onRotateSecret: (target: IntegrationTargetDto) => void;
+    onChangeSecret: (target: IntegrationTargetDto) => void;
     onDisconnect: () => void;
 }
 
@@ -52,7 +52,7 @@ export default function IntegrationCard({
     onSyncNow,
     onResync,
     onSyncAll,
-    onRotateSecret,
+    onChangeSecret,
     onDisconnect,
 }: IntegrationCardProps) {
     const theme = useMantineTheme();
@@ -159,6 +159,7 @@ export default function IntegrationCard({
                             <TargetRow
                                 key={target.id}
                                 target={target}
+                                provider={provider}
                                 syncing={
                                     syncingTargetId === target.id ||
                                     (syncingIntegration &&
@@ -168,7 +169,7 @@ export default function IntegrationCard({
                                 onDelete={() => onDeleteTarget(target)}
                                 onSyncNow={() => onSyncNow(target)}
                                 onResync={() => onResync(target)}
-                                onRotateSecret={() => onRotateSecret(target)}
+                                onChangeSecret={() => onChangeSecret(target)}
                             />
                         ))}
                     </Stack>
@@ -180,23 +181,33 @@ export default function IntegrationCard({
 
 function TargetRow({
     target,
+    provider,
     syncing,
     onEdit,
     onDelete,
     onSyncNow,
     onResync,
-    onRotateSecret,
+    onChangeSecret,
 }: {
     target: IntegrationTargetDto;
+    provider?: ProviderDto;
     syncing: boolean;
     onEdit: () => void;
     onDelete: () => void;
     onSyncNow: () => void;
     onResync: () => void;
-    onRotateSecret: () => void;
+    onChangeSecret: () => void;
 }) {
     const theme = useMantineTheme();
     const isPush = target.mode === "Push";
+    // A Firefly target is created before its secret exists: the user has to make the webhook
+    // in Firefly first, then paste the secret it generates. Until then nothing is received.
+    const needsSecret = isPush && target.hasWebhookSecret === false;
+    const secretTooltip = provider?.providerSuppliesSecret
+        ? needsSecret
+            ? "Add webhook secret"
+            : "Update webhook secret"
+        : "New webhook secret";
 
     return (
         <Paper withBorder radius="sm" p="sm">
@@ -248,6 +259,29 @@ function TargetRow({
                                 </Text>
                             </Group>
                         )}
+
+                    {needsSecret && (
+                        <Group gap={4} wrap="nowrap" align="flex-start">
+                            <MdVpnKey
+                                size={14}
+                                style={{
+                                    marginTop: 2,
+                                    flexShrink: 0,
+                                    color: "var(--mantine-color-yellow-6)",
+                                }}
+                            />
+                            <Text
+                                size="xs"
+                                c="dimmed"
+                                lineClamp={2}
+                                className="wrapped-text"
+                            >
+                                Add the webhook secret from{" "}
+                                {provider?.displayName ?? "the provider"} to
+                                start receiving data.
+                            </Text>
+                        </Group>
+                    )}
                 </Stack>
 
                 <Group
@@ -259,13 +293,13 @@ function TargetRow({
                     {/* A push target has nothing to poll, so the slot its sync button
                         would take holds the one action only it has. */}
                     {isPush ? (
-                        <Tooltip label="New webhook secret" withArrow>
+                        <Tooltip label={secretTooltip} withArrow>
                             <ActionIcon
-                                variant="outline"
+                                variant={needsSecret ? "filled" : "outline"}
                                 color="yellow"
                                 size="lg"
-                                onClick={onRotateSecret}
-                                aria-label={`New webhook secret for ${target.trackerName}`}
+                                onClick={onChangeSecret}
+                                aria-label={`${secretTooltip} for ${target.trackerName}`}
                             >
                                 <MdVpnKey size={16} />
                             </ActionIcon>

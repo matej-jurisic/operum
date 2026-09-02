@@ -11,6 +11,13 @@ namespace Operum.Model.DTOs.Integrations
         /// <summary>Whether the connect form must ask for the user's own instance URL.</summary>
         public bool RequiresBaseUrl { get; set; }
 
+        /// <summary>
+        /// True when this push provider mints the webhook secret itself and the user pastes it
+        /// into Operum (Firefly III). False when Operum generates it for the user to paste into
+        /// the provider. Only meaningful for a push provider.
+        /// </summary>
+        public bool ProviderSuppliesSecret { get; set; }
+
         public List<ProviderResourceDto> Resources { get; set; } = [];
     }
 
@@ -63,11 +70,18 @@ namespace Operum.Model.DTOs.Integrations
         public string? WebhookUrl { get; set; }
 
         /// <summary>
-        /// Only ever populated on the response that creates the target or rotates the secret.
-        /// It is not stored in readable form, so it cannot be shown again -- the UI must tell
-        /// the user to copy it now.
+        /// Only ever populated on the response that creates a target or issues a new secret for
+        /// a provider Operum generates the secret for. It is not stored in readable form, so it
+        /// cannot be shown again, the UI must tell the user to copy it now. Always null for a
+        /// provider that supplies its own secret.
         /// </summary>
         public string? WebhookSecret { get; set; }
+
+        /// <summary>
+        /// Whether a signing secret has been set on this push target. False on a Firefly target
+        /// between creating it and pasting in the secret from Firefly. Null for a pull target.
+        /// </summary>
+        public bool? HasWebhookSecret { get; set; }
 
         public List<FieldMappingDto> Mappings { get; set; } = [];
     }

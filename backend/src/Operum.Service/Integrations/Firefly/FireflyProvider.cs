@@ -30,6 +30,10 @@ namespace Operum.Service.Integrations.Firefly
         // Push-only, so nothing here ever calls the user's instance.
         public bool RequiresBaseUrl => false;
 
+        // Firefly mints the secret in its own webhook screen and has no field to paste one in,
+        // so it has to come from there rather than be generated here.
+        public bool ProviderSuppliesSecret => true;
+
         public IReadOnlyList<string> ResourceTypes => [FireflyTransactionCatalog.ResourceType];
 
         public IReadOnlyList<SourceField> Catalog(string resourceType) =>

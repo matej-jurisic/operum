@@ -37,6 +37,14 @@ namespace Operum.Model.DTOs.Integrations.Requests
         public bool IsEnabled { get; set; } = true;
         public DateOnly? BackfillFrom { get; set; }
         public List<FieldMappingDto> Mappings { get; set; } = [];
+
+        /// <summary>
+        /// For a push provider that mints its own secret (Firefly III): the value copied from
+        /// the provider. Optional here, the webhook URL is needed first to create the webhook
+        /// there, so it is usually set afterward through the secret endpoint. Ignored for a
+        /// provider Operum generates the secret for.
+        /// </summary>
+        public string? WebhookSecret { get; set; }
     }
 
     public class SaveIntegrationTargetDtoValidator : AbstractValidator<SaveIntegrationTargetDto>
@@ -45,6 +53,7 @@ namespace Operum.Model.DTOs.Integrations.Requests
         {
             RuleFor(x => x.TrackerId).NotEmpty();
             RuleFor(x => x.ResourceType).NotEmpty();
+            RuleFor(x => x.WebhookSecret).MaximumLength(500);
 
             // A target with no mappings would sync nothing; the field cap bounds the top end,
             // since a mapping has to name a field that exists.
@@ -55,6 +64,23 @@ namespace Operum.Model.DTOs.Integrations.Requests
                 mapping.RuleFor(m => m.SourceKey).NotEmpty();
                 mapping.RuleFor(m => m.FieldId).NotEmpty();
             });
+        }
+    }
+
+    public class SetWebhookSecretDto
+    {
+        /// <summary>
+        /// The secret from the provider. Required for a provider that mints its own; for one
+        /// Operum generates the secret for, leave it null and a fresh Operum secret is issued.
+        /// </summary>
+        public string? Secret { get; set; }
+    }
+
+    public class SetWebhookSecretDtoValidator : AbstractValidator<SetWebhookSecretDto>
+    {
+        public SetWebhookSecretDtoValidator()
+        {
+            RuleFor(x => x.Secret).MaximumLength(500);
         }
     }
 }

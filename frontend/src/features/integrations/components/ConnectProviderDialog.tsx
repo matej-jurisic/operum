@@ -131,10 +131,9 @@ export default function ConnectProviderDialog({
                             color="blue"
                         >
                             <Text size="sm" className="wrapped-text">
-                                No key needed. After connecting you will get a
-                                URL and a secret to paste into{" "}
-                                {provider?.displayName}, which then sends its
-                                data here.
+                                {provider?.providerSuppliesSecret
+                                    ? `No key needed. After connecting you will get a URL to add in ${provider?.displayName}. It then shows a secret to paste back here.`
+                                    : `No key needed. After connecting you will get a URL and a secret to paste into ${provider?.displayName}, which then sends its data here.`}
                             </Text>
                         </Alert>
                     )}

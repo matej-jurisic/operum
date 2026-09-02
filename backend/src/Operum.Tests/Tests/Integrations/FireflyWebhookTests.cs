@@ -27,6 +27,12 @@ namespace Operum.Tests.Tests.Integrations
     {
         private static int _userCounter;
 
+        /// <summary>
+        /// Firefly mints the webhook secret in its own screen; the user pastes it into Operum.
+        /// The tests stand in for that with a fixed value they set through the secret endpoint.
+        /// </summary>
+        private const string PushSecret = "firefly-test-secret-value";
+
         private readonly IntegrationsEnabledFactory _factory = factory;
 
         private static async Task<JsonElement> Data(HttpResponseMessage response)
@@ -38,8 +44,11 @@ namespace Operum.Tests.Tests.Integrations
             return data;
         }
 
-        /// <summary>A tracker, a Firefly connection, and a push target wired onto it.</summary>
-        private async Task<(string TrackerId, string TargetId, string Token, string Secret, Dictionary<string, string> Fields)>
+        /// <summary>
+        /// A tracker, a Firefly connection, and a push target wired onto it, with the secret
+        /// already set the way a user would after making the webhook in Firefly.
+        /// </summary>
+        private async Task<(string TrackerId, string TargetId, string IntegrationId, string Token, string Secret, HttpClient Client, Dictionary<string, string> Fields)>
             Wire(string trackerName)
         {
             var client = await _factory.NewUserClient($"fw{Interlocked.Increment(ref _userCounter)}");
@@ -78,9 +87,18 @@ namespace Operum.Tests.Tests.Integrations
                 }));
 
             var webhookUrl = target.GetProperty("webhookUrl").GetString()!;
-            var secret = target.GetProperty("webhookSecret").GetString()!;
+            var targetId = target.GetProperty("id").GetString()!;
 
-            return (trackerId, target.GetProperty("id").GetString()!, webhookUrl.Split('/')[^1], secret, fields);
+            // Firefly does not accept a chosen secret, so Operum stores none at creation: it
+            // comes back afterward once the user has made the webhook in Firefly.
+            Assert.True(target.TryGetProperty("webhookSecret", out var createdSecret) is false
+                || createdSecret.ValueKind == JsonValueKind.Null);
+            Assert.False(target.GetProperty("hasWebhookSecret").GetBoolean());
+
+            await client.PostAsJsonAsync($"integrations/{integrationId}/targets/{targetId}/secret",
+                new SetWebhookSecretDto { Secret = PushSecret });
+
+            return (trackerId, targetId, integrationId, webhookUrl.Split('/')[^1], PushSecret, client, fields);
         }
 
         /// <summary>Posts a delivery the way a real Firefly instance would, unauthenticated.</summary>
@@ -136,7 +154,7 @@ namespace Operum.Tests.Tests.Integrations
         [Fact]
         public async Task Delivery_CreatesOneEntryPerSplit()
         {
-            var (trackerId, _, token, secret, fields) = await Wire("Firefly split");
+            var (trackerId, _, _, token, secret, _, fields) = await Wire("Firefly split");
 
             var response = await Deliver(token,
                 Payload("STORE_TRANSACTION", "g1", Split("j1", "10.00", "Lunch"), Split("j2", "5.00", "Tip")),
@@ -159,7 +177,7 @@ namespace Operum.Tests.Tests.Integrations
         public async Task Delivery_IsAcceptedWithoutAnyAuthentication()
         {
             // The caller is the user's own Firefly instance, which has no Operum session.
-            var (trackerId, _, token, secret, _) = await Wire("Firefly anonymous");
+            var (trackerId, _, _, token, secret, _, _) = await Wire("Firefly anonymous");
 
             var response = await Deliver(token, Payload("STORE_TRANSACTION", "g1", Split("j1", "1.00", "x")), secret);
 
@@ -170,7 +188,7 @@ namespace Operum.Tests.Tests.Integrations
         [Fact]
         public async Task Delivery_WithABadSignature_IsForbiddenAndWritesNothing()
         {
-            var (trackerId, _, token, secret, _) = await Wire("Firefly bad signature");
+            var (trackerId, _, _, token, secret, _, _) = await Wire("Firefly bad signature");
 
             var response = await Deliver(token,
                 Payload("STORE_TRANSACTION", "g1", Split("j1", "10.00", "Lunch")),
@@ -184,7 +202,7 @@ namespace Operum.Tests.Tests.Integrations
         [Fact]
         public async Task Delivery_WithNoSignatureAtAll_IsForbidden()
         {
-            var (trackerId, _, token, secret, _) = await Wire("Firefly no signature");
+            var (trackerId, _, _, token, secret, _, _) = await Wire("Firefly no signature");
 
             var client = _factory.CreateClient();
             var response = await client.PostAsync(
@@ -207,7 +225,7 @@ namespace Operum.Tests.Tests.Integrations
         [Fact]
         public async Task Delivery_UnderTheWrongProviderName_IsNotFound()
         {
-            var (_, _, token, secret, _) = await Wire("Firefly wrong provider");
+            var (_, _, _, token, secret, _, _) = await Wire("Firefly wrong provider");
 
             var client = _factory.CreateClient();
             var body = Payload("STORE_TRANSACTION", "g1", Split("j1", "1", "x"));
@@ -226,7 +244,7 @@ namespace Operum.Tests.Tests.Integrations
         [Fact]
         public async Task Redelivery_UpdatesRatherThanDuplicating()
         {
-            var (trackerId, _, token, secret, fields) = await Wire("Firefly redelivery");
+            var (trackerId, _, _, token, secret, _, fields) = await Wire("Firefly redelivery");
 
             await Deliver(token, Payload("STORE_TRANSACTION", "g1", Split("j1", "10.00", "Lunch")), secret);
             var second = await Deliver(token, Payload("UPDATE_TRANSACTION", "g1", Split("j1", "12.00", "Lunch, revised")), secret);
@@ -240,7 +258,7 @@ namespace Operum.Tests.Tests.Integrations
         [Fact]
         public async Task EditRemovingASplit_DeletesThatSplitsEntry()
         {
-            var (trackerId, _, token, secret, _) = await Wire("Firefly split removal");
+            var (trackerId, _, _, token, secret, _, _) = await Wire("Firefly split removal");
 
             await Deliver(token,
                 Payload("STORE_TRANSACTION", "g1", Split("j1", "10.00", "Part one"), Split("j2", "5.00", "Part two")),
@@ -262,7 +280,7 @@ namespace Operum.Tests.Tests.Integrations
         [Fact]
         public async Task DestroyTrigger_RemovesEveryEntryForTheGroup()
         {
-            var (trackerId, _, token, secret, _) = await Wire("Firefly destroy");
+            var (trackerId, _, _, token, secret, _, _) = await Wire("Firefly destroy");
 
             await Deliver(token,
                 Payload("STORE_TRANSACTION", "g1", Split("j1", "10.00", "One"), Split("j2", "5.00", "Two")),
@@ -279,7 +297,7 @@ namespace Operum.Tests.Tests.Integrations
         [Fact]
         public async Task Delivery_DoesNotTouchAnotherGroupsEntries()
         {
-            var (trackerId, _, token, secret, _) = await Wire("Firefly group isolation");
+            var (trackerId, _, _, token, secret, _, _) = await Wire("Firefly group isolation");
 
             await Deliver(token, Payload("STORE_TRANSACTION", "g1", Split("j1", "10.00", "One")), secret);
             await Deliver(token, Payload("STORE_TRANSACTION", "g2", Split("j2", "20.00", "Two")), secret);
@@ -295,7 +313,7 @@ namespace Operum.Tests.Tests.Integrations
         [Fact]
         public async Task Delivery_UpdatesTheTargetsSyncStatus()
         {
-            var (_, targetId, token, secret, _) = await Wire("Firefly status");
+            var (_, targetId, _, token, secret, _, _) = await Wire("Firefly status");
 
             await Deliver(token, Payload("STORE_TRANSACTION", "g1", Split("j1", "1.00", "x")), secret);
 
@@ -311,7 +329,7 @@ namespace Operum.Tests.Tests.Integrations
         [Fact]
         public async Task BadSignature_DoesNotRecordAnErrorOnTheTarget()
         {
-            var (_, targetId, token, secret, _) = await Wire("Firefly no status noise");
+            var (_, targetId, _, token, secret, _, _) = await Wire("Firefly no status noise");
 
             await Deliver(token, Payload("STORE_TRANSACTION", "g1", Split("j1", "1.00", "x")), secret);
             await Deliver(token, Payload("STORE_TRANSACTION", "g1", Split("j1", "1.00", "x")), secret,
@@ -330,7 +348,7 @@ namespace Operum.Tests.Tests.Integrations
         [Fact]
         public async Task DisabledTarget_StopsAcceptingDeliveries()
         {
-            var (trackerId, targetId, token, secret, _) = await Wire("Firefly disabled");
+            var (trackerId, targetId, _, token, secret, _, _) = await Wire("Firefly disabled");
 
             using (var scope = _factory.Services.CreateScope())
             {
@@ -347,45 +365,22 @@ namespace Operum.Tests.Tests.Integrations
         }
 
         [Fact]
-        public async Task WebhookSecret_IsReturnedOnceAndNeverListedAgain()
+        public async Task ProvidedSecret_IsStoredButNeverListedBack()
         {
-            var client = await _factory.NewUserClient($"fw{Interlocked.Increment(ref _userCounter)}");
+            var (_, _, _, _, secret, client, _) = await Wire("Firefly secrecy");
 
-            var trackerId = (await Data(await client.PostAsJsonAsync("trackers", new CreateTrackerDto { Name = "Firefly secrecy" })))
-                .GetProperty("id").GetString()!;
-            await client.PostAsJsonAsync($"trackers/{trackerId}/fields",
-                new CreateFieldDto { Name = "Amount", Type = DataTypes.Number });
-
-            var fieldsJson = await Data(await client.GetAsync($"trackers/{trackerId}/fields"));
-            var amountId = fieldsJson.EnumerateArray().First().GetProperty("id").GetString()!;
-
-            var integrationId = (await Data(await client.PostAsJsonAsync("integrations",
-                new ConnectIntegrationDto { Provider = FireflyProvider.ProviderKey })))
-                .GetProperty("id").GetString()!;
-
-            var created = await Data(await client.PostAsJsonAsync($"integrations/{integrationId}/targets",
-                new SaveIntegrationTargetDto
-                {
-                    TrackerId = trackerId,
-                    ResourceType = FireflyTransactionCatalog.ResourceType,
-                    Mappings = [new FieldMappingDto { SourceKey = FireflyTransactionCatalog.AmountKey, FieldId = amountId }],
-                }));
-
-            var secret = created.GetProperty("webhookSecret").GetString();
-            Assert.False(string.IsNullOrWhiteSpace(secret));
-
-            // It is stored encrypted and cannot be shown again -- the UI has to tell the user
-            // to copy it now.
+            // Once set from Firefly it is stored encrypted and never returned -- the raw value
+            // must not appear in any response.
             var listed = await (await client.GetAsync("integrations")).Content.ReadAsStringAsync();
-            Assert.DoesNotContain(secret!, listed);
+            Assert.DoesNotContain(secret, listed);
         }
 
         [Fact]
-        public async Task RotateSecret_IssuesANewOneAndInvalidatesTheOld()
+        public async Task DeliveryBeforeTheSecretIsSet_IsRejectedAndFlagged()
         {
             var client = await _factory.NewUserClient($"fw{Interlocked.Increment(ref _userCounter)}");
 
-            var trackerId = (await Data(await client.PostAsJsonAsync("trackers", new CreateTrackerDto { Name = "Firefly rotate" })))
+            var trackerId = (await Data(await client.PostAsJsonAsync("trackers", new CreateTrackerDto { Name = "Firefly no secret" })))
                 .GetProperty("id").GetString()!;
             await client.PostAsJsonAsync($"trackers/{trackerId}/fields",
                 new CreateFieldDto { Name = "Amount", Type = DataTypes.Number });
@@ -406,17 +401,45 @@ namespace Operum.Tests.Tests.Integrations
                 }));
 
             var targetId = created.GetProperty("id").GetString()!;
-            var oldSecret = created.GetProperty("webhookSecret").GetString()!;
             var token = created.GetProperty("webhookUrl").GetString()!.Split('/')[^1];
 
-            var rotated = await Data(await client.PostAsync($"integrations/{integrationId}/targets/{targetId}/rotate-secret", null));
-            var newSecret = rotated.GetProperty("webhookSecret").GetString()!;
+            var response = await Deliver(token, Payload("STORE_TRANSACTION", "g1", Split("j1", "1.00", "x")), "anything");
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+            Assert.Empty(await StoredEntries(trackerId));
 
-            Assert.NotEqual(oldSecret, newSecret);
+            using var scope = _factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<OperumContext>();
+            var target = await db.IntegrationTargets.SingleAsync(t => t.Id == targetId);
+            Assert.Equal(SyncStatus.Error, target.LastSyncStatus);
+        }
+
+        [Fact]
+        public async Task SetSecret_ReplacesTheOldOneAndInvalidatesIt()
+        {
+            var (_, targetId, integrationId, token, oldSecret, client, _) = await Wire("Firefly reset");
 
             var body = Payload("STORE_TRANSACTION", "g1", Split("j1", "1.00", "x"));
+            Assert.Equal(HttpStatusCode.OK, (await Deliver(token, body, oldSecret)).StatusCode);
+
+            // The user reset the secret in Firefly and pasted the new value in.
+            const string newSecret = "firefly-rotated-secret-value";
+            await client.PostAsJsonAsync($"integrations/{integrationId}/targets/{targetId}/secret",
+                new SetWebhookSecretDto { Secret = newSecret });
+
             Assert.Equal(HttpStatusCode.Forbidden, (await Deliver(token, body, oldSecret)).StatusCode);
             Assert.Equal(HttpStatusCode.OK, (await Deliver(token, body, newSecret)).StatusCode);
+        }
+
+        [Fact]
+        public async Task SetSecret_WithNoValue_IsRefusedForAProviderThatSuppliesItsOwn()
+        {
+            var (_, targetId, integrationId, _, _, client, _) = await Wire("Firefly empty secret");
+
+            var response = await client.PostAsJsonAsync(
+                $"integrations/{integrationId}/targets/{targetId}/secret",
+                new SetWebhookSecretDto { Secret = null });
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
     }
 }
