@@ -38,7 +38,7 @@ namespace Operum.Service.Services.Entries
             var entryCount = await db.Entries.Where(x => x.TrackerId == trackerId).CountAsync();
             if (entryCount >= DataLimits.MaxEntryCount)
             {
-                return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("trackers", DataLimits.MaxTrackerCount));
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("entries", DataLimits.MaxEntryCount));
             }
 
             var fields = await db.Fields.Where(x => x.TrackerId == trackerId).ToListAsync();

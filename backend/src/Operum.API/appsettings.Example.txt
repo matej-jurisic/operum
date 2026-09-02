@@ -9,10 +9,17 @@
     "Operum": ""
   },
   "Features": {
-    "Notifications": false
+    "Notifications": false,
+    "Integrations": false
   },
   "Notifications": {
     "EvalIntervalMinutes": 10
+  },
+  "Integrations": {
+    "SyncIntervalMinutes": 60,
+    "ReconciliationDays": 7,
+    "BatchSize": 200,
+    "HttpTimeoutSeconds": 30
   },
   "Vapid": {
     "Subject": "mailto:",

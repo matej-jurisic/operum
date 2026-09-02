@@ -19,7 +19,14 @@ const NavCreateHost = observer(() => {
     return (
         <>
             {mode === "wizard" && (
-                <TrackerWizard onClose={() => navigationStore.stopTrackerCreate()} />
+                <TrackerWizard
+                    onClose={() => navigationStore.stopTrackerCreate()}
+                    onConfirm={(created) => {
+                        navigationStore.stopTrackerCreate();
+                        navigationStore.refreshTrackers();
+                        navigate(`/trackers/${created.id}`);
+                    }}
+                />
             )}
 
             {(mode === "blank" || mode === "template") && (

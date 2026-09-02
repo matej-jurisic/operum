@@ -1,5 +1,5 @@
 import { ScatterChart } from "@mantine/charts";
-import { em, Paper, Stack } from "@mantine/core";
+import { em, Paper, Stack, Text } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { ScatterChartAnalyticDto } from "../types/AnalyticDto";
 import { AnalyticCardHeader } from "./AnalyticCardHeader";
@@ -36,6 +36,10 @@ export function ScatterChartCard({
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
     const layout = useCardLayout(fillHeight);
 
+    // The backend returns the analytic with no axis fields when they can no longer be
+    // resolved (e.g. a field was deleted). Nothing can be plotted in that case.
+    const { xField, yField } = analytic;
+
     return (
         <Paper
             ref={layout.ref}
@@ -54,35 +58,41 @@ export function ScatterChartCard({
                     onRemove={onRemove}
                     onEdit={onEdit}
                 />
-                <ScatterChart
-                    tooltipAnimationDuration={200}
-                    gridAxis="x"
-                    data={[
-                        {
-                            name: analytic.yField.name,
-                            color: color ?? "blue",
-                            data: analytic.points,
-                        },
-                    ]}
-                    h={chartHeight(fillHeight, isMobile)}
-                    {...cardBodyProps(fillHeight)}
-                    withXAxis={layout.withXAxis}
-                    withYAxis={layout.withYAxis}
-                    xAxisProps={{
-                        tickFormatter: getAxisFormatter(analytic.xField.type),
-                    }}
-                    yAxisProps={{
-                        tickFormatter: getAxisFormatter(analytic.yField.type),
-                    }}
-                    tooltipProps={{
-                        trigger: chartTooltipTrigger(isMobile),
-                        content: createScatterTooltipContent(
-                            analytic,
-                            color ?? "blue",
-                        ),
-                    }}
-                    dataKey={{ x: "x", y: "y" }}
-                />
+                {xField && yField ? (
+                    <ScatterChart
+                        tooltipAnimationDuration={200}
+                        gridAxis="x"
+                        data={[
+                            {
+                                name: yField.name,
+                                color: color ?? "blue",
+                                data: analytic.points,
+                            },
+                        ]}
+                        h={chartHeight(fillHeight, isMobile)}
+                        {...cardBodyProps(fillHeight)}
+                        withXAxis={layout.withXAxis}
+                        withYAxis={layout.withYAxis}
+                        xAxisProps={{
+                            tickFormatter: getAxisFormatter(xField.type),
+                        }}
+                        yAxisProps={{
+                            tickFormatter: getAxisFormatter(yField.type),
+                        }}
+                        tooltipProps={{
+                            trigger: chartTooltipTrigger(isMobile),
+                            content: createScatterTooltipContent(
+                                analytic,
+                                color ?? "blue",
+                            ),
+                        }}
+                        dataKey={{ x: "x", y: "y" }}
+                    />
+                ) : (
+                    <Text size="sm" c="dimmed" ta="center" py="xl">
+                        This chart's fields are no longer available.
+                    </Text>
+                )}
             </Stack>
         </Paper>
     );

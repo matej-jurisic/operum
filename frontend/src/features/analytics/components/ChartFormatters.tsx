@@ -15,7 +15,7 @@ import {
     ScatterChartAnalyticDto,
 } from "../types/AnalyticDto";
 
-export const getAxisFormatter = (fieldType: string) => {
+export const getAxisFormatter = (fieldType: string | undefined) => {
     if (fieldType === FieldTypes.TimeSpan) return formatMinutesToTime;
     if (fieldType === FieldTypes.Bool) return formatBoolean;
     if (fieldType === FieldTypes.DateTime) return formatDateTime;
@@ -31,12 +31,12 @@ export const createTooltipContent = (
         if (!payload?.[0]) return null;
 
         const value = payload[0].payload.y;
-        const f = getAxisFormatter(analytic.yField.type);
+        const f = getAxisFormatter(analytic.yField?.type);
 
         return (
             <Paper p="sm" shadow="sm" withBorder>
                 <Text size="sm" c="dimmed" mb="xs">
-                    {renderValue(analytic.xField.type, label)}
+                    {renderValue(analytic.xField?.type, label)}
                 </Text>
                 <Group gap="xs" wrap="nowrap" maw={300}>
                     <Box
@@ -45,7 +45,7 @@ export const createTooltipContent = (
                         style={{ borderRadius: "50%" }}
                         bg={color}
                     />
-                    <Text size="sm">{analytic.yField.name}</Text>
+                    <Text size="sm">{analytic.yField?.name}</Text>
                     <Text size="sm" ml="auto">
                         {f ? f(value) : ""}
                     </Text>
@@ -181,10 +181,10 @@ export const createScatterTooltipContent = (
                             bg={color}
                         />
                         <Text size="sm" fw={500}>
-                            {analytic.xField.name}
+                            {analytic.xField?.name}
                         </Text>
                         <Text size="sm" ml="auto">
-                            {getAxisFormatter(analytic.xField.type)(xValue)}
+                            {getAxisFormatter(analytic.xField?.type)(xValue)}
                         </Text>
                     </Group>
                     <Group gap="xs" wrap="nowrap" maw={300}>
@@ -195,10 +195,10 @@ export const createScatterTooltipContent = (
                             bg={color}
                         />
                         <Text size="sm" fw={500}>
-                            {analytic.yField.name}
+                            {analytic.yField?.name}
                         </Text>
                         <Text size="sm" ml="auto">
-                            {getAxisFormatter(analytic.yField.type)(yValue)}
+                            {getAxisFormatter(analytic.yField?.type)(yValue)}
                         </Text>
                     </Group>
                 </Stack>

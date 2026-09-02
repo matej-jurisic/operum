@@ -16,8 +16,10 @@ export interface SingleValueAnalyticDto extends AnalyticDto {
 }
 
 export interface LineChartAnalyticDto extends AnalyticDto {
-    xField: FieldDto;
-    yField: FieldDto;
+    /** Null when the configured axis field can no longer be resolved (e.g. it was deleted). */
+    xField?: FieldDto;
+    /** Null when the configured axis field can no longer be resolved (e.g. it was deleted). */
+    yField?: FieldDto;
     points: { x: string; y: number }[];
 }
 
@@ -28,8 +30,10 @@ export interface DonutChartAnaylticDto extends AnalyticDto {
 }
 
 export interface ScatterChartAnalyticDto extends AnalyticDto {
-    xField: FieldDto;
-    yField: FieldDto;
+    /** Null when the configured axis field can no longer be resolved (e.g. it was deleted). */
+    xField?: FieldDto;
+    /** Null when the configured axis field can no longer be resolved (e.g. it was deleted). */
+    yField?: FieldDto;
     points: { x: number; y: number }[];
 }
 

@@ -1,4 +1,3 @@
-import { Center, Paper, Text } from "@mantine/core";
 import { TbChartHistogram, TbTable } from "react-icons/tb";
 import { AnalyticCard } from "../../analytics/components/AnalyticCard";
 import {
@@ -16,6 +15,7 @@ import { HeaderWidgetCard } from "./HeaderWidgetCard";
 import { NoteWidgetCard } from "./NoteWidgetCard";
 import { FilterWidgetCard } from "./FilterWidgetCard";
 import { QuickAddWidgetCard } from "./QuickAddWidgetCard";
+import { UnknownWidgetCard } from "./UnknownWidgetCard";
 
 interface Props {
     widget: DashboardWidgetDto;
@@ -224,13 +224,12 @@ export function DashboardWidget({
             );
         default:
             return (
-                <Paper withBorder p="md" radius="md" h="100%">
-                    <Center h="100%">
-                        <Text size="sm" c="dimmed">
-                            This widget cannot be displayed
-                        </Text>
-                    </Center>
-                </Paper>
+                <UnknownWidgetCard
+                    widgetId={widget.id}
+                    color={color}
+                    isConfiguring={isConfiguring}
+                    onRemove={onRemove}
+                />
             );
     }
 }

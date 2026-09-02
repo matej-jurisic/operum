@@ -33,6 +33,11 @@ services:
       - "127.0.0.1:5000:5000"
     volumes:
       - backend-logs:/app/Logs
+      # Data Protection key ring, which integration credentials are encrypted
+      # with. It has to outlive the container: without this volume the keys are
+      # regenerated on every restart and every stored credential becomes
+      # undecryptable. Path matches DataProtection__KeyPath in .env.
+      - backend-dataprotection:/app/DataProtection-Keys
 
   frontend:
     build:
@@ -42,6 +47,7 @@ services:
         VITE_REACT_API_URL: ${VITE_REACT_API_URL}
         VITE_REACT_GOOGLE_CLIENT: ${VITE_REACT_GOOGLE_CLIENT}
         VITE_REACT_NOTIFICATIONS_ENABLED: ${VITE_REACT_NOTIFICATIONS_ENABLED}
+        VITE_REACT_INTEGRATIONS_ENABLED: ${VITE_REACT_INTEGRATIONS_ENABLED}
     depends_on:
       - backend
     ports:
@@ -81,5 +87,6 @@ services:
 volumes:
   pgdata:
   backend-logs:
+  backend-dataprotection:
   grafana-data:
   prometheus-data:

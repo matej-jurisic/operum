@@ -22,7 +22,8 @@ namespace Operum.Service.Services.Fields
             string trackerId,
             string entryId,
             List<FieldValue> currentFieldValues,
-            List<Field> allFields)
+            List<Field> allFields,
+            TimeZoneInfo? timeZone = null)
         {
             var constants = await db.TrackerConstants
                 .Include(c => c.Values)
@@ -52,7 +53,10 @@ namespace Operum.Service.Services.Fields
                 .Where(f => !f.IsCalculated)
                 .ToDictionary(f => f.Id, f => f);
 
-            var tz = currentUserService.GetCurrentUserTimeZone();
+            // GetCurrentUserTimeZone falls back to UTC rather than throwing when there is no
+            // HTTP context, so a background caller that left this null would get silently
+            // wrong constant resolution instead of an error. Hence the explicit parameter.
+            var tz = timeZone ?? currentUserService.GetCurrentUserTimeZone();
             var newFieldValues = new List<FieldValue>();
 
             // Build a lookup from the already-tracked currentFieldValues so we never

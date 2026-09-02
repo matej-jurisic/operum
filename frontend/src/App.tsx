@@ -3,6 +3,7 @@ import { observer } from "mobx-react";
 import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import useAuth from "./features/auth/hooks/useAuth";
+import { areIntegrationsEnabled } from "./features/integrations/config/integrationsFeature";
 import { readDefaultPage } from "./shared/constants/defaultPage";
 import AppLayout from "./shared/components/navigation/AppLayout";
 import OperumLoader from "./shared/components/OperumLoader";
@@ -43,6 +44,7 @@ function PublicShell({ children }: { children: React.ReactNode }) {
 const AdminPanel = lazy(() => import("./features/admin/pages/AdminPanel"));
 const DashboardPage = lazy(() => import("./features/dashboard/pages/DashboardPage"));
 const Home = lazy(() => import("./features/home/pages/Home"));
+const IntegrationsPage = lazy(() => import("./features/integrations/pages/IntegrationsPage"));
 const PrivacyPolicy = lazy(() => import("./features/legal/pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./features/legal/pages/TermsOfService"));
 const ProfilePage = lazy(() => import("./features/profile/pages/ProfilePage"));
@@ -127,6 +129,16 @@ const App = observer(() => {
                                 path="dashboard/:dashboardId"
                                 element={<PrivateRoute page={<DashboardPage />} />}
                             />
+                            {/* Gated at build time, so the route simply does not exist
+                                when the feature is off -- the backend 404s it either way. */}
+                            {areIntegrationsEnabled && (
+                                <Route
+                                    path="integrations"
+                                    element={
+                                        <PrivateRoute page={<IntegrationsPage />} />
+                                    }
+                                />
+                            )}
                             <Route
                                 path="admin-panel"
                                 element={

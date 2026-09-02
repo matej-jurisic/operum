@@ -179,9 +179,12 @@ namespace Operum.Service.Domain.Views
             }
             else
             {
+                // "is empty" has to catch the entry that has no row for this field at all --
+                // a field added after the entry, a cleared value (the row is deleted), an
+                // import that never mapped it -- not only a row whose value happens to be null.
                 return operatorType switch
                 {
-                    OperatorTypes.EqualsOperator => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.StringValue == null)),
+                    OperatorTypes.EqualsOperator => query.Where(e => !e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.StringValue != null)),
                     OperatorTypes.NotEquals => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.StringValue != null)),
                     _ => query
                 };
@@ -210,7 +213,7 @@ namespace Operum.Service.Domain.Views
             {
                 return operatorType switch
                 {
-                    OperatorTypes.EqualsOperator => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.NumberValue == null)),
+                    OperatorTypes.EqualsOperator => query.Where(e => !e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.NumberValue != null)),
                     OperatorTypes.NotEquals => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.NumberValue != null)),
                     _ => query
                 };
@@ -256,7 +259,7 @@ namespace Operum.Service.Domain.Views
             {
                 return operatorType switch
                 {
-                    OperatorTypes.EqualsOperator => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue == null)),
+                    OperatorTypes.EqualsOperator => query.Where(e => !e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue != null)),
                     OperatorTypes.NotEquals => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue != null)),
                     _ => query
                 };
@@ -285,7 +288,7 @@ namespace Operum.Service.Domain.Views
             {
                 return operatorType switch
                 {
-                    OperatorTypes.EqualsOperator => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.TimeSpanValue == null)),
+                    OperatorTypes.EqualsOperator => query.Where(e => !e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.TimeSpanValue != null)),
                     OperatorTypes.NotEquals => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.TimeSpanValue != null)),
                     _ => query
                 };

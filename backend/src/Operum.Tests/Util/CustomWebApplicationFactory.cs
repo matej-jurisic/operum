@@ -32,9 +32,25 @@ namespace Operum.Tests.Util
             _connection.Open();
         }
 
+        /// <summary>
+        /// Configuration a subclass wants on top of the defaults -- feature flags above all,
+        /// since a feature that ships dark answers 404 until its flag is set.
+        /// </summary>
+        protected virtual IReadOnlyDictionary<string, string?> Settings => new Dictionary<string, string?>();
+
+        /// <summary>
+        /// A hook for a subclass to replace services the default app registers, for anything
+        /// a test must not really do -- reaching an external API, say.
+        /// </summary>
+        protected virtual void ConfigureTestServices(IServiceCollection services) { }
+
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.UseEnvironment("Testing");
+
+            foreach (var (key, value) in Settings)
+                builder.UseSetting(key, value);
+
             builder.ConfigureServices(services =>
             {
                 services.RemoveAll<IDbContextOptionsConfiguration<OperumContext>>();
@@ -42,6 +58,8 @@ namespace Operum.Tests.Util
                     .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)
                     .UseSqlite(_connection));
                 services.AddScoped<IMailSender, MockMailSender>();
+
+                ConfigureTestServices(services);
             });
         }
 

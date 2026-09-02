@@ -11,7 +11,7 @@ export const fieldsController = {
     createField: async (
         trackerId: string,
         values: CreateFieldDto
-    ): Promise<ApiResponse> => {
+    ): Promise<ApiResponse<FieldDto>> => {
         return await api.post(`/trackers/${trackerId}/fields`, values);
     },
     updateFieldOrder: async (

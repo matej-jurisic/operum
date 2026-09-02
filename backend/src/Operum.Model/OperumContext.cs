@@ -245,6 +245,125 @@ namespace Operum.Model
                 .WithMany()
                 .HasForeignKey(s => s.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<Integration>()
+                .HasOne(i => i.User)
+                .WithMany()
+                .HasForeignKey(i => i.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // One connection per provider account per user. ExternalAccountId is null for a
+            // push-only connection, and Postgres treats nulls as distinct in a unique index,
+            // so this constrains resolved accounts and lets a user hold several push
+            // connections to the same provider -- one per tracker they wire up.
+            builder.Entity<Integration>()
+                .HasIndex(i => new { i.UserId, i.Provider, i.ExternalAccountId })
+                .IsUnique();
+
+            builder.Entity<IntegrationTarget>()
+                .HasOne(t => t.Integration)
+                .WithMany(i => i.Targets)
+                .HasForeignKey(t => t.IntegrationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Deleting the tracker takes its targets with it; the connection survives, since
+            // it may feed other trackers. Entries already imported are left alone.
+            builder.Entity<IntegrationTarget>()
+                .HasOne(t => t.Tracker)
+                .WithMany()
+                .HasForeignKey(t => t.TrackerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<IntegrationTarget>()
+                .HasIndex(t => new { t.IntegrationId, t.TrackerId, t.ResourceType })
+                .IsUnique();
+
+            // The webhook route carries only this token, so it has to identify a target on
+            // its own. Filtered because pull targets have none and many nulls must stay legal.
+            builder.Entity<IntegrationTarget>()
+                .HasIndex(t => t.WebhookToken)
+                .IsUnique()
+                .HasFilter(@"""WebhookToken"" IS NOT NULL");
+
+            builder.Entity<IntegrationFieldMapping>()
+                .HasOne(m => m.Target)
+                .WithMany(t => t.Mappings)
+                .HasForeignKey(m => m.TargetId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Deleting a field drops whatever mapping fed it, the same edge a view column or
+            // a widget's field mapping has.
+            builder.Entity<IntegrationFieldMapping>()
+                .HasOne(m => m.Field)
+                .WithMany()
+                .HasForeignKey(m => m.FieldId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // One source per field. Two sources writing the same field would race on every
+            // sync and neither would win predictably.
+            builder.Entity<IntegrationFieldMapping>()
+                .HasIndex(m => new { m.TargetId, m.FieldId })
+                .IsUnique();
+
+            // An integration's idempotency key: re-ingesting a record it has already written
+            // must update that entry, not add a second one. Filtered so it constrains only
+            // integration-authored rows -- every hand-created and CSV-imported entry leaves
+            // both columns null, and many nulls must stay legal.
+            builder.Entity<Entry>()
+                .HasIndex(e => new { e.TrackerId, e.Source, e.ExternalId })
+                .IsUnique()
+                .HasFilter(@"""Source"" IS NOT NULL");
+
+            // Serves EntryWriter's group reconciliation: "every entry this parent produced".
+            builder.Entity<Entry>()
+                .HasIndex(e => new { e.TrackerId, e.Source, e.ExternalGroupId })
+                .HasFilter(@"""ExternalGroupId"" IS NOT NULL");
+
+            // Declared explicitly because the filtered index above would otherwise suppress
+            // it: convention sees an index leading with TrackerId and skips the FK one. A
+            // partial index cannot serve "every entry in this tracker" -- that predicate does
+            // not imply Source IS NOT NULL -- so losing this would leave the single hottest
+            // entry query (EntriesService.GetEntries) with no index at all.
+            builder.Entity<Entry>()
+                .HasIndex(e => e.TrackerId);
+
+            // Entries are EAV, so reading them is all correlated subqueries over FieldValues:
+            // every view filter is an EXISTS (ViewQueryBuilder.ApplyViewFilters) and every
+            // view sort is a scalar FirstOrDefault (ApplyViewSorting), up to MaxFilters +
+            // MaxSorts of them on one page load. Until DataLimits was raised for integrations
+            // the table was small enough that the FK indexes EF generates covered it; at the
+            // new MaxEntryCount it is not.
+            //
+            // These two shapes are what those queries actually ask for. Both lead with the
+            // column the subquery correlates on, so they also stand in for the single-column
+            // FK indexes convention would otherwise add.
+            //
+            // (Postgres could make the sort lookup index-only with an INCLUDE of the value
+            // columns. Left off deliberately -- it is a provider-specific annotation and the
+            // plain composite is the thing to measure first.)
+            builder.Entity<FieldValue>()
+                .HasIndex(fv => new { fv.EntryId, fv.FieldId });
+
+            // The selective direction: "which entries have this field above that value".
+            // One per value column, because a filter only ever touches the column its
+            // field's type maps to.
+            builder.Entity<FieldValue>()
+                .HasIndex(fv => new { fv.FieldId, fv.NumberValue });
+
+            builder.Entity<FieldValue>()
+                .HasIndex(fv => new { fv.FieldId, fv.DateTimeValue });
+
+            builder.Entity<FieldValue>()
+                .HasIndex(fv => new { fv.FieldId, fv.TimeSpanValue });
+
+            builder.Entity<FieldValue>()
+                .HasIndex(fv => new { fv.FieldId, fv.BooleanValue });
+
+            // Serves Equals/NotEquals and, on Postgres, StartsWith. Contains cannot use a
+            // btree at all -- if that operator turns out to be hot on a large tracker it
+            // needs a trigram index, which is a Postgres-only migration.
+            builder.Entity<FieldValue>()
+                .HasIndex(fv => new { fv.FieldId, fv.StringValue });
         }
 
         public override DbSet<User> Users { get; set; }
@@ -279,5 +398,8 @@ namespace Operum.Model
         public DbSet<NotificationConditionPurposeField> NotificationConditionPurposeFields { get; set; }
         public DbSet<NotificationTriggeredEntry> NotificationTriggeredEntries { get; set; }
         public DbSet<UserPushSubscription> UserPushSubscriptions { get; set; }
+        public DbSet<Integration> Integrations { get; set; }
+        public DbSet<IntegrationTarget> IntegrationTargets { get; set; }
+        public DbSet<IntegrationFieldMapping> IntegrationFieldMappings { get; set; }
     }
 }

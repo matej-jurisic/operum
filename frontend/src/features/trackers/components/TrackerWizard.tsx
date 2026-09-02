@@ -21,14 +21,16 @@ import {
 import { createElement, useState } from "react";
 import { FaCircle } from "react-icons/fa";
 import { MdAdd, MdCheck, MdDelete } from "react-icons/md";
-import { useNavigate } from "react-router-dom";
 import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
 import { fieldsController } from "../../fields/api/fieldsController";
 import { trackersController } from "../api/trackersController";
+import { TrackerDto } from "../types/TrackerDto";
 import IconPicker from "./IconPicker";
 
 interface Props {
     onClose: () => void;
+    /** Called with the finished tracker; the host refreshes the nav and navigates. */
+    onConfirm?: (created: TrackerDto) => void;
 }
 
 interface WizardField {
@@ -84,9 +86,8 @@ const FIELD_TYPE_LABEL: Record<string, string> = {
 let nextId = 0;
 const uid = () => String(++nextId);
 
-export default function TrackerWizard({ onClose }: Props) {
+export default function TrackerWizard({ onClose, onConfirm }: Props) {
     const theme = useMantineTheme();
-    const navigate = useNavigate();
 
     const [step, setStep] = useState(0);
     const [name, setName] = useState("");
@@ -162,7 +163,8 @@ export default function TrackerWizard({ onClose }: Props) {
                 color,
                 icon,
             });
-            const trackerId = (trackerRes as { data: { id: string } }).data?.id;
+            const created = trackerRes.data;
+            const trackerId = created?.id;
             if (!trackerId) return;
 
             for (const f of fields) {
@@ -175,7 +177,7 @@ export default function TrackerWizard({ onClose }: Props) {
             }
 
             onClose();
-            navigate(`/trackers/${trackerId}`);
+            onConfirm?.(created);
         } finally {
             setIsCreating(false);
         }

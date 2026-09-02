@@ -28,8 +28,8 @@ namespace Operum.Service.Domain.Analytics.Builders
             var dataPoints = request.Entries
                 .Select(e => new ScatterChartPointDto
                 {
-                    X = DataFormatters.FieldValueToDouble(e.FieldValues.FirstOrDefault(f => f.FieldId == xField.Id)),
-                    Y = DataFormatters.FieldValueToDouble(e.FieldValues.FirstOrDefault(f => f.FieldId == yField.Id))
+                    X = DataFormatters.FieldValueToNullableDouble(e.FieldValues.FirstOrDefault(f => f.FieldId == xField.Id)),
+                    Y = DataFormatters.FieldValueToNullableDouble(e.FieldValues.FirstOrDefault(f => f.FieldId == yField.Id))
                 })
                 .Where(p => p.X.HasValue && p.Y.HasValue)
                 .ToList();

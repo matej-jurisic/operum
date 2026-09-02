@@ -48,9 +48,9 @@ namespace Operum.Service.Domain.Analytics.Builders
                 .Select(e => new LineChartPointDto
                 {
                     X = e.FieldValues.FirstOrDefault(f => f.FieldId == xField.Id)?.GetValueAsString(),
-                    Y = DataFormatters.FieldValueToDouble(e.FieldValues.FirstOrDefault(f => f.FieldId == yField.Id))
+                    Y = DataFormatters.FieldValueToNullableDouble(e.FieldValues.FirstOrDefault(f => f.FieldId == yField.Id))
                 })
-                .Where(p => p.X != null)
+                .Where(p => p.X != null && p.Y != null)
                 .ToList();
 
             if (!_processors.TryGetValue(request.Analytic.Code, out var processor))

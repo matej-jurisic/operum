@@ -51,6 +51,7 @@ import {
     TbGripVertical,
     TbLayoutDashboard,
     TbLogout,
+    TbPlug,
     TbPlus,
     TbSearch,
     TbSettings,
@@ -59,6 +60,7 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import useAuth from "../../../features/auth/hooks/useAuth";
 import { dashboardController } from "../../../features/dashboard/api/dashboardController";
+import { areIntegrationsEnabled } from "../../../features/integrations/config/integrationsFeature";
 import { trackersController } from "../../../features/trackers/api/trackersController";
 import { resolveTrackerIcon } from "../../constants/TrackerIcons";
 import { TrackerFilters } from "../../constants/TrackerFilters";
@@ -358,6 +360,7 @@ const AppSidebar = observer(
                             colorScheme={colorScheme}
                             isAdmin={isAdmin}
                             onToggleColorScheme={toggleColorScheme}
+                            onIntegrations={() => go("/integrations")}
                             onProfile={() => go("/profile")}
                             onAdmin={() => go("/admin-panel")}
                             onLogout={logout}
@@ -380,6 +383,15 @@ const AppSidebar = observer(
                                 }
                                 onClick={() => toggleColorScheme()}
                             />
+                            {areIntegrationsEnabled && (
+                                <NavItem
+                                    collapsed={collapsed}
+                                    label="Integrations"
+                                    icon={<TbPlug size={18} />}
+                                    active={pathname === "/integrations"}
+                                    onClick={() => go("/integrations")}
+                                />
+                            )}
                             <NavItem
                                 collapsed={collapsed}
                                 label="Profile"
@@ -423,6 +435,7 @@ function AccountMenu({
     colorScheme,
     isAdmin,
     onToggleColorScheme,
+    onIntegrations,
     onProfile,
     onAdmin,
     onLogout,
@@ -431,6 +444,7 @@ function AccountMenu({
     colorScheme: string;
     isAdmin: boolean;
     onToggleColorScheme: () => void;
+    onIntegrations: () => void;
     onProfile: () => void;
     onAdmin: () => void;
     onLogout: () => void;
@@ -472,6 +486,14 @@ function AccountMenu({
                 >
                     {colorScheme === "dark" ? "Light theme" : "Dark theme"}
                 </Menu.Item>
+                {areIntegrationsEnabled && (
+                    <Menu.Item
+                        leftSection={<TbPlug size={16} />}
+                        onClick={onIntegrations}
+                    >
+                        Integrations
+                    </Menu.Item>
+                )}
                 <Menu.Item
                     leftSection={<TbUser size={16} />}
                     onClick={onProfile}

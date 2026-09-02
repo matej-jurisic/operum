@@ -362,6 +362,15 @@ namespace Operum.Model.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("ExternalGroupId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ExternalId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Source")
+                        .HasColumnType("text");
+
                     b.Property<string>("TrackerId")
                         .IsRequired()
                         .HasColumnType("text");
@@ -369,6 +378,13 @@ namespace Operum.Model.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("TrackerId");
+
+                    b.HasIndex("TrackerId", "Source", "ExternalGroupId")
+                        .HasFilter("\"ExternalGroupId\" IS NOT NULL");
+
+                    b.HasIndex("TrackerId", "Source", "ExternalId")
+                        .IsUnique()
+                        .HasFilter("\"Source\" IS NOT NULL");
 
                     b.ToTable("Entries");
                 });
@@ -448,11 +464,143 @@ namespace Operum.Model.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("EntryId");
+                    b.HasIndex("EntryId", "FieldId");
+
+                    b.HasIndex("FieldId", "BooleanValue");
+
+                    b.HasIndex("FieldId", "DateTimeValue");
+
+                    b.HasIndex("FieldId", "NumberValue");
+
+                    b.HasIndex("FieldId", "StringValue");
+
+                    b.HasIndex("FieldId", "TimeSpanValue");
+
+                    b.ToTable("FieldValues");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.Integration", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("BaseUrl")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CredentialCiphertext")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ExternalAccountId")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Provider", "ExternalAccountId")
+                        .IsUnique();
+
+                    b.ToTable("Integrations");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.IntegrationFieldMapping", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("FieldId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("SkipWhenNull")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("SourceKey")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TargetId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
 
                     b.HasIndex("FieldId");
 
-                    b.ToTable("FieldValues");
+                    b.HasIndex("TargetId", "FieldId")
+                        .IsUnique();
+
+                    b.ToTable("IntegrationFieldMappings");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.IntegrationTarget", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<DateOnly>("BackfillFrom")
+                        .HasColumnType("date");
+
+                    b.Property<string>("IntegrationId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastCursor")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastSyncError")
+                        .HasColumnType("text");
+
+                    b.Property<int>("LastSyncStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("LastSyncedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Mode")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ResourceType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TrackerId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("WebhookSecretCiphertext")
+                        .HasColumnType("text");
+
+                    b.Property<string>("WebhookToken")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TrackerId");
+
+                    b.HasIndex("WebhookToken")
+                        .IsUnique()
+                        .HasFilter("\"WebhookToken\" IS NOT NULL");
+
+                    b.HasIndex("IntegrationId", "TrackerId", "ResourceType")
+                        .IsUnique();
+
+                    b.ToTable("IntegrationTargets");
                 });
 
             modelBuilder.Entity("Operum.Model.Models.NotificationCondition", b =>
@@ -1357,6 +1505,55 @@ namespace Operum.Model.Migrations
                     b.Navigation("Field");
                 });
 
+            modelBuilder.Entity("Operum.Model.Models.Integration", b =>
+                {
+                    b.HasOne("Operum.Model.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.IntegrationFieldMapping", b =>
+                {
+                    b.HasOne("Operum.Model.Models.Field", "Field")
+                        .WithMany()
+                        .HasForeignKey("FieldId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Operum.Model.Models.IntegrationTarget", "Target")
+                        .WithMany("Mappings")
+                        .HasForeignKey("TargetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Field");
+
+                    b.Navigation("Target");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.IntegrationTarget", b =>
+                {
+                    b.HasOne("Operum.Model.Models.Integration", "Integration")
+                        .WithMany("Targets")
+                        .HasForeignKey("IntegrationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Operum.Model.Models.Tracker", "Tracker")
+                        .WithMany()
+                        .HasForeignKey("TrackerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Integration");
+
+                    b.Navigation("Tracker");
+                });
+
             modelBuilder.Entity("Operum.Model.Models.NotificationCondition", b =>
                 {
                     b.HasOne("Operum.Model.Models.TrackerNotification", "Notification")
@@ -1688,6 +1885,16 @@ namespace Operum.Model.Migrations
             modelBuilder.Entity("Operum.Model.Models.Field", b =>
                 {
                     b.Navigation("FieldValues");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.Integration", b =>
+                {
+                    b.Navigation("Targets");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.IntegrationTarget", b =>
+                {
+                    b.Navigation("Mappings");
                 });
 
             modelBuilder.Entity("Operum.Model.Models.NotificationCondition", b =>

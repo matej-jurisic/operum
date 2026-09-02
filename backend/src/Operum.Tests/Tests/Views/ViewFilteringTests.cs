@@ -158,6 +158,25 @@ namespace Operum.Tests.Tests.Views
         }
 
         [Fact]
+        public async Task Filter_IsEmpty_MatchesEntriesWithNoRowForTheField()
+        {
+            var client = await OwnerClient();
+            var trackerId = await TestApi.CreateTracker(client, "Empty, no row");
+            await TestApi.CreateField(client, trackerId, "Note", DataTypes.String);
+            await TestApi.CreateEntry(client, trackerId, new() { ["Note"] = "before the field" });
+            await TestApi.CreateEntry(client, trackerId, new() { ["Note"] = "also before" });
+            // Adding the field now leaves the existing entries with no FieldValue row for it,
+            // which "is empty" still has to treat as empty.
+            var amountId = await TestApi.CreateField(client, trackerId, "Amount", DataTypes.Number);
+            await TestApi.CreateEntry(client, trackerId, new() { ["Note"] = "filled", ["Amount"] = "1" });
+            var viewId = await TestApi.CreateFilterView(client, trackerId, "Missing amount", amountId, OperatorTypes.EqualsOperator, null);
+
+            var notes = (await TestApi.ListValues(client, trackerId, "Note", viewId)).Order().ToList();
+
+            Assert.Equal(["also before", "before the field"], notes);
+        }
+
+        [Fact]
         public async Task Sorting_Ascending_OrdersByTheFieldValue()
         {
             var client = await OwnerClient();

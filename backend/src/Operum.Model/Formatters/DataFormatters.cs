@@ -62,15 +62,21 @@ namespace Operum.Model.Converters
 
         public static string NumberToString(double value) => value.ToString("F2", CultureInfo.InvariantCulture);
 
-        public static double FieldValueToDouble(FieldValue? fv)
+        /// <summary>
+        /// Numeric value of a field value for charting, or <c>null</c> when there is nothing
+        /// to plot: a missing field value, an unset (null) number/timespan/bool, or a type
+        /// that has no numeric meaning. Callers filter these out rather than charting them
+        /// as zero, which would drag down sums/averages and plant fake points on the axes.
+        /// </summary>
+        public static double? FieldValueToNullableDouble(FieldValue? fv)
         {
-            if (fv == null) return 0;
+            if (fv == null) return null;
             return fv.GetFieldValue() switch
             {
                 double d => d,
                 TimeSpan ts => ts.TotalMinutes,
                 bool b => b ? 1.0 : 0.0,
-                _ => 0
+                _ => null
             };
         }
 

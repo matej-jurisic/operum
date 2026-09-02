@@ -42,7 +42,7 @@ namespace Operum.Service.Domain.Analytics.Builders
                 .Select(e => new DonutChartPointDto
                 {
                     Name = e.FieldValues.FirstOrDefault(f => f.FieldId == nameField.Id)?.GetValueAsString(),
-                    Value = DataFormatters.FieldValueToDouble(e.FieldValues.FirstOrDefault(f => f.FieldId == valueField.Id))
+                    Value = DataFormatters.FieldValueToNullableDouble(e.FieldValues.FirstOrDefault(f => f.FieldId == valueField.Id))
                 })
                 .Where(p => p.Name != null && p.Value != null)
                 .ToList();

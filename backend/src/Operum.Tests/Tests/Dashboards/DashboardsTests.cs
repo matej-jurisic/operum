@@ -533,6 +533,69 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(0, Analytic(widgets[0]).GetProperty("points").GetArrayLength());
         }
 
+        // Regression: a numeric field left blank on an entry is not the number zero. Charts
+        // used to coerce a missing y/value to 0 -- planting a fake point on a line or scatter
+        // and dragging sums and averages down. Such entries are now left out of the chart.
+        [Fact]
+        public async Task LineChart_EntryWithNoYValue_IsExcludedFromPoints()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("chartnully");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            // A second entry with a date but no Amount -- nothing to plot on the y-axis.
+            await client.PostAsJsonAsync($"trackers/{tracker.Id}/entries", new CreateEntryDto
+            {
+                FieldValues = new() { ["Day"] = "2026-01-02", ["Category"] = "Cardio" }
+            });
+
+            var dashboardId = await CreateDashboard(client);
+            var chartId = await PlaceLineChart(client, dashboardId, tracker);
+
+            // Only the seeded entry (Amount = 5) is plotted; the blank-Amount entry is dropped.
+            Assert.Equal(1, PointsOf(await Widgets(client, dashboardId), chartId));
+        }
+
+        [Fact]
+        public async Task AverageBarChart_EntryWithNoValue_IsNotCountedAsZero()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("chartnullavg");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            // Same category as the seeded entry, but no Amount. A coerced 0 here would drag
+            // the category's average down from 5 to 2.5.
+            await client.PostAsJsonAsync($"trackers/{tracker.Id}/entries", new CreateEntryDto
+            {
+                FieldValues = new() { ["Day"] = "2026-01-02", ["Category"] = "Cardio" }
+            });
+
+            var dashboardId = await CreateDashboard(client);
+            var response = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
+            {
+                ResultType = AnalyticTypes.BarChart,
+                Code = AnalyticCodes.AverageBarChart,
+                Sources =
+                [
+                    new CreateAndPlaceWidgetSourceDto
+                    {
+                        TrackerId = tracker.Id,
+                        AnalyticFields =
+                        [
+                            new CreateAnalyticFieldDto { FieldId = tracker.CategoryFieldId, Purpose = AnalyticPurposes.Name },
+                            new CreateAnalyticFieldDto { FieldId = tracker.AmountFieldId, Purpose = AnalyticPurposes.Value }
+                        ]
+                    }
+                ]
+            });
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var chartId = (await Data(response)).GetProperty("id").GetString()!;
+
+            var points = Analytic(ChartFor(await Widgets(client, dashboardId), chartId)).GetProperty("points");
+            Assert.Equal(1, points.GetArrayLength());
+            Assert.Equal(5, points[0].GetProperty("value").GetDouble());
+        }
+
         [Fact]
         public async Task PlaceWidget_UnknownWidget_ReturnsNotFound()
         {
