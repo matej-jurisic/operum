@@ -19,6 +19,8 @@ import {
 } from "../types/DashboardDto";
 import { ExpandableOptionFields } from "./ExpandableOptionFields";
 import { SourceViewSelect } from "./SourceViewSelect";
+import { YAxisScaleOption } from "./YAxisScaleOption";
+import { AnalyticResultTypeEnum } from "../../analytics/enums/AnalyticResultTypeEnum";
 
 interface Props {
     itemId: string;
@@ -46,6 +48,8 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
     const [rows, setRows] = useState<SourceRow[] | null>(null);
     const [expandable, setExpandable] = useState(false);
     const [mobileExpandable, setMobileExpandable] = useState(false);
+    const [isLineChart, setIsLineChart] = useState(false);
+    const [yAxisFromZero, setYAxisFromZero] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // The board's render endpoint carries the calculated charts, not the definitions
@@ -83,6 +87,8 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
             );
             setExpandable(item.layout.expandable);
             setMobileExpandable(item.mobileLayout.expandable);
+            setIsLineChart(item.resultType === AnalyticResultTypeEnum.LineChart);
+            setYAxisFromZero(item.yAxisFromZero);
         };
 
         load();
@@ -107,6 +113,7 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
             await onSave(itemId, {
                 expandable,
                 mobileExpandable,
+                yAxisFromZero,
                 sources: rows.map((row) => ({
                     sourceId: row.source.id,
                     label: row.label.trim() || null,
@@ -186,6 +193,13 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
                             </Stack>
                         );
                     })}
+
+                    {isLineChart && (
+                        <YAxisScaleOption
+                            yAxisFromZero={yAxisFromZero}
+                            onChange={setYAxisFromZero}
+                        />
+                    )}
 
                     <ExpandableOptionFields
                         expandable={expandable}

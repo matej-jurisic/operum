@@ -1135,6 +1135,38 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal("Trend", Analytic(widgets[0]).GetProperty("name").GetString());
         }
 
+        // The y-axis anchoring is a placement choice: a line chart is 0-based by default, an
+        // edit can switch it to fit the data range, and the board carries the choice back on
+        // the calculated chart so the client knows how to draw the axis.
+        [Fact]
+        public async Task UpdateDashboardItem_YAxisFromZero_TogglesThePlacementsAxisScaling()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("itemyaxis");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+
+            // Defaults to 0-based when the widget is first placed.
+            var placed = await Widgets(client, dashboardId);
+            Assert.True(Analytic(placed[0]).GetProperty("yAxisFromZero").GetBoolean());
+
+            var sourceId = await SingleSourceId(client, dashboardId, itemId);
+            var updateResponse = await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{itemId}", new UpdateDashboardItemDto
+            {
+                YAxisFromZero = false,
+                Sources = [new UpdateDashboardItemSourceDto { SourceId = sourceId }]
+            });
+            Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+
+            Assert.False(Analytic((await Data(updateResponse))[0]).GetProperty("yAxisFromZero").GetBoolean());
+
+            // And it sticks: the board still reports the fitted axis on a fresh read.
+            var widgets = await Widgets(client, dashboardId);
+            Assert.False(Analytic(widgets[0]).GetProperty("yAxisFromZero").GetBoolean());
+        }
+
         // A name of nothing at all is not a blank title: the widget goes back to reading as
         // the definition it was built from, the same as one that was never named.
         [Fact]

@@ -46,6 +46,12 @@ namespace Operum.Model.Models
         public bool Expandable { get; set; }
         public bool MobileExpandable { get; set; }
 
+        // Line chart widgets only: whether the y-axis is anchored at zero (the default) or
+        // fitted to the data's own range. Fitting is what makes a series that only ever
+        // moves between, say, 1000 and 1100 readable instead of a flat line pinned to the
+        // top of a 0-based axis. Ignored by every other widget type.
+        public bool YAxisFromZero { get; set; } = true;
+
         public string DashboardId { get; set; } = string.Empty;
         [ForeignKey(nameof(DashboardId))]
         public virtual Dashboard Dashboard { get; set; } = null!;

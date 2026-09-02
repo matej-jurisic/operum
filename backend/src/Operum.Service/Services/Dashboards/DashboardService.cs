@@ -346,6 +346,14 @@ namespace Operum.Service.Services.Dashboards
                 itemResult.Id = item.Id;
                 itemResult.Order = item.Order;
 
+                // The y-axis anchoring is a placement choice, not part of the calculation,
+                // so it is stamped onto the result here rather than threaded through the
+                // analytic pipeline (which also serves tracker-level saved analytics).
+                if (itemResult is LineChartAnalyticDto lineResult)
+                    lineResult.YAxisFromZero = item.YAxisFromZero;
+                else if (itemResult is ComposedChartAnalyticDto composedResult)
+                    composedResult.YAxisFromZero = item.YAxisFromZero;
+
                 // A widget owned by exactly one tracker is colored like that tracker; one
                 // combining more than one falls back to the dashboard's own color, applied
                 // client-side (see TrackerColor on DashboardWidgetDto).
@@ -463,6 +471,7 @@ namespace Operum.Service.Services.Dashboards
                 WidgetId = widget.Id,
                 Expandable = dto.Expandable,
                 MobileExpandable = dto.MobileExpandable,
+                YAxisFromZero = dto.YAxisFromZero,
                 SourceOverrides = overrides
             });
         }
@@ -559,6 +568,7 @@ namespace Operum.Service.Services.Dashboards
                 MobileH = height,
                 Expandable = dto.Expandable,
                 MobileExpandable = dto.MobileExpandable,
+                YAxisFromZero = dto.YAxisFromZero,
                 Sources = sources
             };
 
@@ -594,6 +604,7 @@ namespace Operum.Service.Services.Dashboards
                 ResultType = widget.ResultType,
                 Code = widget.Code,
                 MatchedValuesOnly = widget.MatchedValuesOnly,
+                YAxisFromZero = item.YAxisFromZero,
                 Sources = sourceDtos
             });
         }
@@ -1248,6 +1259,7 @@ namespace Operum.Service.Services.Dashboards
 
             item.Expandable = dto.Expandable;
             item.MobileExpandable = dto.MobileExpandable;
+            item.YAxisFromZero = dto.YAxisFromZero;
 
             await db.SaveChangesAsync();
 
@@ -1630,6 +1642,7 @@ namespace Operum.Service.Services.Dashboards
             ResultType = item.Widget?.ResultType ?? string.Empty,
             Code = item.Widget?.Code ?? string.Empty,
             MatchedValuesOnly = item.Widget?.MatchedValuesOnly ?? false,
+            YAxisFromZero = item.YAxisFromZero,
             Sources = item.Sources.OrderBy(s => s.Order).Select(s => MapSourceToDto(item, s)).ToList()
         };
 

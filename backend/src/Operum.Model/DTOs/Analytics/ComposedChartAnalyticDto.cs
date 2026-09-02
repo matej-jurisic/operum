@@ -11,6 +11,11 @@ namespace Operum.Model.DTOs.Analytics
         public List<ComposedChartSeriesDto> Series { get; set; } = [];
         public List<string> Warnings { get; set; } = [];
 
+        // Whether the y-axis starts at zero (default) or is fitted to the data's own range,
+        // carried over from the placement the same way LineChartAnalyticDto.YAxisFromZero is.
+        // Only meaningful when the combined chart draws at least one line series.
+        public bool YAxisFromZero { get; set; } = true;
+
         public ComposedChartAnalyticDto()
         {
             ResultType = AnalyticTypes.Composed;

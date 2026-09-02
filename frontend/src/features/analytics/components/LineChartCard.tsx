@@ -80,6 +80,12 @@ export function LineChartCard({
                         }}
                         yAxisProps={{
                             tickFormatter: getAxisFormatter(yField.type),
+                            // Anchored at zero by default; fitted to the data's own range
+                            // when the widget opts out, so a series that only ever moves
+                            // between e.g. 1000 and 1100 isn't a flat line pinned to the top.
+                            domain: analytic.yAxisFromZero
+                                ? [0, "auto"]
+                                : ["auto", "auto"],
                         }}
                         tooltipProps={{
                             trigger: chartTooltipTrigger(isMobile),

@@ -30,6 +30,10 @@ namespace Operum.Model.DTOs.Dashboard.Requests
         public bool Expandable { get; set; }
         public bool MobileExpandable { get; set; }
 
+        // Line chart widgets only: whether the y-axis is anchored at zero (the default) or
+        // fitted to the data's own range. Ignored for every other chart type.
+        public bool YAxisFromZero { get; set; } = true;
+
         // A WidgetSource not named here is placed with no label or view override: the
         // widget's own display name, unfiltered.
         public List<PlaceWidgetSourceOverrideDto> SourceOverrides { get; set; } = [];

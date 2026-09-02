@@ -27,6 +27,7 @@ import { ViewDto } from "../../views/types/ViewDto";
 import { CreateAndPlaceWidgetDto } from "../types/DashboardDto";
 import { ExpandableOptionFields } from "./ExpandableOptionFields";
 import { SourceViewSelect } from "./SourceViewSelect";
+import { YAxisScaleOption } from "./YAxisScaleOption";
 
 interface Props {
     /** Steps back to the widget type picker. */
@@ -85,6 +86,7 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
     const [name, setName] = useState("");
     const [rows, setRows] = useState<TrackerRow[]>([makeEmptyRow()]);
     const [matchedValuesOnly, setMatchedValuesOnly] = useState(false);
+    const [yAxisFromZero, setYAxisFromZero] = useState(true);
     const [expandable, setExpandable] = useState(false);
     const [mobileExpandable, setMobileExpandable] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -112,6 +114,7 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
             : undefined;
 
     const isCombinable = !!resultType && COMBINABLE_TYPES.includes(resultType);
+    const isLineChart = resultType === AnalyticResultTypeEnum.LineChart;
 
     const updateRow = (index: number, patch: Partial<TrackerRow>) => {
         setRows((prev) =>
@@ -207,6 +210,7 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
             resultType: resultType!,
             code: code!,
             matchedValuesOnly: rows.length > 1 && matchedValuesOnly,
+            yAxisFromZero: isLineChart ? yAxisFromZero : undefined,
             expandable,
             mobileExpandable,
             sources: rows.map((row) => ({
@@ -344,6 +348,13 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
                 >
                     Add another tracker
                 </Button>
+            )}
+
+            {isLineChart && (
+                <YAxisScaleOption
+                    yAxisFromZero={yAxisFromZero}
+                    onChange={setYAxisFromZero}
+                />
             )}
 
             <ExpandableOptionFields

@@ -235,6 +235,9 @@ export interface DashboardItemDto {
     resultType: string;
     code: string;
     matchedValuesOnly: boolean;
+    /** Line chart widgets only: whether the Y axis starts at zero or is fitted to the
+        data's own range. */
+    yAxisFromZero: boolean;
     sources: DashboardItemSourceDto[];
 }
 
@@ -266,6 +269,8 @@ export interface CreateAndPlaceWidgetDto {
     matchedValuesOnly?: boolean;
     expandable?: boolean;
     mobileExpandable?: boolean;
+    /** Line charts only; defaults to true (0-anchored) server-side when omitted. */
+    yAxisFromZero?: boolean;
     sources: CreateAndPlaceWidgetSourceDto[];
 }
 
@@ -279,6 +284,8 @@ export interface PlaceWidgetDto {
     widgetId: string;
     expandable?: boolean;
     mobileExpandable?: boolean;
+    /** Line charts only; defaults to true (0-anchored) server-side when omitted. */
+    yAxisFromZero?: boolean;
     sourceOverrides: PlaceWidgetSourceOverrideDto[];
 }
 
@@ -324,6 +331,8 @@ export interface UpdateDashboardItemSourceDto {
 export interface UpdateDashboardItemDto {
     expandable: boolean;
     mobileExpandable: boolean;
+    /** Line charts only: whether the Y axis starts at zero or is fitted to the data range. */
+    yAxisFromZero: boolean;
     sources: UpdateDashboardItemSourceDto[];
 }
 

@@ -24,6 +24,10 @@ namespace Operum.Model.DTOs.Dashboard
         // Combined charts only: whether the chart is restricted to x-axis values shared by
         // every source.
         public bool MatchedValuesOnly { get; set; }
+        // Line chart widgets only: whether the y-axis starts at zero or is fitted to the
+        // data's own range. Lets an edit form preload the current choice without a second
+        // fetch — see EditWidgetModal.
+        public bool YAxisFromZero { get; set; } = true;
         public List<DashboardItemSourceDto> Sources { get; set; } = [];
     }
 }

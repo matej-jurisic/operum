@@ -115,6 +115,13 @@ export function ComposedChartCard({
                     withDots={!layout.isCompact}
                     series={chartSeries}
                     xAxisProps={{ tickFormatter: xAxisFormatter }}
+                    yAxisProps={{
+                        // Matches LineChartCard: 0-anchored by default, fitted to the data
+                        // range when the widget opts out.
+                        domain: analytic.yAxisFromZero
+                            ? [0, "auto"]
+                            : ["auto", "auto"],
+                    }}
                     tooltipProps={{
                         trigger: chartTooltipTrigger(isMobile),
                         content: createComposedTooltipContent(analytic),

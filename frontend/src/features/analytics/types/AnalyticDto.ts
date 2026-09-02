@@ -21,6 +21,9 @@ export interface LineChartAnalyticDto extends AnalyticDto {
     /** Null when the configured axis field can no longer be resolved (e.g. it was deleted). */
     yField?: FieldDto;
     points: { x: string; y: number }[];
+    /** Whether the Y axis is anchored at zero (default) or fitted to the data's own range.
+        Set from the placement when the chart is drawn on a dashboard. */
+    yAxisFromZero: boolean;
 }
 
 export interface DonutChartAnaylticDto extends AnalyticDto {
@@ -64,4 +67,7 @@ export interface ComposedChartSeriesDto {
 export interface ComposedChartAnalyticDto extends AnalyticDto {
     series: ComposedChartSeriesDto[];
     warnings: string[];
+    /** Whether the Y axis is anchored at zero (default) or fitted to the data's own range.
+        Set from the placement; only meaningful when at least one series draws as a line. */
+    yAxisFromZero: boolean;
 }

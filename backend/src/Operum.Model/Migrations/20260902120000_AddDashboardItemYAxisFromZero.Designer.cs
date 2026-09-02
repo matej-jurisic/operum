@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Operum.Model;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Operum.Model;
 namespace Operum.Model.Migrations
 {
     [DbContext(typeof(OperumContext))]
-    partial class OperumContextModelSnapshot : ModelSnapshot
+    [Migration("20260902120000_AddDashboardItemYAxisFromZero")]
+    partial class AddDashboardItemYAxisFromZero
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

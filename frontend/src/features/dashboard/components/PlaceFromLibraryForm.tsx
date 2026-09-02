@@ -11,6 +11,8 @@ import { useWidgets } from "../../widgets/context/WidgetsContext";
 import { PlaceEntriesWidgetDto, PlaceWidgetDto } from "../types/DashboardDto";
 import { ExpandableOptionFields } from "./ExpandableOptionFields";
 import { SourceViewSelect, ViewSelection } from "./SourceViewSelect";
+import { YAxisScaleOption } from "./YAxisScaleOption";
+import { AnalyticResultTypeEnum } from "../../analytics/enums/AnalyticResultTypeEnum";
 
 interface Props {
     /** Steps back to the widget type picker. */
@@ -59,6 +61,7 @@ export function PlaceFromLibraryForm({
     const [entriesColumnFieldIds, setEntriesColumnFieldIds] = useState<string[]>([]);
     const [expandable, setExpandable] = useState(false);
     const [mobileExpandable, setMobileExpandable] = useState(false);
+    const [yAxisFromZero, setYAxisFromZero] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
@@ -122,6 +125,7 @@ export function PlaceFromLibraryForm({
                     widgetId: selectedWidget.id,
                     expandable,
                     mobileExpandable,
+                    yAxisFromZero: isLineChartWidget ? yAxisFromZero : undefined,
                     sourceOverrides: selectedWidget.sources.map((source) => {
                         const override = sourceOverrides[source.id];
                         return {
@@ -159,6 +163,9 @@ export function PlaceFromLibraryForm({
             })),
         },
     ];
+
+    const isLineChartWidget =
+        selectedWidget?.resultType === AnalyticResultTypeEnum.LineChart;
 
     const hasNothingInLibrary =
         !isLoadingLibrary && filteredWidgets.length === 0 && filteredEntriesWidgets.length === 0;
@@ -255,6 +262,13 @@ export function PlaceFromLibraryForm({
                     onChange={setEntriesColumnFieldIds}
                     searchable
                     clearable
+                />
+            )}
+
+            {isLineChartWidget && (
+                <YAxisScaleOption
+                    yAxisFromZero={yAxisFromZero}
+                    onChange={setYAxisFromZero}
                 />
             )}
 

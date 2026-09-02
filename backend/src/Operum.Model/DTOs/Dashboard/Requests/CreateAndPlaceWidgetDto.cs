@@ -51,6 +51,10 @@ namespace Operum.Model.DTOs.Dashboard.Requests
         public bool Expandable { get; set; }
         public bool MobileExpandable { get; set; }
 
+        // Line chart widgets only: whether the y-axis is anchored at zero (the default) or
+        // fitted to the data's own range. Ignored for every other chart type.
+        public bool YAxisFromZero { get; set; } = true;
+
         [Required, MinLength(1)]
         public List<CreateAndPlaceWidgetSourceDto> Sources { get; set; } = [];
     }

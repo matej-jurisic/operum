@@ -30,6 +30,10 @@ namespace Operum.Model.DTOs.Dashboard.Requests
         public bool Expandable { get; set; }
         public bool MobileExpandable { get; set; }
 
+        // Line chart widgets only: whether the y-axis is anchored at zero or fitted to the
+        // data's own range. Ignored for every other chart type.
+        public bool YAxisFromZero { get; set; } = true;
+
         // Every source of the item, named once each: the payload is the whole widget, so a
         // label or a view left out means "cleared" rather than "unchanged", the same way an
         // entry's payload is the whole entry.
