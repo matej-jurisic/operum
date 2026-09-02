@@ -55,10 +55,9 @@ namespace Operum.Service.Services.Widgets
             if (!AnalyticDefinitionList.IsValidForType(dto.ResultType, dto.Code))
                 return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("code for this result type"));
 
-            // Combining sources into one chart only has a merge path for line/bar results --
-            // the same restriction DashboardService.AddDashboardItem applies to an inline
-            // dashboard chart today.
-            if (dto.Sources.Count > 1 && dto.ResultType != AnalyticTypes.LineChart && dto.ResultType != AnalyticTypes.BarChart)
+            // Only some result types have a merge path for combining more than one tracker:
+            // line/bar into a Composed chart, calendar into one shared set of events.
+            if (dto.Sources.Count > 1 && !AnalyticTypes.SupportsMultipleSources(dto.ResultType))
                 return Result.Failure(ResultStatusCodes.BadRequest, Messages.NotAllowed("combining this widget with another tracker"));
 
             var sources = new List<WidgetSource>();

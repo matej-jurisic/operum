@@ -329,7 +329,9 @@ namespace Operum.Service.Services.Dashboards
                 // once there's more than one source to merge into a shared chart.
                 var itemResult = resolvedSources.Count == 1
                     ? resolvedSources[0].Result
-                    : BuildComposedResult(resolvedSources, item.Widget.MatchedValuesOnly);
+                    : item.Widget.ResultType == AnalyticTypes.Calendar
+                        ? MergeCalendarResults(resolvedSources)
+                        : BuildComposedResult(resolvedSources, item.Widget.MatchedValuesOnly);
 
                 // A single source placed with a label override reads on the board under that
                 // name; otherwise the widget's own name -- editable from the Library, shared
@@ -1618,6 +1620,44 @@ namespace Operum.Service.Services.Dashboards
 
             if (shared.Count == 0)
                 composed.Warnings.Add("No x-axis value appears in every source, so nothing is left to show with matched values only.");
+        }
+
+        // A calendar has no shared axis to reconcile: merging trackers is just a union of
+        // their dated events. Each point keeps the colour of the tracker it came from and a
+        // source name (the placement's label override, else the tracker's own name) so the
+        // card can tell the sources apart. The when/what fields are taken from the first
+        // source purely to format event dates in the card (every calendar "When" field is a
+        // date or datetime).
+        private static CalendarAnalyticDto MergeCalendarResults(List<ResolvedSource> resolvedSources)
+        {
+            var calendars = resolvedSources
+                .Where(r => r.Result is CalendarAnalyticDto)
+                .Select(r => (Resolved: r, Calendar: (CalendarAnalyticDto)r.Result))
+                .ToList();
+
+            var merged = new CalendarAnalyticDto();
+
+            var first = calendars.FirstOrDefault(c => c.Calendar.WhenField != null && c.Calendar.WhatField != null);
+            if (first.Calendar != null)
+            {
+                merged.WhenField = first.Calendar.WhenField;
+                merged.WhatField = first.Calendar.WhatField;
+            }
+
+            merged.Points = calendars
+                .SelectMany(c => c.Calendar.Points.Select(p => new CalendarPointDto
+                {
+                    EntryId = p.EntryId,
+                    Date = p.Date,
+                    Name = p.Name,
+                    TrackerName = string.IsNullOrWhiteSpace(c.Resolved.Source.Label)
+                        ? c.Resolved.TrackerName
+                        : c.Resolved.Source.Label,
+                    Color = c.Resolved.TrackerColor
+                }))
+                .ToList();
+
+            return merged;
         }
 
         private static DashboardDto MapToDto(Dashboard d) => new()

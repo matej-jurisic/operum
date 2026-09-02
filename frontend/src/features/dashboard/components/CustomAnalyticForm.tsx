@@ -47,18 +47,20 @@ interface TrackerRow {
     views: ViewDto[];
 }
 
-// Only line/bar analytics can be combined into one chart across trackers — everything
-// else (scatter/single-value/donut/calendar) has no shared points shape to merge.
+// Result types that can read from more than one tracker. Line/bar merge onto a shared
+// axis; a calendar just unions its dated events. Scatter/single-value/donut have no
+// merge path.
 const COMBINABLE_TYPES: string[] = [
     AnalyticResultTypeEnum.LineChart,
     AnalyticResultTypeEnum.BarChart,
+    AnalyticResultTypeEnum.Calendar,
 ];
 
 // Mirrors DataLimits.MaxDashboardItemSourceCount on the backend.
 const MAX_TRACKERS = 5;
 
 // The purpose whose field ends up on the shared x-axis of a combined chart, per chart
-// type. Only the combinable types need one.
+// type. Only the types drawn on one shared axis have one; a combined calendar does not.
 const X_AXIS_PURPOSE: Record<string, string> = {
     [AnalyticResultTypeEnum.LineChart]: "X-axis",
     [AnalyticResultTypeEnum.BarChart]: "Name",
@@ -209,7 +211,8 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
             name: name.trim() || undefined,
             resultType: resultType!,
             code: code!,
-            matchedValuesOnly: rows.length > 1 && matchedValuesOnly,
+            matchedValuesOnly:
+                rows.length > 1 && !!xAxisPurpose && matchedValuesOnly,
             yAxisFromZero: isLineChart ? yAxisFromZero : undefined,
             expandable,
             mobileExpandable,
@@ -329,7 +332,7 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
                 );
             })}
 
-            {rows.length > 1 && (
+            {rows.length > 1 && xAxisPurpose && (
                 <Checkbox
                     label="Show only matched values"
                     description="Plot only the x-axis values every tracker has data for, so the series cover the same range."

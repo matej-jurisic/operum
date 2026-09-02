@@ -70,7 +70,8 @@ const renderDonutLabel = ({ x, y, cx, percent }: DonutLabelProps) => {
 };
 
 const renderDonutLabelLine = ({ points, percent }: DonutLabelProps) => {
-    if ((percent ?? 0) < MIN_LABEL_SHARE || !points) return null;
+    // recharts' labelLine prop must return an element, so a dropped line is an empty group.
+    if ((percent ?? 0) < MIN_LABEL_SHARE || !points) return <g />;
     return (
         <polyline
             points={points.map((p) => `${p.x},${p.y}`).join(" ")}

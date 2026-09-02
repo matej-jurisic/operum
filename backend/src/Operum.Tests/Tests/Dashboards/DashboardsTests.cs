@@ -35,9 +35,9 @@ namespace Operum.Tests.Tests.Dashboards
         // a date and a number (a line chart's X/Y) and a string (a bar chart's category,
         // or a line chart X of a different data type). Deliberately has no analytic of its
         // own — a dashboard item never reuses one.
-        private static async Task<CapableTracker> CreateCapableTracker(HttpClient client, string name)
+        private static async Task<CapableTracker> CreateCapableTracker(HttpClient client, string name, string? color = null)
         {
-            var tracker = await Data(await client.PostAsJsonAsync("trackers", new CreateTrackerDto { Name = name }));
+            var tracker = await Data(await client.PostAsJsonAsync("trackers", new CreateTrackerDto { Name = name, Color = color }));
             var trackerId = tracker.GetProperty("id").GetString()!;
 
             var dayField = await Data(await client.PostAsJsonAsync($"trackers/{trackerId}/fields",
@@ -85,6 +85,17 @@ namespace Operum.Tests.Tests.Dashboards
         {
             TrackerId = tracker.Id,
             AnalyticFields = [new CreateAnalyticFieldDto { FieldId = tracker.CategoryFieldId, Purpose = AnalyticPurposes.Name }]
+        };
+
+        // The calendar source for a tracker: Day is the event date, Category its label.
+        private static CreateAndPlaceWidgetSourceDto CalendarSource(CapableTracker tracker) => new()
+        {
+            TrackerId = tracker.Id,
+            AnalyticFields =
+            [
+                new CreateAnalyticFieldDto { FieldId = tracker.DayFieldId, Purpose = AnalyticPurposes.When },
+                new CreateAnalyticFieldDto { FieldId = tracker.CategoryFieldId, Purpose = AnalyticPurposes.What }
+            ]
         };
 
         private static async Task<string> CreateDashboard(HttpClient client)
@@ -210,6 +221,41 @@ namespace Operum.Tests.Tests.Dashboards
             // One definition for both sources, and both plot a date on the x-axis, so there
             // is nothing left to warn about.
             Assert.Equal(0, combined.GetProperty("warnings").GetArrayLength());
+        }
+
+        [Fact]
+        public async Task CreateAndPlaceWidget_TwoCalendarSources_MergesEventsTaggedWithTracker()
+        {
+            var client = _factory.CreateClientWithCookies();
+            await _factory.SeedDatabaseAsync();
+            await client.Authenticate(DefaultUsers.TestUserData);
+
+            var workouts = await CreateCapableTracker(client, "Workouts", "blue");
+            var meals = await CreateCapableTracker(client, "Meals", "green");
+            var dashboardId = await CreateDashboard(client);
+
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
+            {
+                ResultType = AnalyticTypes.Calendar,
+                Code = AnalyticCodes.Calendar,
+                Sources = [CalendarSource(workouts), CalendarSource(meals)]
+            });
+            Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
+
+            var results = await Widgets(client, dashboardId);
+
+            Assert.Equal(1, results.GetArrayLength());
+            var merged = Analytic(results[0]);
+            Assert.Equal(AnalyticTypes.Calendar, merged.GetProperty("resultType").GetString());
+
+            var points = merged.GetProperty("points").EnumerateArray().ToList();
+            Assert.Equal(2, points.Count);
+
+            var trackerNames = points.Select(p => p.GetProperty("trackerName").GetString()).ToHashSet();
+            Assert.Equal(new HashSet<string?> { "Workouts", "Meals" }, trackerNames);
+
+            var colors = points.Select(p => p.GetProperty("color").GetString()).ToHashSet();
+            Assert.Equal(new HashSet<string?> { "blue", "green" }, colors);
         }
 
         // Sharing a definition still leaves one thing sources can disagree on: the data type

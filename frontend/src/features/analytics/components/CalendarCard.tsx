@@ -73,6 +73,32 @@ export function CalendarCard({
     const selectedDateKey = selectedDate ? getDateKey(selectedDate) : "";
     const eventsForSelectedDate = events.get(selectedDateKey) || [];
 
+    // Distinct trackers behind the events, in first-seen order. Only populated when the
+    // calendar merges more than one tracker; drives the legend and per-event colouring.
+    const sources = useMemo(() => {
+        const byName = new Map<string, string | undefined>();
+        analytic.points.forEach((event) => {
+            if (event.trackerName && !byName.has(event.trackerName)) {
+                byName.set(event.trackerName, event.color);
+            }
+        });
+        return [...byName].map(([name, color]) => ({ name, color }));
+    }, [analytic.points]);
+
+    const isMultiSource = sources.length > 1;
+
+    // Up to three distinct dot colours for a day, so a day with events from several
+    // trackers shows each tracker's colour.
+    const dayColors = (dayEvents: typeof analytic.points): string[] => {
+        const seen: string[] = [];
+        for (const event of dayEvents) {
+            const c = event.color || color || "blue";
+            if (!seen.includes(c)) seen.push(c);
+            if (seen.length === 3) break;
+        }
+        return seen;
+    };
+
     return (
         <Paper
             ref={layout.ref}
@@ -93,15 +119,37 @@ export function CalendarCard({
                 />
 
                 {!selectedDate ? (
-                    <Group
+                    <Stack
+                        gap="xs"
                         w={"100%"}
-                        justify="center"
+                        align="center"
                         h={chartHeight(fillHeight)}
                         style={{
                             ...cardBodyProps(fillHeight).style,
                             overflow: "auto",
                         }}
                     >
+                        {isMultiSource && (
+                            <Group gap="sm" justify="center" wrap="wrap">
+                                {sources.map((source) => (
+                                    <Group key={source.name} gap={4} wrap="nowrap">
+                                        <div
+                                            style={{
+                                                width: 8,
+                                                height: 8,
+                                                borderRadius: "50%",
+                                                backgroundColor: `var(--mantine-color-${
+                                                    source.color || color || "blue"
+                                                }-6)`,
+                                            }}
+                                        />
+                                        <Text size="xs" c="dimmed">
+                                            {source.name}
+                                        </Text>
+                                    </Group>
+                                ))}
+                            </Group>
+                        )}
                         <Calendar
                             date={viewDate}
                             onDateChange={(date) => setViewDate(new Date(date))}
@@ -117,22 +165,63 @@ export function CalendarCard({
                             renderDay={(date) => {
                                 const dateObj = new Date(date);
                                 const dateKey = getDateKey(dateObj);
-                                const hasEvents = events.has(dateKey);
+                                const dayEvents = events.get(dateKey) || [];
                                 const day = dateObj.getDate();
+
+                                if (isMultiSource) {
+                                    const colors = dayColors(dayEvents);
+                                    return (
+                                        <div
+                                            style={{
+                                                position: "relative",
+                                                width: "100%",
+                                                height: "100%",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                            }}
+                                        >
+                                            {day}
+                                            <Group
+                                                gap={2}
+                                                justify="center"
+                                                wrap="nowrap"
+                                                style={{
+                                                    position: "absolute",
+                                                    bottom: 1,
+                                                    left: 0,
+                                                    right: 0,
+                                                }}
+                                            >
+                                                {colors.map((c, i) => (
+                                                    <div
+                                                        key={i}
+                                                        style={{
+                                                            width: 4,
+                                                            height: 4,
+                                                            borderRadius: "50%",
+                                                            backgroundColor: `var(--mantine-color-${c}-6)`,
+                                                        }}
+                                                    />
+                                                ))}
+                                            </Group>
+                                        </div>
+                                    );
+                                }
 
                                 return (
                                     <Indicator
                                         size={9}
                                         color={color || "blue"}
                                         offset={-2}
-                                        disabled={!hasEvents}
+                                        disabled={dayEvents.length === 0}
                                     >
                                         <div>{day}</div>
                                     </Indicator>
                                 );
                             }}
                         />
-                    </Group>
+                    </Stack>
                 ) : (
                     <Stack
                         gap="xs"
@@ -166,7 +255,9 @@ export function CalendarCard({
                                                 style={{
                                                     borderRadius: "6px",
                                                     borderLeft: `3px solid var(--mantine-color-${
-                                                        color || "blue"
+                                                        event.color ||
+                                                        color ||
+                                                        "blue"
                                                     }-6)`,
                                                 }}
                                             >
@@ -191,6 +282,9 @@ export function CalendarCard({
                                                                     .type,
                                                                 event.date,
                                                             )}
+                                                            {event.trackerName
+                                                                ? ` · ${event.trackerName}`
+                                                                : ""}
                                                         </Text>
                                                     </Stack>
                                                     {onEntryClick && (

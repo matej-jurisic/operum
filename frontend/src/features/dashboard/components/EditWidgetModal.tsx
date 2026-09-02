@@ -49,6 +49,7 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
     const [expandable, setExpandable] = useState(false);
     const [mobileExpandable, setMobileExpandable] = useState(false);
     const [isLineChart, setIsLineChart] = useState(false);
+    const [isCalendar, setIsCalendar] = useState(false);
     const [yAxisFromZero, setYAxisFromZero] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -88,6 +89,7 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
             setExpandable(item.layout.expandable);
             setMobileExpandable(item.mobileLayout.expandable);
             setIsLineChart(item.resultType === AnalyticResultTypeEnum.LineChart);
+            setIsCalendar(item.resultType === AnalyticResultTypeEnum.Calendar);
             setYAxisFromZero(item.yAxisFromZero);
         };
 
@@ -138,9 +140,19 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
                     {rows.map((row, index) => {
                         const nameInput = (
                             <TextInput
-                                label={isCombined ? "Series name" : "Name"}
+                                label={
+                                    isCombined
+                                        ? isCalendar
+                                            ? "Source name"
+                                            : "Series name"
+                                        : "Name"
+                                }
                                 description={
-                                    isCombined ? "Names this series in the chart's legend" : undefined
+                                    isCombined
+                                        ? isCalendar
+                                            ? "Names this tracker in the calendar's legend"
+                                            : "Names this series in the chart's legend"
+                                        : undefined
                                 }
                                 placeholder={row.source.name}
                                 maxLength={100}

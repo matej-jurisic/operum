@@ -21,5 +21,12 @@
         ];
 
         public static bool IsValid(string op) => All.Contains(op);
+
+        // Result types that have a merge path for combining more than one tracker source
+        // into a single widget. Line and bar merge into a Composed chart; a calendar just
+        // unions its dated events.
+        private static readonly HashSet<string> MultiSourceTypes = [LineChart, BarChart, Calendar];
+
+        public static bool SupportsMultipleSources(string resultType) => MultiSourceTypes.Contains(resultType);
     }
 }

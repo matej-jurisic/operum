@@ -43,7 +43,14 @@ export interface ScatterChartAnalyticDto extends AnalyticDto {
 export interface CalendarAnalyticDto extends AnalyticDto {
     whenField: FieldDto;
     whatField: FieldDto;
-    points: { date: string; name: string; entryId: string }[];
+    points: {
+        date: string;
+        name: string;
+        entryId: string;
+        /** Set only when the calendar merges more than one tracker. */
+        trackerName?: string;
+        color?: string;
+    }[];
 }
 
 export interface BarChartAnalyticDto extends AnalyticDto {

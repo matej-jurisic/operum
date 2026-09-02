@@ -15,7 +15,9 @@ import {
     ScatterChartAnalyticDto,
 } from "../types/AnalyticDto";
 
-export const getAxisFormatter = (fieldType: string | undefined) => {
+export const getAxisFormatter = (
+    fieldType: string | undefined,
+): ((value: any) => string) => {
     if (fieldType === FieldTypes.TimeSpan) return formatMinutesToTime;
     if (fieldType === FieldTypes.Bool) return formatBoolean;
     if (fieldType === FieldTypes.DateTime) return formatDateTime;

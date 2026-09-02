@@ -167,6 +167,13 @@ export function PlaceFromLibraryForm({
     const isLineChartWidget =
         selectedWidget?.resultType === AnalyticResultTypeEnum.LineChart;
 
+    // A combined chart labels each source as a series; a combined calendar labels it as a
+    // source in the legend.
+    const sourceNameLabel =
+        selectedWidget?.resultType === AnalyticResultTypeEnum.Calendar
+            ? "Source name"
+            : "Series name";
+
     const hasNothingInLibrary =
         !isLoadingLibrary && filteredWidgets.length === 0 && filteredEntriesWidgets.length === 0;
 
@@ -223,7 +230,7 @@ export function PlaceFromLibraryForm({
                                 </Text>
                                 <TextInput
                                     label={
-                                        selectedWidget.sources.length > 1 ? "Series name" : "Name"
+                                        selectedWidget.sources.length > 1 ? sourceNameLabel : "Name"
                                     }
                                     placeholder={source.name}
                                     maxLength={100}
