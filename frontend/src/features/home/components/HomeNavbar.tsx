@@ -11,8 +11,9 @@ import Header from "../../../shared/components/Header";
 
 const NAV_LINKS = [
     { label: "Features", id: "features" },
-    { label: "Data Types", id: "data-types" },
+    { label: "Dashboards", id: "dashboards" },
     { label: "Analytics", id: "analytics" },
+    { label: "Integrations", id: "integrations" },
     { label: "Collaboration", id: "collaboration" },
 ];
 

@@ -54,6 +54,7 @@ export function FilterForm({
 }: Props) {
     const { dashboardId } = useDashboard();
     const [items, setItems] = useState<DashboardItemDto[]>([]);
+    const [itemsLoaded, setItemsLoaded] = useState(false);
     const [fieldsByTracker, setFieldsByTracker] = useState<Record<string, FieldDto[]>>(
         {},
     );
@@ -69,10 +70,26 @@ export function FilterForm({
     useEffect(() => {
         dashboardController.getDashboard(dashboardId).then((res) => {
             setItems(res.data?.items ?? []);
+            setItemsLoaded(true);
         });
     }, [dashboardId]);
 
     const candidates = useMemo(() => candidatesFor(items), [items]);
+
+    // Drop links to widgets that no longer exist on the board, or are no longer an
+    // Analytic/Entries widget the filter can narrow. The "Followed by" checklist only
+    // renders current candidates, so an orphaned link has no checkbox to clear it and
+    // would otherwise ride along on every save and get rejected by the backend.
+    useEffect(() => {
+        if (!itemsLoaded) return;
+        const offerable = new Set(candidates.map((c) => `${c.itemId}:${c.trackerId}`));
+        setLinks((cur) => {
+            const pruned = cur.filter((l) =>
+                offerable.has(`${l.itemId}:${l.trackerId}`),
+            );
+            return pruned.length === cur.length ? cur : pruned;
+        });
+    }, [itemsLoaded, candidates]);
 
     useEffect(() => {
         const trackerIds = [...new Set(candidates.map((c) => c.trackerId))];

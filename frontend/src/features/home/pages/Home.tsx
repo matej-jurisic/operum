@@ -22,7 +22,9 @@ import {
 import { observer } from "mobx-react";
 import { useState } from "react";
 import {
+    TbAdjustmentsHorizontal,
     TbAlphabetLatin,
+    TbArrowsJoin,
     TbBarbell,
     TbBook,
     TbCalendar,
@@ -30,22 +32,27 @@ import {
     TbChartBar,
     TbCheckbox,
     TbClock,
-    TbCopy,
     TbCrown,
     TbDatabase,
     TbDeviceGamepad,
     TbEdit,
     TbEye,
-    TbFileExport,
     TbFilter,
     TbHash,
+    TbHeading,
+    TbLayoutDashboard,
     TbLayoutGrid,
     TbMicroscope,
     TbMovie,
+    TbPlug,
+    TbPlus,
+    TbRefresh,
+    TbTable,
     TbToggleRight,
     TbUsers,
     TbVariable,
     TbWallet,
+    TbWebhook,
 } from "react-icons/tb";
 import { Link, useNavigate } from "react-router-dom";
 import AuthDialog from "../../auth/components/AuthDialog";
@@ -128,32 +135,32 @@ const FEATURES = [
             "Named reusable values with up to 6 conditional variants. Perfect for dynamic rates.",
     },
     {
-        icon: <TbFileExport size={22} />,
-        color: "teal",
-        title: "Import / Export",
-        description:
-            "Bulk-import entries from CSV and export your data anytime in a structured format.",
-    },
-    {
         icon: <TbFilter size={22} />,
-        color: "green",
+        color: "teal",
         title: "Saved Views",
         description:
-            "Persist filter and sort combinations. Dynamic dates like 'start of month' resolve at query time.",
+            "Persist filter, sort, and column combinations. Dynamic dates like 'start of month' resolve at query time.",
     },
     {
-        icon: <TbCopy size={22} />,
-        color: "grape",
-        title: "Templates",
+        icon: <TbLayoutDashboard size={22} />,
+        color: "green",
+        title: "Dashboards",
         description:
-            "Publish tracker structures as templates so others can copy and customize them instantly.",
+            "Arrange charts, tables, and quick-add buttons on boards. Separate desktop and mobile layouts.",
     },
     {
         icon: <TbChartBar size={22} />,
         color: "orange",
         title: "Analytics",
         description:
-            "25 chart variants across 6 chart types. Scope any chart to a view for filtered insights.",
+            "29 chart variants across 6 chart types. Combine trackers on one axis or scope a chart to a view.",
+    },
+    {
+        icon: <TbPlug size={22} />,
+        color: "grape",
+        title: "Integrations",
+        description:
+            "Pull data from intervals.icu and Firefly III straight onto tracker fields you map.",
     },
     {
         icon: <TbUsers size={22} />,
@@ -249,6 +256,75 @@ const ANALYTICS_CHARTS = [
     { title: "Correlation", subtitle: "Find relationships between fields" },
 ];
 
+const WIDGET_TYPES = [
+    {
+        icon: <TbChartBar size={20} />,
+        color: "indigo",
+        label: "Charts",
+        description:
+            "Any chart from the Widget Library, built once and placed on as many boards as you want.",
+    },
+    {
+        icon: <TbTable size={20} />,
+        color: "blue",
+        label: "Entries tables",
+        description:
+            "A tracker's most recent rows with the columns you choose.",
+    },
+    {
+        icon: <TbPlus size={20} />,
+        color: "teal",
+        label: "Quick-add buttons",
+        description:
+            "Open a tracker's quick-add entry dialog straight from the board.",
+    },
+    {
+        icon: <TbAdjustmentsHorizontal size={20} />,
+        color: "green",
+        label: "Filters",
+        description:
+            "Live controls that narrow the charts and tables set to follow them.",
+    },
+    {
+        icon: <TbHeading size={20} />,
+        color: "grape",
+        label: "Headers and notes",
+        description: "Section titles, dividers, and free-form text.",
+    },
+    {
+        icon: <TbArrowsJoin size={20} />,
+        color: "orange",
+        label: "Combined charts",
+        description:
+            "Line and bar charts that draw several trackers on one shared axis.",
+    },
+];
+
+const PROVIDERS = [
+    {
+        icon: <TbRefresh size={22} />,
+        color: "blue",
+        title: "intervals.icu",
+        detail: "Pulled on a schedule with an API key.",
+        abilities: [
+            "Daily wellness snapshots",
+            "Activities",
+            "Fans in Garmin, Strava, Wahoo, and more",
+        ],
+    },
+    {
+        icon: <TbWebhook size={22} />,
+        color: "teal",
+        title: "Firefly III",
+        detail: "Pushed by webhook from your self-hosted instance.",
+        abilities: [
+            "Transactions as they happen",
+            "Signed deliveries with a rotatable secret",
+            "Point it at your own instance URL",
+        ],
+    },
+];
+
 const COLLAB_ROLES = [
     {
         icon: <TbEye size={22} />,
@@ -276,7 +352,7 @@ const COLLAB_ROLES = [
         title: "Edit Schema",
         abilities: [
             "Create and edit fields",
-            "Manage views and analytics",
+            "Manage views and constants",
             "Cannot manage collaborators",
         ],
     },
@@ -457,8 +533,9 @@ const Home = observer(() => {
                                     lh={1.6}
                                 >
                                     Define custom schemas, log entries, build
-                                    saved views, and visualize your data
-                                    without writing a single line of code.
+                                    saved views, and assemble dashboards that
+                                    visualize your data, without writing a
+                                    single line of code.
                                 </Text>
 
                                 <CtaButtons onAuthOpen={setAuthTab} />
@@ -472,8 +549,8 @@ const Home = observer(() => {
                                             label: "Data Types",
                                         },
                                         {
-                                            value: "25",
-                                            label: "Analytic Variants",
+                                            value: "29",
+                                            label: "Chart Variants",
                                         },
                                         {
                                             value: "∞",
@@ -689,14 +766,63 @@ const Home = observer(() => {
                         </Container>
                     </Box>
 
+                    {/* ── Dashboards ────────────────────────────────────── */}
+                    <Box id="dashboards" style={{ scrollMarginTop: "60px" }}>
+                        <Container size="lg" py={80}>
+                            <Stack gap={48}>
+                                <SectionHeader
+                                    eyebrow="Dashboards"
+                                    title="Put it all on one board"
+                                    subtitle="Drag widgets into place on any number of boards. Desktop and mobile layouts are kept separately."
+                                    primaryColor={theme.primaryColor}
+                                />
+                                <Grid>
+                                    {WIDGET_TYPES.map((w) => (
+                                        <Grid.Col
+                                            key={w.label}
+                                            span={{ base: 6, sm: 6, md: 4 }}
+                                        >
+                                            <Card
+                                                withBorder
+                                                radius="md"
+                                                p="lg"
+                                                h="100%"
+                                            >
+                                                <Group gap="md" mb="xs">
+                                                    <ThemeIcon
+                                                        size={36}
+                                                        radius="md"
+                                                        variant="light"
+                                                        color={w.color}
+                                                    >
+                                                        {w.icon}
+                                                    </ThemeIcon>
+                                                    <Text fw={600} size="sm">
+                                                        {w.label}
+                                                    </Text>
+                                                </Group>
+                                                <Text size="xs" c="dimmed" lh={1.5}>
+                                                    {w.description}
+                                                </Text>
+                                            </Card>
+                                        </Grid.Col>
+                                    ))}
+                                </Grid>
+                            </Stack>
+                        </Container>
+                    </Box>
+
                     {/* ── Analytics ─────────────────────────────────────── */}
-                    <Box id="analytics" style={{ scrollMarginTop: "60px" }}>
+                    <Box
+                        id="analytics"
+                        style={{ background: altBg, scrollMarginTop: "60px" }}
+                    >
                         <Container size="lg" py={80}>
                             <Stack gap={48}>
                                 <SectionHeader
                                     eyebrow="Analytics"
-                                    title="25 ways to see your data"
-                                    subtitle="Six chart types, 25 variants. Scope any chart to a saved view for filtered insights."
+                                    title="29 ways to see your data"
+                                    subtitle="Six chart types, 29 variants. Combine trackers on one axis, or scope a chart to a saved view."
                                     primaryColor={theme.primaryColor}
                                 />
                                 <Grid>
@@ -823,6 +949,98 @@ const Home = observer(() => {
                                     </Grid.Col>
                                 </Grid>
                             </Stack>
+                        </Container>
+                    </Box>
+
+                    {/* ── Integrations ──────────────────────────────────── */}
+                    <Box id="integrations" style={{ scrollMarginTop: "60px" }}>
+                        <Container size="lg" py={80}>
+                            <Grid gutter={60} align="center">
+                                <Grid.Col span={{ base: 12, md: 5 }}>
+                                    <Stack gap="lg">
+                                        <div>
+                                            <Text
+                                                size="sm"
+                                                fw={700}
+                                                tt="uppercase"
+                                                c={theme.primaryColor}
+                                                style={{
+                                                    letterSpacing: "0.08em",
+                                                }}
+                                                mb={8}
+                                            >
+                                                Integrations
+                                            </Text>
+                                            <Title order={2} mb="md">
+                                                Bring data in automatically
+                                            </Title>
+                                            <Text c="dimmed" lh={1.7}>
+                                                Connect a service and map its
+                                                values onto tracker fields.
+                                                Imports are read-only and update
+                                                rows in place instead of
+                                                duplicating them, and you can
+                                                re-import from any date to
+                                                backfill history. Stored
+                                                credentials are encrypted at
+                                                rest.
+                                            </Text>
+                                        </div>
+                                    </Stack>
+                                </Grid.Col>
+
+                                <Grid.Col span={{ base: 12, md: 7 }}>
+                                    <SimpleGrid
+                                        cols={{ base: 1, sm: 2 }}
+                                        spacing="md"
+                                    >
+                                        {PROVIDERS.map((p) => (
+                                            <Card
+                                                key={p.title}
+                                                withBorder
+                                                radius="md"
+                                                p="lg"
+                                                h="100%"
+                                                style={{
+                                                    borderTop: `3px solid var(--mantine-color-${p.color}-5)`,
+                                                }}
+                                            >
+                                                <Stack gap="sm">
+                                                    <ThemeIcon
+                                                        size={44}
+                                                        radius="md"
+                                                        variant="light"
+                                                        color={p.color}
+                                                    >
+                                                        {p.icon}
+                                                    </ThemeIcon>
+                                                    <Text fw={600} size="sm">
+                                                        {p.title}
+                                                    </Text>
+                                                    <Text
+                                                        size="xs"
+                                                        c="dimmed"
+                                                        lh={1.5}
+                                                    >
+                                                        {p.detail}
+                                                    </Text>
+                                                    <List
+                                                        size="xs"
+                                                        c="dimmed"
+                                                        spacing={4}
+                                                    >
+                                                        {p.abilities.map((a) => (
+                                                            <List.Item key={a}>
+                                                                {a}
+                                                            </List.Item>
+                                                        ))}
+                                                    </List>
+                                                </Stack>
+                                            </Card>
+                                        ))}
+                                    </SimpleGrid>
+                                </Grid.Col>
+                            </Grid>
                         </Container>
                     </Box>
 
