@@ -444,6 +444,10 @@ export default function ViewFormDialog({
                                                             {...form.getInputProps(
                                                                 `clauses.${index}.operator`,
                                                             )}
+                                                            value={
+                                                                row.operator ||
+                                                                null
+                                                            }
                                                         />
                                                     ) : (
                                                         <SegmentedControl

@@ -49,10 +49,32 @@ export function DonutChartCard({
     const layout = useCardLayout(fillHeight);
     const plot = useElementSize<HTMLDivElement>();
 
-    const { positivePoints, excludedPoints } = useMemo(() => {
+    const { positivePoints, excludedPoints, isAbsolute } = useMemo(() => {
         const positive = analytic.points.filter((x) => (x.value ?? 0) > 0);
+        const negative = analytic.points.filter((x) => (x.value ?? 0) < 0);
+
+        // Firefly-style data stores outflows as negative numbers, which would leave a
+        // "sum per category" ring with nothing to draw. When every category is
+        // non-positive and at least one is negative, show magnitudes instead. Mixed
+        // signs keep the plain split: a share-of-whole reading means nothing when some
+        // categories are inflows and others outflows.
+        if (positive.length === 0 && negative.length > 0) {
+            return {
+                positivePoints: negative.map((x) => ({
+                    ...x,
+                    value: Math.abs(x.value ?? 0),
+                })),
+                excludedPoints: analytic.points.filter((x) => (x.value ?? 0) === 0),
+                isAbsolute: true,
+            };
+        }
+
         const excluded = analytic.points.filter((x) => (x.value ?? 0) <= 0);
-        return { positivePoints: positive, excludedPoints: excluded };
+        return {
+            positivePoints: positive,
+            excludedPoints: excluded,
+            isAbsolute: false,
+        };
     }, [analytic.points]);
 
     const coloredPoints = useMemo(() => {
@@ -121,6 +143,11 @@ export function DonutChartCard({
                         ...(fillHeight ? { flex: 1, minHeight: 0 } : {}),
                     }}
                 >
+                    {isAbsolute && (
+                        <Text size="xs" c="dimmed" lineClamp={1}>
+                            Showing absolute values.
+                        </Text>
+                    )}
                     {/* The note is what a small widget can least afford, and the ring is
                         what it is there for: on one the count alone has to carry it. */}
                     {excludedPoints.length > 0 && (
@@ -143,7 +170,11 @@ export function DonutChartCard({
                                           excludedPoints.length === 1
                                               ? "y"
                                               : "ies"
-                                      } not shown (zero or negative value)`}
+                                      } not shown (${
+                                          isAbsolute
+                                              ? "zero value"
+                                              : "zero or negative value"
+                                      })`}
                             </Text>
                         </Tooltip>
                     )}

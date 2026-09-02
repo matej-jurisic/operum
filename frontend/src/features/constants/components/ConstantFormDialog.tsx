@@ -529,6 +529,10 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                                                                         {...form.getInputProps(
                                                                             `values.${vi}.filters.${fi}.operator`,
                                                                         )}
+                                                                        value={
+                                                                            f.operator ||
+                                                                            null
+                                                                        }
                                                                     />
                                                                 </Group>
                                                                 <Group

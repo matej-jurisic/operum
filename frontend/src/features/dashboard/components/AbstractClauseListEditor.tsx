@@ -236,6 +236,7 @@ export default function AbstractClauseListEditor({
                                         {...form.getInputProps(
                                             `${path}.${index}.operator`,
                                         )}
+                                        value={row.operator || null}
                                     />
                                     <ActionIcon
                                         color="red"
@@ -322,6 +323,7 @@ export default function AbstractClauseListEditor({
                                             {...form.getInputProps(
                                                 `${path}.${index}.operator`,
                                             )}
+                                            value={row.operator || null}
                                         />
                                     ) : (
                                         <SegmentedControl

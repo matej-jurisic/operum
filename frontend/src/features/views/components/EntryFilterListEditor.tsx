@@ -164,6 +164,7 @@ export default function EntryFilterListEditor({
                                             {...form.getInputProps(
                                                 `${filtersPath}.${index}.operator`,
                                             )}
+                                            value={filter.operator || null}
                                         />
                                     </Group>
                                     <Group
