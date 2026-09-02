@@ -93,7 +93,6 @@ const AppLayout = observer(() => {
                 <AppSidebar
                     collapsed={!isMobile && collapsed}
                     showCollapseToggle={!isMobile}
-                    compactFooter={!!isMobile}
                     showBrand
                     onToggleCollapse={toggleCollapsed}
                     onNavigate={navigationStore.closeMobileNav}

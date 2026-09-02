@@ -70,10 +70,6 @@ import navigationStore from "../../stores/NavigationStore";
 interface Props {
     collapsed: boolean;
     showCollapseToggle: boolean;
-    // Collapses the theme/profile/admin/logout rows into a single account menu.
-    // On the mobile drawer, four stacked footer rows crowd out the tracker and
-    // dashboard lists that are the reason the drawer was opened.
-    compactFooter: boolean;
     // Shown everywhere the rail is expanded -- on desktop and in the mobile
     // drawer, which has no app header of its own to carry the wordmark.
     showBrand: boolean;
@@ -112,7 +108,6 @@ const AppSidebar = observer(
     ({
         collapsed,
         showCollapseToggle,
-        compactFooter,
         showBrand,
         onToggleCollapse,
         onNavigate,
@@ -352,70 +347,21 @@ const AppSidebar = observer(
 
                 <Divider my="xs" />
 
-                {/* Footer */}
+                {/* Footer: theme, integrations, profile, admin, and logout folded
+                    into one account menu so they cost a single row instead of
+                    five. */}
                 <Box px={px}>
-                    {compactFooter ? (
-                        <AccountMenu
-                            userName={globalStore.currentUser?.userName}
-                            colorScheme={colorScheme}
-                            isAdmin={isAdmin}
-                            onToggleColorScheme={toggleColorScheme}
-                            onIntegrations={() => go("/integrations")}
-                            onProfile={() => go("/profile")}
-                            onAdmin={() => go("/admin-panel")}
-                            onLogout={logout}
-                        />
-                    ) : (
-                        <>
-                            <NavItem
-                                collapsed={collapsed}
-                                label={
-                                    colorScheme === "dark"
-                                        ? "Light theme"
-                                        : "Dark theme"
-                                }
-                                icon={
-                                    colorScheme === "dark" ? (
-                                        <GoSun size={18} />
-                                    ) : (
-                                        <IoMoonOutline size={18} />
-                                    )
-                                }
-                                onClick={() => toggleColorScheme()}
-                            />
-                            {areIntegrationsEnabled && (
-                                <NavItem
-                                    collapsed={collapsed}
-                                    label="Integrations"
-                                    icon={<TbPlug size={18} />}
-                                    active={pathname === "/integrations"}
-                                    onClick={() => go("/integrations")}
-                                />
-                            )}
-                            <NavItem
-                                collapsed={collapsed}
-                                label="Profile"
-                                icon={<TbUser size={18} />}
-                                active={pathname === "/profile"}
-                                onClick={() => go("/profile")}
-                            />
-                            {isAdmin && (
-                                <NavItem
-                                    collapsed={collapsed}
-                                    label="Admin panel"
-                                    icon={<TbSettings size={18} />}
-                                    active={isRouteActive("/admin-panel")}
-                                    onClick={() => go("/admin-panel")}
-                                />
-                            )}
-                            <NavItem
-                                collapsed={collapsed}
-                                label="Logout"
-                                icon={<TbLogout size={18} />}
-                                onClick={logout}
-                            />
-                        </>
-                    )}
+                    <AccountMenu
+                        collapsed={collapsed}
+                        userName={globalStore.currentUser?.userName}
+                        colorScheme={colorScheme}
+                        isAdmin={isAdmin}
+                        onToggleColorScheme={toggleColorScheme}
+                        onIntegrations={() => go("/integrations")}
+                        onProfile={() => go("/profile")}
+                        onAdmin={() => go("/admin-panel")}
+                        onLogout={logout}
+                    />
                 </Box>
             </Stack>
         );
@@ -427,10 +373,11 @@ export default AppSidebar;
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 /**
- * The footer's four utility rows folded into one. Used in the mobile drawer,
- * where stacked rows steal vertical space from the tracker/dashboard lists.
+ * The footer's utility rows (theme, integrations, profile, admin, logout) folded
+ * into one, so they cost a single row instead of five.
  */
 function AccountMenu({
+    collapsed,
     userName,
     colorScheme,
     isAdmin,
@@ -440,6 +387,7 @@ function AccountMenu({
     onAdmin,
     onLogout,
 }: {
+    collapsed: boolean;
     userName?: string;
     colorScheme: string;
     isAdmin: boolean;
@@ -450,27 +398,57 @@ function AccountMenu({
     onLogout: () => void;
 }) {
     return (
-        <Menu shadow="md" position="top-start" withinPortal width="target">
+        <Menu
+            shadow="md"
+            position={collapsed ? "right-end" : "top-start"}
+            withinPortal
+            width={collapsed ? undefined : "target"}
+        >
             <Menu.Target>
-                <UnstyledButton
-                    h={ROW_HEIGHT}
-                    px="xs"
-                    style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        width: "100%",
-                        borderRadius: "var(--mantine-radius-sm)",
-                    }}
-                >
-                    <Avatar size={ROW_ICON_BOX} radius="xl" color="gray">
-                        {userName?.[0]?.toUpperCase()}
-                    </Avatar>
-                    <Text size="md" truncate flex={1}>
-                        {userName ?? "Account"}
-                    </Text>
-                    <TbChevronRight size={16} />
-                </UnstyledButton>
+                {collapsed ? (
+                    <Group justify="center" align="center" h={ROW_HEIGHT}>
+                        <Tooltip
+                            label={userName ?? "Account"}
+                            position="right"
+                            withArrow
+                        >
+                            <ActionIcon
+                                size="lg"
+                                variant="subtle"
+                                color="gray"
+                                aria-label={userName ?? "Account"}
+                            >
+                                <Avatar
+                                    size={ROW_ICON_BOX}
+                                    radius="xl"
+                                    color="gray"
+                                >
+                                    {userName?.[0]?.toUpperCase()}
+                                </Avatar>
+                            </ActionIcon>
+                        </Tooltip>
+                    </Group>
+                ) : (
+                    <UnstyledButton
+                        h={ROW_HEIGHT}
+                        px="xs"
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            width: "100%",
+                            borderRadius: "var(--mantine-radius-sm)",
+                        }}
+                    >
+                        <Avatar size={ROW_ICON_BOX} radius="xl" color="gray">
+                            {userName?.[0]?.toUpperCase()}
+                        </Avatar>
+                        <Text size="md" truncate flex={1}>
+                            {userName ?? "Account"}
+                        </Text>
+                        <TbChevronRight size={16} />
+                    </UnstyledButton>
+                )}
             </Menu.Target>
             <Menu.Dropdown>
                 <Menu.Item

@@ -1,7 +1,8 @@
 import { DonutChart } from "@mantine/charts";
-import { Box, em, Paper, Stack, Text, Tooltip } from "@mantine/core";
-import { useElementSize, useMediaQuery } from "@mantine/hooks";
+import { ActionIcon, Box, em, Paper, Stack, Text, Tooltip } from "@mantine/core";
+import { useDisclosure, useElementSize, useMediaQuery } from "@mantine/hooks";
 import { useMemo } from "react";
+import { MdInfoOutline } from "react-icons/md";
 import { DonutChartAnaylticDto } from "../types/AnalyticDto";
 import { AnalyticCardHeader } from "./AnalyticCardHeader";
 import {
@@ -12,6 +13,7 @@ import {
     useCardLayout,
 } from "./cardSizing";
 import { createDonutTooltipContent } from "./ChartFormatters";
+import { DonutValuesModal } from "./DonutValuesModal";
 
 interface Props {
     analytic: DonutChartAnaylticDto;
@@ -34,8 +36,50 @@ const MIN_LABELLED_BOX = 200;
 const MIN_DONUT_SIZE = 60;
 const MAX_DONUT_SIZE = 400;
 
+// Below this share, a segment's label and leader line are dropped: the text is too
+// cramped to read and the lines cross each other. The segment is still drawn, and
+// hovering it shows the full value in the tooltip.
+const MIN_LABEL_SHARE = 0.03;
+
 const clamp = (value: number, min: number, max: number) =>
     Math.max(min, Math.min(max, value));
+
+interface DonutLabelProps {
+    x: number;
+    y: number;
+    cx: number;
+    percent?: number;
+    points?: { x: number; y: number }[];
+}
+
+// Mirrors Mantine's own percent label, but returns nothing under MIN_LABEL_SHARE.
+const renderDonutLabel = ({ x, y, cx, percent }: DonutLabelProps) => {
+    if ((percent ?? 0) < MIN_LABEL_SHARE) return null;
+    return (
+        <text
+            x={x}
+            y={y}
+            textAnchor={x > cx ? "start" : "end"}
+            fill="var(--chart-labels-color, var(--mantine-color-dimmed))"
+            fontFamily="var(--mantine-font-family)"
+            fontSize={12}
+        >
+            <tspan x={x}>{`${Math.round((percent ?? 0) * 100)}%`}</tspan>
+        </text>
+    );
+};
+
+const renderDonutLabelLine = ({ points, percent }: DonutLabelProps) => {
+    if ((percent ?? 0) < MIN_LABEL_SHARE || !points) return null;
+    return (
+        <polyline
+            points={points.map((p) => `${p.x},${p.y}`).join(" ")}
+            stroke="var(--chart-label-color, var(--mantine-color-dimmed))"
+            strokeWidth={1}
+            fill="none"
+        />
+    );
+};
 
 export function DonutChartCard({
     analytic,
@@ -48,6 +92,7 @@ export function DonutChartCard({
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
     const layout = useCardLayout(fillHeight);
     const plot = useElementSize<HTMLDivElement>();
+    const [valuesOpened, valuesModal] = useDisclosure(false);
 
     const { positivePoints, excludedPoints, isAbsolute } = useMemo(() => {
         const positive = analytic.points.filter((x) => (x.value ?? 0) > 0);
@@ -133,6 +178,20 @@ export function DonutChartCard({
                     analyticId={analytic.id}
                     onRemove={onRemove}
                     onEdit={onEdit}
+                    actions={
+                        <Tooltip label="Show values">
+                            <ActionIcon
+                                size="md"
+                                color={color}
+                                variant="subtle"
+                                style={{ pointerEvents: "auto" }}
+                                onClick={valuesModal.open}
+                                aria-label="Show values"
+                            >
+                                <MdInfoOutline size={18} />
+                            </ActionIcon>
+                        </Tooltip>
+                    }
                 />
                 <Box
                     h={chartHeight(fillHeight, isMobile)}
@@ -143,11 +202,6 @@ export function DonutChartCard({
                         ...(fillHeight ? { flex: 1, minHeight: 0 } : {}),
                     }}
                 >
-                    {isAbsolute && (
-                        <Text size="xs" c="dimmed" lineClamp={1}>
-                            Showing absolute values.
-                        </Text>
-                    )}
                     {/* The note is what a small widget can least afford, and the ring is
                         what it is there for: on one the count alone has to carry it. */}
                     {excludedPoints.length > 0 && (
@@ -193,6 +247,14 @@ export function DonutChartCard({
                             withLabels={donut.withLabels}
                             size={donut.size}
                             thickness={donut.thickness}
+                            pieProps={
+                                donut.withLabels
+                                    ? {
+                                          label: renderDonutLabel,
+                                          labelLine: renderDonutLabelLine,
+                                      }
+                                    : undefined
+                            }
                             paddingAngle={2}
                             tooltipDataSource="segment"
                             tooltipProps={{
@@ -207,6 +269,12 @@ export function DonutChartCard({
                     </Box>
                 </Box>
             </Stack>
+            <DonutValuesModal
+                analytic={analytic}
+                isAbsolute={isAbsolute}
+                opened={valuesOpened}
+                onClose={valuesModal.close}
+            />
         </Paper>
     );
 }
