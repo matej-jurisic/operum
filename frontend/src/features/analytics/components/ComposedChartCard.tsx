@@ -76,6 +76,15 @@ export function ComposedChartCard({
         ? getAxisFormatter(analytic.series[0].xField.type)
         : undefined;
 
+    // The Y axis is shared across every series, so it can only be formatted when the
+    // series agree on a value type (e.g. two duration trackers). A mixed chart falls
+    // back to raw numbers; the per-series tooltip still formats each value correctly.
+    const yValueType = analytic.series[0]?.valueField.type;
+    const yAxisFormatter =
+        yValueType && analytic.series.every((s) => s.valueField.type === yValueType)
+            ? getAxisFormatter(yValueType)
+            : undefined;
+
     return (
         <Paper
             ref={layout.ref}
@@ -116,6 +125,7 @@ export function ComposedChartCard({
                     series={chartSeries}
                     xAxisProps={{ tickFormatter: xAxisFormatter }}
                     yAxisProps={{
+                        tickFormatter: yAxisFormatter,
                         // Matches LineChartCard: 0-anchored by default, fitted to the data
                         // range when the widget opts out.
                         domain: analytic.yAxisFromZero

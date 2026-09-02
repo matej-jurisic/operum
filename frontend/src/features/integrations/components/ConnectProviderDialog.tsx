@@ -116,7 +116,7 @@ export default function ConnectProviderDialog({
                             label="API key"
                             description={
                                 provider?.key === "intervals.icu"
-                                    ? "In intervals.icu, go to Settings → Developer Settings to generate one. The key is checked before it is saved, and stored encrypted — it is never shown again."
+                                    ? "In intervals.icu: Settings → Developer Settings. Stored encrypted, never shown again."
                                     : "The key is checked before it is saved, and stored encrypted. It is never shown again."
                             }
                             value={credential}

@@ -142,7 +142,7 @@ const IntegrationsPage = observer(function IntegrationsPage() {
         const providerName =
             providerFor(integration)?.displayName ?? integration.provider;
         setConfirming({
-            message: `Re-import the full history for ${target.trackerName}? Every record back to ${dayjs(target.backfillFrom).format("D MMM YYYY")} is fetched from ${providerName} again, and the mapped fields on entries already imported are overwritten with its current values — including any you've edited by hand. Use this to fill in a field you mapped after the first import.`,
+            message: `Re-import ${target.trackerName} from ${dayjs(target.backfillFrom).format("D MMM YYYY")}? Mapped fields on existing entries will be overwritten, including any manual edits.`,
             onConfirm: async () => {
                 setSyncingTargetId(target.id);
                 try {
@@ -375,9 +375,8 @@ function NothingConnected({
                 Bring data in automatically
             </Text>
             <Text c="dimmed" ta="center" maw={460}>
-                Connect a service and choose which of its values fill which
-                fields on a tracker. Operum keeps them up to date from then on,
-                so you stop typing what something else already knows.
+                Connect a service and map its values to tracker fields.
+                Operum keeps them up to date automatically.
             </Text>
             <Text size="sm" c="dimmed" ta="center">
                 Available: {providers.map((p) => p.displayName).join(", ")}

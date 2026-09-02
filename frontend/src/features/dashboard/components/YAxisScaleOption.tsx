@@ -21,7 +21,7 @@ export function YAxisScaleOption({ yAxisFromZero, onChange }: Props) {
             </Text>
             <Checkbox
                 label="Start the Y axis at zero"
-                description="Uncheck to fit the axis to the data's range instead — useful when values stay within a narrow band far from zero."
+                description="Uncheck to fit the axis to the data's range instead, useful when values stay within a narrow band far from zero."
                 checked={yAxisFromZero}
                 onChange={(event) => onChange(event.currentTarget.checked)}
             />
