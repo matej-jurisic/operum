@@ -139,8 +139,6 @@ const IntegrationsPage = observer(function IntegrationsPage() {
         integration: IntegrationDto,
         target: IntegrationTargetDto,
     ) => {
-        const providerName =
-            providerFor(integration)?.displayName ?? integration.provider;
         setConfirming({
             message: `Re-import ${target.trackerName} from ${dayjs(target.backfillFrom).format("D MMM YYYY")}? Mapped fields on existing entries will be overwritten, including any manual edits.`,
             onConfirm: async () => {
