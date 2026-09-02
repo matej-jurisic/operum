@@ -1,31 +1,27 @@
-import { Button, Center, Paper, Stack, Text } from "@mantine/core";
+import { Button, Center, Text } from "@mantine/core";
 import { useState } from "react";
 import { TbPlus } from "react-icons/tb";
-import { AnalyticCardHeader } from "../../analytics/components/AnalyticCardHeader";
-import {
-  cardBodyProps,
-  cardShellProps,
-  useCardLayout,
-} from "../../analytics/components/cardSizing";
+import { useCardLayout } from "../../analytics/components/cardSizing";
+import { WidgetShell } from "../../analytics/components/WidgetShell";
 import QuickAddEntryDialog from "../../entries/components/QuickAddEntryDialog";
 import { trackersController } from "../../trackers/api/trackersController";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { useDashboard } from "../context/DashboardContext";
 import {
-  QuickAddTrackerDto,
-  QuickAddWidgetConfig,
+    QuickAddTrackerDto,
+    QuickAddWidgetConfig,
 } from "../types/DashboardDto";
 
 interface Props {
-  widgetId: string;
-  config: QuickAddWidgetConfig;
-  /** The name/color/icon to render the button with, resolved by the board itself —
-      the card never fetches this just to draw its own button. */
-  tracker: QuickAddTrackerDto | undefined;
-  /** The board's color, used only if the tracker carries none of its own. */
-  color: string | undefined;
-  isConfiguring: boolean;
-  onRemove?: (itemId: string) => void;
+    widgetId: string;
+    config: QuickAddWidgetConfig;
+    /** The name/color/icon to render the button with, resolved by the board itself —
+        the card never fetches this just to draw its own button. */
+    tracker: QuickAddTrackerDto | undefined;
+    /** The board's color, used only if the tracker carries none of its own. */
+    color: string | undefined;
+    isConfiguring: boolean;
+    onRemove?: (itemId: string) => void;
 }
 
 /**
@@ -35,84 +31,77 @@ interface Props {
  * its form are fetched, and only once the button is actually pressed.
  */
 export function QuickAddWidgetCard({
-  widgetId,
-  config,
-  tracker,
-  color,
-  isConfiguring,
-  onRemove,
+    widgetId,
+    config,
+    tracker,
+    color,
+    isConfiguring,
+    onRemove,
 }: Props) {
-  const layout = useCardLayout(true);
-  const [dialogTracker, setDialogTracker] = useState<TrackerDto>();
-  const { refreshWidgets } = useDashboard();
+    const layout = useCardLayout(true);
+    const [dialogTracker, setDialogTracker] = useState<TrackerDto>();
+    const { refreshWidgets } = useDashboard();
 
-  const trackerColor = tracker?.color || color;
+    const trackerColor = tracker?.color || color;
 
-  const handleOpen = async () => {
-    const res = await trackersController.getTracker(config.trackerId);
-    setDialogTracker(res.data);
-  };
+    const handleOpen = async () => {
+        const res = await trackersController.getTracker(config.trackerId);
+        setDialogTracker(res.data);
+    };
 
-  return (
-    <Paper
-      ref={layout.ref}
-      withBorder={isConfiguring}
-      p={0}
-      radius="md"
-      w="100%"
-      {...cardShellProps(true)}
-    >
-      <Stack
-        gap="xs"
-        justify="center"
-        {...cardBodyProps(true)}
-        h={"100%"}
-        style={{ position: "relative" }}
-      >
-        <AnalyticCardHeader
-          title={tracker?.name ?? "Quick add"}
-          layout={layout}
-          color={trackerColor}
-          isConfiguring={isConfiguring}
-          analyticId={widgetId}
-          onRemove={onRemove}
-          compact
-        />
-        <Center style={{ flex: 1, minHeight: 0, zIndex: 1 }}>
-          {tracker ? (
-            <Button
-              color={trackerColor}
-              disabled={isConfiguring}
-              variant="outline"
-              radius="md"
-              w={"100%"}
-              h={"100%"}
-              style={{
-                pointerEvents: isConfiguring ? "none" : "all",
-              }}
-              styles={{
-                label: { whiteSpace: "normal", lineHeight: 1.3 },
-              }}
-              leftSection={<TbPlus size={18} />}
-              onClick={handleOpen}
-            >
-              {tracker.name}
-            </Button>
-          ) : (
-            <Text size="sm" c="dimmed" ta="center">
-              This tracker is no longer available.
-            </Text>
-          )}
-        </Center>
-      </Stack>
-
-      {dialogTracker && (
-        <QuickAddEntryDialog
-          tracker={dialogTracker}
-          onClose={() => setDialogTracker(undefined)}
-          onCreated={refreshWidgets}
-        />
-      )}
-    </Paper>
-  );
+    return (
+        <WidgetShell
+            layout={layout}
+            fillHeight
+            isConfiguring={isConfiguring}
+            color={trackerColor}
+            itemId={widgetId}
+            onRemove={onRemove}
+            title={tracker?.name ?? "Quick add"}
+            compactHeader
+            accent
+            padding={0}
+            bodyProps={{
+                justify: "center",
+                h: "100%",
+                style: { position: "relative" },
+            }}
+            after={
+                dialogTracker && (
+                    <QuickAddEntryDialog
+                        tracker={dialogTracker}
+                        onClose={() => setDialogTracker(undefined)}
+                        onCreated={refreshWidgets}
+                    />
+                )
+            }
+        >
+            <Center style={{ flex: 1, minHeight: 0, zIndex: 1 }}>
+                {tracker ? (
+                    <Button
+                        color={trackerColor}
+                        disabled={isConfiguring}
+                        variant="light"
+                        radius="md"
+                        w={"100%"}
+                        h={"100%"}
+                        style={{
+                            pointerEvents: isConfiguring ? "none" : "all",
+                        }}
+                        styles={{
+                            label: { whiteSpace: "normal", lineHeight: 1.3 },
+                        }}
+                        leftSection={<TbPlus size={18} />}
+                        onClick={handleOpen}
+                    >
+                        {tracker.name}
+                    </Button>
+                ) : (
+                    <Text size="sm" c="dimmed" ta="center">
+                        This tracker is no longer available.
+                    </Text>
+                )}
+            </Center>
+        </WidgetShell>
+    );
 }

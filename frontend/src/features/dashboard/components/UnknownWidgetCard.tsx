@@ -1,6 +1,6 @@
-import { Center, Paper, Text } from "@mantine/core";
-import { AnalyticCardHeader } from "../../analytics/components/AnalyticCardHeader";
-import { cardShellProps, useCardLayout } from "../../analytics/components/cardSizing";
+import { Center, Text } from "@mantine/core";
+import { WidgetShell } from "../../analytics/components/WidgetShell";
+import { useCardLayout } from "../../analytics/components/cardSizing";
 
 interface Props {
     widgetId: string;
@@ -15,31 +15,30 @@ interface Props {
  * rendered, but while the board is being arranged it still needs a remove button so the
  * user has a way to clear it.
  */
-export function UnknownWidgetCard({ widgetId, color, isConfiguring, onRemove }: Props) {
+export function UnknownWidgetCard({
+    widgetId,
+    color,
+    isConfiguring,
+    onRemove,
+}: Props) {
     const layout = useCardLayout(true);
 
     return (
-        <Paper
-            ref={layout.ref}
-            withBorder
-            p="md"
-            radius="md"
-            w="100%"
-            {...cardShellProps(true)}
+        <WidgetShell
+            layout={layout}
+            fillHeight
+            isConfiguring={isConfiguring}
+            color={color}
+            itemId={widgetId}
+            onRemove={onRemove}
+            title="Unavailable widget"
+            padding="md"
         >
-            <AnalyticCardHeader
-                title="Unavailable widget"
-                layout={layout}
-                color={color}
-                isConfiguring={isConfiguring}
-                analyticId={widgetId}
-                onRemove={onRemove}
-            />
             <Center style={{ flex: 1, minHeight: 0 }}>
                 <Text size="sm" c="dimmed">
                     This widget cannot be displayed
                 </Text>
             </Center>
-        </Paper>
+        </WidgetShell>
     );
 }

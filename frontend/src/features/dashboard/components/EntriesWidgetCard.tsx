@@ -1,10 +1,9 @@
-import { Center, Paper, ScrollArea, Stack, Table, Text } from "@mantine/core";
-import { AnalyticCardHeader } from "../../analytics/components/AnalyticCardHeader";
+import { Center, ScrollArea, Table, Text } from "@mantine/core";
 import {
     cardBodyProps,
-    cardShellProps,
     useCardLayout,
 } from "../../analytics/components/cardSizing";
+import { WidgetShell } from "../../analytics/components/WidgetShell";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 import { EntriesWidgetDto } from "../types/DashboardDto";
 
@@ -45,85 +44,88 @@ export function EntriesWidgetCard({
     const trackerColor = entriesWidget?.color ?? color;
 
     return (
-        <Paper
-            ref={layout.ref}
-            withBorder
-            p={layout.padding}
-            radius="md"
-            {...cardShellProps(true)}
+        <WidgetShell
+            layout={layout}
+            fillHeight
+            isConfiguring={isConfiguring}
+            color={trackerColor}
+            itemId={widgetId}
+            onRemove={onRemove}
+            onEdit={onEdit}
+            title={entriesWidget?.trackerName ?? "Entries"}
         >
-            <Stack gap="xs" {...cardBodyProps(true)}>
-                <AnalyticCardHeader
-                    title={entriesWidget?.trackerName ?? "Entries"}
-                    layout={layout}
-                    color={trackerColor}
-                    isConfiguring={isConfiguring}
-                    analyticId={widgetId}
-                    onRemove={onRemove}
-                    onEdit={onEdit}
-                />
-
-                {!entriesWidget ? (
-                    <Center style={{ flex: 1, minHeight: 0 }}>
-                        <Text size="sm" c="dimmed" ta="center">
-                            This tracker is no longer available.
-                        </Text>
-                    </Center>
-                ) : (
-                    <ScrollArea
-                        style={{
-                            ...cardBodyProps(true).style,
-                            // Matches the View widget's dropdown: not a control the board
-                            // can drag by, but arranging the board still takes over every
-                            // pointer gesture inside it.
-                            pointerEvents: isConfiguring ? "none" : "auto",
-                        }}
-                    >
-                        {entries.length === 0 ? (
-                            <Center h="100%">
-                                <Text size="sm" c="dimmed">
-                                    No entries
-                                </Text>
-                            </Center>
-                        ) : (
-                            <Table striped highlightOnHover verticalSpacing="xs">
-                                <Table.Thead>
-                                    <Table.Tr>
-                                        {columns.map((field) => (
-                                            <Table.Th key={field.id}>
-                                                <Text fw={600} size="xs" truncate="end">
-                                                    {field.name}
-                                                </Text>
-                                            </Table.Th>
-                                        ))}
-                                    </Table.Tr>
-                                </Table.Thead>
-                                <Table.Tbody>
-                                    {entries.map((entry) => (
-                                        <Table.Tr key={entry.id}>
-                                            {columns.map((field) => {
-                                                const fieldValue = entry.fieldValues.find(
-                                                    (fv) => fv.fieldId === field.id,
-                                                );
-                                                return (
-                                                    <Table.Td key={field.id} maw={200}>
-                                                        <Text size="xs" truncate="end">
-                                                            {renderValue(
-                                                                fieldValue?.fieldType,
-                                                                fieldValue?.value,
-                                                            )}
-                                                        </Text>
-                                                    </Table.Td>
-                                                );
-                                            })}
-                                        </Table.Tr>
+            {!entriesWidget ? (
+                <Center style={{ flex: 1, minHeight: 0 }}>
+                    <Text size="sm" c="dimmed" ta="center">
+                        This tracker is no longer available.
+                    </Text>
+                </Center>
+            ) : (
+                <ScrollArea
+                    style={{
+                        ...cardBodyProps(true).style,
+                        // Matches the View widget's dropdown: not a control the board
+                        // can drag by, but arranging the board still takes over every
+                        // pointer gesture inside it.
+                        pointerEvents: isConfiguring ? "none" : "auto",
+                    }}
+                >
+                    {entries.length === 0 ? (
+                        <Center h="100%">
+                            <Text size="sm" c="dimmed">
+                                No entries
+                            </Text>
+                        </Center>
+                    ) : (
+                        <Table striped highlightOnHover verticalSpacing="xs">
+                            <Table.Thead>
+                                <Table.Tr>
+                                    {columns.map((field) => (
+                                        <Table.Th key={field.id}>
+                                            <Text
+                                                fw={600}
+                                                size="xs"
+                                                truncate="end"
+                                            >
+                                                {field.name}
+                                            </Text>
+                                        </Table.Th>
                                     ))}
-                                </Table.Tbody>
-                            </Table>
-                        )}
-                    </ScrollArea>
-                )}
-            </Stack>
-        </Paper>
+                                </Table.Tr>
+                            </Table.Thead>
+                            <Table.Tbody>
+                                {entries.map((entry) => (
+                                    <Table.Tr key={entry.id}>
+                                        {columns.map((field) => {
+                                            const fieldValue =
+                                                entry.fieldValues.find(
+                                                    (fv) =>
+                                                        fv.fieldId === field.id,
+                                                );
+                                            return (
+                                                <Table.Td
+                                                    key={field.id}
+                                                    maw={200}
+                                                >
+                                                    <Text
+                                                        size="xs"
+                                                        truncate="end"
+                                                    >
+                                                        {renderValue(
+                                                            fieldValue?.fieldType,
+                                                            fieldValue?.value,
+                                                        )}
+                                                    </Text>
+                                                </Table.Td>
+                                            );
+                                        })}
+                                    </Table.Tr>
+                                ))}
+                            </Table.Tbody>
+                        </Table>
+                    )}
+                </ScrollArea>
+            )}
+        </WidgetShell>
     );
 }

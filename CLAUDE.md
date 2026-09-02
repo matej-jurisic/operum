@@ -1,3 +1,10 @@
+# Workflow
+
+- NEVER run interactive browser tools, headless browsers, or app simulations
+  (Playwright, Chromium, Puppeteer, screenshot drivers, etc.) unless the user
+  explicitly asks for it in that request. Verify work with builds, typechecks,
+  tests, and lint instead. If a visual check seems needed, ask first.
+
 # UI rules
 
 These apply to all user-facing text: labels, descriptions, tooltips, dialog

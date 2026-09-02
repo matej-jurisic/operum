@@ -12,13 +12,8 @@ import { useMemo, useState } from "react";
 import { MdArrowBack, MdLink } from "react-icons/md";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 import { CalendarAnalyticDto } from "../types/AnalyticDto";
-import { AnalyticCardHeader } from "./AnalyticCardHeader";
-import {
-    cardBodyProps,
-    cardShellProps,
-    chartHeight,
-    useCardLayout,
-} from "./cardSizing";
+import { cardBodyProps, chartHeight, useCardLayout } from "./cardSizing";
+import { WidgetShell } from "./WidgetShell";
 
 interface CalendarCardProps {
     analytic: CalendarAnalyticDto;
@@ -100,216 +95,198 @@ export function CalendarCard({
     };
 
     return (
-        <Paper
-            ref={layout.ref}
-            withBorder
-            p={layout.padding}
-            radius="md"
-            {...cardShellProps(fillHeight)}
+        <WidgetShell
+            layout={layout}
+            fillHeight={fillHeight}
+            isConfiguring={isConfiguring}
+            color={color}
+            itemId={analytic.id}
+            onRemove={onRemove}
+            onEdit={onEdit}
+            title={analytic.name}
         >
-            <Stack gap="xs" {...cardBodyProps(fillHeight)}>
-                <AnalyticCardHeader
-                    title={analytic.name}
-                    layout={layout}
-                    color={color}
-                    isConfiguring={isConfiguring}
-                    analyticId={analytic.id}
-                    onRemove={onRemove}
-                    onEdit={onEdit}
-                />
-
-                {!selectedDate ? (
-                    <Stack
-                        gap="xs"
-                        w={"100%"}
-                        align="center"
-                        h={chartHeight(fillHeight)}
-                        style={{
-                            ...cardBodyProps(fillHeight).style,
-                            overflow: "auto",
+            {!selectedDate ? (
+                <Stack
+                    gap="xs"
+                    w={"100%"}
+                    align="center"
+                    h={chartHeight(fillHeight)}
+                    style={{
+                        ...cardBodyProps(fillHeight).style,
+                        overflow: "auto",
+                    }}
+                >
+                    {isMultiSource && (
+                        <Group gap="sm" justify="center" wrap="wrap">
+                            {sources.map((source) => (
+                                <Group key={source.name} gap={4} wrap="nowrap">
+                                    <div
+                                        style={{
+                                            width: 8,
+                                            height: 8,
+                                            borderRadius: "50%",
+                                            backgroundColor: `var(--mantine-color-${
+                                                source.color || color || "blue"
+                                            }-6)`,
+                                        }}
+                                    />
+                                    <Text size="xs" c="dimmed">
+                                        {source.name}
+                                    </Text>
+                                </Group>
+                            ))}
+                        </Group>
+                    )}
+                    <Calendar
+                        date={viewDate}
+                        onDateChange={(date) => setViewDate(new Date(date))}
+                        // A month grid cannot reflow, so on a widget with no room
+                        // for it at full size it is drawn at the smaller one.
+                        size={layout.isCompact ? "xs" : "sm"}
+                        getDayProps={(date) => {
+                            const dateObj = new Date(date);
+                            return {
+                                onClick: () => setSelectedDate(dateObj),
+                            };
                         }}
-                    >
-                        {isMultiSource && (
-                            <Group gap="sm" justify="center" wrap="wrap">
-                                {sources.map((source) => (
-                                    <Group key={source.name} gap={4} wrap="nowrap">
-                                        <div
-                                            style={{
-                                                width: 8,
-                                                height: 8,
-                                                borderRadius: "50%",
-                                                backgroundColor: `var(--mantine-color-${
-                                                    source.color || color || "blue"
-                                                }-6)`,
-                                            }}
-                                        />
-                                        <Text size="xs" c="dimmed">
-                                            {source.name}
-                                        </Text>
-                                    </Group>
-                                ))}
-                            </Group>
-                        )}
-                        <Calendar
-                            date={viewDate}
-                            onDateChange={(date) => setViewDate(new Date(date))}
-                            // A month grid cannot reflow, so on a widget with no room
-                            // for it at full size it is drawn at the smaller one.
-                            size={layout.isCompact ? "xs" : "sm"}
-                            getDayProps={(date) => {
-                                const dateObj = new Date(date);
-                                return {
-                                    onClick: () => setSelectedDate(dateObj),
-                                };
-                            }}
-                            renderDay={(date) => {
-                                const dateObj = new Date(date);
-                                const dateKey = getDateKey(dateObj);
-                                const dayEvents = events.get(dateKey) || [];
-                                const day = dateObj.getDate();
+                        renderDay={(date) => {
+                            const dateObj = new Date(date);
+                            const dateKey = getDateKey(dateObj);
+                            const dayEvents = events.get(dateKey) || [];
+                            const day = dateObj.getDate();
 
-                                if (isMultiSource) {
-                                    const colors = dayColors(dayEvents);
-                                    return (
-                                        <div
+                            if (isMultiSource) {
+                                const colors = dayColors(dayEvents);
+                                return (
+                                    <div
+                                        style={{
+                                            position: "relative",
+                                            width: "100%",
+                                            height: "100%",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                        }}
+                                    >
+                                        {day}
+                                        <Group
+                                            gap={2}
+                                            justify="center"
+                                            wrap="nowrap"
                                             style={{
-                                                position: "relative",
-                                                width: "100%",
-                                                height: "100%",
-                                                display: "flex",
-                                                alignItems: "center",
-                                                justifyContent: "center",
+                                                position: "absolute",
+                                                bottom: 1,
+                                                left: 0,
+                                                right: 0,
                                             }}
                                         >
-                                            {day}
-                                            <Group
-                                                gap={2}
-                                                justify="center"
-                                                wrap="nowrap"
-                                                style={{
-                                                    position: "absolute",
-                                                    bottom: 1,
-                                                    left: 0,
-                                                    right: 0,
-                                                }}
-                                            >
-                                                {colors.map((c, i) => (
-                                                    <div
-                                                        key={i}
-                                                        style={{
-                                                            width: 4,
-                                                            height: 4,
-                                                            borderRadius: "50%",
-                                                            backgroundColor: `var(--mantine-color-${c}-6)`,
-                                                        }}
-                                                    />
-                                                ))}
-                                            </Group>
-                                        </div>
-                                    );
-                                }
-
-                                return (
-                                    <Indicator
-                                        size={9}
-                                        color={color || "blue"}
-                                        offset={-2}
-                                        disabled={dayEvents.length === 0}
-                                    >
-                                        <div>{day}</div>
-                                    </Indicator>
+                                            {colors.map((c, i) => (
+                                                <div
+                                                    key={i}
+                                                    style={{
+                                                        width: 4,
+                                                        height: 4,
+                                                        borderRadius: "50%",
+                                                        backgroundColor: `var(--mantine-color-${c}-6)`,
+                                                    }}
+                                                />
+                                            ))}
+                                        </Group>
+                                    </div>
                                 );
-                            }}
-                        />
-                    </Stack>
-                ) : (
-                    <Stack
-                        gap="xs"
-                        h={chartHeight(fillHeight)}
-                        {...cardBodyProps(fillHeight)}
-                    >
-                        <Group gap="xs">
-                            <ActionIcon
-                                size="sm"
-                                variant="subtle"
-                                color={color || "blue"}
-                                onClick={() => setSelectedDate(undefined)}
-                            >
-                                <MdArrowBack size={16} />
-                            </ActionIcon>
-                            <Text size="sm" fw={500}></Text>
-                        </Group>
-                        <ScrollArea h="100%">
-                            {eventsForSelectedDate.length === 0 ? (
-                                <Text size="sm" c="dimmed" ta="center" py="xl">
-                                    No events on this date
-                                </Text>
-                            ) : (
-                                <Stack gap="xs" pr="xs">
-                                    {eventsForSelectedDate.map(
-                                        (event, index) => (
-                                            <Paper
-                                                key={index}
-                                                withBorder
-                                                p="xs"
-                                                style={{
-                                                    borderRadius: "6px",
-                                                    borderLeft: `3px solid var(--mantine-color-${
-                                                        event.color ||
-                                                        color ||
-                                                        "blue"
-                                                    }-6)`,
-                                                }}
-                                            >
-                                                <Group
-                                                    align="flex-start"
-                                                    justify="space-between"
+                            }
+
+                            return (
+                                <Indicator
+                                    size={9}
+                                    color={color || "blue"}
+                                    offset={-2}
+                                    disabled={dayEvents.length === 0}
+                                >
+                                    <div>{day}</div>
+                                </Indicator>
+                            );
+                        }}
+                    />
+                </Stack>
+            ) : (
+                <Stack
+                    gap="xs"
+                    h={chartHeight(fillHeight)}
+                    {...cardBodyProps(fillHeight)}
+                >
+                    <Group gap="xs">
+                        <ActionIcon
+                            size="sm"
+                            variant="subtle"
+                            color={color || "blue"}
+                            onClick={() => setSelectedDate(undefined)}
+                        >
+                            <MdArrowBack size={16} />
+                        </ActionIcon>
+                        <Text size="sm" fw={500}></Text>
+                    </Group>
+                    <ScrollArea h="100%">
+                        {eventsForSelectedDate.length === 0 ? (
+                            <Text size="sm" c="dimmed" ta="center" py="xl">
+                                No events on this date
+                            </Text>
+                        ) : (
+                            <Stack gap="xs" pr="xs">
+                                {eventsForSelectedDate.map((event, index) => (
+                                    <Paper
+                                        key={index}
+                                        withBorder
+                                        p="xs"
+                                        style={{
+                                            borderRadius: "6px",
+                                            borderLeft: `3px solid var(--mantine-color-${
+                                                event.color || color || "blue"
+                                            }-6)`,
+                                        }}
+                                    >
+                                        <Group
+                                            align="flex-start"
+                                            justify="space-between"
+                                        >
+                                            <Stack>
+                                                <Text
+                                                    size="sm"
+                                                    style={{ flex: 1 }}
                                                 >
-                                                    <Stack>
-                                                        <Text
-                                                            size="sm"
-                                                            style={{ flex: 1 }}
-                                                        >
-                                                            {event.name}
-                                                        </Text>
-                                                        <Text
-                                                            c={"dimmed"}
-                                                            size="xs"
-                                                        >
-                                                            {renderValue(
-                                                                analytic
-                                                                    .whenField
-                                                                    .type,
-                                                                event.date,
-                                                            )}
-                                                            {event.trackerName
-                                                                ? ` · ${event.trackerName}`
-                                                                : ""}
-                                                        </Text>
-                                                    </Stack>
-                                                    {onEntryClick && (
-                                                        <ActionIcon
-                                                            variant="outline"
-                                                            color={color}
-                                                            onClick={() =>
-                                                                onEntryClick(
-                                                                    event.entryId,
-                                                                )
-                                                            }
-                                                        >
-                                                            <MdLink size={18} />
-                                                        </ActionIcon>
+                                                    {event.name}
+                                                </Text>
+                                                <Text c={"dimmed"} size="xs">
+                                                    {renderValue(
+                                                        analytic.whenField.type,
+                                                        event.date,
                                                     )}
-                                                </Group>
-                                            </Paper>
-                                        ),
-                                    )}
-                                </Stack>
-                            )}
-                        </ScrollArea>
-                    </Stack>
-                )}
-            </Stack>
-        </Paper>
+                                                    {event.trackerName
+                                                        ? ` · ${event.trackerName}`
+                                                        : ""}
+                                                </Text>
+                                            </Stack>
+                                            {onEntryClick && (
+                                                <ActionIcon
+                                                    variant="outline"
+                                                    color={color}
+                                                    onClick={() =>
+                                                        onEntryClick(
+                                                            event.entryId,
+                                                        )
+                                                    }
+                                                >
+                                                    <MdLink size={18} />
+                                                </ActionIcon>
+                                            )}
+                                        </Group>
+                                    </Paper>
+                                ))}
+                            </Stack>
+                        )}
+                    </ScrollArea>
+                </Stack>
+            )}
+        </WidgetShell>
     );
 }

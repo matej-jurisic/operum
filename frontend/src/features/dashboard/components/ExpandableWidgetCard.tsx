@@ -1,13 +1,9 @@
-import { Button, Center, Modal, Paper, Stack } from "@mantine/core";
+import { Button, Center, Modal } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { createElement, ReactNode, useState } from "react";
 import { IconType } from "react-icons";
-import { AnalyticCardHeader } from "../../analytics/components/AnalyticCardHeader";
-import {
-    cardBodyProps,
-    cardShellProps,
-    useCardLayout,
-} from "../../analytics/components/cardSizing";
+import { useCardLayout } from "../../analytics/components/cardSizing";
+import { WidgetShell } from "../../analytics/components/WidgetShell";
 
 interface Props {
     widgetId: string;
@@ -52,62 +48,55 @@ export function ExpandableWidgetCard({
     const isMobile = useMediaQuery("(max-width: 48em)");
 
     return (
-        <Paper
-            ref={layout.ref}
-            withBorder={isConfiguring}
-            p={0}
-            radius="md"
-            w="100%"
-            {...cardShellProps(true)}
-        >
-            <Stack
-                gap="xs"
-                justify="center"
-                {...cardBodyProps(true)}
-                h="100%"
-                style={{ position: "relative" }}
-            >
-                <AnalyticCardHeader
-                    title={title}
-                    layout={layout}
-                    color={color}
-                    isConfiguring={isConfiguring}
-                    analyticId={widgetId}
-                    onRemove={onRemove}
-                    onEdit={onEdit}
-                    compact
-                />
-                <Center style={{ flex: 1, minHeight: 0, zIndex: 1 }}>
-                    <Button
-                        color={color}
-                        disabled={isConfiguring}
-                        variant="light"
-                        radius="md"
-                        w="100%"
-                        h="100%"
-                        style={{
-                            pointerEvents: isConfiguring ? "none" : "all",
-                        }}
-                        leftSection={createElement(icon, { size: 18 })}
-                        onClick={() => setOpened(true)}
+        <WidgetShell
+            layout={layout}
+            fillHeight
+            isConfiguring={isConfiguring}
+            color={color}
+            itemId={widgetId}
+            onRemove={onRemove}
+            onEdit={onEdit}
+            title={title}
+            compactHeader
+            accent
+            padding={0}
+            bodyProps={{
+                justify: "center",
+                h: "100%",
+                style: { position: "relative" },
+            }}
+            after={
+                opened && (
+                    <Modal
+                        opened
+                        onClose={() => setOpened(false)}
+                        title={title}
+                        size="xl"
+                        fullScreen={isMobile}
+                        centered={!isMobile}
                     >
-                        {title}
-                    </Button>
-                </Center>
-            </Stack>
-
-            {opened && (
-                <Modal
-                    opened
-                    onClose={() => setOpened(false)}
-                    title={title}
-                    size="xl"
-                    fullScreen={isMobile}
-                    centered={!isMobile}
+                        {renderExpanded()}
+                    </Modal>
+                )
+            }
+        >
+            <Center style={{ flex: 1, minHeight: 0, zIndex: 1 }}>
+                <Button
+                    color={color}
+                    disabled={isConfiguring}
+                    variant="light"
+                    radius="md"
+                    w="100%"
+                    h="100%"
+                    style={{
+                        pointerEvents: isConfiguring ? "none" : "all",
+                    }}
+                    leftSection={createElement(icon, { size: 18 })}
+                    onClick={() => setOpened(true)}
                 >
-                    {renderExpanded()}
-                </Modal>
-            )}
-        </Paper>
+                    {title}
+                </Button>
+            </Center>
+        </WidgetShell>
     );
 }

@@ -1,12 +1,11 @@
-import { ActionIcon, Paper, ScrollArea, Stack, Text, Textarea } from "@mantine/core";
+import { ActionIcon, ScrollArea, Text, Textarea } from "@mantine/core";
 import { useEffect, useRef, useState } from "react";
 import { MdEdit } from "react-icons/md";
-import { AnalyticCardHeader } from "../../analytics/components/AnalyticCardHeader";
 import {
     cardBodyProps,
-    cardShellProps,
     useCardLayout,
 } from "../../analytics/components/cardSizing";
+import { WidgetShell } from "../../analytics/components/WidgetShell";
 import { useDashboard } from "../context/DashboardContext";
 import { TextWidgetConfig } from "../types/DashboardDto";
 
@@ -98,86 +97,86 @@ export function NoteWidgetCard({
     };
 
     return (
-        <Paper ref={layout.ref} withBorder p={layout.padding} radius="md" {...cardShellProps(true)}>
-            <Stack gap="xs" {...cardBodyProps(true)}>
-                <AnalyticCardHeader
-                    title="Note"
-                    layout={layout}
-                    color={color}
-                    isConfiguring={isConfiguring}
-                    analyticId={widgetId}
-                    onRemove={onRemove}
-                    onEdit={onEdit}
-                    actions={
-                        // Arrange mode has its own edit icon (and routes to the dialog,
-                        // since the body can't be clicked there); this one is the
-                        // in-place edit offered while the board is just being read.
-                        !isConfiguring && !isEditing ? (
-                            <ActionIcon
-                                size="md"
-                                color={color}
-                                variant="outline"
-                                aria-label="Edit note"
-                                style={{ pointerEvents: "auto" }}
-                                onClick={startEditing}
-                            >
-                                <MdEdit size={18} />
-                            </ActionIcon>
-                        ) : undefined
-                    }
-                />
-                <ScrollArea
-                    style={{
-                        ...cardBodyProps(true).style,
-                        // Not a control the board can drag by, but arranging the board
-                        // still takes over every pointer gesture inside it — same as the
-                        // Entries widget's table.
-                        pointerEvents: isConfiguring ? "none" : "auto",
-                    }}
-                >
-                    {isEditing ? (
-                        <Textarea
-                            ref={fieldRef}
-                            autosize
-                            minRows={3}
-                            maxRows={12}
-                            maxLength={MAX_LENGTH}
-                            value={draft}
-                            disabled={isSaving}
-                            onChange={(event) => setDraft(event.currentTarget.value)}
-                            onBlur={commit}
-                            onKeyDown={(event) => {
-                                if (event.key === "Escape") {
-                                    event.preventDefault();
-                                    cancelRef.current = true;
-                                    event.currentTarget.blur();
-                                } else if (
-                                    event.key === "Enter" &&
-                                    (event.metaKey || event.ctrlKey)
-                                ) {
-                                    event.preventDefault();
-                                    event.currentTarget.blur();
-                                }
-                            }}
-                        />
-                    ) : (
-                        <Text
-                            size="sm"
-                            c={text ? undefined : "dimmed"}
-                            onClick={startEditing}
-                            style={{
-                                whiteSpace: "pre-wrap",
-                                cursor: isConfiguring ? "default" : "text",
-                            }}
-                        >
-                            {text ||
-                                (isConfiguring
-                                    ? "This note is empty."
-                                    : "Empty note. Click to add text.")}
-                        </Text>
-                    )}
-                </ScrollArea>
-            </Stack>
-        </Paper>
+        <WidgetShell
+            layout={layout}
+            fillHeight
+            isConfiguring={isConfiguring}
+            color={color}
+            itemId={widgetId}
+            onRemove={onRemove}
+            onEdit={onEdit}
+            title="Note"
+            headerActions={
+                // Arrange mode has its own edit icon (and routes to the dialog,
+                // since the body can't be clicked there); this one is the
+                // in-place edit offered while the board is just being read.
+                !isConfiguring && !isEditing ? (
+                    <ActionIcon
+                        size="md"
+                        color={color}
+                        variant="outline"
+                        aria-label="Edit note"
+                        style={{ pointerEvents: "auto" }}
+                        onClick={startEditing}
+                    >
+                        <MdEdit size={18} />
+                    </ActionIcon>
+                ) : undefined
+            }
+        >
+            <ScrollArea
+                style={{
+                    ...cardBodyProps(true).style,
+                    // Not a control the board can drag by, but arranging the board
+                    // still takes over every pointer gesture inside it — same as the
+                    // Entries widget's table.
+                    pointerEvents: isConfiguring ? "none" : "auto",
+                }}
+            >
+                {isEditing ? (
+                    <Textarea
+                        ref={fieldRef}
+                        autosize
+                        minRows={3}
+                        maxRows={12}
+                        maxLength={MAX_LENGTH}
+                        value={draft}
+                        disabled={isSaving}
+                        onChange={(event) =>
+                            setDraft(event.currentTarget.value)
+                        }
+                        onBlur={commit}
+                        onKeyDown={(event) => {
+                            if (event.key === "Escape") {
+                                event.preventDefault();
+                                cancelRef.current = true;
+                                event.currentTarget.blur();
+                            } else if (
+                                event.key === "Enter" &&
+                                (event.metaKey || event.ctrlKey)
+                            ) {
+                                event.preventDefault();
+                                event.currentTarget.blur();
+                            }
+                        }}
+                    />
+                ) : (
+                    <Text
+                        size="sm"
+                        c={text ? undefined : "dimmed"}
+                        onClick={startEditing}
+                        style={{
+                            whiteSpace: "pre-wrap",
+                            cursor: isConfiguring ? "default" : "text",
+                        }}
+                    >
+                        {text ||
+                            (isConfiguring
+                                ? "This note is empty."
+                                : "Empty note. Click to add text.")}
+                    </Text>
+                )}
+            </ScrollArea>
+        </WidgetShell>
     );
 }

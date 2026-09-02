@@ -1,19 +1,18 @@
 import { BarChart } from "@mantine/charts";
-import { em, Paper, Stack } from "@mantine/core";
+import { em } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { BarChartAnalyticDto } from "../types/AnalyticDto";
-import { AnalyticCardHeader } from "./AnalyticCardHeader";
 import {
     createBarChartTooltipContent,
     getAxisFormatter,
 } from "./ChartFormatters";
 import {
     cardBodyProps,
-    cardShellProps,
     chartHeight,
     chartTooltipTrigger,
     useCardLayout,
 } from "./cardSizing";
+import { WidgetShell } from "./WidgetShell";
 
 interface Props {
     analytic: BarChartAnalyticDto;
@@ -37,57 +36,47 @@ export function BarChartCard({
     const layout = useCardLayout(fillHeight);
 
     return (
-        <Paper
-            ref={layout.ref}
-            withBorder
-            p={layout.padding}
-            radius="md"
-            {...cardShellProps(fillHeight)}
+        <WidgetShell
+            layout={layout}
+            fillHeight={fillHeight}
+            isConfiguring={isConfiguring}
+            color={color}
+            itemId={analytic.id}
+            onRemove={onRemove}
+            onEdit={onEdit}
+            title={analytic.name}
         >
-            <Stack gap="xs" {...cardBodyProps(fillHeight)}>
-                <AnalyticCardHeader
-                    title={analytic.name}
-                    layout={layout}
-                    color={color}
-                    isConfiguring={isConfiguring}
-                    analyticId={analytic.id}
-                    onRemove={onRemove}
-                    onEdit={onEdit}
-                />
-                <BarChart
-                    h={chartHeight(fillHeight, isMobile)}
-                    {...cardBodyProps(fillHeight)}
-                    data={analytic.points}
-                    dataKey="name"
-                    withXAxis={layout.withXAxis}
-                    withYAxis={layout.withYAxis}
-                    series={[
-                        {
-                            name: "value",
-                            color: color ?? "blue",
-                            label: analytic.valueField?.name ?? "Count",
-                        },
-                    ]}
-                    tooltipAnimationDuration={200}
-                    xAxisProps={{
-                        tickFormatter: getAxisFormatter(
-                            analytic.nameField.type,
-                        ),
-                    }}
-                    yAxisProps={{
-                        tickFormatter: analytic.valueField
-                            ? getAxisFormatter(analytic.valueField.type)
-                            : undefined,
-                    }}
-                    tooltipProps={{
-                        trigger: chartTooltipTrigger(isMobile),
-                        content: createBarChartTooltipContent(
-                            analytic,
-                            color ?? "blue",
-                        ),
-                    }}
-                />
-            </Stack>
-        </Paper>
+            <BarChart
+                h={chartHeight(fillHeight, isMobile)}
+                {...cardBodyProps(fillHeight)}
+                data={analytic.points}
+                dataKey="name"
+                withXAxis={layout.withXAxis}
+                withYAxis={layout.withYAxis}
+                series={[
+                    {
+                        name: "value",
+                        color: color ?? "blue",
+                        label: analytic.valueField?.name ?? "Count",
+                    },
+                ]}
+                tooltipAnimationDuration={200}
+                xAxisProps={{
+                    tickFormatter: getAxisFormatter(analytic.nameField.type),
+                }}
+                yAxisProps={{
+                    tickFormatter: analytic.valueField
+                        ? getAxisFormatter(analytic.valueField.type)
+                        : undefined,
+                }}
+                tooltipProps={{
+                    trigger: chartTooltipTrigger(isMobile),
+                    content: createBarChartTooltipContent(
+                        analytic,
+                        color ?? "blue",
+                    ),
+                }}
+            />
+        </WidgetShell>
     );
 }

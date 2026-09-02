@@ -443,7 +443,7 @@ function AccountMenu({
                         <Avatar size={ROW_ICON_BOX} radius="xl" color="gray">
                             {userName?.[0]?.toUpperCase()}
                         </Avatar>
-                        <Text size="md" truncate flex={1}>
+                        <Text size="sm" truncate flex={1}>
                             {userName ?? "Account"}
                         </Text>
                         <TbChevronRight size={16} />
@@ -553,7 +553,6 @@ function NavItem({
             onClick={onClick}
             styles={{
                 root: { height: ROW_HEIGHT, minHeight: ROW_HEIGHT },
-                label: { fontSize: "var(--mantine-font-size-md)" },
             }}
         />
     );
@@ -598,7 +597,7 @@ function SortableRow({ item }: { item: ListItem }) {
             >
                 {item.icon}
             </ThemeIcon>
-            <Text size="md" truncate flex={1}>
+            <Text size="sm" truncate flex={1}>
                 {item.label}
             </Text>
         </Group>

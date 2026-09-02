@@ -1,10 +1,6 @@
-import { Center, Paper, Stack, Text } from "@mantine/core";
-import { AnalyticCardHeader } from "../../analytics/components/AnalyticCardHeader";
-import {
-    cardBodyProps,
-    cardShellProps,
-    useCardLayout,
-} from "../../analytics/components/cardSizing";
+import { Center, Text } from "@mantine/core";
+import { WidgetShell } from "../../analytics/components/WidgetShell";
+import { useCardLayout } from "../../analytics/components/cardSizing";
 import { TextWidgetConfig } from "../types/DashboardDto";
 
 interface Props {
@@ -21,7 +17,7 @@ interface Props {
  * section title, the way a heading breaks up the board's deliberate empty space into
  * named regions instead of looking like unfinished layout.
  *
- * The text is the whole card, so — like QuickAdd and View — its header is compact: present
+ * The text is the whole card, so, like QuickAdd and View, its header is compact: present
  * only to carry the edit/remove icons while the board is being arranged.
  */
 export function HeaderWidgetCard({
@@ -35,36 +31,30 @@ export function HeaderWidgetCard({
     const layout = useCardLayout(true);
 
     return (
-        <Paper
-            ref={layout.ref}
-            withBorder={isConfiguring}
-            p={0}
-            radius="md"
-            w="100%"
-            {...cardShellProps(true)}
+        <WidgetShell
+            layout={layout}
+            fillHeight
+            isConfiguring={isConfiguring}
+            color={color}
+            itemId={widgetId}
+            onRemove={onRemove}
+            onEdit={onEdit}
+            title={config?.text ?? "Header"}
+            compactHeader
+            accent
+            padding={0}
+            bodyProps={{ justify: "center", h: "100%" }}
         >
-            <Stack gap="xs" justify="center" {...cardBodyProps(true)} h="100%">
-                <AnalyticCardHeader
-                    title={config?.text ?? "Header"}
-                    layout={layout}
-                    color={color}
-                    isConfiguring={isConfiguring}
-                    analyticId={widgetId}
-                    onRemove={onRemove}
-                    onEdit={onEdit}
-                    compact
-                />
-                <Center px="md" style={{ flex: 1, minHeight: 0 }}>
-                    <Text
-                        fw={700}
-                        size={layout.isCompact ? "md" : "xl"}
-                        ta="center"
-                        style={{ wordBreak: "break-word" }}
-                    >
-                        {config?.text ?? "Untitled header"}
-                    </Text>
-                </Center>
-            </Stack>
-        </Paper>
+            <Center px="md" style={{ flex: 1, minHeight: 0 }}>
+                <Text
+                    fw={700}
+                    size={layout.isCompact ? "md" : "xl"}
+                    ta="center"
+                    style={{ wordBreak: "break-word" }}
+                >
+                    {config?.text ?? "Untitled header"}
+                </Text>
+            </Center>
+        </WidgetShell>
     );
 }

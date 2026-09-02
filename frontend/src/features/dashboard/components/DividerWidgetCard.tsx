@@ -1,6 +1,6 @@
-import { Divider, Paper, Stack } from "@mantine/core";
-import { AnalyticCardHeader } from "../../analytics/components/AnalyticCardHeader";
-import { cardShellProps, useCardLayout } from "../../analytics/components/cardSizing";
+import { Divider } from "@mantine/core";
+import { WidgetShell } from "../../analytics/components/WidgetShell";
+import { useCardLayout } from "../../analytics/components/cardSizing";
 
 interface Props {
     widgetId: string;
@@ -15,30 +15,29 @@ interface Props {
  * dividing line rather than unfinished layout. Carries no config and, unlike every other
  * widget, nothing to edit — only a remove button while the board is being arranged.
  */
-export function DividerWidgetCard({ widgetId, color, isConfiguring, onRemove }: Props) {
+export function DividerWidgetCard({
+    widgetId,
+    color,
+    isConfiguring,
+    onRemove,
+}: Props) {
     const layout = useCardLayout(true);
 
     return (
-        <Paper
-            ref={layout.ref}
-            withBorder={isConfiguring}
-            p={0}
-            radius="md"
-            w="100%"
-            {...cardShellProps(true)}
+        <WidgetShell
+            layout={layout}
+            fillHeight
+            isConfiguring={isConfiguring}
+            color={color}
+            itemId={widgetId}
+            onRemove={onRemove}
+            title="Divider"
+            compactHeader
+            accent
+            padding={0}
+            bodyProps={{ justify: "center", h: "100%", px: "md", gap: 0 }}
         >
-            <Stack justify="center" h="100%" px="md">
-                <AnalyticCardHeader
-                    title="Divider"
-                    layout={layout}
-                    color={color}
-                    isConfiguring={isConfiguring}
-                    analyticId={widgetId}
-                    onRemove={onRemove}
-                    compact
-                />
-                <Divider color={color} />
-            </Stack>
-        </Paper>
+            <Divider color={color} />
+        </WidgetShell>
     );
 }

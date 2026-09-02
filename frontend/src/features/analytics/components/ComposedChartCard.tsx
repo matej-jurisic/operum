@@ -1,18 +1,20 @@
 import { CompositeChart } from "@mantine/charts";
-import { Box, em, Paper, Stack, Tooltip } from "@mantine/core";
+import { Box, em, Tooltip } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { useMemo } from "react";
 import { MdWarningAmber } from "react-icons/md";
 import { ComposedChartAnalyticDto } from "../types/AnalyticDto";
-import { AnalyticCardHeader } from "./AnalyticCardHeader";
 import {
     cardBodyProps,
-    cardShellProps,
     chartHeight,
     chartTooltipTrigger,
     useCardLayout,
 } from "./cardSizing";
-import { createComposedTooltipContent, getAxisFormatter } from "./ChartFormatters";
+import {
+    createComposedTooltipContent,
+    getAxisFormatter,
+} from "./ChartFormatters";
+import { WidgetShell } from "./WidgetShell";
 
 interface Props {
     analytic: ComposedChartAnalyticDto;
@@ -27,7 +29,16 @@ interface Props {
 // Fallback only, for a series whose tracker carries no color of its own: cycled per
 // series, with the board color reserved for the first one so a combined chart still leads
 // with the dashboard's own accent color absent anything more specific to draw it with.
-const SERIES_COLORS = ["blue", "orange", "teal", "grape", "yellow", "red", "cyan", "pink"];
+const SERIES_COLORS = [
+    "blue",
+    "orange",
+    "teal",
+    "grape",
+    "yellow",
+    "red",
+    "cyan",
+    "pink",
+];
 
 export function ComposedChartCard({
     analytic,
@@ -46,7 +57,9 @@ export function ComposedChartCard({
     // guaranteed-meaningful one.
     const data = useMemo(() => {
         const xValues = new Set<string>();
-        analytic.series.forEach((s) => s.points.forEach((p) => xValues.add(p.x)));
+        analytic.series.forEach((s) =>
+            s.points.forEach((p) => xValues.add(p.x)),
+        );
         const sortedX = Array.from(xValues).sort((a, b) => a.localeCompare(b));
 
         return sortedX.map((x) => {
@@ -66,7 +79,9 @@ export function ComposedChartCard({
         // color of its own falls back to the cycling palette.
         color:
             s.color ??
-            (index === 0 ? color ?? SERIES_COLORS[0] : SERIES_COLORS[index % SERIES_COLORS.length]),
+            (index === 0
+                ? (color ?? SERIES_COLORS[0])
+                : SERIES_COLORS[index % SERIES_COLORS.length]),
         label: s.label,
     }));
 
@@ -81,63 +96,63 @@ export function ComposedChartCard({
     // back to raw numbers; the per-series tooltip still formats each value correctly.
     const yValueType = analytic.series[0]?.valueField.type;
     const yAxisFormatter =
-        yValueType && analytic.series.every((s) => s.valueField.type === yValueType)
+        yValueType &&
+        analytic.series.every((s) => s.valueField.type === yValueType)
             ? getAxisFormatter(yValueType)
             : undefined;
 
     return (
-        <Paper
-            ref={layout.ref}
-            withBorder
-            p={layout.padding}
-            radius="md"
-            {...cardShellProps(fillHeight)}
+        <WidgetShell
+            layout={layout}
+            fillHeight={fillHeight}
+            isConfiguring={isConfiguring}
+            color={color}
+            itemId={analytic.id}
+            onRemove={onRemove}
+            onEdit={onEdit}
+            title={analytic.name}
+            titleAdornment={
+                analytic.warnings.length > 0 && (
+                    <Tooltip
+                        label={analytic.warnings.join(" ")}
+                        multiline
+                        maw={280}
+                    >
+                        <Box style={{ cursor: "default", display: "flex" }}>
+                            <MdWarningAmber
+                                size={16}
+                                color="var(--mantine-color-yellow-6)"
+                            />
+                        </Box>
+                    </Tooltip>
+                )
+            }
         >
-            <Stack gap="xs" {...cardBodyProps(fillHeight)}>
-                <AnalyticCardHeader
-                    title={analytic.name}
-                    layout={layout}
-                    color={color}
-                    isConfiguring={isConfiguring}
-                    analyticId={analytic.id}
-                    onRemove={onRemove}
-                    onEdit={onEdit}
-                    titleAdornment={
-                        analytic.warnings.length > 0 && (
-                            <Tooltip label={analytic.warnings.join(" ")} multiline maw={280}>
-                                <Box style={{ cursor: "default", display: "flex" }}>
-                                    <MdWarningAmber size={16} color="var(--mantine-color-yellow-6)" />
-                                </Box>
-                            </Tooltip>
-                        )
-                    }
-                />
-                <CompositeChart
-                    tooltipAnimationDuration={200}
-                    gridAxis="x"
-                    data={data}
-                    dataKey="x"
-                    h={chartHeight(fillHeight, isMobile)}
-                    {...cardBodyProps(fillHeight)}
-                    withXAxis={layout.withXAxis}
-                    withYAxis={layout.withYAxis}
-                    withDots={!layout.isCompact}
-                    series={chartSeries}
-                    xAxisProps={{ tickFormatter: xAxisFormatter }}
-                    yAxisProps={{
-                        tickFormatter: yAxisFormatter,
-                        // Matches LineChartCard: 0-anchored by default, fitted to the data
-                        // range when the widget opts out.
-                        domain: analytic.yAxisFromZero
-                            ? [0, "auto"]
-                            : ["auto", "auto"],
-                    }}
-                    tooltipProps={{
-                        trigger: chartTooltipTrigger(isMobile),
-                        content: createComposedTooltipContent(analytic),
-                    }}
-                />
-            </Stack>
-        </Paper>
+            <CompositeChart
+                tooltipAnimationDuration={200}
+                gridAxis="x"
+                data={data}
+                dataKey="x"
+                h={chartHeight(fillHeight, isMobile)}
+                {...cardBodyProps(fillHeight)}
+                withXAxis={layout.withXAxis}
+                withYAxis={layout.withYAxis}
+                withDots={!layout.isCompact}
+                series={chartSeries}
+                xAxisProps={{ tickFormatter: xAxisFormatter }}
+                yAxisProps={{
+                    tickFormatter: yAxisFormatter,
+                    // Matches LineChartCard: 0-anchored by default, fitted to the data
+                    // range when the widget opts out.
+                    domain: analytic.yAxisFromZero
+                        ? [0, "auto"]
+                        : ["auto", "auto"],
+                }}
+                tooltipProps={{
+                    trigger: chartTooltipTrigger(isMobile),
+                    content: createComposedTooltipContent(analytic),
+                }}
+            />
+        </WidgetShell>
     );
 }

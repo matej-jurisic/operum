@@ -1,14 +1,9 @@
-import { ActionIcon, Box, Paper, Stack, Text } from "@mantine/core";
+import { ActionIcon, Box, Text } from "@mantine/core";
 import { MdLink } from "react-icons/md";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 import { SingleValueAnalyticDto } from "../types/AnalyticDto";
-import { AnalyticCardHeader } from "./AnalyticCardHeader";
-import {
-    cardBodyProps,
-    cardShellProps,
-    useCardLayout,
-    useSyncedElementSize,
-} from "./cardSizing";
+import { useCardLayout, useSyncedElementSize } from "./cardSizing";
+import { WidgetShell } from "./WidgetShell";
 
 interface Props {
     analytic: SingleValueAnalyticDto;
@@ -54,63 +49,54 @@ export function SingleValueCard({
             : undefined;
 
     return (
-        <Paper
-            ref={layout.ref}
-            withBorder
-            p={layout.padding}
-            radius="md"
-            w={"100%"}
-            {...cardShellProps(fillHeight)}
-        >
-            <Stack gap="xs" {...cardBodyProps(fillHeight)}>
-                <AnalyticCardHeader
-                    title={analytic.name}
-                    layout={layout}
-                    color={color}
-                    isConfiguring={isConfiguring}
-                    analyticId={analytic.id}
-                    onRemove={onRemove}
-                    onEdit={onEdit}
-                    actions={
-                        analytic.entryId &&
-                        onEntryClick && (
-                            <ActionIcon
-                                variant="outline"
-                                color={color}
-                                onClick={() => onEntryClick(analytic.entryId!)}
-                            >
-                                <MdLink size={18} />
-                            </ActionIcon>
-                        )
-                    }
-                />
-                <Box
-                    ref={valueBox.ref}
-                    style={
-                        fillHeight
-                            ? {
-                                  flex: 1,
-                                  minHeight: 0,
-                                  display: "flex",
-                                  alignItems: "center",
-                                  overflow: "hidden",
-                              }
-                            : undefined
-                    }
-                >
-                    <Text
-                        size={valueFontSize ? undefined : "xl"}
-                        fw={600}
-                        style={{
-                            wordBreak: "break-word",
-                            lineHeight: 1.2,
-                            fontSize: valueFontSize,
-                        }}
+        <WidgetShell
+            layout={layout}
+            fillHeight={fillHeight}
+            isConfiguring={isConfiguring}
+            color={color}
+            itemId={analytic.id}
+            onRemove={onRemove}
+            onEdit={onEdit}
+            title={analytic.name}
+            headerActions={
+                analytic.entryId &&
+                onEntryClick && (
+                    <ActionIcon
+                        variant="outline"
+                        color={color}
+                        onClick={() => onEntryClick(analytic.entryId!)}
                     >
-                        {renderValue(analytic.valueField?.type, analytic.value)}
-                    </Text>
-                </Box>
-            </Stack>
-        </Paper>
+                        <MdLink size={18} />
+                    </ActionIcon>
+                )
+            }
+        >
+            <Box
+                ref={valueBox.ref}
+                style={
+                    fillHeight
+                        ? {
+                              flex: 1,
+                              minHeight: 0,
+                              display: "flex",
+                              alignItems: "center",
+                              overflow: "hidden",
+                          }
+                        : undefined
+                }
+            >
+                <Text
+                    size={valueFontSize ? undefined : "xl"}
+                    fw={600}
+                    style={{
+                        wordBreak: "break-word",
+                        lineHeight: 1.2,
+                        fontSize: valueFontSize,
+                    }}
+                >
+                    {renderValue(analytic.valueField?.type, analytic.value)}
+                </Text>
+            </Box>
+        </WidgetShell>
     );
 }

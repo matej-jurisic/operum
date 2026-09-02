@@ -1,19 +1,13 @@
 import { DonutChart } from "@mantine/charts";
-import { ActionIcon, Box, em, Paper, Stack, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Box, em, Text, Tooltip } from "@mantine/core";
 import { useDisclosure, useElementSize, useMediaQuery } from "@mantine/hooks";
 import { useMemo } from "react";
 import { MdInfoOutline } from "react-icons/md";
 import { DonutChartAnaylticDto } from "../types/AnalyticDto";
-import { AnalyticCardHeader } from "./AnalyticCardHeader";
-import {
-    cardBodyProps,
-    cardShellProps,
-    chartHeight,
-    chartTooltipTrigger,
-    useCardLayout,
-} from "./cardSizing";
+import { chartHeight, chartTooltipTrigger, useCardLayout } from "./cardSizing";
 import { createDonutTooltipContent } from "./ChartFormatters";
 import { DonutValuesModal } from "./DonutValuesModal";
+import { WidgetShell } from "./WidgetShell";
 
 interface Props {
     analytic: DonutChartAnaylticDto;
@@ -110,7 +104,9 @@ export function DonutChartCard({
                     ...x,
                     value: Math.abs(x.value ?? 0),
                 })),
-                excludedPoints: analytic.points.filter((x) => (x.value ?? 0) === 0),
+                excludedPoints: analytic.points.filter(
+                    (x) => (x.value ?? 0) === 0,
+                ),
                 isAbsolute: true,
             };
         }
@@ -163,119 +159,111 @@ export function DonutChartCard({
     }, [fillHeight, isMobile, plot.width, plot.height]);
 
     return (
-        <Paper
-            ref={layout.ref}
-            withBorder
-            p={layout.padding}
-            radius="md"
-            {...cardShellProps(fillHeight)}
-        >
-            <Stack gap="xs" {...cardBodyProps(fillHeight)}>
-                <AnalyticCardHeader
-                    title={analytic.name}
-                    layout={layout}
-                    color={color}
-                    isConfiguring={isConfiguring}
-                    analyticId={analytic.id}
-                    onRemove={onRemove}
-                    onEdit={onEdit}
-                    actions={
-                        <Tooltip label="Show values">
-                            <ActionIcon
-                                size="md"
-                                color={color}
-                                variant="subtle"
-                                style={{ pointerEvents: "auto" }}
-                                onClick={valuesModal.open}
-                                aria-label="Show values"
-                            >
-                                <MdInfoOutline size={18} />
-                            </ActionIcon>
-                        </Tooltip>
-                    }
+        <WidgetShell
+            layout={layout}
+            fillHeight={fillHeight}
+            isConfiguring={isConfiguring}
+            color={color}
+            itemId={analytic.id}
+            onRemove={onRemove}
+            onEdit={onEdit}
+            title={analytic.name}
+            headerActions={
+                <Tooltip label="Show values">
+                    <ActionIcon
+                        size="md"
+                        color={color}
+                        variant="subtle"
+                        style={{ pointerEvents: "auto" }}
+                        onClick={valuesModal.open}
+                        aria-label="Show values"
+                    >
+                        <MdInfoOutline size={18} />
+                    </ActionIcon>
+                </Tooltip>
+            }
+            after={
+                <DonutValuesModal
+                    analytic={analytic}
+                    isAbsolute={isAbsolute}
+                    opened={valuesOpened}
+                    onClose={valuesModal.close}
                 />
+            }
+        >
+            <Box
+                h={chartHeight(fillHeight, isMobile)}
+                style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "var(--mantine-spacing-xs)",
+                    ...(fillHeight ? { flex: 1, minHeight: 0 } : {}),
+                }}
+            >
+                {/* The note is what a small widget can least afford, and the ring is
+                        what it is there for: on one the count alone has to carry it. */}
+                {excludedPoints.length > 0 && (
+                    <Tooltip
+                        label={excludedPoints
+                            .map((p) => p.name ?? "Unknown")
+                            .join(", ")}
+                        multiline
+                        maw={260}
+                    >
+                        <Text
+                            size="xs"
+                            c="dimmed"
+                            lineClamp={1}
+                            style={{ cursor: "default" }}
+                        >
+                            {layout.isCompact
+                                ? `${excludedPoints.length} not shown`
+                                : `${excludedPoints.length} categor${
+                                      excludedPoints.length === 1 ? "y" : "ies"
+                                  } not shown (${
+                                      isAbsolute
+                                          ? "zero value"
+                                          : "zero or negative value"
+                                  })`}
+                        </Text>
+                    </Tooltip>
+                )}
                 <Box
-                    h={chartHeight(fillHeight, isMobile)}
+                    ref={plot.ref}
                     style={{
+                        flex: 1,
+                        minHeight: 0,
                         display: "flex",
-                        flexDirection: "column",
-                        gap: "var(--mantine-spacing-xs)",
-                        ...(fillHeight ? { flex: 1, minHeight: 0 } : {}),
+                        justifyContent: "center",
                     }}
                 >
-                    {/* The note is what a small widget can least afford, and the ring is
-                        what it is there for: on one the count alone has to carry it. */}
-                    {excludedPoints.length > 0 && (
-                        <Tooltip
-                            label={excludedPoints
-                                .map((p) => p.name ?? "Unknown")
-                                .join(", ")}
-                            multiline
-                            maw={260}
-                        >
-                            <Text
-                                size="xs"
-                                c="dimmed"
-                                lineClamp={1}
-                                style={{ cursor: "default" }}
-                            >
-                                {layout.isCompact
-                                    ? `${excludedPoints.length} not shown`
-                                    : `${excludedPoints.length} categor${
-                                          excludedPoints.length === 1
-                                              ? "y"
-                                              : "ies"
-                                      } not shown (${
-                                          isAbsolute
-                                              ? "zero value"
-                                              : "zero or negative value"
-                                      })`}
-                            </Text>
-                        </Tooltip>
-                    )}
-                    <Box
-                        ref={plot.ref}
-                        style={{
-                            flex: 1,
-                            minHeight: 0,
-                            display: "flex",
-                            justifyContent: "center",
+                    <DonutChart
+                        withLabelsLine={donut.withLabels}
+                        w={"100%"}
+                        withLabels={donut.withLabels}
+                        size={donut.size}
+                        thickness={donut.thickness}
+                        pieProps={
+                            donut.withLabels
+                                ? {
+                                      label: renderDonutLabel,
+                                      labelLine: renderDonutLabelLine,
+                                  }
+                                : undefined
+                        }
+                        paddingAngle={2}
+                        tooltipDataSource="segment"
+                        tooltipProps={{
+                            trigger: chartTooltipTrigger(isMobile),
+                            content: createDonutTooltipContent(analytic),
                         }}
-                    >
-                        <DonutChart
-                            withLabelsLine={donut.withLabels}
-                            w={"100%"}
-                            withLabels={donut.withLabels}
-                            size={donut.size}
-                            thickness={donut.thickness}
-                            pieProps={
-                                donut.withLabels
-                                    ? {
-                                          label: renderDonutLabel,
-                                          labelLine: renderDonutLabelLine,
-                                      }
-                                    : undefined
-                            }
-                            paddingAngle={2}
-                            tooltipDataSource="segment"
-                            tooltipProps={{
-                                trigger: chartTooltipTrigger(isMobile),
-                                content: createDonutTooltipContent(analytic),
-                            }}
-                            labelsType="percent"
-                            tooltipAnimationDuration={200}
-                            data={coloredPoints}
-                            h={"100%"}
-                        />
-                    </Box>
+                        labelsType="percent"
+                        tooltipAnimationDuration={200}
+                        data={coloredPoints}
+                        h={"100%"}
+                    />
                 </Box>
-            </Stack>
-            <DonutValuesModal
-                analytic={analytic}
-                isAbsolute={isAbsolute}
-                opened={valuesOpened}
-                onClose={valuesModal.close}
-            />
-        </Paper>
+            </Box>
+        </WidgetShell>
     );
 }

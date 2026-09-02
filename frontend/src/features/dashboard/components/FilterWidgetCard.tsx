@@ -2,7 +2,6 @@ import {
     Button,
     Group,
     Modal,
-    Paper,
     ScrollArea,
     Select,
     Stack,
@@ -14,12 +13,8 @@ import { useState } from "react";
 import { TbFilter } from "react-icons/tb";
 import DynamicDateValueInput from "../../../shared/components/DynamicDateValueInput";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
-import { AnalyticCardHeader } from "../../analytics/components/AnalyticCardHeader";
-import {
-    cardBodyProps,
-    cardShellProps,
-    useCardLayout,
-} from "../../analytics/components/cardSizing";
+import { useCardLayout } from "../../analytics/components/cardSizing";
+import { WidgetShell } from "../../analytics/components/WidgetShell";
 import { FilterWidgetDto } from "../types/DashboardDto";
 import {
     clauseLabel,
@@ -40,7 +35,10 @@ interface Props {
         it. */
     onEdit?: (itemId: string) => void;
     /** Persists the new typed values and recomputes every widget linked to those clauses. */
-    onSetValues: (itemId: string, values: Record<string, string | null>) => void;
+    onSetValues: (
+        itemId: string,
+        values: Record<string, string | null>,
+    ) => void;
 }
 
 /**
@@ -66,7 +64,9 @@ export function FilterWidgetCard({
 
     const form = useForm<{ values: Record<string, unknown> }>({
         initialValues: {
-            values: Object.fromEntries(clauses.map((c) => [c.queryId, c.value ?? ""])),
+            values: Object.fromEntries(
+                clauses.map((c) => [c.queryId, c.value ?? ""]),
+            ),
         },
     });
 
@@ -110,7 +110,9 @@ export function FilterWidgetCard({
 
     // What each set clause reads as — "Date & time ≥ Jan 1", "Amount ≥ 10".
     const summaryParts = clauses
-        .filter((c) => c.value !== undefined && c.value !== null && c.value !== "")
+        .filter(
+            (c) => c.value !== undefined && c.value !== null && c.value !== "",
+        )
         .map(
             (c) =>
                 `${clauseLabel(c.dataType, c.operator)} ${renderValue(
@@ -120,123 +122,142 @@ export function FilterWidgetCard({
         );
 
     return (
-        <Paper
-            ref={layout.ref}
-            withBorder
-            p={0}
-            radius="md"
-            w="100%"
-            {...cardShellProps(true)}
-        >
-            <Stack gap="xs" {...cardBodyProps(true)} h="100%">
-                <AnalyticCardHeader
-                    title="Filters"
-                    layout={layout}
-                    color={color}
-                    isConfiguring={isConfiguring}
-                    analyticId={widgetId}
-                    onRemove={onRemove}
-                    onEdit={onEdit}
-                    compact
-                />
-                {clauses.length > 0 ? (
-                    <UnstyledButton
-                        onClick={openEditor}
-                        disabled={isConfiguring}
-                        style={{
-                            flex: 1,
-                            minHeight: 0,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                            padding: "0 12px",
-                            pointerEvents: isConfiguring ? "none" : "auto",
-                        }}
-                    >
-                        <TbFilter size={16} style={{ flexShrink: 0, opacity: 0.7 }} />
-                        {summaryParts.length === 0 ? (
-                            <Text size="sm" c="dimmed">
-                                Set filters…
-                            </Text>
-                        ) : (
-                            <Text size="sm" truncate>
-                                {summaryParts.join("  ·  ")}
-                            </Text>
+        <WidgetShell
+            layout={layout}
+            fillHeight
+            isConfiguring={isConfiguring}
+            color={color}
+            itemId={widgetId}
+            onRemove={onRemove}
+            onEdit={onEdit}
+            title="Filters"
+            compactHeader
+            padding={0}
+            bodyProps={{ h: "100%" }}
+            after={
+                <Modal
+                    opened={editing}
+                    onClose={() => setEditing(false)}
+                    title="Set filters"
+                    centered
+                    zIndex={400}
+                >
+                    <Stack gap="md">
+                        {presets.length > 0 && (
+                            <Select
+                                label="Apply a preset"
+                                placeholder="Pick a preset…"
+                                data={presets.map((p) => ({
+                                    value: p.id,
+                                    label: p.name,
+                                }))}
+                                value={null}
+                                onChange={(value) =>
+                                    value && applyPreset(value)
+                                }
+                                comboboxProps={{
+                                    withinPortal: true,
+                                    zIndex: 500,
+                                }}
+                            />
                         )}
-                    </UnstyledButton>
-                ) : (
-                    <Text size="sm" c="dimmed" px="xs">
-                        This filter widget is misconfigured.
-                    </Text>
-                )}
-            </Stack>
-
-            <Modal
-                opened={editing}
-                onClose={() => setEditing(false)}
-                title="Set filters"
-                centered
-                zIndex={400}
-            >
-                <Stack gap="md">
-                    {presets.length > 0 && (
-                        <Select
-                            label="Apply a preset"
-                            placeholder="Pick a preset…"
-                            data={presets.map((p) => ({ value: p.id, label: p.name }))}
-                            value={null}
-                            onChange={(value) => value && applyPreset(value)}
-                            comboboxProps={{ withinPortal: true, zIndex: 500 }}
-                        />
-                    )}
-                    <ScrollArea.Autosize mah="60vh">
-                        <Stack gap="sm">
-                            {clauses.map((c) => (
-                                <Stack key={c.queryId} gap={2}>
-                                    <Text size="xs" fw={500} c="dimmed">
-                                        {clauseLabel(c.dataType, c.operator)}
-                                    </Text>
-                                    <DynamicDateValueInput
-                                        isDateType={DATE_TYPES.includes(c.dataType)}
-                                        value={
-                                            form.values.values[c.queryId] as
-                                                | string
-                                                | number
-                                                | Date
-                                                | undefined
-                                        }
-                                        onChange={(v) =>
-                                            form.setFieldValue(
-                                                `values.${c.queryId}`,
-                                                v,
-                                            )
-                                        }
-                                        field={syntheticField(c.queryId, c.dataType)}
-                                        form={form}
-                                        fieldPath={`values.${c.queryId}`}
-                                    />
-                                </Stack>
-                            ))}
-                        </Stack>
-                    </ScrollArea.Autosize>
-                    <Group justify="space-between">
-                        <Button variant="subtle" color="gray" onClick={clearAll}>
-                            Clear all
-                        </Button>
-                        <Group gap="sm">
+                        <ScrollArea.Autosize mah="60vh">
+                            <Stack gap="sm">
+                                {clauses.map((c) => (
+                                    <Stack key={c.queryId} gap={2}>
+                                        <Text size="xs" fw={500} c="dimmed">
+                                            {clauseLabel(
+                                                c.dataType,
+                                                c.operator,
+                                            )}
+                                        </Text>
+                                        <DynamicDateValueInput
+                                            isDateType={DATE_TYPES.includes(
+                                                c.dataType,
+                                            )}
+                                            value={
+                                                form.values.values[
+                                                    c.queryId
+                                                ] as
+                                                    | string
+                                                    | number
+                                                    | Date
+                                                    | undefined
+                                            }
+                                            onChange={(v) =>
+                                                form.setFieldValue(
+                                                    `values.${c.queryId}`,
+                                                    v,
+                                                )
+                                            }
+                                            field={syntheticField(
+                                                c.queryId,
+                                                c.dataType,
+                                            )}
+                                            form={form}
+                                            fieldPath={`values.${c.queryId}`}
+                                        />
+                                    </Stack>
+                                ))}
+                            </Stack>
+                        </ScrollArea.Autosize>
+                        <Group justify="space-between">
                             <Button
-                                variant="default"
-                                onClick={() => setEditing(false)}
+                                variant="subtle"
+                                color="gray"
+                                onClick={clearAll}
                             >
-                                Cancel
+                                Clear all
                             </Button>
-                            <Button color={color} onClick={apply}>
-                                Apply
-                            </Button>
+                            <Group gap="sm">
+                                <Button
+                                    variant="default"
+                                    onClick={() => setEditing(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button color={color} onClick={apply}>
+                                    Apply
+                                </Button>
+                            </Group>
                         </Group>
-                    </Group>
-                </Stack>
-            </Modal>
-        </Paper>
+                    </Stack>
+                </Modal>
+            }
+        >
+            {clauses.length > 0 ? (
+                <UnstyledButton
+                    onClick={openEditor}
+                    disabled={isConfiguring}
+                    style={{
+                        flex: 1,
+                        minHeight: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        padding: "0 12px",
+                        pointerEvents: isConfiguring ? "none" : "auto",
+                    }}
+                >
+                    <TbFilter
+                        size={16}
+                        style={{ flexShrink: 0, opacity: 0.7 }}
+                    />
+                    {summaryParts.length === 0 ? (
+                        <Text size="sm" c="dimmed">
+                            Set filters…
+                        </Text>
+                    ) : (
+                        <Text size="sm" truncate>
+                            {summaryParts.join("  ·  ")}
+                        </Text>
+                    )}
+                </UnstyledButton>
+            ) : (
+                <Text size="sm" c="dimmed" px="xs">
+                    This filter widget is misconfigured.
+                </Text>
+            )}
+        </WidgetShell>
     );
 }
