@@ -385,6 +385,9 @@ export default function ExplorePage() {
             ? trackers.find((t) => t.id === distinctTrackerIds[0])?.color
             : undefined;
 
+    const isSingleValueResult =
+        result?.resultType === AnalyticResultTypeEnum.SingleValue;
+
     const trackerOptions = trackers.map((t) => ({ value: t.id, label: t.name }));
     const resultTypeOptions = (config?.resultTypes ?? []).map((rt) => ({
         value: rt.name,
@@ -546,7 +549,11 @@ export default function ExplorePage() {
                                 <>
                                     <div
                                         style={{
-                                            flex: 1,
+                                            // A single number sits at its natural size; a
+                                            // chart stretches to fill the preview.
+                                            flex: isSingleValueResult
+                                                ? undefined
+                                                : 1,
                                             minHeight: 0,
                                             minWidth: 0,
                                             display: "flex",
@@ -557,7 +564,7 @@ export default function ExplorePage() {
                                             analytic={result}
                                             color={resultTrackerColor}
                                             isConfiguring={false}
-                                            fillHeight
+                                            fillHeight={!isSingleValueResult}
                                         />
                                     </div>
                                     <Divider my="sm" />
