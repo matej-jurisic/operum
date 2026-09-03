@@ -15,8 +15,8 @@ interface Props {
     color: string | undefined;
     isConfiguring: boolean;
     onRemove?: (itemId: string) => void;
-    /** Opens the widget's own edit dialog — which columns it shows, and whether it's
-        expandable. The rows it shows stay read-only regardless. */
+    /** Opens the widget's own edit dialog — which columns it shows, and how it's drawn on
+        each grid. The rows it shows stay read-only regardless. */
     onEdit?: (itemId: string) => void;
 }
 
@@ -24,7 +24,7 @@ interface Props {
  * A read-only table of one tracker's entries. Everything the tracker page's own entries
  * table does — editing, selecting, deleting — is deliberately left out: this card is a
  * window onto the data, not another place to change it. onEdit is the widget's own
- * settings instead (its columns, its expandable flags) — see EditEntriesWidgetModal.
+ * settings instead (its columns, its per-grid display mode) — see EditEntriesWidgetModal.
  *
  * Both the columns and the rows come from the board (entriesWidget), already filtered and
  * sorted by whatever view selectors this widget follows — the card renders them as-is.

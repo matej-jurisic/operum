@@ -12,6 +12,7 @@ import {
   verticalCompactor,
 } from "@snapgridjs/react";
 import {
+  DashboardItemDisplayMode,
   DashboardLayoutItemDto,
   DashboardWidgetDto,
   LayoutVariant,
@@ -110,18 +111,37 @@ function FlatBoard({
   const config = VARIANTS[LayoutVariants.Mobile];
   const cols = COLS[LayoutVariants.Mobile];
 
+  // Containers are flattened away on the narrow grid; a widget set Hidden on mobile is
+  // dropped from it entirely (reachable from the board's hidden-widgets list instead).
   const shown = useMemo(
-    () => widgets.filter((w) => w.type !== WidgetTypes.Container),
+    () =>
+      widgets.filter(
+        (w) =>
+          w.type !== WidgetTypes.Container &&
+          w.mobileLayout.displayMode !== DashboardItemDisplayMode.Hidden,
+      ),
     [widgets],
   );
 
-  const layout = useMemo(
-    () =>
-      shown.map((widget, index) =>
-        toLayoutItem(widget, index, LayoutVariants.Mobile, cols),
-      ),
-    [shown, cols],
-  );
+  const layout = useMemo(() => {
+    const items = shown.map((widget, index) =>
+      toLayoutItem(widget, index, LayoutVariants.Mobile, cols),
+    );
+
+    // Containers are flattened away here, but every widget still carries the
+    // mobileLayout.y it was seeded with, and that stack is never recompacted
+    // server-side when the wide grid's container tree changes. A widget moved
+    // into a container (or a container added above one) on the desktop board
+    // leaves a screen-tall hole on the phone -- the rows the hidden container
+    // still owns. Close those holes on the way in; the first drag in arrange
+    // mode then persists the compacted stack. minW/minH aren't carried through
+    // the compactor, so re-attach them.
+    const constraintsById = new Map(items.map((it) => [it.i, it]));
+    return verticalCompactor.compact(items, cols).map((it) => {
+      const src = constraintsById.get(it.i);
+      return src ? { ...it, minW: src.minW, minH: src.minH } : it;
+    });
+  }, [shown, cols]);
 
   const handleArranged = (newLayout: Layout) => {
     if (!isConfiguring) return;
@@ -205,6 +225,11 @@ function NestedBoard({
     const top: DashboardWidgetDto[] = [];
     const byContainer = new Map<string, DashboardWidgetDto[]>();
     for (const w of widgets) {
+      // A widget set Hidden on the wide grid is dropped from it entirely -- both from the
+      // board and from whatever container it belongs to -- and reached from the board's
+      // hidden-widgets list instead.
+      if (w.layout.displayMode === DashboardItemDisplayMode.Hidden) continue;
+
       const parent = parentOf(w);
       if (parent === null) {
         top.push(w);
@@ -296,6 +321,10 @@ interface BoardSubGridProps {
   /** Floor on the surface's height, so an empty grid still offers an area a widget can
       be dragged onto. */
   minHeight?: number;
+  /** Inset between the grid's edge and its cells. Given as the grid's own padding rather
+      than CSS padding on the wrapper, so the measured width the grid is handed matches
+      the box it actually renders into. */
+  containerPadding?: [number, number];
 }
 
 export function BoardSubGrid({
@@ -307,6 +336,7 @@ export function BoardSubGrid({
   onArranged,
   renderContent,
   minHeight,
+  containerPadding = [0, 0],
 }: BoardSubGridProps) {
   const layout = useMemo(
     () =>
@@ -330,7 +360,7 @@ export function BoardSubGrid({
       cols: DASHBOARD_GRID_COLUMNS,
       rowHeight: ROW_HEIGHT,
       margin,
-      containerPadding: [0, 0],
+      containerPadding,
     },
     compactor: verticalCompactor,
     isDraggable: isConfiguring,

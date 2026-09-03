@@ -13,11 +13,12 @@ import { ViewDto } from "../../views/types/ViewDto";
 import { dashboardController } from "../api/dashboardController";
 import { useDashboard } from "../context/DashboardContext";
 import {
+    DashboardItemDisplayMode,
     DashboardItemSourceDto,
     UpdateDashboardItemDto,
     WidgetTypes,
 } from "../types/DashboardDto";
-import { ExpandableOptionFields } from "./ExpandableOptionFields";
+import { WidgetDisplayModeFields } from "./WidgetDisplayModeFields";
 import { SourceViewSelect } from "./SourceViewSelect";
 import { YAxisScaleOption } from "./YAxisScaleOption";
 import { AnalyticResultTypeEnum } from "../../analytics/enums/AnalyticResultTypeEnum";
@@ -46,8 +47,10 @@ interface SourceRow {
 export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
     const { dashboardId } = useDashboard();
     const [rows, setRows] = useState<SourceRow[] | null>(null);
-    const [expandable, setExpandable] = useState(false);
-    const [mobileExpandable, setMobileExpandable] = useState(false);
+    const [displayMode, setDisplayMode] = useState(DashboardItemDisplayMode.Full);
+    const [mobileDisplayMode, setMobileDisplayMode] = useState(
+        DashboardItemDisplayMode.Full,
+    );
     const [isLineChart, setIsLineChart] = useState(false);
     const [isCalendar, setIsCalendar] = useState(false);
     const [yAxisFromZero, setYAxisFromZero] = useState(true);
@@ -86,8 +89,8 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
                     views: viewsByTracker.get(source.trackerId) ?? [],
                 })),
             );
-            setExpandable(item.layout.expandable);
-            setMobileExpandable(item.mobileLayout.expandable);
+            setDisplayMode(item.layout.displayMode);
+            setMobileDisplayMode(item.mobileLayout.displayMode);
             setIsLineChart(item.resultType === AnalyticResultTypeEnum.LineChart);
             setIsCalendar(item.resultType === AnalyticResultTypeEnum.Calendar);
             setYAxisFromZero(item.yAxisFromZero);
@@ -113,8 +116,8 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
             // Every source, every time: the payload stands for the whole widget, so a
             // name or a view cleared here has to arrive as cleared rather than missing.
             await onSave(itemId, {
-                expandable,
-                mobileExpandable,
+                displayMode,
+                mobileDisplayMode,
                 yAxisFromZero,
                 sources: rows.map((row) => ({
                     sourceId: row.source.id,
@@ -213,11 +216,11 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
                         />
                     )}
 
-                    <ExpandableOptionFields
-                        expandable={expandable}
-                        mobileExpandable={mobileExpandable}
-                        onExpandableChange={setExpandable}
-                        onMobileExpandableChange={setMobileExpandable}
+                    <WidgetDisplayModeFields
+                        displayMode={displayMode}
+                        mobileDisplayMode={mobileDisplayMode}
+                        onDisplayModeChange={setDisplayMode}
+                        onMobileDisplayModeChange={setMobileDisplayMode}
                     />
 
                     <Group justify="flex-end" mt="sm">

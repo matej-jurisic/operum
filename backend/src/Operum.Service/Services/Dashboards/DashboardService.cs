@@ -471,8 +471,8 @@ namespace Operum.Service.Services.Dashboards
             return await PlaceWidgetOnDashboard(dashboard, widget, new PlaceWidgetDto
             {
                 WidgetId = widget.Id,
-                Expandable = dto.Expandable,
-                MobileExpandable = dto.MobileExpandable,
+                DisplayMode = dto.DisplayMode,
+                MobileDisplayMode = dto.MobileDisplayMode,
                 YAxisFromZero = dto.YAxisFromZero,
                 SourceOverrides = overrides
             });
@@ -568,8 +568,8 @@ namespace Operum.Service.Services.Dashboards
                 MobileY = nextMobileRow,
                 MobileW = DashboardGrid.MobileColumns,
                 MobileH = height,
-                Expandable = dto.Expandable,
-                MobileExpandable = dto.MobileExpandable,
+                DisplayMode = dto.DisplayMode,
+                MobileDisplayMode = dto.MobileDisplayMode,
                 YAxisFromZero = dto.YAxisFromZero,
                 Sources = sources
             };
@@ -1063,8 +1063,8 @@ namespace Operum.Service.Services.Dashboards
             {
                 EntriesWidgetId = entriesWidget.Id,
                 ColumnFieldIds = dto.ColumnFieldIds,
-                Expandable = dto.Expandable,
-                MobileExpandable = dto.MobileExpandable
+                DisplayMode = dto.DisplayMode,
+                MobileDisplayMode = dto.MobileDisplayMode
             });
         }
 
@@ -1116,8 +1116,8 @@ namespace Operum.Service.Services.Dashboards
                 MobileY = nextMobileRow,
                 MobileW = DashboardGrid.MobileColumns,
                 MobileH = height,
-                Expandable = dto.Expandable,
-                MobileExpandable = dto.MobileExpandable
+                DisplayMode = dto.DisplayMode,
+                MobileDisplayMode = dto.MobileDisplayMode
             };
 
             db.DashboardItems.Add(item);
@@ -1160,9 +1160,10 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(MapToItemDto(item));
         }
 
-        // An empty panel to arrange other widgets inside. Like a divider it carries no
-        // Config -- its content is whichever items are later dropped into it -- so it needs
-        // nothing but the board's own item limit checked before it is placed.
+        // An empty panel to arrange other widgets inside. Starts with no Config -- its
+        // content is whichever items are later dropped into it, and its title is set later
+        // through SetTextWidgetContent -- so it needs nothing but the board's own item limit
+        // checked before it is placed.
         public async Task<Result<DashboardItemDto>> AddContainerItem(string dashboardId)
         {
             var dashboard = await GetUserDashboard(dashboardId);
@@ -1279,8 +1280,8 @@ namespace Operum.Service.Services.Dashboards
                 source.ViewId = string.IsNullOrEmpty(sourceDto.ViewId) ? null : sourceDto.ViewId;
             }
 
-            item.Expandable = dto.Expandable;
-            item.MobileExpandable = dto.MobileExpandable;
+            item.DisplayMode = dto.DisplayMode;
+            item.MobileDisplayMode = dto.MobileDisplayMode;
             item.YAxisFromZero = dto.YAxisFromZero;
 
             await db.SaveChangesAsync();
@@ -1312,18 +1313,18 @@ namespace Operum.Service.Services.Dashboards
             {
                 ColumnFieldIds = columns.Data!
             }, ConfigJsonOptions);
-            item.Expandable = dto.Expandable;
-            item.MobileExpandable = dto.MobileExpandable;
+            item.DisplayMode = dto.DisplayMode;
+            item.MobileDisplayMode = dto.MobileDisplayMode;
 
             await db.SaveChangesAsync();
 
             return Result.Success(await BuildWidgets(dashboard));
         }
 
-        // Changes what a Header or Note widget's text reads, persisted the same way a View
-        // widget's selection is. Unlike that one, nothing else on the board ever depends on
-        // this widget's Config, so there's no need to recompute the whole board back — the
-        // one item that changed is all the caller needs.
+        // Changes what a Header or Note widget's text reads, or a Container's title,
+        // persisted the same way a View widget's selection is. Unlike that one, nothing else
+        // on the board ever depends on this widget's Config, so there's no need to recompute
+        // the whole board back — the one item that changed is all the caller needs.
         public async Task<Result<DashboardItemDto>> SetTextWidgetContent(string dashboardId, string itemId, SetTextWidgetContentDto dto)
         {
             var dashboard = await GetUserDashboard(dashboardId);
@@ -1331,15 +1332,17 @@ namespace Operum.Service.Services.Dashboards
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
 
             var item = dashboard.Items.FirstOrDefault(i =>
-                i.Id == itemId && (i.Type == DashboardWidgetTypes.Header || i.Type == DashboardWidgetTypes.Note));
+                i.Id == itemId && (i.Type == DashboardWidgetTypes.Header
+                    || i.Type == DashboardWidgetTypes.Note
+                    || i.Type == DashboardWidgetTypes.Container));
             if (item == null)
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("text widget"));
 
-            // The two widgets share this endpoint but not their length cap — a header stays
-            // short, a note gets a paragraph's worth of room.
-            var maxLength = item.Type == DashboardWidgetTypes.Header
-                ? DataLimits.MaxHeaderTextLength
-                : DataLimits.MaxNoteTextLength;
+            // These widgets share this endpoint but not their length cap — a note gets a
+            // paragraph's worth of room; a header and a container title both stay short.
+            var maxLength = item.Type == DashboardWidgetTypes.Note
+                ? DataLimits.MaxNoteTextLength
+                : DataLimits.MaxHeaderTextLength;
 
             if (dto.Text.Length > maxLength)
                 return Result.Failure(ResultStatusCodes.BadRequest, $"Text cannot exceed {maxLength} characters.");
@@ -1801,7 +1804,7 @@ namespace Operum.Service.Services.Dashboards
             Y = i.Y,
             W = i.W,
             H = i.H,
-            Expandable = i.Expandable
+            DisplayMode = i.DisplayMode
         };
 
         private static DashboardWidgetLayoutDto MapToMobileLayoutDto(DashboardItem i) => new()
@@ -1810,7 +1813,7 @@ namespace Operum.Service.Services.Dashboards
             Y = i.MobileY,
             W = i.MobileW,
             H = i.MobileH,
-            Expandable = i.MobileExpandable
+            DisplayMode = i.MobileDisplayMode
         };
 
         private static DashboardWidgetDto MapToWidgetDto(

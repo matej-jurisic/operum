@@ -1,6 +1,7 @@
 using Operum.Model.DTOs.Analytics;
 using Operum.Model.DTOs.Entries;
 using Operum.Model.DTOs.Fields;
+using Operum.Model.Enums;
 
 namespace Operum.Model.DTOs.Dashboard
 {
@@ -10,9 +11,9 @@ namespace Operum.Model.DTOs.Dashboard
         public int Y { get; set; }
         public int W { get; set; }
         public int H { get; set; }
-        // Analytic/Entries widgets only: whether this grid draws the widget as a small
-        // button that opens the real thing in a modal instead of inline.
-        public bool Expandable { get; set; }
+        // Analytic/Entries widgets only: how this grid draws the widget — inline, as a
+        // button that opens the real thing in a modal, or not at all.
+        public DashboardItemDisplayMode DisplayMode { get; set; }
     }
 
     // The tracker summary a QuickAdd widget's button needs — resolved server-side from

@@ -15,10 +15,25 @@ export const WidgetTypes = {
     Container: "container",
 } as const;
 
-/** The Config payload shared by WidgetTypes.Header and WidgetTypes.Note: both are nothing
-    but user-entered text. WidgetTypes.Divider carries no config at all. */
+/** The Config payload shared by WidgetTypes.Header, WidgetTypes.Note and (as its optional
+    title) WidgetTypes.Container: all three are nothing but user-entered text. A
+    WidgetTypes.Divider carries no config at all. */
 export interface TextWidgetConfig {
     text: string;
+}
+
+/** Config is free-form JSON per widget type, so it only ever parses to the shape the widget
+    itself expects, never trusted further than that. Shared by Header, Note and Container. */
+export function parseTextWidgetConfig(
+    config: string | undefined,
+): TextWidgetConfig | null {
+    if (!config) return null;
+    try {
+        const parsed = JSON.parse(config);
+        return typeof parsed?.text === "string" ? parsed : null;
+    } catch {
+        return null;
+    }
 }
 
 /** The Config payload of a WidgetTypes.QuickAdd widget: which tracker its button opens
@@ -164,8 +179,20 @@ export interface WidgetLayoutDto {
     h: number;
 }
 
+/** How an Analytic/Entries widget is drawn on one of the board's two grids. Set
+    independently per grid, so a chart can be shown in full on desktop and collapsed (or
+    dropped) on mobile. Serialized as its numeric value. */
+export enum DashboardItemDisplayMode {
+    /** Drawn inline at the size it was given on the grid. */
+    Full = 0,
+    /** Drawn as a small button that opens the widget at full size in a modal. */
+    Expandable = 1,
+    /** Not drawn on this grid at all. Reachable from the board's hidden-widgets list. */
+    Hidden = 2,
+}
+
 export interface DashboardWidgetLayoutDto extends WidgetLayoutDto {
-    expandable: boolean;
+    displayMode: DashboardItemDisplayMode;
 }
 
 export const LayoutVariants = {
@@ -275,8 +302,8 @@ export interface CreateAndPlaceWidgetDto {
     resultType: string;
     code: string;
     matchedValuesOnly?: boolean;
-    expandable?: boolean;
-    mobileExpandable?: boolean;
+    displayMode?: DashboardItemDisplayMode;
+    mobileDisplayMode?: DashboardItemDisplayMode;
     /** Line charts only; defaults to true (0-anchored) server-side when omitted. */
     yAxisFromZero?: boolean;
     sources: CreateAndPlaceWidgetSourceDto[];
@@ -290,8 +317,8 @@ export interface PlaceWidgetSourceOverrideDto {
 
 export interface PlaceWidgetDto {
     widgetId: string;
-    expandable?: boolean;
-    mobileExpandable?: boolean;
+    displayMode?: DashboardItemDisplayMode;
+    mobileDisplayMode?: DashboardItemDisplayMode;
     /** Line charts only; defaults to true (0-anchored) server-side when omitted. */
     yAxisFromZero?: boolean;
     sourceOverrides: PlaceWidgetSourceOverrideDto[];
@@ -308,16 +335,16 @@ export interface CreateAndPlaceEntriesWidgetDto {
     name?: string;
     /** Tracker fields to show as columns, in order. Empty/omitted shows every field. */
     columnFieldIds?: string[];
-    expandable?: boolean;
-    mobileExpandable?: boolean;
+    displayMode?: DashboardItemDisplayMode;
+    mobileDisplayMode?: DashboardItemDisplayMode;
 }
 
 export interface PlaceEntriesWidgetDto {
     entriesWidgetId: string;
     /** Tracker fields to show as columns, in order. Empty/omitted shows every field. */
     columnFieldIds?: string[];
-    expandable?: boolean;
-    mobileExpandable?: boolean;
+    displayMode?: DashboardItemDisplayMode;
+    mobileDisplayMode?: DashboardItemDisplayMode;
 }
 
 /** Adds a WidgetTypes.Header widget: a short line of text read as a section title. */
@@ -337,8 +364,8 @@ export interface UpdateDashboardItemSourceDto {
 }
 
 export interface UpdateDashboardItemDto {
-    expandable: boolean;
-    mobileExpandable: boolean;
+    displayMode: DashboardItemDisplayMode;
+    mobileDisplayMode: DashboardItemDisplayMode;
     /** Line charts only: whether the Y axis starts at zero or is fitted to the data range. */
     yAxisFromZero: boolean;
     sources: UpdateDashboardItemSourceDto[];
@@ -347,8 +374,8 @@ export interface UpdateDashboardItemDto {
 export interface UpdateDashboardEntriesItemDto {
     /** Tracker fields to show as columns, in order. Empty/omitted shows every field. */
     columnFieldIds?: string[];
-    expandable: boolean;
-    mobileExpandable: boolean;
+    displayMode: DashboardItemDisplayMode;
+    mobileDisplayMode: DashboardItemDisplayMode;
 }
 
 /** Changes what a WidgetTypes.Header or WidgetTypes.Note widget's text reads. */

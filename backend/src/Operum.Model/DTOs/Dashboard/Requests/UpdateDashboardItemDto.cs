@@ -1,5 +1,6 @@
 using FluentValidation;
 using Operum.Model.Constants;
+using Operum.Model.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace Operum.Model.DTOs.Dashboard.Requests
@@ -25,10 +26,10 @@ namespace Operum.Model.DTOs.Dashboard.Requests
     // rather than the one the user put there — that is what adding a new widget is for.
     public class UpdateDashboardItemDto
     {
-        // Whether the widget draws as a small button that opens the chart in a modal
-        // instead of inline, independently on each of the board's two grids.
-        public bool Expandable { get; set; }
-        public bool MobileExpandable { get; set; }
+        // How the widget draws on each of the board's two grids — inline, as a button that
+        // opens the chart in a modal, or dropped from that grid entirely.
+        public DashboardItemDisplayMode DisplayMode { get; set; }
+        public DashboardItemDisplayMode MobileDisplayMode { get; set; }
 
         // Line chart widgets only: whether the y-axis is anchored at zero or fitted to the
         // data's own range. Ignored for every other chart type.
@@ -63,6 +64,11 @@ namespace Operum.Model.DTOs.Dashboard.Requests
             // DashboardService.
             RuleFor(x => x.Sources)
                 .NotEmpty().WithMessage(x => Messages.Required("sources"));
+
+            RuleFor(x => x.DisplayMode)
+                .IsInEnum().WithMessage(x => Messages.Invalid("display mode"));
+            RuleFor(x => x.MobileDisplayMode)
+                .IsInEnum().WithMessage(x => Messages.Invalid("display mode"));
 
             RuleForEach(x => x.Sources)
                 .SetValidator(new UpdateDashboardItemSourceDtoValidator());

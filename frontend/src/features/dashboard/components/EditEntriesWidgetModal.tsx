@@ -3,8 +3,12 @@ import { useEffect, useState } from "react";
 import { fieldsController } from "../../fields/api/fieldsController";
 import { FieldDto } from "../../fields/types/FieldDto";
 import { useDashboard } from "../context/DashboardContext";
-import { UpdateDashboardEntriesItemDto, WidgetTypes } from "../types/DashboardDto";
-import { ExpandableOptionFields } from "./ExpandableOptionFields";
+import {
+    DashboardItemDisplayMode,
+    UpdateDashboardEntriesItemDto,
+    WidgetTypes,
+} from "../types/DashboardDto";
+import { WidgetDisplayModeFields } from "./WidgetDisplayModeFields";
 
 interface Props {
     itemId: string;
@@ -32,9 +36,9 @@ function parseEntriesConfig(config: string | undefined): EntriesWidgetConfig | n
 
 /**
  * Edits an Entries widget after it has been placed. Only what the board itself decides is
- * here: which of the tracker's fields it shows as columns, and whether it collapses to a
- * button on each grid. The tracker it reads from is fixed at add time, and how it's
- * filtered comes only from the View Selector widgets it's linked to.
+ * here: which of the tracker's fields it shows as columns, and how it's drawn on each
+ * grid. The tracker it reads from is fixed at add time, and how it's filtered comes only
+ * from the View Selector widgets it's linked to.
  */
 export function EditEntriesWidgetModal({ itemId, color, onClose, onSave }: Props) {
     const { widgets } = useDashboard();
@@ -45,8 +49,12 @@ export function EditEntriesWidgetModal({ itemId, color, onClose, onSave }: Props
     const [columnFieldIds, setColumnFieldIds] = useState<string[]>(
         config?.columnFieldIds ?? [],
     );
-    const [expandable, setExpandable] = useState(widget?.layout.expandable ?? false);
-    const [mobileExpandable, setMobileExpandable] = useState(widget?.mobileLayout.expandable ?? false);
+    const [displayMode, setDisplayMode] = useState(
+        widget?.layout.displayMode ?? DashboardItemDisplayMode.Full,
+    );
+    const [mobileDisplayMode, setMobileDisplayMode] = useState(
+        widget?.mobileLayout.displayMode ?? DashboardItemDisplayMode.Full,
+    );
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const trackerId =
@@ -65,8 +73,8 @@ export function EditEntriesWidgetModal({ itemId, color, onClose, onSave }: Props
         try {
             await onSave(itemId, {
                 columnFieldIds: columnFieldIds.length ? columnFieldIds : undefined,
-                expandable,
-                mobileExpandable,
+                displayMode,
+                mobileDisplayMode,
             });
         } finally {
             setIsSubmitting(false);
@@ -92,11 +100,11 @@ export function EditEntriesWidgetModal({ itemId, color, onClose, onSave }: Props
                         clearable
                     />
 
-                    <ExpandableOptionFields
-                        expandable={expandable}
-                        mobileExpandable={mobileExpandable}
-                        onExpandableChange={setExpandable}
-                        onMobileExpandableChange={setMobileExpandable}
+                    <WidgetDisplayModeFields
+                        displayMode={displayMode}
+                        mobileDisplayMode={mobileDisplayMode}
+                        onDisplayModeChange={setDisplayMode}
+                        onMobileDisplayModeChange={setMobileDisplayMode}
                     />
 
                     <Group justify="flex-end" mt="sm">

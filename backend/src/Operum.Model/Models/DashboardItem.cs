@@ -1,4 +1,5 @@
 using Operum.Model.Constants;
+using Operum.Model.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -39,12 +40,12 @@ namespace Operum.Model.Models
         public int MobileW { get; set; }
         public int MobileH { get; set; }
 
-        // Whether this item renders as a small button on the wide grid that opens the real
-        // widget in a modal instead of drawing it inline. Analytic/Entries widgets only —
-        // kept apart from the narrow grid's copy below the same way every other layout
-        // property is, so a chart can be collapsed on the phone but drawn in full on desktop.
-        public bool Expandable { get; set; }
-        public bool MobileExpandable { get; set; }
+        // How this item renders on each of the board's two grids: inline, collapsed to a
+        // button that opens it in a modal, or dropped from that grid entirely. Analytic/
+        // Entries widgets only — kept apart per grid the same way every other layout
+        // property is, so a chart can be dropped on the phone but drawn in full on desktop.
+        public DashboardItemDisplayMode DisplayMode { get; set; }
+        public DashboardItemDisplayMode MobileDisplayMode { get; set; }
 
         // Line chart widgets only: whether the y-axis is anchored at zero (the default) or
         // fitted to the data's own range. Fitting is what makes a series that only ever

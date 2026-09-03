@@ -1,11 +1,12 @@
 import { TbChartHistogram, TbTable } from "react-icons/tb";
 import { AnalyticCard } from "../../analytics/components/AnalyticCard";
 import {
+    DashboardItemDisplayMode,
     DashboardWidgetDto,
     LayoutVariant,
     LayoutVariants,
     QuickAddWidgetConfig,
-    TextWidgetConfig,
+    parseTextWidgetConfig,
     WidgetTypes,
 } from "../types/DashboardDto";
 import { DividerWidgetCard } from "./DividerWidgetCard";
@@ -20,8 +21,8 @@ import { UnknownWidgetCard } from "./UnknownWidgetCard";
 interface Props {
     widget: DashboardWidgetDto;
     /** Which of the board's two grids this is being rendered on -- decides whether an
-        expandable Analytic/Entries widget reads its collapsed flag from layout or from
-        mobileLayout, since the two are set (and can differ) independently. */
+        Analytic/Entries widget reads its display mode from layout or from mobileLayout,
+        since the two are set (and can differ) independently. */
     variant: LayoutVariant;
     color: string | undefined;
     isConfiguring: boolean;
@@ -38,12 +39,16 @@ interface Props {
     ) => void;
 }
 
-// Whether the current grid draws this widget as its collapsed button instead of inline —
-// see WidgetLayoutDto.expandable. Only Analytic/Entries widgets carry the flag at all.
-const isExpandableHere = (widget: DashboardWidgetDto, variant: LayoutVariant): boolean =>
+// How the current grid draws this widget — see DashboardItemDisplayMode. Only
+// Analytic/Entries widgets carry it; a Hidden widget is filtered out of the grid upstream
+// (see DashboardGrid), so the switch below only ever sees Full or Expandable in practice.
+const displayModeHere = (
+    widget: DashboardWidgetDto,
+    variant: LayoutVariant,
+): DashboardItemDisplayMode =>
     variant === LayoutVariants.Mobile
-        ? widget.mobileLayout.expandable
-        : widget.layout.expandable;
+        ? widget.mobileLayout.displayMode
+        : widget.layout.displayMode;
 
 // Config is free-form JSON per widget type, so it only ever parses to what the widget
 // itself expects — never trusted further than that.
@@ -52,17 +57,6 @@ function parseQuickAddConfig(config: string | undefined): QuickAddWidgetConfig |
     try {
         const parsed = JSON.parse(config);
         return typeof parsed?.trackerId === "string" ? parsed : null;
-    } catch {
-        return null;
-    }
-}
-
-// Shared by Header and Note, whose Config is nothing but this one string.
-function parseTextConfig(config: string | undefined): TextWidgetConfig | null {
-    if (!config) return null;
-    try {
-        const parsed = JSON.parse(config);
-        return typeof parsed?.text === "string" ? parsed : null;
     } catch {
         return null;
     }
@@ -87,12 +81,19 @@ export function DashboardWidget({
         case WidgetTypes.Analytic: {
             if (!widget.analytic) return null;
 
+            // Filtered out of the grid upstream; the null is a guard, not the real path.
+            if (displayModeHere(widget, variant) === DashboardItemDisplayMode.Hidden)
+                return null;
+
             // A widget backed by a single tracker reads as that tracker; one combining
             // several (a composed chart) has no single tracker to take the color from, so
             // it keeps the board's own.
             const chartColor = widget.trackerColor ?? color;
 
-            if (isExpandableHere(widget, variant)) {
+            if (
+                displayModeHere(widget, variant) ===
+                DashboardItemDisplayMode.Expandable
+            ) {
                 return (
                     <ExpandableWidgetCard
                         widgetId={widget.id}
@@ -152,9 +153,15 @@ export function DashboardWidget({
                 />
             );
         case WidgetTypes.Entries: {
+            if (displayModeHere(widget, variant) === DashboardItemDisplayMode.Hidden)
+                return null;
+
             const entriesColor = widget.entriesWidget?.color ?? color;
 
-            if (isExpandableHere(widget, variant)) {
+            if (
+                displayModeHere(widget, variant) ===
+                DashboardItemDisplayMode.Expandable
+            ) {
                 return (
                     <ExpandableWidgetCard
                         widgetId={widget.id}
@@ -195,7 +202,7 @@ export function DashboardWidget({
             return (
                 <HeaderWidgetCard
                     widgetId={widget.id}
-                    config={parseTextConfig(widget.config)}
+                    config={parseTextWidgetConfig(widget.config)}
                     color={color}
                     isConfiguring={isConfiguring}
                     onRemove={onRemove}
@@ -220,7 +227,7 @@ export function DashboardWidget({
             return (
                 <NoteWidgetCard
                     widgetId={widget.id}
-                    config={parseTextConfig(widget.config)}
+                    config={parseTextWidgetConfig(widget.config)}
                     color={color}
                     isConfiguring={isConfiguring}
                     onRemove={onRemove}

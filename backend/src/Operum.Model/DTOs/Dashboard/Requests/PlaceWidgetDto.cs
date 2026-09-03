@@ -1,5 +1,6 @@
 using FluentValidation;
 using Operum.Model.Constants;
+using Operum.Model.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace Operum.Model.DTOs.Dashboard.Requests
@@ -25,10 +26,10 @@ namespace Operum.Model.DTOs.Dashboard.Requests
         [Required]
         public string WidgetId { get; set; } = string.Empty;
 
-        // Whether the widget draws as a small button that opens the chart in a modal
-        // instead of inline, independently on each of the board's two grids.
-        public bool Expandable { get; set; }
-        public bool MobileExpandable { get; set; }
+        // How the widget draws on each of the board's two grids — inline, as a button that
+        // opens the chart in a modal, or dropped from that grid entirely.
+        public DashboardItemDisplayMode DisplayMode { get; set; }
+        public DashboardItemDisplayMode MobileDisplayMode { get; set; }
 
         // Line chart widgets only: whether the y-axis is anchored at zero (the default) or
         // fitted to the data's own range. Ignored for every other chart type.
@@ -58,6 +59,11 @@ namespace Operum.Model.DTOs.Dashboard.Requests
         {
             RuleFor(x => x.WidgetId)
                 .NotEmpty().WithMessage(x => Messages.Required("widget id"));
+
+            RuleFor(x => x.DisplayMode)
+                .IsInEnum().WithMessage(x => Messages.Invalid("display mode"));
+            RuleFor(x => x.MobileDisplayMode)
+                .IsInEnum().WithMessage(x => Messages.Invalid("display mode"));
 
             RuleForEach(x => x.SourceOverrides)
                 .SetValidator(new PlaceWidgetSourceOverrideDtoValidator());

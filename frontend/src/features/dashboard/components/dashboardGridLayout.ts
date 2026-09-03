@@ -40,6 +40,11 @@ export const DRAG_CANCEL_SELECTOR =
 // container is already a framed region.
 export const CONTAINER_MARGIN: [number, number] = [8, 8];
 
+// The inset between a container's frame and its sub-grid. Applied as the grid's own
+// padding, not CSS padding on the body, so the width the grid is measured at is the
+// width it renders into (a padded measured element leaves the grid overflowing it).
+export const CONTAINER_PADDING: [number, number] = [8, 8];
+
 /** The key a grid's pending layout is stashed under while a save is being assembled: a
     container's id, or this for the board itself. */
 export const ROOT_KEY = "__root__";

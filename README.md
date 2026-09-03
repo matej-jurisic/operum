@@ -30,7 +30,7 @@ Views are assembled from reusable queries. A query is a single clause, one filte
 
 ### Dashboards
 
-Build any number of dashboards ("boards"), each with its own name, color, and icon, and set one as your landing page. A board is a grid of widgets you arrange by dragging; desktop and mobile layouts are kept separately, so a board can be dense on a screen and single-column on a phone. Any widget can be made expandable for a full-size view.
+Build any number of dashboards ("boards"), each with its own name, color, and icon, and set one as your landing page. A board is a grid of widgets you arrange by dragging; desktop and mobile layouts are kept separately, so a board can be dense on a screen and single-column on a phone. Any widget can be made expandable for a full-size view, and related widgets can be grouped into a container panel that moves and resizes as one.
 
 | Widget | What it does |
 |---|---|
@@ -39,6 +39,7 @@ Build any number of dashboards ("boards"), each with its own name, color, and ic
 | Quick-add button | Opens a tracker's quick-add entry dialog straight from the board |
 | Filter | Live controls that narrow the chart and table widgets on the board that follow it |
 | Header / Divider / Note | Layout and annotation |
+| Container | A panel holding a sub-grid of other widgets, so a group can be moved, resized, and titled as one. Nesting is one level deep |
 
 The **Widget Library** holds chart and table definitions independently of any board. Build one once, place it on as many boards as you want, edit or delete it in one place. A filter widget can offer board-level saved filter sets as one-tap presets, and each followed widget picks which of its tracker's fields the filter runs against.
 

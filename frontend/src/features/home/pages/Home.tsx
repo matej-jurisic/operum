@@ -27,6 +27,7 @@ import {
     TbArrowsJoin,
     TbBarbell,
     TbBook,
+    TbBoxMultiple,
     TbCalendar,
     TbCalendarClock,
     TbChartBar,
@@ -290,6 +291,13 @@ const WIDGET_TYPES = [
         color: "grape",
         label: "Headers and notes",
         description: "Section titles, dividers, and free-form text.",
+    },
+    {
+        icon: <TbBoxMultiple size={20} />,
+        color: "cyan",
+        label: "Containers",
+        description:
+            "Group widgets into a panel that moves, resizes, and is titled as one.",
     },
     {
         icon: <TbArrowsJoin size={20} />,

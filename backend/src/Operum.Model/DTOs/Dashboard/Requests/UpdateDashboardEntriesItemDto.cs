@@ -1,4 +1,6 @@
 using FluentValidation;
+using Operum.Model.Constants;
+using Operum.Model.Enums;
 
 namespace Operum.Model.DTOs.Dashboard.Requests
 {
@@ -11,16 +13,20 @@ namespace Operum.Model.DTOs.Dashboard.Requests
         // The tracker fields to show as columns, in order. Empty shows every field.
         public List<string> ColumnFieldIds { get; set; } = [];
 
-        // Whether the widget draws as a small button that opens the table in a modal
-        // instead of inline, independently on each of the board's two grids.
-        public bool Expandable { get; set; }
-        public bool MobileExpandable { get; set; }
+        // How the widget draws on each of the board's two grids — inline, as a button that
+        // opens the table in a modal, or dropped from that grid entirely.
+        public DashboardItemDisplayMode DisplayMode { get; set; }
+        public DashboardItemDisplayMode MobileDisplayMode { get; set; }
     }
 
     public class UpdateDashboardEntriesItemDtoValidator : AbstractValidator<UpdateDashboardEntriesItemDto>
     {
         public UpdateDashboardEntriesItemDtoValidator()
         {
+            RuleFor(x => x.DisplayMode)
+                .IsInEnum().WithMessage(x => Messages.Invalid("display mode"));
+            RuleFor(x => x.MobileDisplayMode)
+                .IsInEnum().WithMessage(x => Messages.Invalid("display mode"));
         }
     }
 }

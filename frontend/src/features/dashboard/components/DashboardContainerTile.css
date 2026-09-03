@@ -1,6 +1,7 @@
 /* A container tile: a bordered panel whose body is its own dashboard grid. */
 
 .dashboard-container {
+    position: relative;
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -12,6 +13,11 @@
     align-items: center;
     gap: 6px;
     padding: 6px 8px;
+    /* Holds the row at the height its arrange-mode icon buttons (ActionIcon size "md",
+       1.75rem) need, so it doesn't grow and shrink as arrange mode is toggled. The row is
+       border-box, so the 12px of vertical padding and the 1px bottom border are both part
+       of this figure. */
+    min-height: calc(1.75rem * var(--mantine-scale) + 12px + 1px);
     border-bottom: 1px solid var(--mantine-color-default-border);
     background: var(--mantine-color-default-hover);
 }
@@ -35,12 +41,14 @@
     white-space: nowrap;
 }
 
+/* No padding here: this element is what the sub-grid measures its width from, and the
+   grid is sized to that measurement. Its inset comes from the grid's own
+   containerPadding (CONTAINER_PADDING) instead. */
 .dashboard-container-body {
     position: relative;
     flex: 1;
     min-height: 0;
     overflow: auto;
-    padding: 8px;
 }
 
 /* Centered over the empty sub-grid, and never in the way of a drop onto it. */

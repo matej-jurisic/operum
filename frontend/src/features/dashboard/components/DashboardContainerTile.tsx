@@ -1,10 +1,15 @@
 import { ActionIcon, Paper, Text } from "@mantine/core";
-import { MdDelete, MdDragIndicator } from "react-icons/md";
+import { MdDelete, MdDragIndicator, MdEdit } from "react-icons/md";
 import { Layout, useContainerWidth } from "@snapgridjs/react";
-import { DashboardWidgetDto, LayoutVariants } from "../types/DashboardDto";
+import {
+  DashboardWidgetDto,
+  LayoutVariants,
+  parseTextWidgetConfig,
+} from "../types/DashboardDto";
 import { BoardSubGrid } from "./DashboardGrid";
 import {
   CONTAINER_MARGIN,
+  CONTAINER_PADDING,
   DashboardTileCallbacks,
 } from "./dashboardGridLayout";
 import { DashboardWidget } from "./DashboardWidget";
@@ -38,6 +43,13 @@ export function DashboardContainerTile({
 }: Props) {
   const { width, containerRef, mounted } = useContainerWidth();
   const isEmpty = childWidgets.length === 0;
+  const name = parseTextWidgetConfig(widget.config)?.text.trim() || "";
+  const hasName = name.length > 0;
+  // A named container keeps its header in the layout at all times. A nameless one has no
+  // header when the board is at rest and grows one, in the layout, while arranging. It
+  // stays in flow rather than floating over the sub-grid so it never sits on top of the
+  // widgets in it and makes them harder to grab.
+  const showHeader = hasName || isConfiguring;
 
   return (
     <Paper
@@ -46,29 +58,48 @@ export function DashboardContainerTile({
       className="dashboard-container"
       data-editing={isConfiguring || undefined}
     >
-      <div ref={handleRef} className="dashboard-container-header">
-        {isConfiguring && (
-          <MdDragIndicator
-            size={16}
-            className="dashboard-container-grip"
-            aria-hidden="true"
-          />
-        )}
-        <Text size="sm" fw={600} className="dashboard-container-title">
-          Container
-        </Text>
-        {isConfiguring && callbacks.onRemove && (
-          <ActionIcon
+      {showHeader && (
+        <div ref={handleRef} className="dashboard-container-header">
+          {isConfiguring && (
+            <MdDragIndicator
+              size={16}
+              className="dashboard-container-grip"
+              aria-hidden="true"
+            />
+          )}
+          <Text
             size="sm"
-            color={color}
-            variant="subtle"
-            aria-label="Remove container"
-            onClick={() => callbacks.onRemove?.(widget.id)}
+            fw={600}
+            c={hasName ? undefined : "dimmed"}
+            className="dashboard-container-title"
+            title={name || "Container"}
           >
-            <MdDelete size={16} />
-          </ActionIcon>
-        )}
-      </div>
+            {name || "Container"}
+          </Text>
+          {isConfiguring && callbacks.onEdit && (
+            <ActionIcon
+              size="md"
+              color={color}
+              variant="outline"
+              aria-label="Rename container"
+              onClick={() => callbacks.onEdit?.(widget.id)}
+            >
+              <MdEdit size={18} />
+            </ActionIcon>
+          )}
+          {isConfiguring && callbacks.onRemove && (
+            <ActionIcon
+              size="md"
+              color={color}
+              variant="outline"
+              aria-label="Remove container"
+              onClick={() => callbacks.onRemove?.(widget.id)}
+            >
+              <MdDelete size={18} />
+            </ActionIcon>
+          )}
+        </div>
+      )}
 
       <div ref={containerRef} className="dashboard-container-body">
         {mounted && (
@@ -77,6 +108,7 @@ export function DashboardContainerTile({
             width={width}
             widgets={childWidgets}
             margin={CONTAINER_MARGIN}
+            containerPadding={CONTAINER_PADDING}
             isConfiguring={isConfiguring}
             onArranged={onChildrenArranged}
             minHeight={96}

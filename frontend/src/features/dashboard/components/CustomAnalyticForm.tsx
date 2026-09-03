@@ -24,8 +24,11 @@ import { trackersController } from "../../trackers/api/trackersController";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { viewsController } from "../../views/api/viewsController";
 import { ViewDto } from "../../views/types/ViewDto";
-import { CreateAndPlaceWidgetDto } from "../types/DashboardDto";
-import { ExpandableOptionFields } from "./ExpandableOptionFields";
+import {
+    CreateAndPlaceWidgetDto,
+    DashboardItemDisplayMode,
+} from "../types/DashboardDto";
+import { WidgetDisplayModeFields } from "./WidgetDisplayModeFields";
 import { SourceViewSelect } from "./SourceViewSelect";
 import { YAxisScaleOption } from "./YAxisScaleOption";
 
@@ -89,8 +92,10 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
     const [rows, setRows] = useState<TrackerRow[]>([makeEmptyRow()]);
     const [matchedValuesOnly, setMatchedValuesOnly] = useState(false);
     const [yAxisFromZero, setYAxisFromZero] = useState(true);
-    const [expandable, setExpandable] = useState(false);
-    const [mobileExpandable, setMobileExpandable] = useState(false);
+    const [displayMode, setDisplayMode] = useState(DashboardItemDisplayMode.Full);
+    const [mobileDisplayMode, setMobileDisplayMode] = useState(
+        DashboardItemDisplayMode.Full,
+    );
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
@@ -214,8 +219,8 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
             matchedValuesOnly:
                 rows.length > 1 && !!xAxisPurpose && matchedValuesOnly,
             yAxisFromZero: isLineChart ? yAxisFromZero : undefined,
-            expandable,
-            mobileExpandable,
+            displayMode,
+            mobileDisplayMode,
             sources: rows.map((row) => ({
                 trackerId: row.trackerId!,
                 analyticFields: Object.entries(row.fieldMappings)
@@ -360,11 +365,11 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
                 />
             )}
 
-            <ExpandableOptionFields
-                expandable={expandable}
-                mobileExpandable={mobileExpandable}
-                onExpandableChange={setExpandable}
-                onMobileExpandableChange={setMobileExpandable}
+            <WidgetDisplayModeFields
+                displayMode={displayMode}
+                mobileDisplayMode={mobileDisplayMode}
+                onDisplayModeChange={setDisplayMode}
+                onMobileDisplayModeChange={setMobileDisplayMode}
             />
 
             <Group justify="flex-end" mt="sm">

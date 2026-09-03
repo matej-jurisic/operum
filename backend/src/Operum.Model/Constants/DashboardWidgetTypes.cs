@@ -41,9 +41,11 @@ namespace Operum.Model.Constants
         public const string Note = "note";
 
         // A panel that holds a sub-grid of other widgets, so a group of them can be moved,
-        // resized and titled as one. Carries no tracker or analytic and no Config: its only
-        // state is which items name it as their parent (DashboardItem.ParentItemId) and
-        // their placement within it. A Container can never sit inside another Container.
+        // resized and titled as one. Carries no tracker or analytic. Its Config is optional:
+        // a TextWidgetConfigDto holding the title once one is set, otherwise null (the card
+        // falls back to a default label). The rest of its state is which items name it as
+        // their parent (DashboardItem.ParentItemId) and their placement within it. A
+        // Container can never sit inside another Container.
         public const string Container = "container";
 
         public static readonly HashSet<string> All =

@@ -11,7 +11,7 @@ import { useMediaQuery } from "@mantine/hooks";
 import { observer } from "mobx-react";
 import { createElement, useCallback, useEffect, useState } from "react";
 import { FiCheck, FiPlus } from "react-icons/fi";
-import { TbLayoutDashboard } from "react-icons/tb";
+import { TbEyeOff, TbLayoutDashboard } from "react-icons/tb";
 import { useNavigate, useParams } from "react-router-dom";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
 import SidebarBurger from "../../../shared/components/navigation/SidebarBurger";
@@ -25,24 +25,18 @@ import { EditEntriesWidgetModal } from "../components/EditEntriesWidgetModal";
 import { EditTextWidgetModal } from "../components/EditTextWidgetModal";
 import { EditFilterModal } from "../components/EditFilterModal";
 import { EditWidgetModal } from "../components/EditWidgetModal";
+import { HiddenWidgetsModal } from "../components/HiddenWidgetsModal";
 import { WidgetsProvider } from "../../widgets/context/WidgetsContext";
 import { WidgetLibraryModal } from "../../widgets/components/WidgetLibraryModal";
 import { DashboardProvider, useDashboard } from "../context/DashboardContext";
-import { DashboardDto, TextWidgetConfig, WidgetTypes } from "../types/DashboardDto";
+import {
+    DashboardDto,
+    DashboardItemDisplayMode,
+    parseTextWidgetConfig,
+    WidgetTypes,
+} from "../types/DashboardDto";
 
 const LAST_BOARD_KEY = "operum.lastBoardId";
-
-// Shared by Header and Note, whose Config is nothing but this one string. Never trusted
-// further than the shape it parses to.
-function parseTextConfig(config: string | undefined): TextWidgetConfig | null {
-    if (!config) return null;
-    try {
-        const parsed = JSON.parse(config);
-        return typeof parsed?.text === "string" ? parsed : null;
-    } catch {
-        return null;
-    }
-}
 
 interface ContentProps {
     activeBoard: DashboardDto;
@@ -70,8 +64,17 @@ function DashboardContent({
     const theme = useMantineTheme();
     const [isConfiguring, setIsConfiguring] = useState(false);
     const [isWidgetsOpen, setIsWidgetsOpen] = useState(false);
+    const [isHiddenOpen, setIsHiddenOpen] = useState(false);
     const [editingItemId, setEditingItemId] = useState<string>();
     const editingWidget = widgets.find((w) => w.id === editingItemId);
+
+    // Widgets set to Hidden on a grid are dropped from it, so this count is the only cue
+    // that they still exist. Only Analytic/Entries widgets carry a display mode.
+    const hiddenCount = widgets.filter(
+        (w) =>
+            w.layout.displayMode === DashboardItemDisplayMode.Hidden ||
+            w.mobileLayout.displayMode === DashboardItemDisplayMode.Hidden,
+    ).length;
 
     // Stable, because the edit dialog loads the widget it was opened on in an effect keyed
     // on this: an identity that changed with every render of the board would send it back
@@ -121,6 +124,36 @@ function DashboardContent({
                 </Group>
 
                 <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
+                    {/* Hidden widgets are off the grid entirely, so this is the
+                        only way back to them. Shown only when there are any. */}
+                    {hiddenCount > 0 && (
+                        <Button
+                            size="sm"
+                            radius="xl"
+                            variant="outline"
+                            color={color}
+                            px={isMobile ? "xs" : undefined}
+                            leftSection={
+                                isMobile ? undefined : <TbEyeOff size={16} />
+                            }
+                            aria-label={
+                                isMobile
+                                    ? `Hidden widgets (${hiddenCount})`
+                                    : undefined
+                            }
+                            onClick={() => setIsHiddenOpen(true)}
+                            style={{ flexShrink: 0 }}
+                        >
+                            {isMobile ? (
+                                <Group gap={4} wrap="nowrap">
+                                    <TbEyeOff size={16} />
+                                    {hiddenCount}
+                                </Group>
+                            ) : (
+                                `Hidden (${hiddenCount})`
+                            )}
+                        </Button>
+                    )}
                     {/* The only way out of arrange mode that does not cost a
                         row of chrome while the board is just being read. On a
                         phone the tick carries it on its own. */}
@@ -188,15 +221,16 @@ function DashboardContent({
                 />
             )}
 
-            {/* A Header/Note widget's text and an Entries widget's own settings both live in
-                the widget the board already holds, so neither edit dialog needs a fetch of
-                its own; an Analytic widget's sources still go through EditWidgetModal's own
-                load, since those aren't part of the board's widget list. */}
+            {/* A Header/Note widget's text, a Container's title and an Entries widget's own
+                settings all live in the widget the board already holds, so none of these
+                edit dialogs needs a fetch of its own; an Analytic widget's sources still go
+                through EditWidgetModal's own load, since those aren't part of the board's
+                widget list. */}
             {editingItemId && editingWidget && editingWidget.type === WidgetTypes.Header && (
                 <EditTextWidgetModal
                     itemId={editingItemId}
                     kind="header"
-                    initialText={parseTextConfig(editingWidget.config)?.text ?? ""}
+                    initialText={parseTextWidgetConfig(editingWidget.config)?.text ?? ""}
                     color={color}
                     onClose={closeEditing}
                     onSave={setTextContent}
@@ -207,7 +241,18 @@ function DashboardContent({
                 <EditTextWidgetModal
                     itemId={editingItemId}
                     kind="note"
-                    initialText={parseTextConfig(editingWidget.config)?.text ?? ""}
+                    initialText={parseTextWidgetConfig(editingWidget.config)?.text ?? ""}
+                    color={color}
+                    onClose={closeEditing}
+                    onSave={setTextContent}
+                />
+            )}
+
+            {editingItemId && editingWidget && editingWidget.type === WidgetTypes.Container && (
+                <EditTextWidgetModal
+                    itemId={editingItemId}
+                    kind="container"
+                    initialText={parseTextWidgetConfig(editingWidget.config)?.text ?? ""}
                     color={color}
                     onClose={closeEditing}
                     onSave={setTextContent}
@@ -238,6 +283,7 @@ function DashboardContent({
                 editingWidget &&
                 editingWidget.type !== WidgetTypes.Header &&
                 editingWidget.type !== WidgetTypes.Note &&
+                editingWidget.type !== WidgetTypes.Container &&
                 editingWidget.type !== WidgetTypes.Entries &&
                 editingWidget.type !== WidgetTypes.Filter && (
                     <EditWidgetModal
@@ -247,6 +293,15 @@ function DashboardContent({
                         onSave={updateItem}
                     />
                 )}
+
+            {isHiddenOpen && (
+                <HiddenWidgetsModal
+                    widgets={widgets}
+                    color={color}
+                    onEdit={setEditingItemId}
+                    onClose={() => setIsHiddenOpen(false)}
+                />
+            )}
 
             {isWidgetsOpen && (
                 <WidgetLibraryModal

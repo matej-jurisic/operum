@@ -8,8 +8,12 @@ import { viewsController } from "../../views/api/viewsController";
 import { ViewDto } from "../../views/types/ViewDto";
 import { WidgetDto, EntriesWidgetDefinitionDto } from "../../widgets/types/WidgetDto";
 import { useWidgets } from "../../widgets/context/WidgetsContext";
-import { PlaceEntriesWidgetDto, PlaceWidgetDto } from "../types/DashboardDto";
-import { ExpandableOptionFields } from "./ExpandableOptionFields";
+import {
+    DashboardItemDisplayMode,
+    PlaceEntriesWidgetDto,
+    PlaceWidgetDto,
+} from "../types/DashboardDto";
+import { WidgetDisplayModeFields } from "./WidgetDisplayModeFields";
 import { SourceViewSelect, ViewSelection } from "./SourceViewSelect";
 import { YAxisScaleOption } from "./YAxisScaleOption";
 import { AnalyticResultTypeEnum } from "../../analytics/enums/AnalyticResultTypeEnum";
@@ -59,8 +63,10 @@ export function PlaceFromLibraryForm({
     const [sourceOverrides, setSourceOverrides] = useState<Record<string, SourceOverride>>({});
     const [entriesFields, setEntriesFields] = useState<FieldDto[]>([]);
     const [entriesColumnFieldIds, setEntriesColumnFieldIds] = useState<string[]>([]);
-    const [expandable, setExpandable] = useState(false);
-    const [mobileExpandable, setMobileExpandable] = useState(false);
+    const [displayMode, setDisplayMode] = useState(DashboardItemDisplayMode.Full);
+    const [mobileDisplayMode, setMobileDisplayMode] = useState(
+        DashboardItemDisplayMode.Full,
+    );
     const [yAxisFromZero, setYAxisFromZero] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -123,8 +129,8 @@ export function PlaceFromLibraryForm({
             if (selectedWidget) {
                 await onPlaceWidget({
                     widgetId: selectedWidget.id,
-                    expandable,
-                    mobileExpandable,
+                    displayMode,
+                    mobileDisplayMode,
                     yAxisFromZero: isLineChartWidget ? yAxisFromZero : undefined,
                     sourceOverrides: selectedWidget.sources.map((source) => {
                         const override = sourceOverrides[source.id];
@@ -141,8 +147,8 @@ export function PlaceFromLibraryForm({
                     columnFieldIds: entriesColumnFieldIds.length
                         ? entriesColumnFieldIds
                         : undefined,
-                    expandable,
-                    mobileExpandable,
+                    displayMode,
+                    mobileDisplayMode,
                 });
             }
         } finally {
@@ -279,11 +285,11 @@ export function PlaceFromLibraryForm({
                 />
             )}
 
-            <ExpandableOptionFields
-                expandable={expandable}
-                mobileExpandable={mobileExpandable}
-                onExpandableChange={setExpandable}
-                onMobileExpandableChange={setMobileExpandable}
+            <WidgetDisplayModeFields
+                displayMode={displayMode}
+                mobileDisplayMode={mobileDisplayMode}
+                onDisplayModeChange={setDisplayMode}
+                onMobileDisplayModeChange={setMobileDisplayMode}
             />
 
             <Group justify="flex-end" mt="sm">
