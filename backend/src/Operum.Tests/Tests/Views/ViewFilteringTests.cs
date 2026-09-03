@@ -123,22 +123,24 @@ namespace Operum.Tests.Tests.Views
         }
 
         [Fact]
-        public async Task Filter_EntryWithNoRowForTheField_IsLeftOutEvenByNotEquals()
+        public async Task Filter_EntryWithNoRowForTheField_MatchesNotEquals()
         {
             var client = await OwnerClient();
             var trackerId = await TestApi.CreateTracker(client, "Missing value");
             await TestApi.CreateField(client, trackerId, "Note", DataTypes.String);
             var amountId = await TestApi.CreateField(client, trackerId, "Amount", DataTypes.Number);
-            var withValue = await TestApi.CreateEntry(client, trackerId, new() { ["Note"] = "has one", ["Amount"] = "1" });
+            var withValue = await TestApi.CreateEntry(client, trackerId, new() { ["Note"] = "has none", ["Amount"] = "1" });
             // Updating without the Amount key deletes its row entirely, which is not the same
-            // as holding a null.
-            await TestApi.PutEntry(client, trackerId, withValue, new() { ["Note"] = "has one" });
-            await TestApi.CreateEntry(client, trackerId, new() { ["Note"] = "still has one", ["Amount"] = "9" });
+            // as holding a null. There is no "OR" in the view filter builder, so "not equals"
+            // has to be the one place a value-less entry can still show up: it isn't 5 either.
+            await TestApi.PutEntry(client, trackerId, withValue, new() { ["Note"] = "has none" });
+            await TestApi.CreateEntry(client, trackerId, new() { ["Note"] = "is five", ["Amount"] = "5" });
+            await TestApi.CreateEntry(client, trackerId, new() { ["Note"] = "is nine", ["Amount"] = "9" });
             var viewId = await TestApi.CreateFilterView(client, trackerId, "Not five", amountId, OperatorTypes.NotEquals, "5");
 
             var notes = await TestApi.ListValues(client, trackerId, "Note", viewId);
 
-            Assert.Equal(["still has one"], notes);
+            Assert.Equal(["is nine", "has none"], notes);
         }
 
         [Fact]

@@ -1671,9 +1671,12 @@ namespace Operum.Tests.Tests.Dashboards
                 $"dashboard/{dashboardId}/items/{filterId}/filter-values",
                 new SetFilterValuesDto { Values = new() { [queryId] = "10" } });
 
-            // Change the clause from "greater than" to "equals" -- a different shape. The
-            // old value ("Amount > 10", which was hiding the Amount-5 entry) must not ride
-            // along: "Amount = 10" would still hide it, a blank clause shows it.
+            // Change the clause from "greater than" to "greater than or equal" -- a
+            // different shape (a new pooled query id), so the old value ("Amount > 10",
+            // which was hiding the Amount-5 entry) must not ride along. A blank clause
+            // here just gets dropped (unlike Equals/NotEquals, which treat a blank value
+            // as its own "is empty" filter), so a leaked "10" is the only thing that could
+            // still hide the entry.
             var updated = await client.PutAsJsonAsync(
                 $"dashboard/{dashboardId}/items/{filterId}/filter",
                 new SaveFilterItemDto
@@ -1684,7 +1687,7 @@ namespace Operum.Tests.Tests.Dashboards
                         {
                             Kind = QueryKinds.Filter,
                             DataType = DataTypes.Number,
-                            Operator = OperatorTypes.EqualsOperator
+                            Operator = OperatorTypes.GreaterThanOrEqual
                         }
                     ],
                     Links =

@@ -170,7 +170,9 @@ namespace Operum.Service.Domain.Views
                 return operatorType switch
                 {
                     OperatorTypes.EqualsOperator => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.StringValue == value)),
-                    OperatorTypes.NotEquals => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.StringValue != value)),
+                    // An entry with no row for the field isn't `value` either, so "not equals"
+                    // counts it as a match alongside rows that hold a different string.
+                    OperatorTypes.NotEquals => query.Where(e => !e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.StringValue == value)),
                     OperatorTypes.Contains => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.StringValue != null && fv.StringValue.Contains(value))),
                     OperatorTypes.StartsWith => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.StringValue != null && fv.StringValue.StartsWith(value))),
                     OperatorTypes.EndsWith => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.StringValue != null && fv.StringValue.EndsWith(value))),
@@ -201,7 +203,9 @@ namespace Operum.Service.Domain.Views
                 return operatorType switch
                 {
                     OperatorTypes.EqualsOperator => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.NumberValue == numericValue)),
-                    OperatorTypes.NotEquals => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.NumberValue != numericValue)),
+                    // An entry with no row for the field isn't numericValue either, so "not
+                    // equals" counts it as a match alongside rows that hold a different number.
+                    OperatorTypes.NotEquals => query.Where(e => !e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.NumberValue == numericValue)),
                     OperatorTypes.GreaterThan => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.NumberValue > numericValue)),
                     OperatorTypes.GreaterThanOrEqual => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.NumberValue >= numericValue)),
                     OperatorTypes.LessThan => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.NumberValue < numericValue)),
@@ -247,7 +251,9 @@ namespace Operum.Service.Domain.Views
                 return operatorType switch
                 {
                     OperatorTypes.EqualsOperator => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue >= dayStart && fv.DateTimeValue < dayEnd)),
-                    OperatorTypes.NotEquals => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && (fv.DateTimeValue == null || fv.DateTimeValue < dayStart || fv.DateTimeValue >= dayEnd))),
+                    // An entry with no row for the field isn't on that day either, so "not
+                    // equals" counts it as a match alongside rows on a different day.
+                    OperatorTypes.NotEquals => query.Where(e => !e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue >= dayStart && fv.DateTimeValue < dayEnd)),
                     OperatorTypes.GreaterThan => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue > utcDateValue)),
                     OperatorTypes.GreaterThanOrEqual => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue >= utcDateValue)),
                     OperatorTypes.LessThan => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue < utcDateValue)),
@@ -276,7 +282,9 @@ namespace Operum.Service.Domain.Views
                 return operatorType switch
                 {
                     OperatorTypes.EqualsOperator => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.TimeSpanValue == timeSpanValue)),
-                    OperatorTypes.NotEquals => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.TimeSpanValue != timeSpanValue)),
+                    // An entry with no row for the field isn't timeSpanValue either, so "not
+                    // equals" counts it as a match alongside rows that hold a different duration.
+                    OperatorTypes.NotEquals => query.Where(e => !e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.TimeSpanValue == timeSpanValue)),
                     OperatorTypes.GreaterThan => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.TimeSpanValue > timeSpanValue)),
                     OperatorTypes.GreaterThanOrEqual => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.TimeSpanValue >= timeSpanValue)),
                     OperatorTypes.LessThan => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.TimeSpanValue < timeSpanValue)),
@@ -304,7 +312,9 @@ namespace Operum.Service.Domain.Views
             return operatorType switch
             {
                 OperatorTypes.EqualsOperator => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.BooleanValue == boolValue)),
-                OperatorTypes.NotEquals => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.BooleanValue != boolValue)),
+                // An entry with no row for the field isn't boolValue either, so "not equals"
+                // counts it as a match alongside rows that hold the other boolean.
+                OperatorTypes.NotEquals => query.Where(e => !e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.BooleanValue == boolValue)),
                 _ => query
             };
         }

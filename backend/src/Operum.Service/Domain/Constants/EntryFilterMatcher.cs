@@ -21,25 +21,29 @@ namespace Operum.Service.Domain.Constants
         {
             foreach (var filter in filters)
             {
-                if (!fieldValues.TryGetValue(filter.FieldId, out var fv))
-                    return false;
                 if (!fieldsById.TryGetValue(filter.FieldId, out var field))
                     return false;
+
+                // A missing row (field added after this entry, its value cleared, an import
+                // that never mapped it) isn't a mismatch by itself: MatchesFilter treats it the
+                // same as a row holding null, so "not equals" can still match it, the same as
+                // ViewQueryBuilder's view filters do.
+                fieldValues.TryGetValue(filter.FieldId, out var fv);
                 if (!MatchesFilter(field.Type.ToLowerInvariant(), fv, filter.Operator, filter.Value, tz))
                     return false;
             }
             return true;
         }
 
-        private static bool MatchesFilter(string fieldType, FieldValue fv, string operatorType, string? filterValue, TimeZoneInfo tz)
+        private static bool MatchesFilter(string fieldType, FieldValue? fv, string operatorType, string? filterValue, TimeZoneInfo tz)
         {
             return fieldType switch
             {
-                DataTypes.String => MatchesString(fv.StringValue, operatorType, filterValue),
-                DataTypes.Number => MatchesNumber(fv.NumberValue, operatorType, filterValue),
-                DataTypes.Date or DataTypes.DateTime => MatchesDateTime(fv.DateTimeValue, operatorType, filterValue, tz),
-                DataTypes.TimeSpan => MatchesTimeSpan(fv.TimeSpanValue, operatorType, filterValue),
-                DataTypes.Bool => MatchesBool(fv.BooleanValue, operatorType, filterValue),
+                DataTypes.String => MatchesString(fv?.StringValue, operatorType, filterValue),
+                DataTypes.Number => MatchesNumber(fv?.NumberValue, operatorType, filterValue),
+                DataTypes.Date or DataTypes.DateTime => MatchesDateTime(fv?.DateTimeValue, operatorType, filterValue, tz),
+                DataTypes.TimeSpan => MatchesTimeSpan(fv?.TimeSpanValue, operatorType, filterValue),
+                DataTypes.Bool => MatchesBool(fv?.BooleanValue, operatorType, filterValue),
                 _ => false
             };
         }
@@ -186,8 +190,10 @@ namespace Operum.Service.Domain.Constants
             var filterStr = filterValue ?? "false";
             if (!bool.TryParse(filterStr, out var filterBool))
                 return false;
+            // A missing/null value isn't filterBool either, so "not equals" matches it, the
+            // same as the other field types above.
             if (fieldValue == null)
-                return false;
+                return operatorType == OperatorTypes.NotEquals;
             return operatorType switch
             {
                 OperatorTypes.EqualsOperator => fieldValue == filterBool,
