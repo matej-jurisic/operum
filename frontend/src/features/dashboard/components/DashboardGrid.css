@@ -34,6 +34,16 @@
     cursor: grab;
 }
 
+/* snapgrid's own tile positioning style hardcodes touch-action: none on every item,
+   including outside arrange mode where nothing is draggable. Left alone, that eats the
+   page's touch-scroll gesture anywhere a finger lands on a widget. Only arrange mode
+   needs the pointer reserved for dragging (and there, only the handle actually starts
+   one), so hand vertical panning back everywhere else. !important is required: it's the
+   only thing that outranks a plain (non-!important) inline style. */
+.dashboard-grid:not(.is-editing) .snapgrid-item {
+    touch-action: pan-y !important;
+}
+
 .dashboard-grid.is-editing .snapgrid-item[data-dragging],
 .dashboard-grid.is-editing .snapgrid-item.is-dragging {
     cursor: grabbing;
