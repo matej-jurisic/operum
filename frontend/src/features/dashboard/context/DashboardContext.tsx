@@ -37,6 +37,7 @@ type DashboardContextType = {
     addHeaderItem: (dto: AddDashboardHeaderItemDto) => Promise<void>;
     addDividerItem: () => Promise<void>;
     addNoteItem: (dto: AddDashboardNoteItemDto) => Promise<void>;
+    addContainerItem: () => Promise<void>;
     updateItem: (itemId: string, dto: UpdateDashboardItemDto) => Promise<void>;
     updateEntriesItem: (itemId: string, dto: UpdateDashboardEntriesItemDto) => Promise<void>;
     setFilterValues: (
@@ -113,6 +114,11 @@ export const DashboardProvider: React.FC<{
         await refreshWidgets();
     };
 
+    const addContainerItem = async () => {
+        await dashboardController.addContainerItem(dashboardId);
+        await refreshWidgets();
+    };
+
     // Renders from the response for the same reason setViewSelection below does: an edit
     // can change how a widget is filtered, so the server hands back the whole board
     // recalculated rather than the client guessing at what moved.
@@ -181,24 +187,31 @@ export const DashboardProvider: React.FC<{
         variant: LayoutVariant,
         layout: DashboardLayoutItemDto[]
     ) => {
-        const key =
-            variant === LayoutVariants.Mobile ? "mobileLayout" : "layout";
+        const isMobile = variant === LayoutVariants.Mobile;
+        const key = isMobile ? "mobileLayout" : "layout";
 
         setWidgets((current) =>
             current.map((widget) => {
                 const placement = layout.find((l) => l.itemId === widget.id);
-                return placement
-                    ? {
-                          ...widget,
-                          [key]: {
-                              ...widget[key],
-                              x: placement.x,
-                              y: placement.y,
-                              w: placement.w,
-                              h: placement.h,
-                          },
-                      }
-                    : widget;
+                if (!placement) return widget;
+
+                return {
+                    ...widget,
+                    // The wide grid is the only one that nests, so a mobile save leaves
+                    // whatever container a widget belongs to on the desktop board alone.
+                    // Applying it here as well as server-side keeps the grid from
+                    // re-deriving the old tree and bouncing a just-moved tile back.
+                    parentItemId: isMobile
+                        ? widget.parentItemId
+                        : (placement.parentItemId ?? undefined),
+                    [key]: {
+                        ...widget[key],
+                        x: placement.x,
+                        y: placement.y,
+                        w: placement.w,
+                        h: placement.h,
+                    },
+                };
             })
         );
 
@@ -224,6 +237,7 @@ export const DashboardProvider: React.FC<{
                 addHeaderItem,
                 addDividerItem,
                 addNoteItem,
+                addContainerItem,
                 updateItem,
                 updateEntriesItem,
                 setFilterValues,

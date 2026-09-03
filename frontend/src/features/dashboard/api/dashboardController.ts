@@ -157,6 +157,12 @@ export const dashboardController = {
         return await api.post(`/dashboard/${dashboardId}/items/note`, dto);
     },
 
+    addContainerItem: async (
+        dashboardId: string
+    ): Promise<ApiResponse<DashboardItemDto>> => {
+        return await api.post(`/dashboard/${dashboardId}/items/container`);
+    },
+
     updateDashboardItem: async (
         dashboardId: string,
         itemId: string,

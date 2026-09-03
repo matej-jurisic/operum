@@ -8,6 +8,12 @@ namespace Operum.Model.DTOs.Dashboard.Requests
     {
         [Required]
         public string ItemId { get; set; } = string.Empty;
+        // The Container item this placement is inside, or null for a spot on the board
+        // itself. Only honored on the wide grid: the narrow grid flattens containers, so a
+        // parent sent with a Mobile variant is ignored. A parent that would nest a
+        // container, or that isn't a container on this board, is dropped and the item lands
+        // on the board itself.
+        public string? ParentItemId { get; set; }
         public int X { get; set; }
         public int Y { get; set; }
         public int W { get; set; }

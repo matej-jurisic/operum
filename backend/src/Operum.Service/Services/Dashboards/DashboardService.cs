@@ -1160,6 +1160,26 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(MapToItemDto(item));
         }
 
+        // An empty panel to arrange other widgets inside. Like a divider it carries no
+        // Config -- its content is whichever items are later dropped into it -- so it needs
+        // nothing but the board's own item limit checked before it is placed.
+        public async Task<Result<DashboardItemDto>> AddContainerItem(string dashboardId)
+        {
+            var dashboard = await GetUserDashboard(dashboardId);
+            if (dashboard == null)
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
+
+            if (dashboard.Items.Count >= DataLimits.MaxDashboardItemCount)
+                return Result.Failure(ResultStatusCodes.Conflict, Messages.MaxNumberReached("dashboard items", DataLimits.MaxDashboardItemCount));
+
+            var item = BuildLayoutItem(dashboard, dashboardId, DashboardWidgetTypes.Container, DashboardGrid.ContainerSize, config: null);
+
+            db.DashboardItems.Add(item);
+            await db.SaveChangesAsync();
+
+            return Result.Success(MapToItemDto(item));
+        }
+
         // Shared by AddHeaderItem and AddNoteItem: both are nothing but a tracker-less
         // widget holding one string of Config, placed the same way a QuickAdd or View
         // widget is — its own row under everything already on the board, on both grids at
@@ -1340,6 +1360,21 @@ namespace Operum.Service.Services.Dashboards
             if (item == null)
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard item"));
 
+            // A container's children move onto the board rather than being deleted with it.
+            // Their placement was relative to the container's own sub-grid (same column
+            // count as the board), so offsetting the row by where the container sat drops
+            // them roughly where they were; the client's compactor tidies the rest on the
+            // next arrange.
+            if (item.Type == DashboardWidgetTypes.Container)
+            {
+                foreach (var child in dashboard.Items.Where(i => i.ParentItemId == item.Id).ToList())
+                {
+                    child.ParentItemId = null;
+                    child.Y += item.Y;
+                    child.X = Math.Min(child.X, Math.Max(0, DashboardGrid.Columns - child.W));
+                }
+            }
+
             // Removes only this placement. The shared Widget/EntriesWidget it referenced --
             // if any -- is untouched and keeps rendering on every other dashboard it's
             // placed on; deleting the definition itself is the Widget Library's job.
@@ -1354,10 +1389,31 @@ namespace Operum.Service.Services.Dashboards
             if (dashboard == null)
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
 
+            // Which items are containers others may be dropped into. A container can never
+            // itself be nested, so it is not a candidate parent for one.
+            var containerIds = dashboard.Items
+                .Where(i => i.Type == DashboardWidgetTypes.Container)
+                .Select(i => i.Id)
+                .ToHashSet();
+
             foreach (var placement in dto.Items)
             {
                 var item = dashboard.Items.FirstOrDefault(x => x.Id == placement.ItemId);
                 if (item == null) continue;
+
+                // The narrow grid flattens containers away, so a placement made there never
+                // changes what an item's parent is on the wide grid.
+                if (dto.Variant == DashboardLayoutVariants.Desktop)
+                {
+                    var wantsParent = placement.ParentItemId;
+                    item.ParentItemId =
+                        wantsParent != null
+                        && wantsParent != item.Id
+                        && item.Type != DashboardWidgetTypes.Container
+                        && containerIds.Contains(wantsParent)
+                            ? wantsParent
+                            : null;
+                }
 
                 ApplyPlacement(item, dto.Variant, placement.X, placement.Y, placement.W, placement.H);
             }
@@ -1369,12 +1425,27 @@ namespace Operum.Service.Services.Dashboards
             // Only the wide grid gets a say in it. The two arrangements can disagree about
             // what comes first, and letting whichever screen was used last rewrite the order
             // would make it flip back and forth; the desktop board is the one that has the
-            // room to express an order in the first place.
+            // room to express an order in the first place. A container's children follow it
+            // in reading order, each block sorted top-left to bottom-right.
             if (dto.Variant == DashboardLayoutVariants.Desktop)
             {
+                var childrenByParent = dashboard.Items
+                    .Where(i => i.ParentItemId != null)
+                    .GroupBy(i => i.ParentItemId!)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.OrderBy(c => c.Y).ThenBy(c => c.X).ToList());
+
                 var order = 0;
-                foreach (var item in dashboard.Items.OrderBy(i => i.Y).ThenBy(i => i.X))
+                foreach (var item in dashboard.Items
+                    .Where(i => i.ParentItemId == null)
+                    .OrderBy(i => i.Y).ThenBy(i => i.X))
+                {
                     item.Order = order++;
+                    if (childrenByParent.TryGetValue(item.Id, out var children))
+                        foreach (var child in children)
+                            child.Order = order++;
+                }
             }
 
             await db.SaveChangesAsync();
@@ -1674,6 +1745,7 @@ namespace Operum.Service.Services.Dashboards
             Id = item.Id,
             Order = item.Order,
             Type = item.Type,
+            ParentItemId = item.ParentItemId,
             Layout = MapToLayoutDto(item),
             MobileLayout = MapToMobileLayoutDto(item),
             Config = item.Config,
@@ -1751,6 +1823,7 @@ namespace Operum.Service.Services.Dashboards
         {
             Id = item.Id,
             Type = item.Type,
+            ParentItemId = item.ParentItemId,
             Layout = MapToLayoutDto(item),
             MobileLayout = MapToMobileLayoutDto(item),
             Config = item.Config,

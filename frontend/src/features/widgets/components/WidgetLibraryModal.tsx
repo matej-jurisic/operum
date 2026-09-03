@@ -24,6 +24,7 @@ import {
     TbChartHistogram,
     TbHeading,
     TbLayoutGrid,
+    TbLayoutBoardSplit,
     TbNote,
     TbTable,
 } from "react-icons/tb";
@@ -84,7 +85,7 @@ const TAB_META: { value: TabValue; label: string; icon: IconType }[] = [
 ];
 
 interface InstantOption {
-    key: "quickAdd" | "filter" | "header" | "divider" | "note";
+    key: "quickAdd" | "filter" | "header" | "divider" | "note" | "container";
     title: string;
     icon: IconType;
 }
@@ -98,6 +99,7 @@ const LAYOUT_OPTIONS: InstantOption[] = [
     { key: "header", title: "Header", icon: TbHeading },
     { key: "divider", title: "Divider", icon: MdOutlineHorizontalRule },
     { key: "note", title: "Note", icon: TbNote },
+    { key: "container", title: "Container", icon: TbLayoutBoardSplit },
 ];
 
 function panelTitle(panel: Panel): string {
@@ -153,6 +155,7 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
         addHeaderItem,
         addDividerItem,
         addNoteItem,
+        addContainerItem,
     } = useDashboard();
 
     const [trackers, setTrackers] = useState<TrackerDto[]>([]);
@@ -160,7 +163,8 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
     const [search, setSearch] = useState("");
     const [tab, setTab] = useState<TabValue>("charts");
     const [panel, setPanel] = useState<Panel>({ kind: "list" });
-    const [isAddingDivider, setIsAddingDivider] = useState(false);
+    const [addingInstantKey, setAddingInstantKey] =
+        useState<InstantOption["key"] | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
 
     useEffect(() => {
@@ -216,17 +220,21 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
         };
 
     const pickInstant = async (key: InstantOption["key"]) => {
-        if (key !== "divider") {
-            setPanel({ kind: "config", widgetKind: key });
+        // Divider and container carry no configuration, so they are placed straight away
+        // rather than opening a config step.
+        if (key === "divider" || key === "container") {
+            setAddingInstantKey(key);
+            try {
+                await (key === "container"
+                    ? addContainerItem()
+                    : addDividerItem());
+                onClose();
+            } finally {
+                setAddingInstantKey(null);
+            }
             return;
         }
-        setIsAddingDivider(true);
-        try {
-            await addDividerItem();
-            onClose();
-        } finally {
-            setIsAddingDivider(false);
-        }
+        setPanel({ kind: "config", widgetKind: key });
     };
 
     const handleDelete = async () => {
@@ -329,7 +337,7 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
                     <UnstyledButton
                         key={option.key}
                         onClick={() => pickInstant(option.key)}
-                        disabled={option.key === "divider" && isAddingDivider}
+                        disabled={addingInstantKey === option.key}
                         px="sm"
                         py="xs"
                         style={{ borderRadius: theme.radius.sm, width: "100%" }}

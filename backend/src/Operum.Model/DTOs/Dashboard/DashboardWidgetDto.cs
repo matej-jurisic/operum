@@ -83,6 +83,10 @@ namespace Operum.Model.DTOs.Dashboard
     {
         public string Id { get; set; } = string.Empty;
         public string Type { get; set; } = string.Empty;
+        // The Container widget this one sits inside on the wide grid, or null when it sits
+        // on the board itself. Layout below is then relative to that container's sub-grid.
+        // Always null on the narrow grid, where containers are flattened away.
+        public string? ParentItemId { get; set; }
         // Placement on the wide grid, in DashboardGrid.Columns columns.
         public DashboardWidgetLayoutDto Layout { get; set; } = new();
         // Placement on the narrow grid, in DashboardGrid.MobileColumns columns. The client

@@ -83,5 +83,10 @@ namespace Operum.Model.Constants
         // A note is read a paragraph at a time, so it gets a card-sized footprint rather
         // than a full row -- room for roughly eight lines before it scrolls.
         public static readonly (int Width, int Height) NoteSize = (8, 12);
+
+        // A container starts as a full-width band tall enough to arrange a couple of rows
+        // of widgets inside. A nested widget's placement is stored in the same Columns as a
+        // top-level one, so the sub-grid needs no bounds of its own.
+        public static readonly (int Width, int Height) ContainerSize = (Columns, 40);
     }
 }

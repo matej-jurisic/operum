@@ -6,6 +6,9 @@ namespace Operum.Model.DTOs.Dashboard
         public int Order { get; set; }
         // What the item renders, and where it sits on each of the dashboard's two grids.
         public string Type { get; set; } = string.Empty;
+        // The Container item this one sits inside on the wide grid, or null when it sits on
+        // the board itself.
+        public string? ParentItemId { get; set; }
         public DashboardWidgetLayoutDto Layout { get; set; } = new();
         public DashboardWidgetLayoutDto MobileLayout { get; set; } = new();
         public string? Config { get; set; }

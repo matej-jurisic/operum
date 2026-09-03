@@ -133,6 +133,16 @@ namespace Operum.Model
                 .Property(i => i.YAxisFromZero)
                 .HasDefaultValue(true);
 
+            // A Container's children point back at it. Deleting the container leaves the
+            // children on the board (FK nulled) rather than taking them with it; the
+            // service also gives them a fresh placement so they don't all pile up where the
+            // container was.
+            builder.Entity<DashboardItem>()
+                .HasOne(i => i.ParentItem)
+                .WithMany(i => i.Children)
+                .HasForeignKey(i => i.ParentItemId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             builder.Entity<DashboardItemSource>()
                 .HasOne(s => s.DashboardItem)
                 .WithMany(i => i.Sources)

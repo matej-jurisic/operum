@@ -56,6 +56,16 @@ namespace Operum.Model.Models
         [ForeignKey(nameof(DashboardId))]
         public virtual Dashboard Dashboard { get; set; } = null!;
 
+        // The Container item this one sits inside, or null when it sits on the board
+        // itself. Only ever set on non-Container items, and only one level deep. When a
+        // container is deleted its children are reparented to the board (ParentItemId
+        // nulled) rather than deleted -- see DashboardService.RemoveDashboardItem and the
+        // SetNull delete behavior in OperumContext.
+        public string? ParentItemId { get; set; }
+        [ForeignKey(nameof(ParentItemId))]
+        public virtual DashboardItem? ParentItem { get; set; }
+        public virtual List<DashboardItem> Children { get; set; } = [];
+
         // The shared chart definition this Analytic-type item places on the board. Deleting
         // the Widget takes every placement of it with it (see OperumContext) -- a placement
         // can't render without a definition.

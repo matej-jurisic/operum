@@ -1,0 +1,56 @@
+/* A container tile: a bordered panel whose body is its own dashboard grid. */
+
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.dashboard-container-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--mantine-color-default-border);
+    background: var(--mantine-color-default-hover);
+}
+
+/* Only the header drags the panel, and only while the board is being arranged. */
+.dashboard-container[data-editing] .dashboard-container-header {
+    cursor: grab;
+    touch-action: none;
+}
+
+.dashboard-container-grip {
+    color: var(--mantine-color-dimmed);
+    flex-shrink: 0;
+}
+
+.dashboard-container-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dashboard-container-body {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 8px;
+}
+
+/* Centered over the empty sub-grid, and never in the way of a drop onto it. */
+.dashboard-container-hint {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 12px;
+    pointer-events: none;
+}

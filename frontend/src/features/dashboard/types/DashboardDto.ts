@@ -12,6 +12,7 @@ export const WidgetTypes = {
     Header: "header",
     Divider: "divider",
     Note: "note",
+    Container: "container",
 } as const;
 
 /** The Config payload shared by WidgetTypes.Header and WidgetTypes.Note: both are nothing
@@ -177,6 +178,10 @@ export type LayoutVariant = (typeof LayoutVariants)[keyof typeof LayoutVariants]
 export interface DashboardWidgetDto {
     id: string;
     type: string;
+    /** The WidgetTypes.Container item this one sits inside on the wide grid, or absent
+        when it sits on the board itself. Always absent on the narrow grid, which flattens
+        containers away. */
+    parentItemId?: string;
     layout: DashboardWidgetLayoutDto;
     mobileLayout: DashboardWidgetLayoutDto;
     config?: string;
@@ -189,6 +194,9 @@ export interface DashboardWidgetDto {
 
 export interface DashboardLayoutItemDto extends WidgetLayoutDto {
     itemId: string;
+    /** The container this placement is inside, or null for a spot on the board itself.
+        Only sent for the wide grid. */
+    parentItemId?: string | null;
 }
 
 export interface UpdateDashboardLayoutDto {
