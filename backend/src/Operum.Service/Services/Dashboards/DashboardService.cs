@@ -298,6 +298,12 @@ namespace Operum.Service.Services.Dashboards
 
                     var entries = await entriesQuery.ToListAsync();
 
+                    // A correlation scatter has no per-source calculation of its own: each
+                    // source is just a list of (match key -> value) pairs, which is exactly
+                    // what a raw-values line chart produces. Compute it as one here and let
+                    // MergeCorrelationResults join the two sides.
+                    var isPaired = AnalyticTypes.RequiresPairedSources(item.Widget.ResultType, item.Widget.Code);
+
                     var request = new AnalyticResultBuilderRequest
                     {
                         // A placement has no Analytic row of its own, so the pipeline is fed
@@ -306,11 +312,11 @@ namespace Operum.Service.Services.Dashboards
                         Analytic = new Analytic
                         {
                             Id = source.Id,
-                            Code = item.Widget.Code,
-                            ResultType = item.Widget.ResultType
+                            Code = isPaired ? AnalyticCodes.LineChart : item.Widget.Code,
+                            ResultType = isPaired ? AnalyticTypes.LineChart : item.Widget.ResultType
                         },
                         Entries = entries,
-                        FieldMap = BuildFieldMap(widgetSource)
+                        FieldMap = isPaired ? PairedSourceFieldMap(widgetSource) : BuildFieldMap(widgetSource)
                     };
 
                     // Always displayable, even when the source's field(s) are missing or a
@@ -329,9 +335,11 @@ namespace Operum.Service.Services.Dashboards
                 // once there's more than one source to merge into a shared chart.
                 var itemResult = resolvedSources.Count == 1
                     ? resolvedSources[0].Result
-                    : item.Widget.ResultType == AnalyticTypes.Calendar
-                        ? MergeCalendarResults(resolvedSources)
-                        : BuildComposedResult(resolvedSources, item.Widget.MatchedValuesOnly);
+                    : AnalyticTypes.RequiresPairedSources(item.Widget.ResultType, item.Widget.Code)
+                        ? MergeCorrelationResults(resolvedSources)
+                        : item.Widget.ResultType == AnalyticTypes.Calendar
+                            ? MergeCalendarResults(resolvedSources)
+                            : BuildComposedResult(resolvedSources, item.Widget.MatchedValuesOnly);
 
                 // A single source placed with a label override reads on the board under that
                 // name; otherwise the widget's own name -- editable from the Library, shared
@@ -717,9 +725,10 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(MapToItemDto(item));
         }
 
-        // Edits a filter widget in place: its clauses, their starting values, and the full
-        // set of widgets that follow it. The whole board comes back recomputed, since a
-        // changed clause or value changes what every follower draws.
+        // Edits a filter widget in place: its clauses, its presets and the full set of
+        // widgets that follow it. Values the clauses are currently set to are preserved
+        // across the edit (see below). The whole board comes back recomputed, since a
+        // changed clause changes what every follower draws.
         public async Task<Result<List<DashboardWidgetDto>>> UpdateFilterItem(string dashboardId, string itemId, SaveFilterItemDto dto)
         {
             var user = currentUserService.GetCurrentUser();
@@ -734,6 +743,20 @@ namespace Operum.Service.Services.Dashboards
             var built = await BuildFilterConfig(dashboard, user.Id, dto);
             if (!built.IsSuccess)
                 return Result.Failure(built.StatusCode, built.Messages);
+
+            // The edit form only carries clause shape, never the values the clauses are
+            // currently set to -- those are typed on the board (SetFilterValues) and live
+            // only in ValueByQuery. Carry them across for every clause that survived the
+            // edit: an unchanged clause shape pools to the same Query id, so a value whose
+            // id still appears in the rebuilt config is still valid for that clause.
+            var previous = TryParseFilterConfig(item.Config);
+            if (previous != null)
+            {
+                var surviving = built.Data!.QueryIds.ToHashSet();
+                foreach (var (queryId, value) in previous.ValueByQuery)
+                    if (!string.IsNullOrEmpty(value) && surviving.Contains(queryId))
+                        built.Data!.ValueByQuery[queryId] = value;
+            }
 
             item.Config = JsonSerializer.Serialize(built.Data, ConfigJsonOptions);
             await db.SaveChangesAsync();
@@ -1599,6 +1622,22 @@ namespace Operum.Service.Services.Dashboards
                 .Where(f => f.Field != null)
                 .ToDictionary(f => f.Purpose, f => f.Field);
 
+        // A correlation source's Match/Value fields, presented to the line-chart pipeline as
+        // its X/Y axes: the raw-values line chart it then produces is the (match key, value)
+        // list MergeCorrelationResults joins on. A mapping that lost its field (deleted) is
+        // dropped, leaving the line result without that axis and the merge with nothing to
+        // pair -- handled the same way as any other missing analytic field.
+        private static Dictionary<string, Field> PairedSourceFieldMap(WidgetSource source)
+        {
+            var byPurpose = BuildFieldMap(source);
+            var map = new Dictionary<string, Field>();
+            if (byPurpose.TryGetValue(AnalyticPurposes.Match, out var matchField))
+                map[AnalyticPurposes.Xaxis] = matchField;
+            if (byPurpose.TryGetValue(AnalyticPurposes.Value, out var valueField))
+                map[AnalyticPurposes.Yaxis] = valueField;
+            return map;
+        }
+
         private static IQueryable<Dashboard> WithSourceGraph(IQueryable<Dashboard> query) => query
             .Include(d => d.Items).ThenInclude(i => i.Widget)
             // Include's lambda receives the navigation's own (nullable) CLR type -- it never
@@ -1733,6 +1772,71 @@ namespace Operum.Service.Services.Dashboards
 
             return merged;
         }
+
+        // Joins two sources into one scatter plot: source A's value is the x of each point,
+        // source B's the y, paired on every match key both sources have. Each side arrives
+        // as a raw-values line chart (see PairedSourceFieldMap) -- X is the match key, Y the
+        // value -- so the join is just an intersection of their keys. Repeat entries for a
+        // key are averaged into the one value that key contributes.
+        private static ScatterPlotAnalyticDto MergeCorrelationResults(List<ResolvedSource> resolvedSources)
+        {
+            var result = new ScatterPlotAnalyticDto();
+            if (resolvedSources.Count < 2)
+                return result;
+
+            var xSource = resolvedSources[0];
+            var ySource = resolvedSources[1];
+
+            // A non-line result, or a line result missing an axis, means a field the
+            // calculation needs was deleted: nothing can be paired, and the card shows its
+            // missing-fields state (XField/YField left null).
+            if (xSource.Result is not LineChartAnalyticDto xLine || ySource.Result is not LineChartAnalyticDto yLine)
+                return result;
+
+            if (xLine.YField is null || yLine.YField is null)
+                return result;
+
+            result.XField = AxisField(xLine.YField, xSource);
+            result.YField = AxisField(yLine.YField, ySource);
+            result.Name = $"{result.XField.Name} vs {result.YField.Name}";
+
+            var xByKey = AverageByMatchKey(xLine.Points);
+            var yByKey = AverageByMatchKey(yLine.Points);
+
+            result.Points = xByKey.Keys
+                .Where(yByKey.ContainsKey)
+                .OrderBy(k => k, StringComparer.Ordinal)
+                .Select(k => new ScatterChartPointDto { X = xByKey[k], Y = yByKey[k] })
+                .ToList();
+
+            if (xLine.YField.Type != yLine.YField.Type)
+                result.Warnings.Add("The two trackers measure different kinds of value, so the axes aren't directly comparable.");
+
+            if (result.Points.Count == 0)
+                result.Warnings.Add("The two trackers share no match value, so there's nothing to pair up.");
+
+            return result;
+        }
+
+        private static Dictionary<string, double> AverageByMatchKey(List<LineChartPointDto> points) =>
+            points
+                .Where(p => p.X != null && p.Y.HasValue)
+                .GroupBy(p => p.X!)
+                .ToDictionary(g => g.Key, g => g.Average(p => p.Y!.Value));
+
+        // The scatter axis for a correlation source: the value field's own type (so ticks
+        // and the tooltip format it right), named for the tracker it came from unless the
+        // placement gave the source a label of its own.
+        private static FieldDto AxisField(FieldDto valueField, ResolvedSource source) => new()
+        {
+            Id = valueField.Id,
+            Type = valueField.Type,
+            Required = valueField.Required,
+            Description = valueField.Description,
+            Name = string.IsNullOrWhiteSpace(source.Source.Label)
+                ? $"{source.TrackerName}: {valueField.Name}"
+                : source.Source.Label
+        };
 
         private static DashboardDto MapToDto(Dashboard d) => new()
         {

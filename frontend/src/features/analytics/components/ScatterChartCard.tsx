@@ -1,6 +1,7 @@
 import { ScatterChart } from "@mantine/charts";
-import { em, Text } from "@mantine/core";
+import { Box, em, Text, Tooltip } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
+import { MdWarningAmber } from "react-icons/md";
 import { ScatterChartAnalyticDto } from "../types/AnalyticDto";
 import {
     createScatterTooltipContent,
@@ -38,6 +39,7 @@ export function ScatterChartCard({
     // The backend returns the analytic with no axis fields when they can no longer be
     // resolved (e.g. a field was deleted). Nothing can be plotted in that case.
     const { xField, yField } = analytic;
+    const warnings = analytic.warnings ?? [];
 
     return (
         <WidgetShell
@@ -49,6 +51,18 @@ export function ScatterChartCard({
             onRemove={onRemove}
             onEdit={onEdit}
             title={analytic.name}
+            titleAdornment={
+                warnings.length > 0 && (
+                    <Tooltip label={warnings.join(" ")} multiline maw={280}>
+                        <Box style={{ cursor: "default", display: "flex" }}>
+                            <MdWarningAmber
+                                size={16}
+                                color="var(--mantine-color-yellow-6)"
+                            />
+                        </Box>
+                    </Tooltip>
+                )
+            }
         >
             {xField && yField ? (
                 <ScatterChart

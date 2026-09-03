@@ -6,11 +6,16 @@ import {
     Paper,
     Select,
     Stack,
+    Text,
     TextInput,
 } from "@mantine/core";
 import { useEffect, useMemo, useState } from "react";
 import { MdAdd, MdDelete } from "react-icons/md";
 import { analyticsController } from "../../analytics/api/analyticsController";
+import {
+    AnalyticPurposeEnum,
+    codeSpansTrackers,
+} from "../../analytics/enums/AnalyticPurposeEnum";
 import { AnalyticResultTypeEnum } from "../../analytics/enums/AnalyticResultTypeEnum";
 import {
     AnalyticConfigDto,
@@ -50,9 +55,10 @@ interface TrackerRow {
     views: ViewDto[];
 }
 
-// Result types that can read from more than one tracker. Line/bar merge onto a shared
-// axis; a calendar just unions its dated events. Scatter/single-value/donut have no
-// merge path.
+// Result types that can read from any number of trackers. Line/bar merge onto a shared
+// axis; a calendar just unions its dated events. A scatter chart's Correlation
+// calculation also spans trackers but is handled separately (isPairedCode): it pairs
+// exactly two, one per axis.
 const COMBINABLE_TYPES: string[] = [
     AnalyticResultTypeEnum.LineChart,
     AnalyticResultTypeEnum.BarChart,
@@ -120,7 +126,12 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
             ? resultTypesByName[resultType]?.codes.find((c) => c.code === code)
             : undefined;
 
-    const isCombinable = !!resultType && COMBINABLE_TYPES.includes(resultType);
+    // A scatter "Correlation": two trackers, each mapping the join field and a value, one
+    // becoming the x-axis and the other the y-axis of a single point cloud.
+    const isPairedCode = !!selectedCode && codeSpansTrackers(selectedCode);
+    const isCombinable =
+        isPairedCode ||
+        (!!resultType && COMBINABLE_TYPES.includes(resultType));
     const isLineChart = resultType === AnalyticResultTypeEnum.LineChart;
 
     const updateRow = (index: number, patch: Partial<TrackerRow>) => {
@@ -149,6 +160,23 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
     const handleCodeChange = (value: string | null) => {
         setCode(value);
         clearFieldMappings();
+
+        const codeDef = value
+            ? resultTypesByName[resultType!]?.codes.find((c) => c.code === value)
+            : undefined;
+        const paired = !!codeDef && codeSpansTrackers(codeDef);
+
+        if (paired) {
+            // A Correlation pairs exactly two trackers, one per axis.
+            setRows((prev) => [
+                prev[0] ?? makeEmptyRow(),
+                prev[1] ?? makeEmptyRow(),
+            ]);
+            setMatchedValuesOnly(false);
+        } else if (!resultType || !COMBINABLE_TYPES.includes(resultType)) {
+            setRows((prev) => prev.slice(0, 1));
+            setMatchedValuesOnly(false);
+        }
     };
 
     const handleTrackerChange = async (index: number, trackerId: string | null) => {
@@ -181,31 +209,38 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
         !!selectedCode &&
         selectedCode.purposes.every((p) => !!row.fieldMappings[p.name]);
 
-    // The purpose that lands on the shared x-axis, for the type currently selected.
+    // The purpose that lands on the shared x-axis of a combined line/bar chart. Only these
+    // types offer the "matched values only" option.
     const xAxisPurpose = resultType ? X_AXIS_PURPOSE[resultType] : undefined;
 
-    // Sharing one definition leaves the x-axis field type as the last thing rows can
-    // disagree on, and a combined chart draws them all on a single axis formatted from the
-    // first series. Rather than let a mismatch through and warn about it afterwards
-    // (DashboardService.BuildComposedResult still does, defensively), the first row's choice
-    // narrows what the later rows are offered.
-    const xAxisType = useMemo(() => {
-        if (!xAxisPurpose) return undefined;
+    // The purpose whose field type the later rows are pinned to the first row's: the shared
+    // x-axis for a combined line/bar, or the join field for a Correlation (two trackers
+    // only line up if they match on the same kind of value).
+    const narrowPurpose = isPairedCode
+        ? AnalyticPurposeEnum.Match
+        : xAxisPurpose;
+
+    // Sharing one definition leaves that field's type as the last thing rows can disagree
+    // on, and the chart can't reconcile a mismatch. Rather than let it through and warn
+    // afterwards (the backend still does, defensively), the first row's choice narrows what
+    // the later rows are offered.
+    const narrowType = useMemo(() => {
+        if (!narrowPurpose) return undefined;
         const first = rows[0];
-        return first?.fields.find((f) => f.id === first.fieldMappings[xAxisPurpose])?.type;
-    }, [rows, xAxisPurpose]);
+        return first?.fields.find((f) => f.id === first.fieldMappings[narrowPurpose])?.type;
+    }, [rows, narrowPurpose]);
 
     // Fields of `row` that may fill `purpose`: the data types the analytic allows for it,
-    // narrowed to the first row's x-axis type once that is what is being picked.
+    // narrowed to the first row's type once the shared/join field is being picked.
     const fieldOptionsFor = (row: TrackerRow, purpose: PurposeDto, index: number) =>
         row.fields
             .filter((f) => purpose.allowedDataTypes.includes(f.type))
             .filter(
                 (f) =>
                     index === 0 ||
-                    purpose.name !== xAxisPurpose ||
-                    !xAxisType ||
-                    f.type === xAxisType
+                    purpose.name !== narrowPurpose ||
+                    !narrowType ||
+                    f.type === narrowType
             )
             .map((f) => ({ value: f.id, label: f.name }));
 
@@ -241,8 +276,12 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
         resultType ? resultTypesByName[resultType]?.codes ?? [] : []
     ).map((c) => ({ value: c.code, label: c.name }));
 
-    const canAddAnotherTracker = isCombinable && rows.length < MAX_TRACKERS;
-    const canSubmit = !!selectedCode && rows.every(isRowComplete);
+    const canAddAnotherTracker =
+        isCombinable && !isPairedCode && rows.length < MAX_TRACKERS;
+    const canSubmit =
+        !!selectedCode &&
+        rows.every(isRowComplete) &&
+        (!isPairedCode || rows.length === 2);
 
     return (
         <Stack gap="md">
@@ -274,7 +313,12 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
                 return (
                     <Paper key={index} withBorder p="sm" radius="md">
                         <Stack gap="sm">
-                            {index > 0 && (
+                            {isPairedCode && (
+                                <Text size="sm" fw={600}>
+                                    {index === 0 ? "X axis" : "Y axis"}
+                                </Text>
+                            )}
+                            {index > 0 && !isPairedCode && (
                                 <Group justify="flex-end">
                                     <ActionIcon
                                         size="sm"
@@ -316,9 +360,11 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
                                     clearable
                                     description={
                                         index > 0 &&
-                                        purpose.name === xAxisPurpose &&
-                                        xAxisType
-                                            ? `Limited to ${xAxisType} fields so both trackers share one axis.`
+                                        purpose.name === narrowPurpose &&
+                                        narrowType
+                                            ? isPairedCode
+                                                ? `Limited to ${narrowType} fields so the two trackers match up.`
+                                                : `Limited to ${narrowType} fields so both trackers share one axis.`
                                             : undefined
                                     }
                                 />

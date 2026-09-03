@@ -5,6 +5,8 @@
   explicitly asks for it in that request. Verify work with builds, typechecks,
   tests, and lint instead. If a visual check seems needed, ask first.
 
+- If we add/change a feature that is relevant to either README.md or the homepage, make sure to update them after
+
 # UI rules
 
 These apply to all user-facing text: labels, descriptions, tooltips, dialog

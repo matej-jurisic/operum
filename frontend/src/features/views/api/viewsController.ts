@@ -23,7 +23,7 @@ export const viewsController = {
     createView: async (
         trackerId: string,
         values: CreateViewDto
-    ): Promise<ApiResponse> => {
+    ): Promise<ApiResponse<ViewDto>> => {
         return await api.post(`/trackers/${trackerId}/views`, values);
     },
     updateView: async (

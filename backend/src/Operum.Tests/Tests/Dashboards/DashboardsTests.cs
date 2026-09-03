@@ -98,6 +98,24 @@ namespace Operum.Tests.Tests.Dashboards
             ]
         };
 
+        // One side of a correlation scatter: Day is the shared match key, Amount the value
+        // that becomes this source's axis.
+        private static CreateAndPlaceWidgetSourceDto CorrelationSource(CapableTracker tracker) => new()
+        {
+            TrackerId = tracker.Id,
+            AnalyticFields =
+            [
+                new CreateAnalyticFieldDto { FieldId = tracker.DayFieldId, Purpose = AnalyticPurposes.Match },
+                new CreateAnalyticFieldDto { FieldId = tracker.AmountFieldId, Purpose = AnalyticPurposes.Value }
+            ]
+        };
+
+        private static Task AddEntry(HttpClient client, string trackerId, string day, string amount) =>
+            client.PostAsJsonAsync($"trackers/{trackerId}/entries", new CreateEntryDto
+            {
+                FieldValues = new() { ["Day"] = day, ["Amount"] = amount, ["Category"] = "x" }
+            });
+
         private static async Task<string> CreateDashboard(HttpClient client)
         {
             var dashboard = await Data(await client.PostAsJsonAsync("dashboard", new CreateDashboardDto { Name = "My board" }));
@@ -330,6 +348,76 @@ namespace Operum.Tests.Tests.Dashboards
             });
 
             Assert.Equal(HttpStatusCode.BadRequest, addResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task CreateAndPlaceWidget_TwoCorrelationSources_PairsValuesOnTheMatchKey()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("correlationpairs");
+
+            // Each capable tracker starts with one entry on 2026-01-01, Amount 5.
+            var weight = await CreateCapableTracker(client, "Weight");
+            var sleep = await CreateCapableTracker(client, "Sleep");
+            await AddEntry(client, weight.Id, "2026-01-02", "6");
+            await AddEntry(client, weight.Id, "2026-01-03", "7");
+            await AddEntry(client, sleep.Id, "2026-01-02", "8");
+            await AddEntry(client, sleep.Id, "2026-01-09", "9");
+
+            var dashboardId = await CreateDashboard(client);
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
+            {
+                ResultType = AnalyticTypes.ScatterChart,
+                Code = AnalyticCodes.CorrelationScatter,
+                Sources = [CorrelationSource(weight), CorrelationSource(sleep)]
+            });
+            Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
+
+            var analytic = Analytic((await Widgets(client, dashboardId))[0]);
+            Assert.Equal(AnalyticTypes.ScatterChart, analytic.GetProperty("resultType").GetString());
+
+            var points = analytic.GetProperty("points").EnumerateArray()
+                .Select(p => (X: p.GetProperty("x").GetDouble(), Y: p.GetProperty("y").GetDouble()))
+                .OrderBy(p => p.X)
+                .ToList();
+
+            // Only 2026-01-01 (5, 5) and 2026-01-02 (6, 8) appear on both trackers.
+            Assert.Equal(2, points.Count);
+            Assert.Equal(5, points[0].X);
+            Assert.Equal(5, points[0].Y);
+            Assert.Equal(6, points[1].X);
+            Assert.Equal(8, points[1].Y);
+
+            Assert.Equal("Weight: Amount", analytic.GetProperty("xField").GetProperty("name").GetString());
+            Assert.Equal("Sleep: Amount", analytic.GetProperty("yField").GetProperty("name").GetString());
+        }
+
+        [Fact]
+        public async Task CreateAndPlaceWidget_CorrelationWithoutExactlyTwoSources_ReturnsBadRequest()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("correlationcount");
+
+            var weight = await CreateCapableTracker(client, "Weight");
+            var sleep = await CreateCapableTracker(client, "Sleep");
+            var mood = await CreateCapableTracker(client, "Mood");
+            var dashboardId = await CreateDashboard(client);
+
+            var one = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
+            {
+                ResultType = AnalyticTypes.ScatterChart,
+                Code = AnalyticCodes.CorrelationScatter,
+                Sources = [CorrelationSource(weight)]
+            });
+            Assert.Equal(HttpStatusCode.BadRequest, one.StatusCode);
+
+            var three = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
+            {
+                ResultType = AnalyticTypes.ScatterChart,
+                Code = AnalyticCodes.CorrelationScatter,
+                Sources = [CorrelationSource(weight), CorrelationSource(sleep), CorrelationSource(mood)]
+            });
+            Assert.Equal(HttpStatusCode.BadRequest, three.StatusCode);
         }
 
         // Regression test: two separate dashboard items whose sources both point at the same
@@ -1501,6 +1589,116 @@ namespace Operum.Tests.Tests.Dashboards
                 new SetFilterValuesDto { Values = new() { [queryId] = "" } });
             Assert.Equal(HttpStatusCode.OK, cleared.StatusCode);
             Assert.Equal(1, PointsOf(await Data(cleared), chartId));
+        }
+
+        [Fact]
+        public async Task UpdateFilter_ChangingFollowers_KeepsValuesSetOnTheBoard()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("filterupdatekeepsvalues");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var chartId = await PlaceLineChart(client, dashboardId, tracker);
+
+            WidgetLinkDto LinkTo(string itemId) => new()
+            {
+                ItemId = itemId,
+                TrackerId = tracker.Id,
+                FieldByQuery = new() { ["0"] = tracker.AmountFieldId }
+            };
+
+            var item = await Data(await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/items/filter",
+                new SaveFilterItemDto { Clauses = AmountOverClauses(), Links = [LinkTo(chartId)] }));
+            var filterId = item.GetProperty("id").GetString()!;
+            var queryId = await FilterQueryId(client, dashboardId, filterId);
+
+            var narrowed = await client.PutAsJsonAsync(
+                $"dashboard/{dashboardId}/items/{filterId}/filter-values",
+                new SetFilterValuesDto { Values = new() { [queryId] = "10" } });
+            Assert.Equal(0, PointsOf(await Data(narrowed), chartId));
+
+            // Edit the widget to also follow a second chart. The edit form sends clause
+            // shape only, never the value that was typed on the board.
+            var secondChartId = await PlaceLineChart(client, dashboardId, tracker);
+            var updated = await client.PutAsJsonAsync(
+                $"dashboard/{dashboardId}/items/{filterId}/filter",
+                new SaveFilterItemDto
+                {
+                    Clauses = AmountOverClauses(),
+                    Links = [LinkTo(chartId), LinkTo(secondChartId)]
+                });
+            Assert.Equal(HttpStatusCode.OK, updated.StatusCode);
+
+            // The value survived the edit: both followers stay narrowed, and it is still
+            // the persisted starting point on a fresh load.
+            var widgets = await Data(updated);
+            Assert.Equal(0, PointsOf(widgets, chartId));
+            Assert.Equal(0, PointsOf(widgets, secondChartId));
+            Assert.Equal(0, PointsOf(await Widgets(client, dashboardId), chartId));
+        }
+
+        [Fact]
+        public async Task UpdateFilter_ChangingAClauseOperator_DropsThatClausesStaleValue()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("filterupdatedropsstale");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var chartId = await PlaceLineChart(client, dashboardId, tracker);
+
+            var item = await Data(await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/items/filter",
+                new SaveFilterItemDto
+                {
+                    Clauses = AmountOverClauses(),
+                    Links =
+                    [
+                        new WidgetLinkDto
+                        {
+                            ItemId = chartId,
+                            TrackerId = tracker.Id,
+                            FieldByQuery = new() { ["0"] = tracker.AmountFieldId }
+                        }
+                    ]
+                }));
+            var filterId = item.GetProperty("id").GetString()!;
+            var queryId = await FilterQueryId(client, dashboardId, filterId);
+
+            await client.PutAsJsonAsync(
+                $"dashboard/{dashboardId}/items/{filterId}/filter-values",
+                new SetFilterValuesDto { Values = new() { [queryId] = "10" } });
+
+            // Change the clause from "greater than" to "equals" -- a different shape. The
+            // old value ("Amount > 10", which was hiding the Amount-5 entry) must not ride
+            // along: "Amount = 10" would still hide it, a blank clause shows it.
+            var updated = await client.PutAsJsonAsync(
+                $"dashboard/{dashboardId}/items/{filterId}/filter",
+                new SaveFilterItemDto
+                {
+                    Clauses =
+                    [
+                        new ClauseDto
+                        {
+                            Kind = QueryKinds.Filter,
+                            DataType = DataTypes.Number,
+                            Operator = OperatorTypes.EqualsOperator
+                        }
+                    ],
+                    Links =
+                    [
+                        new WidgetLinkDto
+                        {
+                            ItemId = chartId,
+                            TrackerId = tracker.Id,
+                            FieldByQuery = new() { ["0"] = tracker.AmountFieldId }
+                        }
+                    ]
+                });
+            Assert.Equal(HttpStatusCode.OK, updated.StatusCode);
+            Assert.Equal(1, PointsOf(await Data(updated), chartId));
         }
 
         [Fact]

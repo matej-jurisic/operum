@@ -45,14 +45,14 @@ The **Widget Library** holds chart and table definitions independently of any bo
 
 ### Analytics
 
-Charts are built in the Widget Library and calculated at query time. Each chart reads from one or more sources; a source is a tracker plus a field mapping, and can be scoped to a fixed tracker view. Line and bar charts can combine several sources onto one shared axis to compare trackers side by side; other chart types read from a single tracker.
+Charts are built in the Widget Library and calculated at query time. Each chart reads from one or more sources; a source is a tracker plus a field mapping, and can be scoped to a fixed tracker view. Line and bar charts can combine several sources onto one shared axis to compare trackers side by side, a calendar unions several trackers' events, and a scatter chart's correlation calculation pairs two trackers on a shared field to plot one against the other; other chart types read from a single tracker.
 
 | Type | Variants | Description |
 |---|---|---|
 | Single Value | 12 | One headline metric: count, sum, min, max, average, standard deviation, unique count, most/least common, or yes/no counts and percentage |
 | Line Chart | 7 | Raw values, sum by category, cumulative running total, or daily/weekly/monthly/yearly totals |
 | Bar Chart | 7 | Count, sum, or average per category, or daily/weekly/monthly/yearly totals |
-| Scatter Chart | 1 | Numeric X/Y point cloud for spotting correlations |
+| Scatter Chart | 2 | Numeric X/Y point cloud for spotting correlations: one tracker's two fields, or two trackers paired on a shared match field |
 | Donut Chart | 1 | Groups entries by a category, sums a numeric field per group |
 | Calendar | 1 | Maps entries onto a date field, labeled with another field's value |
 

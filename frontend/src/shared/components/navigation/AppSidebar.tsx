@@ -48,6 +48,7 @@ import {
     TbCheck,
     TbChevronLeft,
     TbChevronRight,
+    TbCompass,
     TbGripVertical,
     TbLayoutDashboard,
     TbLogout,
@@ -306,6 +307,27 @@ const AppSidebar = observer(
                             items={dashboardItems}
                             onReorder={reorderDashboards}
                             onAdd={() => navigationStore.startDashboardCreate()}
+                            headerAction={
+                                <Tooltip label="Explore" withArrow>
+                                    <ActionIcon
+                                        size="md"
+                                        variant={
+                                            isRouteActive("/explore")
+                                                ? "light"
+                                                : "default"
+                                        }
+                                        color={
+                                            isRouteActive("/explore")
+                                                ? undefined
+                                                : "gray"
+                                        }
+                                        onClick={() => go("/explore")}
+                                        aria-label="Explore"
+                                    >
+                                        <TbCompass size={16} />
+                                    </ActionIcon>
+                                </Tooltip>
+                            }
                         />
                         <Divider my="xs" />
                         <SidebarList
@@ -613,6 +635,7 @@ function SidebarList({
     onReorder,
     onAdd,
     addMenuItems,
+    headerAction,
 }: {
     title: string;
     collapsed: boolean;
@@ -622,6 +645,9 @@ function SidebarList({
     onReorder: (ids: string[]) => void;
     onAdd?: () => void;
     addMenuItems?: { label: string; icon: React.ReactNode; onClick: () => void }[];
+    // An extra control shown in the section header, left of the reorder/add icons.
+    // Rendered only when the rail is expanded, same as the rest of the header.
+    headerAction?: React.ReactNode;
 }) {
     // Each list owns its reorder toggle, sitting beside its add button -- there
     // is no shared rail-level control.
@@ -676,7 +702,7 @@ function SidebarList({
                     justify="space-between"
                     wrap="nowrap"
                     align="center"
-                    h={32}
+                    h={36}
                     pl="sm"
                     pr={4}
                     mb={6}
@@ -685,6 +711,7 @@ function SidebarList({
                         {title}
                     </Text>
                     <Group gap={4} wrap="nowrap">
+                        {headerAction}
                         {canReorder && (
                             <Tooltip
                                 label={
@@ -695,7 +722,7 @@ function SidebarList({
                                 withArrow
                             >
                                 <ActionIcon
-                                    size="sm"
+                                    size="md"
                                     variant={reordering ? "light" : "default"}
                                     color={reordering ? undefined : "gray"}
                                     onClick={() => setReordering((v) => !v)}
@@ -706,9 +733,9 @@ function SidebarList({
                                     }
                                 >
                                     {reordering ? (
-                                        <TbCheck size={14} />
+                                        <TbCheck size={16} />
                                     ) : (
-                                        <RiListOrdered2 size={14} />
+                                        <RiListOrdered2 size={16} />
                                     )}
                                 </ActionIcon>
                             </Tooltip>
@@ -722,12 +749,12 @@ function SidebarList({
                                 >
                                     <Menu.Target>
                                         <ActionIcon
-                                            size="sm"
+                                            size="md"
                                             variant="default"
                                             color="gray"
                                             aria-label={`New ${singular}`}
                                         >
-                                            <TbPlus size={14} />
+                                            <TbPlus size={16} />
                                         </ActionIcon>
                                     </Menu.Target>
                                     <Menu.Dropdown>
@@ -745,13 +772,13 @@ function SidebarList({
                             ) : onAdd ? (
                                 <Tooltip label={`New ${singular}`} withArrow>
                                     <ActionIcon
-                                        size="sm"
+                                        size="md"
                                         variant="default"
                                         color="gray"
                                         onClick={onAdd}
                                         aria-label={`New ${singular}`}
                                     >
-                                        <TbPlus size={14} />
+                                        <TbPlus size={16} />
                                     </ActionIcon>
                                 </Tooltip>
                             ) : null)}

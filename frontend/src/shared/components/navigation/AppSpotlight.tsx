@@ -6,7 +6,7 @@ import {
     SpotlightActionGroupData,
 } from "@mantine/spotlight";
 import { createElement } from "react";
-import { TbLayoutDashboard, TbPlus, TbUser } from "react-icons/tb";
+import { TbCompass, TbLayoutDashboard, TbPlus, TbUser } from "react-icons/tb";
 import { useNavigate } from "react-router-dom";
 import { observer } from "mobx-react";
 import { resolveTrackerIcon } from "../../constants/TrackerIcons";
@@ -42,6 +42,12 @@ const AppSpotlight = observer(() => {
         }));
 
     const quickActions: SpotlightActionData[] = [
+        {
+            id: "go-explore",
+            label: "Explore",
+            leftSection: <TbCompass size={18} />,
+            onClick: () => navigate("/explore"),
+        },
         {
             id: "new-tracker",
             label: "New tracker",

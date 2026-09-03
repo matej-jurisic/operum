@@ -38,6 +38,9 @@ export interface ScatterChartAnalyticDto extends AnalyticDto {
     /** Null when the configured axis field can no longer be resolved (e.g. it was deleted). */
     yField?: FieldDto;
     points: { x: number; y: number }[];
+    /** Set only by the two-tracker Correlation calculation, when the join has little or
+        nothing left to plot. Empty for an ordinary single-tracker scatter plot. */
+    warnings?: string[];
 }
 
 export interface CalendarAnalyticDto extends AnalyticDto {

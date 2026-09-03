@@ -22,11 +22,17 @@
 
         public static bool IsValid(string op) => All.Contains(op);
 
-        // Result types that have a merge path for combining more than one tracker source
+        // Result types that have a merge path for combining any number of tracker sources
         // into a single widget. Line and bar merge into a Composed chart; a calendar just
         // unions its dated events.
         private static readonly HashSet<string> MultiSourceTypes = [LineChart, BarChart, Calendar];
 
         public static bool SupportsMultipleSources(string resultType) => MultiSourceTypes.Contains(resultType);
+
+        // A calculation whose two sources each contribute one axis of a scatter plot, joined
+        // on a shared match field. Unlike the merge types above it needs exactly two sources,
+        // not "one or more", so it's gated separately (see WidgetsService.CreateWidget).
+        public static bool RequiresPairedSources(string resultType, string code) =>
+            resultType == ScatterChart && code == AnalyticCodes.CorrelationScatter;
     }
 }

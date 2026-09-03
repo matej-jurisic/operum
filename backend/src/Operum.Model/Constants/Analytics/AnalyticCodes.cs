@@ -25,6 +25,7 @@
         public const string YearlyLineChart = "Yearly";
 
         public const string ScatterChart = "Scatter Chart";
+        public const string CorrelationScatter = "Correlation Scatter";
         public const string Calendar = "Calendar";
         public const string DonutChart = "Donut Chart";
 
@@ -43,7 +44,7 @@
             TrueCount, FalseCount, TruePercentage,
             AggregatedSumLineChart, CumulativeLineChart, LineChart,
             DailyLineChart, WeeklyLineChart, MonthlyLineChart, YearlyLineChart,
-            Calendar, ScatterChart, DonutChart,
+            Calendar, ScatterChart, CorrelationScatter, DonutChart,
             CountBarChart, SumBarChart, AverageBarChart,
             DailyBarChart, WeeklyBarChart, MonthlyBarChart, YearlyBarChart
         ];

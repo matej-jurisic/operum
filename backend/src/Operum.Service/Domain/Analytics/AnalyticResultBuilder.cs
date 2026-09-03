@@ -1,5 +1,6 @@
 ﻿using Operum.Model.Common;
 using Operum.Model.DTOs.Analytics;
+using Operum.Model.Enums;
 using Operum.Service.Domain.Analytics.Builders;
 
 namespace Operum.Service.Domain.Analytics
@@ -64,6 +65,12 @@ namespace Operum.Service.Domain.Analytics
                 var result = GetAnalyticResult(request);
                 if (result.IsSuccess)
                     return result.Data;
+
+                // "No data" is an expected empty state, not a broken analytic. Its message
+                // is a full sentence that overflows a small single-value card, so show a
+                // compact placeholder instead; genuine failures keep their explanation.
+                if (result.StatusCode == ResultStatusCodes.NotFound)
+                    return Fallback(request, "N/A");
 
                 return Fallback(request, result.Messages.FirstOrDefault());
             }

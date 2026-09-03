@@ -254,7 +254,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
 
                 [AnalyticTypes.ScatterChart] = new AnalyticDefinition
                 {
-                    Purposes = [AnalyticPurposes.Xaxis, AnalyticPurposes.Yaxis],
+                    Purposes = [AnalyticPurposes.Xaxis, AnalyticPurposes.Yaxis, AnalyticPurposes.Match, AnalyticPurposes.Value],
                     Codes = new()
                     {
                         [AnalyticCodes.ScatterChart] = new AnalyticPurposeDataTypes
@@ -264,6 +264,19 @@ namespace Operum.Model.Constants.Analytics.Definitions
                             {
                                 [AnalyticPurposes.Xaxis] = [DataTypes.Number, DataTypes.TimeSpan],
                                 [AnalyticPurposes.Yaxis] = [DataTypes.Number, DataTypes.TimeSpan]
+                            }
+                        },
+                        // Two sources, one per axis: each tracker maps a Match field (the
+                        // join key, e.g. the day) and a Value field, and a point pairs the
+                        // first source's value (x) with the second's (y) for every match
+                        // key they share. See DashboardService.MergeCorrelationResults.
+                        [AnalyticCodes.CorrelationScatter] = new AnalyticPurposeDataTypes
+                        {
+                            Label = "Correlation",
+                            AllowedDataTypes = new()
+                            {
+                                [AnalyticPurposes.Match] = [DataTypes.Date, DataTypes.DateTime, DataTypes.String, DataTypes.Number],
+                                [AnalyticPurposes.Value] = [DataTypes.Number, DataTypes.TimeSpan]
                             }
                         }
                     }

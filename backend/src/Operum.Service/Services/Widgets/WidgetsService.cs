@@ -55,9 +55,15 @@ namespace Operum.Service.Services.Widgets
             if (!AnalyticDefinitionList.IsValidForType(dto.ResultType, dto.Code))
                 return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("code for this result type"));
 
-            // Only some result types have a merge path for combining more than one tracker:
-            // line/bar into a Composed chart, calendar into one shared set of events.
-            if (dto.Sources.Count > 1 && !AnalyticTypes.SupportsMultipleSources(dto.ResultType))
+            // Only some calculations combine more than one tracker: line/bar merge into a
+            // Composed chart, a calendar unions its dated events, and a correlation scatter
+            // pairs exactly two trackers on a shared match field.
+            if (AnalyticTypes.RequiresPairedSources(dto.ResultType, dto.Code))
+            {
+                if (dto.Sources.Count != 2)
+                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("source count for a correlation chart, which pairs exactly two trackers"));
+            }
+            else if (dto.Sources.Count > 1 && !AnalyticTypes.SupportsMultipleSources(dto.ResultType))
                 return Result.Failure(ResultStatusCodes.BadRequest, Messages.NotAllowed("combining this widget with another tracker"));
 
             var sources = new List<WidgetSource>();

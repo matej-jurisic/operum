@@ -43,6 +43,7 @@ function PublicShell({ children }: { children: React.ReactNode }) {
 
 const AdminPanel = lazy(() => import("./features/admin/pages/AdminPanel"));
 const DashboardPage = lazy(() => import("./features/dashboard/pages/DashboardPage"));
+const ExplorePage = lazy(() => import("./features/explore/pages/ExplorePage"));
 const Home = lazy(() => import("./features/home/pages/Home"));
 const IntegrationsPage = lazy(() => import("./features/integrations/pages/IntegrationsPage"));
 const PrivacyPolicy = lazy(() => import("./features/legal/pages/PrivacyPolicy"));
@@ -120,6 +121,10 @@ const App = observer(() => {
                             <Route
                                 path="trackers/:trackerId/*"
                                 element={<PrivateRoute page={<Tracker />} />}
+                            />
+                            <Route
+                                path="explore"
+                                element={<PrivateRoute page={<ExplorePage />} />}
                             />
                             <Route
                                 path="dashboard"

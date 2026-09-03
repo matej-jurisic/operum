@@ -85,6 +85,21 @@ export function DashboardGrid({
   );
 }
 
+/** snapgrid renders the layout it is handed as-is and only compacts during a drag. The
+    desktop board is never recompacted server-side, so a stored stack with gaps -- a
+    widget deleted, resized smaller, set Hidden, or moved into a container -- shows those
+    gaps as dead space, and a freshly added widget (the backend seeds it below the lowest
+    row any item ever reached) floats far below the real content. Close the gaps on the
+    way in; the first drag in arrange mode then persists the compacted stack. minW/minH
+    aren't carried through the compactor, so re-attach them. */
+function compactLayout(items: Layout, cols: number): Layout {
+  const constraintsById = new Map(items.map((it) => [it.i, it]));
+  return verticalCompactor.compact(items, cols).map((it) => {
+    const src = constraintsById.get(it.i);
+    return src ? { ...it, minW: src.minW, minH: src.minH } : it;
+  });
+}
+
 interface BoardProps extends DashboardTileCallbacks {
   widgets: DashboardWidgetDto[];
   width: number;
@@ -123,25 +138,20 @@ function FlatBoard({
     [widgets],
   );
 
-  const layout = useMemo(() => {
-    const items = shown.map((widget, index) =>
-      toLayoutItem(widget, index, LayoutVariants.Mobile, cols),
-    );
-
-    // Containers are flattened away here, but every widget still carries the
-    // mobileLayout.y it was seeded with, and that stack is never recompacted
-    // server-side when the wide grid's container tree changes. A widget moved
-    // into a container (or a container added above one) on the desktop board
-    // leaves a screen-tall hole on the phone -- the rows the hidden container
-    // still owns. Close those holes on the way in; the first drag in arrange
-    // mode then persists the compacted stack. minW/minH aren't carried through
-    // the compactor, so re-attach them.
-    const constraintsById = new Map(items.map((it) => [it.i, it]));
-    return verticalCompactor.compact(items, cols).map((it) => {
-      const src = constraintsById.get(it.i);
-      return src ? { ...it, minW: src.minW, minH: src.minH } : it;
-    });
-  }, [shown, cols]);
+  // Containers are flattened away here, but every widget still carries the mobileLayout.y
+  // it was seeded with, and that stack is never recompacted server-side when the wide
+  // grid's container tree changes -- a widget moved into a container on the desktop board
+  // leaves a screen-tall hole on the phone. compactLayout closes it.
+  const layout = useMemo(
+    () =>
+      compactLayout(
+        shown.map((widget, index) =>
+          toLayoutItem(widget, index, LayoutVariants.Mobile, cols),
+        ),
+        cols,
+      ),
+    [shown, cols],
+  );
 
   const handleArranged = (newLayout: Layout) => {
     if (!isConfiguring) return;
@@ -340,13 +350,16 @@ export function BoardSubGrid({
 }: BoardSubGridProps) {
   const layout = useMemo(
     () =>
-      widgets.map((widget, index) =>
-        toLayoutItem(
-          widget,
-          index,
-          LayoutVariants.Desktop,
-          DASHBOARD_GRID_COLUMNS,
+      compactLayout(
+        widgets.map((widget, index) =>
+          toLayoutItem(
+            widget,
+            index,
+            LayoutVariants.Desktop,
+            DASHBOARD_GRID_COLUMNS,
+          ),
         ),
+        DASHBOARD_GRID_COLUMNS,
       ),
     [widgets],
   );
