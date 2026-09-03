@@ -8,14 +8,21 @@ export interface EvaluateFilterClauseDto {
     value?: string;
 }
 
-/** A chart definition evaluated once against live data, saved nowhere. Single source. */
+/** One source of an ad hoc evaluation: a tracker, its field mapping, an optional saved
+    view for the base filter and sort, and inline clauses ANDed on top. */
+export interface EvaluateSourceDto {
+    trackerId: string;
+    fields: CreateAnalyticFieldDto[];
+    viewId?: string;
+    filters: EvaluateFilterClauseDto[];
+}
+
+/** A chart definition evaluated once against live data, saved nowhere. One source renders
+    on its own; multiple sources merge the way a multi-tracker widget does. */
 export interface EvaluateWidgetDto {
     resultType: string;
     code: string;
-    trackerId: string;
-    fields: CreateAnalyticFieldDto[];
-    /** Optional saved view supplying the base filter and sort. */
-    viewId?: string;
-    /** Inline clauses, ANDed on top of the view. */
-    filters: EvaluateFilterClauseDto[];
+    /** Combined charts only: keep just the x-axis values every source has a point for. */
+    matchedValuesOnly?: boolean;
+    sources: EvaluateSourceDto[];
 }

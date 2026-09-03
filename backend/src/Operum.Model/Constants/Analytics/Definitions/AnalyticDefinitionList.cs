@@ -269,7 +269,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                         // Two sources, one per axis: each tracker maps a Match field (the
                         // join key, e.g. the day) and a Value field, and a point pairs the
                         // first source's value (x) with the second's (y) for every match
-                        // key they share. See DashboardService.MergeCorrelationResults.
+                        // key they share. See MultiSourceAnalyticMerger.MergeCorrelation.
                         [AnalyticCodes.CorrelationScatter] = new AnalyticPurposeDataTypes
                         {
                             Label = "Correlation",

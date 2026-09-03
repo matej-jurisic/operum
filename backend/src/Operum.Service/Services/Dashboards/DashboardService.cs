@@ -34,6 +34,9 @@ namespace Operum.Service.Services.Dashboards
             string? TrackerColor,
             AnalyticDto Result);
 
+        private static MergeSource ToMergeSource(ResolvedSource r) =>
+            new(r.Source.Id, r.Source.Label, r.TrackerName, r.TrackerColor, r.Result);
+
         // Config is written by hand rather than through the controller's own JSON
         // formatting, so it has to pick the same camelCase convention itself.
         private static readonly JsonSerializerOptions ConfigJsonOptions = new(JsonSerializerDefaults.Web);
@@ -301,7 +304,7 @@ namespace Operum.Service.Services.Dashboards
                     // A correlation scatter has no per-source calculation of its own: each
                     // source is just a list of (match key -> value) pairs, which is exactly
                     // what a raw-values line chart produces. Compute it as one here and let
-                    // MergeCorrelationResults join the two sides.
+                    // MultiSourceAnalyticMerger.MergeCorrelation join the two sides.
                     var isPaired = AnalyticTypes.RequiresPairedSources(item.Widget.ResultType, item.Widget.Code);
 
                     var request = new AnalyticResultBuilderRequest
@@ -316,7 +319,9 @@ namespace Operum.Service.Services.Dashboards
                             ResultType = isPaired ? AnalyticTypes.LineChart : item.Widget.ResultType
                         },
                         Entries = entries,
-                        FieldMap = isPaired ? PairedSourceFieldMap(widgetSource) : BuildFieldMap(widgetSource)
+                        FieldMap = isPaired
+                            ? MultiSourceAnalyticMerger.PairedAxisFieldMap(BuildFieldMap(widgetSource))
+                            : BuildFieldMap(widgetSource)
                     };
 
                     // Always displayable, even when the source's field(s) are missing or a
@@ -333,13 +338,14 @@ namespace Operum.Service.Services.Dashboards
 
                 // A single source renders exactly as it always has; combining only kicks in
                 // once there's more than one source to merge into a shared chart.
+                var mergeSources = resolvedSources.Select(ToMergeSource).ToList();
                 var itemResult = resolvedSources.Count == 1
                     ? resolvedSources[0].Result
                     : AnalyticTypes.RequiresPairedSources(item.Widget.ResultType, item.Widget.Code)
-                        ? MergeCorrelationResults(resolvedSources)
+                        ? MultiSourceAnalyticMerger.MergeCorrelation(mergeSources)
                         : item.Widget.ResultType == AnalyticTypes.Calendar
-                            ? MergeCalendarResults(resolvedSources)
-                            : BuildComposedResult(resolvedSources, item.Widget.MatchedValuesOnly);
+                            ? MultiSourceAnalyticMerger.MergeCalendars(mergeSources)
+                            : MultiSourceAnalyticMerger.BuildComposed(mergeSources, item.Widget.MatchedValuesOnly);
 
                 // A single source placed with a label override reads on the board under that
                 // name; otherwise the widget's own name -- editable from the Library, shared
@@ -1622,22 +1628,6 @@ namespace Operum.Service.Services.Dashboards
                 .Where(f => f.Field != null)
                 .ToDictionary(f => f.Purpose, f => f.Field);
 
-        // A correlation source's Match/Value fields, presented to the line-chart pipeline as
-        // its X/Y axes: the raw-values line chart it then produces is the (match key, value)
-        // list MergeCorrelationResults joins on. A mapping that lost its field (deleted) is
-        // dropped, leaving the line result without that axis and the merge with nothing to
-        // pair -- handled the same way as any other missing analytic field.
-        private static Dictionary<string, Field> PairedSourceFieldMap(WidgetSource source)
-        {
-            var byPurpose = BuildFieldMap(source);
-            var map = new Dictionary<string, Field>();
-            if (byPurpose.TryGetValue(AnalyticPurposes.Match, out var matchField))
-                map[AnalyticPurposes.Xaxis] = matchField;
-            if (byPurpose.TryGetValue(AnalyticPurposes.Value, out var valueField))
-                map[AnalyticPurposes.Yaxis] = valueField;
-            return map;
-        }
-
         private static IQueryable<Dashboard> WithSourceGraph(IQueryable<Dashboard> query) => query
             .Include(d => d.Items).ThenInclude(i => i.Widget)
             // Include's lambda receives the navigation's own (nullable) CLR type -- it never
@@ -1660,183 +1650,6 @@ namespace Operum.Service.Services.Dashboards
                 .AsTracking()
                 .FirstOrDefaultAsync(d => d.Id == dashboardId && d.UserId == user.Id);
         }
-
-        // Merges 2+ per-source results (each computed independently by the same
-        // single-tracker pipeline as always) into one multi-series chart. Every source shares
-        // the widget's result type and code, so the series are always produced the same way;
-        // what they can still differ in is the kind of value on the x-axis, which is surfaced
-        // as a warning rather than rejected.
-        private static ComposedChartAnalyticDto BuildComposedResult(List<ResolvedSource> resolvedSources, bool matchedValuesOnly)
-        {
-            var composed = new ComposedChartAnalyticDto();
-
-            foreach (var resolved in resolvedSources)
-            {
-                var source = resolved.Source;
-                ComposedChartSeriesDto? series = resolved.Result switch
-                {
-                    LineChartAnalyticDto line => new ComposedChartSeriesDto
-                    {
-                        Key = source.Id,
-                        Label = source.Label ?? $"{resolved.TrackerName}: {line.YField.Name}",
-                        RenderType = ComposedSeriesRenderTypes.Line,
-                        XField = line.XField,
-                        ValueField = line.YField,
-                        Points = line.Points.Select(p => new ComposedChartPointDto { X = p.X, Y = p.Y }).ToList(),
-                        Color = resolved.TrackerColor
-                    },
-                    BarChartAnalyticDto bar => new ComposedChartSeriesDto
-                    {
-                        Key = source.Id,
-                        Label = source.Label ?? $"{resolved.TrackerName}: {bar.ValueField?.Name ?? "Count"}",
-                        RenderType = ComposedSeriesRenderTypes.Bar,
-                        XField = bar.NameField,
-                        ValueField = bar.ValueField ?? new FieldDto { Name = "Count", Type = DataTypes.Number },
-                        Points = bar.Points.Select(p => new ComposedChartPointDto { X = p.Name, Y = p.Value }).ToList(),
-                        Color = resolved.TrackerColor
-                    },
-                    // Defensive only — WidgetsService.CreateWidget already rejects any other
-                    // result type once there's more than one source.
-                    _ => null
-                };
-
-                if (series != null) composed.Series.Add(series);
-            }
-
-            // No name of its own: the chart is titled from its series, in the same order
-            // they're plotted, so renaming a source's series also renames the widget.
-            composed.Name = string.Join(" - ", composed.Series.Select(s => s.Label));
-
-            var hasMismatchedXTypes = composed.Series.Select(s => s.XField.Type).Distinct().Count() > 1;
-            if (hasMismatchedXTypes)
-                composed.Warnings.Add("Sources plot different kinds of value on the x-axis, alignment may be misleading.");
-
-            if (matchedValuesOnly && composed.Series.Count > 1)
-                KeepOnlyMatchedXValues(composed);
-
-            return composed;
-        }
-
-        // Narrows every series to the x-axis values all of them have a point for, so the
-        // chart compares the sources over the same range instead of letting each one run on
-        // wherever the others have no data. Series whose x-axis buckets never line up (a
-        // different field type, or simply no overlapping period) end up empty, which is worth
-        // saying out loud rather than rendering as a blank chart.
-        private static void KeepOnlyMatchedXValues(ComposedChartAnalyticDto composed)
-        {
-            var shared = composed.Series
-                .Select(s => s.Points.Select(p => p.X ?? string.Empty).ToHashSet())
-                .Aggregate((a, b) => { a.IntersectWith(b); return a; });
-
-            foreach (var series in composed.Series)
-                series.Points = series.Points.Where(p => shared.Contains(p.X ?? string.Empty)).ToList();
-
-            if (shared.Count == 0)
-                composed.Warnings.Add("No x-axis value appears in every source, so nothing is left to show with matched values only.");
-        }
-
-        // A calendar has no shared axis to reconcile: merging trackers is just a union of
-        // their dated events. Each point keeps the colour of the tracker it came from and a
-        // source name (the placement's label override, else the tracker's own name) so the
-        // card can tell the sources apart. The when/what fields are taken from the first
-        // source purely to format event dates in the card (every calendar "When" field is a
-        // date or datetime).
-        private static CalendarAnalyticDto MergeCalendarResults(List<ResolvedSource> resolvedSources)
-        {
-            var calendars = resolvedSources
-                .Where(r => r.Result is CalendarAnalyticDto)
-                .Select(r => (Resolved: r, Calendar: (CalendarAnalyticDto)r.Result))
-                .ToList();
-
-            var merged = new CalendarAnalyticDto();
-
-            var first = calendars.FirstOrDefault(c => c.Calendar.WhenField != null && c.Calendar.WhatField != null);
-            if (first.Calendar != null)
-            {
-                merged.WhenField = first.Calendar.WhenField;
-                merged.WhatField = first.Calendar.WhatField;
-            }
-
-            merged.Points = calendars
-                .SelectMany(c => c.Calendar.Points.Select(p => new CalendarPointDto
-                {
-                    EntryId = p.EntryId,
-                    Date = p.Date,
-                    Name = p.Name,
-                    TrackerName = string.IsNullOrWhiteSpace(c.Resolved.Source.Label)
-                        ? c.Resolved.TrackerName
-                        : c.Resolved.Source.Label,
-                    Color = c.Resolved.TrackerColor
-                }))
-                .ToList();
-
-            return merged;
-        }
-
-        // Joins two sources into one scatter plot: source A's value is the x of each point,
-        // source B's the y, paired on every match key both sources have. Each side arrives
-        // as a raw-values line chart (see PairedSourceFieldMap) -- X is the match key, Y the
-        // value -- so the join is just an intersection of their keys. Repeat entries for a
-        // key are averaged into the one value that key contributes.
-        private static ScatterPlotAnalyticDto MergeCorrelationResults(List<ResolvedSource> resolvedSources)
-        {
-            var result = new ScatterPlotAnalyticDto();
-            if (resolvedSources.Count < 2)
-                return result;
-
-            var xSource = resolvedSources[0];
-            var ySource = resolvedSources[1];
-
-            // A non-line result, or a line result missing an axis, means a field the
-            // calculation needs was deleted: nothing can be paired, and the card shows its
-            // missing-fields state (XField/YField left null).
-            if (xSource.Result is not LineChartAnalyticDto xLine || ySource.Result is not LineChartAnalyticDto yLine)
-                return result;
-
-            if (xLine.YField is null || yLine.YField is null)
-                return result;
-
-            result.XField = AxisField(xLine.YField, xSource);
-            result.YField = AxisField(yLine.YField, ySource);
-            result.Name = $"{result.XField.Name} vs {result.YField.Name}";
-
-            var xByKey = AverageByMatchKey(xLine.Points);
-            var yByKey = AverageByMatchKey(yLine.Points);
-
-            result.Points = xByKey.Keys
-                .Where(yByKey.ContainsKey)
-                .OrderBy(k => k, StringComparer.Ordinal)
-                .Select(k => new ScatterChartPointDto { X = xByKey[k], Y = yByKey[k] })
-                .ToList();
-
-            if (xLine.YField.Type != yLine.YField.Type)
-                result.Warnings.Add("The two trackers measure different kinds of value, so the axes aren't directly comparable.");
-
-            if (result.Points.Count == 0)
-                result.Warnings.Add("The two trackers share no match value, so there's nothing to pair up.");
-
-            return result;
-        }
-
-        private static Dictionary<string, double> AverageByMatchKey(List<LineChartPointDto> points) =>
-            points
-                .Where(p => p.X != null && p.Y.HasValue)
-                .GroupBy(p => p.X!)
-                .ToDictionary(g => g.Key, g => g.Average(p => p.Y!.Value));
-
-        // The scatter axis for a correlation source: the value field's own type (so ticks
-        // and the tooltip format it right), named for the tracker it came from unless the
-        // placement gave the source a label of its own.
-        private static FieldDto AxisField(FieldDto valueField, ResolvedSource source) => new()
-        {
-            Id = valueField.Id,
-            Type = valueField.Type,
-            Required = valueField.Required,
-            Description = valueField.Description,
-            Name = string.IsNullOrWhiteSpace(source.Source.Label)
-                ? $"{source.TrackerName}: {valueField.Name}"
-                : source.Source.Label
-        };
 
         private static DashboardDto MapToDto(Dashboard d) => new()
         {
