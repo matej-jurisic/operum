@@ -4,6 +4,7 @@ using Operum.Model.Common;
 using Operum.Model.Constants;
 using Operum.Model.Constants.Analytics;
 using Operum.Model.Constants.Analytics.Definitions;
+using Operum.Model.Constants.Notifications;
 using Operum.Model.DTOs.Notifications;
 using Operum.Model.DTOs.Notifications.Requests;
 using Operum.Model.Enums;
@@ -62,7 +63,11 @@ namespace Operum.Service.Services.Notifications
             if (!conditionValidation.IsSuccess)
                 return Result.Failure(conditionValidation.StatusCode, conditionValidation.Messages);
 
-            var notification = BuildNotification(trackerId, dto.Name, dto.IsEnabled, dto.ViewId, dto.Event, dto.Condition);
+            var messageValidation = ValidateMessageTemplate(dto.MessageTemplate);
+            if (!messageValidation.IsSuccess)
+                return Result.Failure(messageValidation.StatusCode, messageValidation.Messages);
+
+            var notification = BuildNotification(trackerId, dto.Name, dto.IsEnabled, dto.ViewId, dto.MessageTemplate, dto.Event, dto.Condition);
 
             await db.TrackerNotifications.AddAsync(notification);
             await db.SaveChangesAsync();
@@ -117,9 +122,14 @@ namespace Operum.Service.Services.Notifications
             if (!conditionValidation.IsSuccess)
                 return Result.Failure(conditionValidation.StatusCode, conditionValidation.Messages);
 
+            var messageValidation = ValidateMessageTemplate(dto.MessageTemplate);
+            if (!messageValidation.IsSuccess)
+                return Result.Failure(messageValidation.StatusCode, messageValidation.Messages);
+
             notification.Name = dto.Name;
             notification.IsEnabled = dto.IsEnabled;
             notification.ViewId = dto.ViewId;
+            notification.MessageTemplate = dto.MessageTemplate;
             notification.IsTriggered = false;
 
             UpdateEvent(notification.Event, dto.Event);
@@ -304,13 +314,32 @@ namespace Operum.Service.Services.Notifications
                     if (!OperatorTypes.IsValid(filter.Operator))
                         return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("operator"));
                 }
+
+                foreach (var pf in dto.PurposeFields)
+                {
+                    if (!NotificationPurposes.IsValid(pf.Purpose))
+                        return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("purpose"));
+
+                    var field = await db.Fields.FindAsync(pf.FieldId);
+                    if (field == null || field.TrackerId != trackerId)
+                        return Result.Failure(ResultStatusCodes.BadRequest, Messages.ItemNotFound("purpose field"));
+                }
             }
 
             return Result.Success();
         }
 
+        private const int MaxMessageTemplateLength = 200;
+
+        private static Result ValidateMessageTemplate(string? messageTemplate)
+        {
+            return messageTemplate is { Length: > MaxMessageTemplateLength }
+                ? Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("message"))
+                : Result.Success();
+        }
+
         private static TrackerNotification BuildNotification(
-            string trackerId, string name, bool isEnabled, string? viewId,
+            string trackerId, string name, bool isEnabled, string? viewId, string? messageTemplate,
             CreateNotificationEventDto eventDto, CreateNotificationConditionDto conditionDto)
         {
             return new TrackerNotification
@@ -319,6 +348,7 @@ namespace Operum.Service.Services.Notifications
                 IsEnabled = isEnabled,
                 TrackerId = trackerId,
                 ViewId = viewId,
+                MessageTemplate = messageTemplate,
                 Event = BuildEvent(eventDto),
                 Condition = BuildCondition(conditionDto)
             };

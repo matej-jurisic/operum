@@ -12,6 +12,11 @@ import { MdDelete, MdEdit } from "react-icons/md";
 import { useNotifications } from "../context/NotificationsContext";
 import { NotificationEventDto, TrackerNotificationDto } from "../types/NotificationDto";
 
+const VALUE_MODE_LABELS: Record<string, string> = {
+    Entry: "Entry records",
+    Analytic: "Computed value",
+};
+
 function formatEvent(event: NotificationEventDto): string {
     if (!event) return "On change";
     switch (event.eventType) {
@@ -77,7 +82,7 @@ export default function NotificationCard({
                         {notification.name}
                     </Title>
                     <Text c="dimmed" size="sm" lineClamp={2} className="wrapped-text">
-                        {formatEvent(notification.event)} · {notification.condition.valueMode}
+                        {formatEvent(notification.event)} · {VALUE_MODE_LABELS[notification.condition.valueMode] ?? notification.condition.valueMode}
                     </Text>
                     <Group wrap="wrap">
                         {notification.isTriggered && (

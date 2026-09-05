@@ -7,16 +7,19 @@ using Operum.Service.Domain.Views;
 
 namespace Operum.Service.Domain.Notifications
 {
+    /// <summary>Whether the analytic's single value currently satisfies the condition, and that value itself (for the <c>{value}</c> push-body token).</summary>
+    public record AnalyticEvaluationResult(bool ConditionMet, string? Value);
+
     public static class ConditionAnalyticEvaluator
     {
-        public static async Task<bool> EvaluateAsync(
+        public static async Task<AnalyticEvaluationResult> EvaluateAsync(
             OperumContext db,
             TrackerNotification notification,
             TimeZoneInfo tz,
             CancellationToken ct = default)
         {
             var condition = notification.Condition;
-            if (string.IsNullOrEmpty(condition.AnalyticCode)) return false;
+            if (string.IsNullOrEmpty(condition.AnalyticCode)) return new AnalyticEvaluationResult(false, null);
 
             var view = !string.IsNullOrEmpty(notification.ViewId)
                 ? await db.Views
@@ -49,11 +52,13 @@ namespace Operum.Service.Domain.Notifications
             });
 
             if (!result.IsSuccess || result.Data is not SingleValueAnalyticDto svDto)
-                return false;
+                return new AnalyticEvaluationResult(false, null);
 
             // All condition filters must match (AND semantics)
-            return condition.Filters.All(f =>
+            var conditionMet = condition.Filters.All(f =>
                 NotificationConditionEvaluator.Evaluate(svDto.Value, f.Operator, f.Value ?? string.Empty, tz));
+
+            return new AnalyticEvaluationResult(conditionMet, svDto.Value);
         }
     }
 }

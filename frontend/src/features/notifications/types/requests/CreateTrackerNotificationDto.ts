@@ -32,6 +32,7 @@ export interface CreateTrackerNotificationDto {
     name: string;
     isEnabled: boolean;
     viewId?: string | null;
+    messageTemplate?: string | null;
     event: CreateNotificationEventDto;
     condition: CreateNotificationConditionDto;
 }

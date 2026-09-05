@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Operum.Model;
+using Operum.Model.Constants.Notifications;
 using Operum.Model.Extensions;
 using Operum.Model.Models;
 using Operum.Service.Domain.Notifications;
@@ -170,11 +171,49 @@ namespace Operum.Service.Services.Notifications
             {
                 notification.LastFiredAt = nowUtc;
 
-                var body = newlyMatched.Count == 1
+                var fallback = newlyMatched.Count == 1
                     ? "1 new entry matches"
                     : $"{newlyMatched.Count} new entries match";
+                var tokens = new Dictionary<string, string>
+                {
+                    ["count"] = newlyMatched.Count.ToString(),
+                    ["tracker"] = notification.Tracker.Name,
+                    ["notification"] = notification.Name,
+                    ["fieldValueList"] = await BuildFieldValueListAsync(db, notification, newlyMatched, ct),
+                };
+                var body = NotificationMessageBuilder.Build(notification.MessageTemplate, fallback, tokens);
                 pushQueue.Add((notification, body));
             }
+        }
+
+        private static async Task<string> BuildFieldValueListAsync(
+            OperumContext db,
+            TrackerNotification notification,
+            List<string> newlyMatchedEntryIds,
+            CancellationToken ct)
+        {
+            var displayFieldIds = notification.Condition.PurposeFields
+                .Where(pf => pf.Purpose == NotificationPurposes.Display)
+                .Select(pf => pf.FieldId)
+                .ToList();
+
+            if (displayFieldIds.Count == 0)
+                return string.Empty;
+
+            var entriesById = await db.Entries
+                .Where(e => newlyMatchedEntryIds.Contains(e.Id))
+                .Include(e => e.FieldValues.Where(fv => displayFieldIds.Contains(fv.FieldId)))
+                    .ThenInclude(fv => fv.Field)
+                .ToDictionaryAsync(e => e.Id, ct);
+
+            // Preserve the order entries were matched in rather than whatever the query returned.
+            var orderedEntries = newlyMatchedEntryIds
+                .Select(id => entriesById.GetValueOrDefault(id))
+                .Where(e => e != null)
+                .Select(e => e!)
+                .ToList();
+
+            return NotificationFieldValueListBuilder.Build(orderedEntries, displayFieldIds);
         }
 
         private static async Task EvaluateAnalyticModeAsync(
@@ -184,21 +223,28 @@ namespace Operum.Service.Services.Notifications
             List<(TrackerNotification, string)> pushQueue,
             CancellationToken ct)
         {
-            var conditionMet = await ConditionAnalyticEvaluator.EvaluateAsync(db, notification, ResolveUserTz(notification), ct);
+            var evaluation = await ConditionAnalyticEvaluator.EvaluateAsync(db, notification, ResolveUserTz(notification), ct);
             var wasTriggered = notification.IsTriggered;
 
-            notification.IsTriggered = conditionMet;
+            notification.IsTriggered = evaluation.ConditionMet;
 
             var isFrequency = notification.Event.EventType != NotificationEventType.Triggered;
 
             // Frequency: fire whenever condition is true on a due tick
             // Triggered: fire only on false→true edge
-            var shouldFire = isFrequency ? conditionMet : (conditionMet && !wasTriggered);
+            var shouldFire = isFrequency ? evaluation.ConditionMet : (evaluation.ConditionMet && !wasTriggered);
 
             if (shouldFire)
             {
                 notification.LastFiredAt = nowUtc;
-                pushQueue.Add((notification, "Condition met"));
+                var tokens = new Dictionary<string, string>
+                {
+                    ["value"] = evaluation.Value ?? "",
+                    ["tracker"] = notification.Tracker.Name,
+                    ["notification"] = notification.Name,
+                };
+                var body = NotificationMessageBuilder.Build(notification.MessageTemplate, "Condition met", tokens);
+                pushQueue.Add((notification, body));
             }
         }
 

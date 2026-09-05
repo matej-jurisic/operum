@@ -7,16 +7,18 @@ cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
 
 self.addEventListener("push", (event) => {
-    const data = event.data?.json() ?? {};
-    const title: string = data.title ?? "Operum";
-    const body: string = data.body ?? "";
+    const payload = event.data?.json() ?? {};
+    const title: string = payload.title ?? "Operum";
+    const body: string = payload.body ?? "";
 
     event.waitUntil(
         self.registration.showNotification(title, {
             body,
             icon: "/icon.svg",
             badge: "/icon.svg",
-            data,
+            // Only the inner `data` object, not the whole payload -- notificationclick below
+            // reads `.data.url` off the notification, and title/body are already shown.
+            data: payload.data,
         }),
     );
 });

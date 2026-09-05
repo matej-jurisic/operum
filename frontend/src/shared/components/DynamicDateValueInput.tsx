@@ -129,32 +129,50 @@ export default function DynamicDateValueInput({
             )}
 
             {isDateType && dateMode === "relative" && (
-                <Group gap="xs" align="flex-end">
-                    <NumberInput
-                        label="Amount"
-                        value={relativeAmount}
+                <Stack gap={4}>
+                    <Group gap="xs" align="flex-end">
+                        <NumberInput
+                            label="Amount"
+                            min={1}
+                            value={Math.abs(relativeAmount)}
+                            onChange={(v) => {
+                                if (typeof v === "number" && v > 0) {
+                                    const signed = relativeAmount < 0 ? -v : v;
+                                    onChange(serializeLookbackToken(relativeUnit, signed));
+                                }
+                            }}
+                            style={{ flex: 1 }}
+                        />
+                        <Select
+                            label="Unit"
+                            allowDeselect={false}
+                            data={UNIT_OPTIONS}
+                            value={relativeUnit}
+                            onChange={(v) => {
+                                if (v)
+                                    onChange(
+                                        serializeLookbackToken(v as LookbackPrefix, relativeAmount),
+                                    );
+                            }}
+                            style={{ flex: 1 }}
+                            comboboxProps={{ zIndex: 500 }}
+                        />
+                    </Group>
+                    <SegmentedControl
+                        size="xs"
+                        fullWidth
+                        data={[
+                            { value: "past", label: "Ago" },
+                            { value: "future", label: "From now" },
+                        ]}
+                        value={relativeAmount < 0 ? "future" : "past"}
                         onChange={(v) => {
-                            if (typeof v === "number" && v !== 0) {
-                                onChange(serializeLookbackToken(relativeUnit, v));
-                            }
+                            const magnitude = Math.abs(relativeAmount);
+                            const signed = v === "future" ? -magnitude : magnitude;
+                            onChange(serializeLookbackToken(relativeUnit, signed));
                         }}
-                        style={{ flex: 1 }}
                     />
-                    <Select
-                        label="Unit"
-                        allowDeselect={false}
-                        data={UNIT_OPTIONS}
-                        value={relativeUnit}
-                        onChange={(v) => {
-                            if (v)
-                                onChange(
-                                    serializeLookbackToken(v as LookbackPrefix, relativeAmount),
-                                );
-                        }}
-                        style={{ flex: 1 }}
-                        comboboxProps={{ zIndex: 500 }}
-                    />
-                </Group>
+                </Stack>
             )}
 
             {preview && (

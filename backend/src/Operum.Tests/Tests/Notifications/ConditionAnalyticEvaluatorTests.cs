@@ -96,7 +96,7 @@ namespace Operum.Tests.Tests.Notifications
             var result = await ConditionAnalyticEvaluator.EvaluateAsync(evalDb, loaded, TimeZoneInfo.Utc);
 
             // Average(Amount) = 12, which is greater than the condition's threshold of 10.
-            Assert.True(result);
+            Assert.True(result.ConditionMet);
         }
 
         [Fact]
@@ -145,7 +145,7 @@ namespace Operum.Tests.Tests.Notifications
             var result = await ConditionAnalyticEvaluator.EvaluateAsync(evalDb, loaded, TimeZoneInfo.Utc);
 
             // Average(Amount) = 3, which is not greater than the condition's threshold of 10.
-            Assert.False(result);
+            Assert.False(result.ConditionMet);
         }
     }
 }

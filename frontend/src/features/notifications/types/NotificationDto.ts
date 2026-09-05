@@ -37,6 +37,7 @@ export interface TrackerNotificationDto {
     lastEvaluatedAt?: string | null;
     lastFiredAt?: string | null;
     viewId?: string | null;
+    messageTemplate?: string | null;
     event: NotificationEventDto;
     condition: NotificationConditionDto;
 }

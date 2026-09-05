@@ -7,12 +7,13 @@ import {
     Modal,
     MultiSelect,
     NumberInput,
+    Paper,
     SegmentedControl,
     Select,
     Stack,
-    Stepper,
     Switch,
     Text,
+    Textarea,
     TextInput,
 } from "@mantine/core";
 import { TimePicker } from "@mantine/dates";
@@ -30,11 +31,11 @@ import DynamicDateValueInput from "../../../shared/components/DynamicDateValueIn
 import { isDynamicDateToken } from "../../../shared/constants/dynamicDateTokens";
 import { operatorTypes } from "../../../shared/constants/DataTypesForSelect";
 import EntryFilterListEditor from "../../views/components/EntryFilterListEditor";
+import { NotificationPurposes } from "../constants/NotificationPurposes";
 import { useNotifications } from "../context/NotificationsContext";
 import { TrackerNotificationDto } from "../types/NotificationDto";
-import {
-    CreateTrackerNotificationDto,
-} from "../types/requests/CreateTrackerNotificationDto";
+import { CreateTrackerNotificationDto } from "../types/requests/CreateTrackerNotificationDto";
+import { buildNotificationSentence, displayValue } from "../utils/notificationSummary";
 
 const ALWAYS_NUMBER_CODES = new Set([
     "Count", "Count Distinct", "True Count", "False Count",
@@ -74,6 +75,7 @@ interface FormValues {
     name: string;
     isEnabled: boolean;
     viewId: string | null;
+    messageTemplate: string;
 
     // Event
     eventType: string;
@@ -90,6 +92,7 @@ interface FormValues {
     valueMode: string;
     analyticCode: string;
     fieldMappings: Record<string, string>;
+    displayFieldIds: string[];
 
     // Condition filters
     filters: FilterRow[];
@@ -106,7 +109,6 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
     const { views, refreshViewsIfDirty } = useViews();
     const { _createNotification, _updateNotification } = useNotifications();
 
-    const [active, setActive] = useState(0);
     const [config, setConfig] = useState<AnalyticConfigDto>();
     const [selectedCode, setSelectedCode] = useState<CodeDto>();
 
@@ -156,6 +158,7 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
             name: "",
             isEnabled: true,
             viewId: null,
+            messageTemplate: "",
             eventType: "Triggered",
             timeOfDay: "09:00",
             intervalDays: 1,
@@ -168,6 +171,7 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
             valueMode: "Analytic",
             analyticCode: "",
             fieldMappings: {},
+            displayFieldIds: [],
             filters: [],
         };
 
@@ -178,6 +182,7 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
             name: initialNotification.name,
             isEnabled: initialNotification.isEnabled,
             viewId: initialNotification.viewId ?? null,
+            messageTemplate: initialNotification.messageTemplate ?? "",
             eventType: ev.eventType ?? "Triggered",
             timeOfDay: ev.timeOfDay ?? "09:00",
             intervalDays: ev.intervalDays ?? 1,
@@ -190,8 +195,13 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
             valueMode: cond.valueMode ?? "Analytic",
             analyticCode: cond.analyticCode ?? "",
             fieldMappings: Object.fromEntries(
-                (cond.purposeFields ?? []).map((pf) => [pf.purpose, pf.fieldId])
+                (cond.purposeFields ?? [])
+                    .filter((pf) => pf.purpose !== NotificationPurposes.Display)
+                    .map((pf) => [pf.purpose, pf.fieldId])
             ),
+            displayFieldIds: (cond.purposeFields ?? [])
+                .filter((pf) => pf.purpose === NotificationPurposes.Display)
+                .map((pf) => pf.fieldId),
             filters: (cond.filters ?? []).map((f) => ({
                 fieldId: f.fieldId ?? "",
                 operator: f.operator ?? "",
@@ -238,13 +248,49 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
         isCalculated: false,
     }), [returnType]);
 
+    const isEntry = form.values.valueMode === "Entry";
+    const isScheduled = form.values.eventType !== "Triggered";
+
+    // --- Live "Notify me..." preview ---
+
+    const sentence = useMemo(() => {
+        const clauses = isEntry
+            ? form.values.filters
+                  .filter((f) => f.fieldId && f.operator)
+                  .map((f) => ({
+                      subject: fields.find((fd) => fd.id === f.fieldId)?.name ?? "field",
+                      operator: f.operator,
+                      value: displayValue(f.value),
+                  }))
+            : form.values.filters
+                  .filter((f) => f.operator)
+                  .map((f) => ({ subject: "", operator: f.operator, value: displayValue(f.value) }));
+
+        const analyticSubject = selectedCode
+            ? `the ${selectedCode.name}${mappedValueField ? ` of ${mappedValueField.name}` : ""}`
+            : "the value";
+
+        return buildNotificationSentence({
+            valueMode: form.values.valueMode,
+            isScheduled,
+            event: form.values,
+            analyticSubject,
+            clauses,
+        });
+    }, [form.values, isEntry, isScheduled, fields, selectedCode, mappedValueField]);
+
     const handleSubmit = (values: FormValues) => {
         const viewId = values.viewId;
 
-        const purposeFields = selectedCode?.purposes.map((p) => ({
-            fieldId: values.fieldMappings[p.name] ?? "",
-            purpose: p.name,
-        })).filter((f) => f.fieldId) ?? [];
+        const purposeFields = values.valueMode === "Analytic"
+            ? selectedCode?.purposes.map((p) => ({
+                  fieldId: values.fieldMappings[p.name] ?? "",
+                  purpose: p.name,
+              })).filter((f) => f.fieldId) ?? []
+            : values.displayFieldIds.map((fieldId) => ({
+                  fieldId,
+                  purpose: NotificationPurposes.Display,
+              }));
 
         const filters = values.filters.map((f) => {
             if (values.valueMode === "Entry") {
@@ -269,6 +315,7 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
             name: values.name,
             isEnabled: values.isEnabled,
             viewId,
+            messageTemplate: values.messageTemplate.trim() || null,
             event: {
                 eventType: values.eventType,
                 timeOfDay: values.eventType !== "Triggered" ? values.timeOfDay : null,
@@ -283,7 +330,7 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
             condition: {
                 valueMode: values.valueMode,
                 analyticCode: values.valueMode === "Analytic" ? values.analyticCode : null,
-                purposeFields: values.valueMode === "Analytic" ? purposeFields : [],
+                purposeFields,
                 filters,
             },
         };
@@ -295,237 +342,17 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
         }
     };
 
-    // --- Step renderers ---
-
-    const isScheduled = form.values.eventType !== "Triggered";
-
-    const EventStep = () => (
-        <Stack gap="md" mt="md">
-            <SegmentedControl
-                fullWidth
-                data={[
-                    { value: "scheduled", label: "Repeating" },
-                    { value: "Triggered", label: "On Change" },
-                ]}
-                value={isScheduled ? "scheduled" : "Triggered"}
-                onChange={(v) => {
-                    if (v === "Triggered") {
-                        form.setFieldValue("eventType", "Triggered");
-                    } else {
-                        form.setFieldValue("eventType", "Day");
-                    }
-                }}
-            />
-
-            {isScheduled && (
-                <SegmentedControl
-                    fullWidth
-                    data={[
-                        { value: "Day", label: "Daily" },
-                        { value: "Week", label: "Weekly" },
-                        { value: "Month", label: "Monthly" },
-                    ]}
-                    value={form.values.eventType}
-                    onChange={(v) => form.setFieldValue("eventType", v)}
-                />
-            )}
-
-            {isScheduled && (
-                <TimePicker
-                    label="Time of Day"
-                    format="24h"
-                    {...form.getInputProps("timeOfDay")}
-                />
-            )}
-
-            {form.values.eventType === "Day" && (
-                <Stack gap="sm">
-                    <NumberInput
-                        label="Every N days"
-                        min={1} max={365}
-                        {...form.getInputProps("intervalDays")}
-                    />
-                    <Checkbox
-                        label="Skip weekends"
-                        {...form.getInputProps("skipWeekendsDay", { type: "checkbox" })}
-                    />
-                </Stack>
-            )}
-
-            {form.values.eventType === "Week" && (
-                <Stack gap="sm">
-                    <NumberInput
-                        label="Every N weeks"
-                        min={1} max={52}
-                        {...form.getInputProps("intervalWeeks")}
-                    />
-                    <MultiSelect
-                        label="Days of week"
-                        data={DAYS_OF_WEEK}
-                        {...form.getInputProps("daysOfWeek")}
-                    />
-                </Stack>
-            )}
-
-            {form.values.eventType === "Month" && (
-                <Stack gap="sm">
-                    <Checkbox
-                        label="Last day of month"
-                        {...form.getInputProps("lastDayOfMonth", { type: "checkbox" })}
-                    />
-                    {!form.values.lastDayOfMonth && (
-                        <NumberInput
-                            label="Day of month"
-                            min={1} max={31}
-                            {...form.getInputProps("dayOfMonth")}
-                        />
-                    )}
-                    <Checkbox
-                        label="Skip weekends"
-                        {...form.getInputProps("skipWeekendsMonth", { type: "checkbox" })}
-                    />
-                </Stack>
-            )}
-        </Stack>
-    );
-
-    const ValueStep = () => (
-        <Stack gap="md" mt="md">
-            <SegmentedControl
-                fullWidth
-                data={[
-                    { value: "Analytic", label: "Computed value" },
-                    { value: "Entry", label: "Entry records" },
-                ]}
-                value={form.values.valueMode}
-                onChange={(v) => {
-                    form.setFieldValue("valueMode", v);
-                    form.setFieldValue("filters", []);
-                    form.setFieldValue("analyticCode", "");
-                    form.setFieldValue("fieldMappings", {});
-                    setSelectedCode(undefined);
-                }}
-            />
-
-            {form.values.valueMode === "Analytic" ? (
-                <Stack gap="md">
-                    <Select
-                        label="Analytic"
-                        placeholder="Select a single-value analytic"
-                        data={singleValueCodes.map((c) => ({ value: c.code, label: c.name }))}
-                        value={form.values.analyticCode || null}
-                        onChange={handleCodeChange}
-                        searchable
-                    />
-                    {selectedCode && selectedCode.purposes.map((purpose) => (
-                        <Select
-                            key={purpose.name}
-                            label={purpose.name}
-                            placeholder={`Select field (${purpose.allowedDataTypes.join(", ")})`}
-                            data={purpose.allowedDataTypes.flatMap((type) => fieldsByType[type] || [])}
-                            value={form.values.fieldMappings[purpose.name] || null}
-                            onChange={(value) => {
-                                form.setFieldValue(`fieldMappings.${purpose.name}`, value ?? "");
-                                form.setFieldValue("filters", []);
-                            }}
-                            clearable
-                        />
-                    ))}
-                </Stack>
-            ) : null}
-        </Stack>
-    );
-
-    const ConditionStep = () => {
-        const isEntry = form.values.valueMode === "Entry";
-
-        const addAnalyticFilter = () => {
-            form.insertListItem("filters", {
-                fieldId: "",
-                operator: "",
-                value: "",
-            });
-        };
-
-        if (isEntry) {
-            return (
-                <Stack gap="md" mt="md">
-                    <EntryFilterListEditor
-                        fields={fields}
-                        form={form}
-                        color={tracker.color}
-                    />
-                </Stack>
-            );
-        }
-
-        return (
-            <Stack gap="md" mt="md">
-                {form.values.filters.length === 0 && (
-                    <Text c="dimmed" size="sm">No conditions, fires on schedule.</Text>
-                )}
-
-                {form.values.filters.map((filter, i) => {
-                    const isDateFilter = returnType === "date" || returnType === "datetime";
-
-                    return (
-                        <Group key={i} align="flex-end" gap="xs" wrap="nowrap">
-                            <Select
-                                label="Operator"
-                                placeholder="Op"
-                                allowDeselect={false}
-                                data={operatorTypes}
-                                value={filter.operator || null}
-                                onChange={(v) => form.setFieldValue(`filters.${i}.operator`, v ?? "")}
-                                style={{ flex: 1 }}
-                            />
-                            <DynamicDateValueInput
-                                isDateType={isDateFilter}
-                                value={form.values.filters[i]?.value}
-                                onChange={(v) => form.setFieldValue(`filters.${i}.value`, v)}
-                                field={{ ...virtualField, type: returnType } as any}
-                                form={form}
-                                fieldPath={`filters.${i}.value`}
-                                label="Value"
-                            />
-                            <ActionIcon
-                                color="red"
-                                variant="outline"
-                                onClick={() => form.removeListItem("filters", i)}
-                                mt="lg"
-                            >
-                                <MdDelete size={16} />
-                            </ActionIcon>
-                        </Group>
-                    );
-                })}
-
-                <Button
-                    variant="subtle"
-                    leftSection={<FiPlus size={14} />}
-                    onClick={addAnalyticFilter}
-                    size="sm"
-                >
-                    Add condition
-                </Button>
-            </Stack>
-        );
+    const addAnalyticFilter = () => {
+        form.insertListItem("filters", { fieldId: "", operator: "", value: "" });
     };
 
-    const eventLabel: Record<string, string> = {
-        Day: "Daily", Week: "Weekly", Month: "Monthly", Triggered: "On Change",
-    };
+    const messagePlaceholder = isEntry
+        ? "e.g. \"{count} entries need review:\\n{fieldValueList}\" (defaults to \"{count} new entries match\")"
+        : "e.g. \"Amount is now {value}\" (defaults to \"Condition met\")";
 
-    const valueModeLabel: Record<string, string> = {
-        Analytic: "Computed value",
-        Entry: "Entry records",
-    };
-
-    const steps = [
-        { label: "Event", description: eventLabel[form.values.eventType] ?? form.values.eventType },
-        { label: "Evaluate", description: valueModeLabel[form.values.valueMode] ?? form.values.valueMode },
-        { label: "Condition", description: `${form.values.filters.length} filters` },
-    ];
+    const messageHint = isEntry
+        ? "Available: {count}, {tracker}, {notification}, {fieldValueList}."
+        : "Available: {value}, {tracker}, {notification}.";
 
     return (
         <Modal
@@ -535,14 +362,265 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
             centered
             size="lg"
         >
-            <Stack gap="md">
-                    <TextInput label="Name" required {...form.getInputProps("name")} />
+            <form onSubmit={form.onSubmit(handleSubmit)}>
+                <Stack gap="lg">
+                    <Stack gap="md">
+                        <TextInput label="Name" required {...form.getInputProps("name")} />
+                        <Switch
+                            label="Enabled"
+                            checked={form.values.isEnabled}
+                            onChange={(e) => form.setFieldValue("isEnabled", e.currentTarget.checked)}
+                            color={tracker.color}
+                        />
+                    </Stack>
 
-                    <Switch
-                        label="Enabled"
-                        checked={form.values.isEnabled}
-                        onChange={(e) => form.setFieldValue("isEnabled", e.currentTarget.checked)}
-                        color={tracker.color}
+                    <Paper p="md" radius="md" withBorder bg="var(--mantine-color-default-hover)">
+                        <Text size="sm" fs="italic">
+                            "{sentence}"
+                        </Text>
+                    </Paper>
+
+                    <Divider />
+
+                    <Stack gap="sm">
+                        <Text fw={600} size="sm">Watch</Text>
+                        <SegmentedControl
+                            fullWidth
+                            data={[
+                                { value: "Entry", label: "Entry records" },
+                                { value: "Analytic", label: "Computed value" },
+                            ]}
+                            value={form.values.valueMode}
+                            onChange={(v) => {
+                                form.setFieldValue("valueMode", v);
+                                form.setFieldValue("filters", []);
+                                form.setFieldValue("analyticCode", "");
+                                form.setFieldValue("fieldMappings", {});
+                                form.setFieldValue("displayFieldIds", []);
+                                setSelectedCode(undefined);
+                            }}
+                        />
+
+                        {!isEntry && (
+                            <Stack gap="md" mt="xs">
+                                <Select
+                                    label="Analytic"
+                                    placeholder="Select a single-value analytic"
+                                    data={singleValueCodes.map((c) => ({ value: c.code, label: c.name }))}
+                                    value={form.values.analyticCode || null}
+                                    onChange={handleCodeChange}
+                                    searchable
+                                />
+                                {selectedCode && selectedCode.purposes.map((purpose) => (
+                                    <Select
+                                        key={purpose.name}
+                                        label={purpose.name}
+                                        placeholder={`Select field (${purpose.allowedDataTypes.join(", ")})`}
+                                        data={purpose.allowedDataTypes.flatMap((type) => fieldsByType[type] || [])}
+                                        value={form.values.fieldMappings[purpose.name] || null}
+                                        onChange={(value) => {
+                                            form.setFieldValue(`fieldMappings.${purpose.name}`, value ?? "");
+                                            form.setFieldValue("filters", []);
+                                        }}
+                                        clearable
+                                    />
+                                ))}
+                            </Stack>
+                        )}
+                    </Stack>
+
+                    <Divider />
+
+                    <Stack gap="sm">
+                        <Text fw={600} size="sm">Condition</Text>
+
+                        {isEntry ? (
+                            <EntryFilterListEditor fields={fields} form={form} color={tracker.color} />
+                        ) : (
+                            <Stack gap="md">
+                                {form.values.filters.length === 0 && (
+                                    <Text c="dimmed" size="sm">No conditions, fires on schedule.</Text>
+                                )}
+
+                                {form.values.filters.map((filter, i) => {
+                                    const isDateFilter = returnType === "date" || returnType === "datetime";
+
+                                    return (
+                                        <Group key={i} align="flex-end" gap="xs" wrap="nowrap">
+                                            <Select
+                                                label="Operator"
+                                                placeholder="Op"
+                                                allowDeselect={false}
+                                                data={operatorTypes}
+                                                value={filter.operator || null}
+                                                onChange={(v) => form.setFieldValue(`filters.${i}.operator`, v ?? "")}
+                                                style={{ flex: 1 }}
+                                            />
+                                            <DynamicDateValueInput
+                                                isDateType={isDateFilter}
+                                                value={form.values.filters[i]?.value}
+                                                onChange={(v) => form.setFieldValue(`filters.${i}.value`, v)}
+                                                field={{ ...virtualField, type: returnType } as any}
+                                                form={form}
+                                                fieldPath={`filters.${i}.value`}
+                                                label="Value"
+                                            />
+                                            <ActionIcon
+                                                color="red"
+                                                variant="outline"
+                                                onClick={() => form.removeListItem("filters", i)}
+                                                mt="lg"
+                                            >
+                                                <MdDelete size={16} />
+                                            </ActionIcon>
+                                        </Group>
+                                    );
+                                })}
+
+                                <Button
+                                    variant="subtle"
+                                    leftSection={<FiPlus size={14} />}
+                                    onClick={addAnalyticFilter}
+                                    size="sm"
+                                >
+                                    Add condition
+                                </Button>
+                            </Stack>
+                        )}
+
+                        {isEntry && !isEdit && (
+                            <Text c="dimmed" size="xs">
+                                Entries that already match won't notify you when this is first created.
+                            </Text>
+                        )}
+                    </Stack>
+
+                    <Divider />
+
+                    <Stack gap="sm">
+                        <Text fw={600} size="sm">When</Text>
+                        <SegmentedControl
+                            fullWidth
+                            data={[
+                                { value: "Triggered", label: "On change" },
+                                { value: "scheduled", label: "On a schedule" },
+                            ]}
+                            value={isScheduled ? "scheduled" : "Triggered"}
+                            onChange={(v) => {
+                                if (v === "Triggered") {
+                                    form.setFieldValue("eventType", "Triggered");
+                                } else {
+                                    form.setFieldValue("eventType", "Day");
+                                }
+                            }}
+                        />
+
+                        {!isScheduled && (
+                            <Text c="dimmed" size="xs">
+                                {isEntry
+                                    ? "Only newly matching entries are reported, not ones that already matched."
+                                    : "Notifies once when this turns true, and won't repeat until it becomes false again first."}
+                            </Text>
+                        )}
+
+                        {isScheduled && (
+                            <Stack gap="sm" mt="xs">
+                                <SegmentedControl
+                                    fullWidth
+                                    data={[
+                                        { value: "Day", label: "Daily" },
+                                        { value: "Week", label: "Weekly" },
+                                        { value: "Month", label: "Monthly" },
+                                    ]}
+                                    value={form.values.eventType}
+                                    onChange={(v) => form.setFieldValue("eventType", v)}
+                                />
+
+                                <TimePicker
+                                    label="Time of Day"
+                                    format="24h"
+                                    {...form.getInputProps("timeOfDay")}
+                                />
+
+                                {form.values.eventType === "Day" && (
+                                    <Stack gap="sm">
+                                        <NumberInput
+                                            label="Every N days"
+                                            min={1} max={365}
+                                            {...form.getInputProps("intervalDays")}
+                                        />
+                                        <Checkbox
+                                            label="Skip weekends"
+                                            {...form.getInputProps("skipWeekendsDay", { type: "checkbox" })}
+                                        />
+                                    </Stack>
+                                )}
+
+                                {form.values.eventType === "Week" && (
+                                    <Stack gap="sm">
+                                        <NumberInput
+                                            label="Every N weeks"
+                                            min={1} max={52}
+                                            {...form.getInputProps("intervalWeeks")}
+                                        />
+                                        <MultiSelect
+                                            label="Days of week"
+                                            data={DAYS_OF_WEEK}
+                                            {...form.getInputProps("daysOfWeek")}
+                                        />
+                                    </Stack>
+                                )}
+
+                                {form.values.eventType === "Month" && (
+                                    <Stack gap="sm">
+                                        <Checkbox
+                                            label="Last day of month"
+                                            {...form.getInputProps("lastDayOfMonth", { type: "checkbox" })}
+                                        />
+                                        {!form.values.lastDayOfMonth && (
+                                            <NumberInput
+                                                label="Day of month"
+                                                min={1} max={31}
+                                                {...form.getInputProps("dayOfMonth")}
+                                            />
+                                        )}
+                                        <Checkbox
+                                            label="Skip weekends"
+                                            {...form.getInputProps("skipWeekendsMonth", { type: "checkbox" })}
+                                        />
+                                    </Stack>
+                                )}
+
+                                <Text c="dimmed" size="xs">
+                                    {isEntry
+                                        ? "Checks on this schedule and reports only entries that are newly matching since the last check."
+                                        : "Checks on this schedule and notifies every time the condition is true."}
+                                </Text>
+                            </Stack>
+                        )}
+                    </Stack>
+
+                    <Divider />
+
+                    {isEntry && (
+                        <MultiSelect
+                            label="Fields to list"
+                            description="Used by the {fieldValueList} token below, one line per entry."
+                            placeholder="Select fields"
+                            data={fields.map((f) => ({ value: f.id, label: f.name }))}
+                            {...form.getInputProps("displayFieldIds")}
+                            clearable
+                        />
+                    )}
+
+                    <Textarea
+                        label="Custom message"
+                        placeholder={messagePlaceholder}
+                        description={messageHint}
+                        autosize
+                        minRows={2}
+                        maxLength={200}
+                        {...form.getInputProps("messageTemplate")}
                     />
 
                     <Select
@@ -553,43 +631,11 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
                         clearable
                     />
 
-                    <Divider />
-
-                    <Stepper active={active} onStepClick={setActive} size="sm">
-                        {steps.map((s, i) => (
-                            <Stepper.Step key={i} label={s.label} description={s.description}>
-                                {i === 0 && EventStep()}
-                                {i === 1 && ValueStep()}
-                                {i === 2 && ConditionStep()}
-                            </Stepper.Step>
-                        ))}
-                    </Stepper>
-
-                    <Group justify="space-between" mt="xs">
-                        <Button
-                            variant="default"
-                            onClick={() => setActive((p) => Math.max(0, p - 1))}
-                            disabled={active === 0}
-                        >
-                            Back
-                        </Button>
-                        {active < steps.length - 1 ? (
-                            <Button
-                                color={tracker.color}
-                                onClick={() => setActive((p) => p + 1)}
-                            >
-                                Next
-                            </Button>
-                        ) : (
-                            <Button
-                                color={tracker.color}
-                                onClick={() => form.onSubmit(handleSubmit)()}
-                            >
-                                {isEdit ? "Save Changes" : "Create Notification"}
-                            </Button>
-                        )}
-                    </Group>
+                    <Button color={tracker.color} type="submit" size="md">
+                        {isEdit ? "Save Changes" : "Create Notification"}
+                    </Button>
                 </Stack>
+            </form>
         </Modal>
     );
 }
