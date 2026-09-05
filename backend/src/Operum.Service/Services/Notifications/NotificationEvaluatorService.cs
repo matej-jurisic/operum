@@ -18,7 +18,7 @@ namespace Operum.Service.Services.Notifications
         ILogger<NotificationEvaluatorService> logger) : BackgroundService
     {
         private TimeSpan Interval => TimeSpan.FromMinutes(
-            configuration.GetValue<int>("Notifications:EvalIntervalMinutes", 10));
+            configuration.GetValue<int>("Notifications:EvalIntervalMinutes", 2));
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
@@ -34,6 +34,7 @@ namespace Operum.Service.Services.Notifications
             await using var scope = services.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<OperumContext>();
             var pushService = scope.ServiceProvider.GetRequiredService<IWebPushService>();
+            var inboxService = scope.ServiceProvider.GetRequiredService<IInboxService>();
 
             List<TrackerNotification> notifications;
             try
@@ -91,16 +92,35 @@ namespace Operum.Service.Services.Notifications
 
             foreach (var (notification, body) in pushQueue)
             {
+                var title = $"{notification.Tracker.Name} - {notification.Name}";
+                var url = $"/trackers/{notification.TrackerId}";
+
                 try
                 {
-                    var title = $"{notification.Tracker.Name} - {notification.Name}";
-                    var url = $"/trackers/{notification.TrackerId}";
+                    await inboxService.CreateForTrackerMembersAsync(notification.TrackerId, notification.Id, title, body, url, ct);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to write inbox items for notification {Id}", notification.Id);
+                }
+
+                try
+                {
                     await pushService.SendToTrackerUsersAsync(notification.TrackerId, title, body, url, ct);
                 }
                 catch (Exception ex)
                 {
                     logger.LogError(ex, "Failed to send push for notification {Id}", notification.Id);
                 }
+            }
+
+            try
+            {
+                await db.SaveChangesAsync(ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to save inbox items");
             }
         }
 

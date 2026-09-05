@@ -66,6 +66,7 @@ namespace Operum.API.Configuration
             services.AddScoped<IDashboardService, DashboardService>();
             services.AddScoped<IWidgetsService, WidgetsService>();
             services.AddScoped<INotificationsService, NotificationsService>();
+            services.AddScoped<IInboxService, InboxService>();
             services.AddScoped<IWebPushService, WebPushService>();
 
             // Notifications are opt-in while the feature is unfinished: without the flag the

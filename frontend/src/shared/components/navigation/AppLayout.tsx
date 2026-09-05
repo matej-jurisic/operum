@@ -3,7 +3,9 @@ import { useMediaQuery } from "@mantine/hooks";
 import { observer } from "mobx-react";
 import { useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { areNotificationsEnabled } from "../../../features/notifications/config/notificationsFeature";
 import globalStore from "../../stores/GlobalStore";
+import inboxStore from "../../stores/InboxStore";
 import navigationStore from "../../stores/NavigationStore";
 import AppSidebar from "./AppSidebar";
 import AppSpotlight from "./AppSpotlight";
@@ -27,6 +29,25 @@ const AppLayout = observer(() => {
 
     useEffect(() => {
         navigationStore.load();
+    }, []);
+
+    // Poll the unread notification count while the app is open, and refresh it
+    // the moment the tab regains focus so a badge is never stale after a while away.
+    useEffect(() => {
+        if (!areNotificationsEnabled) return;
+
+        inboxStore.refreshUnreadCount();
+        const interval = window.setInterval(
+            () => inboxStore.refreshUnreadCount(),
+            60_000,
+        );
+        const onFocus = () => inboxStore.refreshUnreadCount();
+        window.addEventListener("focus", onFocus);
+
+        return () => {
+            window.clearInterval(interval);
+            window.removeEventListener("focus", onFocus);
+        };
     }, []);
 
     // Close the mobile drawer whenever navigation lands somewhere new.

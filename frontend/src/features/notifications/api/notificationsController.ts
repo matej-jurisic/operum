@@ -36,4 +36,10 @@ export const notificationsController = {
         notificationId: string
     ): Promise<ApiResponse<TrackerNotificationDto>> =>
         api.patch(`/trackers/${trackerId}/notifications/${notificationId}/toggle`, {}),
+
+    reset: async (
+        trackerId: string,
+        notificationId: string
+    ): Promise<ApiResponse<TrackerNotificationDto>> =>
+        api.post(`/trackers/${trackerId}/notifications/${notificationId}/reset`, {}),
 };

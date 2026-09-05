@@ -7,8 +7,9 @@ import {
     Switch,
     Text,
     Title,
+    Tooltip,
 } from "@mantine/core";
-import { MdDelete, MdEdit } from "react-icons/md";
+import { MdDelete, MdEdit, MdReplay } from "react-icons/md";
 import { useNotifications } from "../context/NotificationsContext";
 import { NotificationEventDto, TrackerNotificationDto } from "../types/NotificationDto";
 
@@ -57,6 +58,7 @@ interface Props {
     canEditSchema: boolean;
     onEdit: (n: TrackerNotificationDto) => void;
     onDelete: (n: TrackerNotificationDto) => void;
+    onReset: (n: TrackerNotificationDto) => void;
     viewNames: Record<string, string>;
 }
 
@@ -66,6 +68,7 @@ export default function NotificationCard({
     canEditSchema,
     onEdit,
     onDelete,
+    onReset,
     viewNames,
 }: Props) {
     const { _toggleEnabled } = useNotifications();
@@ -115,6 +118,22 @@ export default function NotificationCard({
                     />
                     {canEditSchema && (
                         <>
+                            <Tooltip
+                                label="Alert again about entries it already reported"
+                                withArrow
+                                multiline
+                                w={220}
+                            >
+                                <ActionIcon
+                                    variant="outline"
+                                    color="gray"
+                                    size="lg"
+                                    onClick={() => onReset(notification)}
+                                    aria-label={`Reset notification ${notification.name}`}
+                                >
+                                    <MdReplay size={16} />
+                                </ActionIcon>
+                            </Tooltip>
                             <ActionIcon
                                 variant="outline"
                                 color="green"

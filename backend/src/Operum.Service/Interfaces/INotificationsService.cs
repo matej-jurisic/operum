@@ -11,5 +11,6 @@ namespace Operum.Service.Interfaces
         Task<Result<TrackerNotificationDto>> UpdateNotification(string trackerId, string notificationId, UpdateTrackerNotificationDto dto);
         Task<Result> DeleteNotification(string trackerId, string notificationId);
         Task<Result<TrackerNotificationDto>> ToggleEnabled(string trackerId, string notificationId);
+        Task<Result<TrackerNotificationDto>> ResetTriggeredState(string trackerId, string notificationId);
     }
 }

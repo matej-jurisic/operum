@@ -10,7 +10,6 @@ import {
     Tooltip,
     useMantineTheme,
 } from "@mantine/core";
-import dayjs from "dayjs";
 import { FiPlus, FiRefreshCw } from "react-icons/fi";
 import {
     MdDelete,
@@ -20,6 +19,7 @@ import {
     MdVpnKey,
     MdWarning,
 } from "react-icons/md";
+import { relativeTime } from "../../../shared/utils/relativeTime";
 import {
     IntegrationDto,
     IntegrationTargetDto,
@@ -399,17 +399,4 @@ function titleCase(value: string) {
     return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-function relative(value?: string | null) {
-    if (!value) return "";
-    const then = dayjs(value);
-    const minutes = dayjs().diff(then, "minute");
-
-    if (minutes < 1) return "just now";
-    if (minutes < 60) return `${minutes}m ago`;
-
-    const hours = dayjs().diff(then, "hour");
-    if (hours < 24) return `${hours}h ago`;
-
-    const days = dayjs().diff(then, "day");
-    return days < 30 ? `${days}d ago` : then.format("D MMM YYYY");
-}
+const relative = relativeTime;

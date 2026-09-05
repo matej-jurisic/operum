@@ -8,7 +8,10 @@ import {
 } from "@mantine/core";
 import { createElement, useState } from "react";
 import { TbPlus } from "react-icons/tb";
-import { useCardLayout } from "../../analytics/components/cardSizing";
+import {
+  useCardLayout,
+  useSyncedElementSize,
+} from "../../analytics/components/cardSizing";
 import { WidgetShell } from "../../analytics/components/WidgetShell";
 import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
 import QuickAddEntryDialog from "../../entries/components/QuickAddEntryDialog";
@@ -47,10 +50,24 @@ export function QuickAddWidgetCard({
   onRemove,
 }: Props) {
   const layout = useCardLayout(true);
+  const buttonBox = useSyncedElementSize<HTMLDivElement>(true);
   const [dialogTracker, setDialogTracker] = useState<TrackerDto>();
   const { refreshWidgets } = useDashboard();
 
   const trackerColor = tracker?.color || color;
+
+  // The button stacks an icon over the tracker name. As the widget is dragged
+  // smaller the icon gives up room first, then its "+" badge, then the name
+  // drops to a single line, so the content stays inside the cell instead of
+  // spilling over the widget below.
+  const measured = buttonBox.width > 0 && buttonBox.height > 0;
+  const iconSize = measured
+    ? Math.max(0, Math.min(40, buttonBox.height * 0.4, buttonBox.width * 0.55))
+    : 40;
+  const showIcon = !measured || iconSize >= 22;
+  const showBadge = !measured || iconSize >= 34;
+  const stackGap = iconSize >= 34 ? 6 : 4;
+  const nameLines = measured && buttonBox.height < 48 ? 1 : 2;
 
   const handleOpen = async () => {
     const res = await trackersController.getTracker(config.trackerId);
@@ -84,7 +101,10 @@ export function QuickAddWidgetCard({
         )
       }
     >
-      <Center style={{ flex: 1, minHeight: 0, zIndex: 1 }}>
+      <Center
+        ref={buttonBox.ref}
+        style={{ flex: 1, minHeight: 0, width: "100%", zIndex: 1 }}
+      >
         {tracker ? (
           <Button
             color={trackerColor}
@@ -93,35 +113,50 @@ export function QuickAddWidgetCard({
             radius="md"
             w={"100%"}
             h={"100%"}
+            p={8}
             style={{
               pointerEvents: isConfiguring ? "none" : "all",
             }}
             onClick={handleOpen}
           >
-            <Stack align="center" gap={6}>
-              <Indicator
-                label={<TbPlus size={10} />}
-                color={trackerColor}
-                size={16}
-                offset={2}
-              >
-                <ThemeIcon
-                  size={40}
-                  radius="xl"
-                  variant="light"
-                  color={trackerColor}
-                >
-                  {createElement(resolveTrackerIcon(tracker.icon), {
-                    size: 20,
-                  })}
-                </ThemeIcon>
-              </Indicator>
+            <Stack align="center" gap={stackGap} maw="100%">
+              {showIcon &&
+                (showBadge ? (
+                  <Indicator
+                    label={<TbPlus size={10} />}
+                    color={trackerColor}
+                    size={16}
+                    offset={2}
+                  >
+                    <ThemeIcon
+                      size={iconSize}
+                      radius="xl"
+                      variant="light"
+                      color={trackerColor}
+                    >
+                      {createElement(resolveTrackerIcon(tracker.icon), {
+                        size: iconSize * 0.5,
+                      })}
+                    </ThemeIcon>
+                  </Indicator>
+                ) : (
+                  <ThemeIcon
+                    size={iconSize}
+                    radius="xl"
+                    variant="light"
+                    color={trackerColor}
+                  >
+                    {createElement(resolveTrackerIcon(tracker.icon), {
+                      size: iconSize * 0.5,
+                    })}
+                  </ThemeIcon>
+                ))}
               <Text
                 fw={500}
                 size="sm"
                 ta="center"
-                lineClamp={2}
-                style={{ lineHeight: 1.3 }}
+                lineClamp={nameLines}
+                style={{ lineHeight: 1.3, maxWidth: "100%" }}
               >
                 {tracker.name}
               </Text>

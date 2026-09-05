@@ -17,6 +17,7 @@ type NotificationsContextType = {
     _updateNotification: (id: string, dto: UpdateTrackerNotificationDto) => Promise<void>;
     _deleteNotification: (id: string) => Promise<void>;
     _toggleEnabled: (id: string) => Promise<void>;
+    _resetNotification: (id: string) => Promise<void>;
 };
 
 const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
@@ -58,6 +59,11 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
         await refreshNotifications();
     };
 
+    const _resetNotification = async (id: string) => {
+        await notificationsController.reset(tracker.id, id);
+        await refreshNotifications();
+    };
+
     return (
         <NotificationsContext.Provider
             value={{
@@ -70,6 +76,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
                 _updateNotification,
                 _deleteNotification,
                 _toggleEnabled,
+                _resetNotification,
             }}
         >
             {children}

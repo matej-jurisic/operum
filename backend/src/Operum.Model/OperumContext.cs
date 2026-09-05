@@ -256,6 +256,30 @@ namespace Operum.Model
                 .HasIndex(t => new { t.NotificationId, t.EntryId })
                 .IsUnique();
 
+            builder.Entity<InboxNotification>()
+                .HasOne(i => i.User)
+                .WithMany()
+                .HasForeignKey(i => i.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<InboxNotification>()
+                .HasOne(i => i.Tracker)
+                .WithMany()
+                .HasForeignKey(i => i.TrackerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<InboxNotification>()
+                .HasOne(i => i.Notification)
+                .WithMany()
+                .HasForeignKey(i => i.NotificationId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<InboxNotification>()
+                .HasIndex(i => new { i.UserId, i.ReadAt });
+
+            builder.Entity<InboxNotification>()
+                .HasIndex(i => new { i.UserId, i.CreatedAt });
+
             builder.Entity<UserPushSubscription>()
                 .HasOne(s => s.User)
                 .WithMany()
@@ -413,6 +437,7 @@ namespace Operum.Model
         public DbSet<NotificationConditionFilter> NotificationConditionFilters { get; set; }
         public DbSet<NotificationConditionPurposeField> NotificationConditionPurposeFields { get; set; }
         public DbSet<NotificationTriggeredEntry> NotificationTriggeredEntries { get; set; }
+        public DbSet<InboxNotification> InboxNotifications { get; set; }
         public DbSet<UserPushSubscription> UserPushSubscriptions { get; set; }
         public DbSet<Integration> Integrations { get; set; }
         public DbSet<IntegrationTarget> IntegrationTargets { get; set; }

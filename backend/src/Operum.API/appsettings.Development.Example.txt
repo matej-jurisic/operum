@@ -35,7 +35,7 @@
     "Integrations": false
   },
   "Notifications": {
-    "EvalIntervalMinutes": 10
+    "EvalIntervalMinutes": 2
   },
   "Integrations": {
     "SyncIntervalMinutes": 60,

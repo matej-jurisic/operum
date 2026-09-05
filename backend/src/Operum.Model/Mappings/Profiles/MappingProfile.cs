@@ -121,6 +121,12 @@ namespace Operum.Service.Mappings.Profiles
                 d.Event = mapper.Map<NotificationEvent, NotificationEventDto>(s.Event);
                 d.Condition = mapper.Map<NotificationCondition, NotificationConditionDto>(s.Condition);
             });
+
+            mapper.Register<InboxNotification, InboxNotificationDto>((s, d) =>
+            {
+                d.TrackerName = s.Tracker?.Name ?? "";
+                d.NotificationName = s.Notification?.Name;
+            });
         }
     }
 }

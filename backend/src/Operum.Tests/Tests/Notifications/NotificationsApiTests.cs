@@ -282,6 +282,67 @@ namespace Operum.Tests.Tests.Notifications
         }
 
         [Fact]
+        public async Task Reset_ClearsTriggeredStateAndTriggeredEntries()
+        {
+            var client = await _factory.NewUserClient("notifreset");
+            var trackerId = await TestApi.CreateTracker(client, "Tasks");
+            var statusFieldId = await TestApi.IdOf(await client.PostAsJsonAsync($"trackers/{trackerId}/fields",
+                new CreateFieldDto { Name = "Status", Type = DataTypes.String }));
+
+            await client.PostAsJsonAsync($"trackers/{trackerId}/entries", new Operum.Model.DTOs.Entries.Requests.CreateEntryDto
+            {
+                FieldValues = new() { ["Status"] = "Open" }
+            });
+
+            // Entry-mode create pre-populates TriggeredEntries with the existing match.
+            var created = Notification(await Data(await client.PostAsJsonAsync($"trackers/{trackerId}/notifications", new CreateTrackerNotificationDto
+            {
+                Name = "Open tasks",
+                Event = new CreateNotificationEventDto { EventType = "Triggered" },
+                Condition = new CreateNotificationConditionDto
+                {
+                    ValueMode = "Entry",
+                    Filters = [new CreateNotificationConditionFilterDto { FieldId = statusFieldId, Operator = OperatorTypes.EqualsOperator, Value = "Open" }],
+                },
+            })));
+
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<OperumContext>();
+                var notification = await db.TrackerNotifications.FirstAsync(n => n.Id == created.Id);
+                notification.IsTriggered = true;
+                await db.SaveChangesAsync();
+                Assert.Equal(1, await db.NotificationTriggeredEntries.CountAsync(t => t.NotificationId == created.Id));
+            }
+
+            var reset = Notification(await Data(await client.PostAsync($"trackers/{trackerId}/notifications/{created.Id}/reset", null)));
+            Assert.False(reset.IsTriggered);
+
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<OperumContext>();
+                Assert.Equal(0, await db.NotificationTriggeredEntries.CountAsync(t => t.NotificationId == created.Id));
+                Assert.False(await db.TrackerNotifications.Where(n => n.Id == created.Id).Select(n => n.IsTriggered).FirstAsync());
+            }
+        }
+
+        [Fact]
+        public async Task Reset_ByNonCollaborator_ReturnsNotFound()
+        {
+            var ownerClient = await _factory.NewUserClient("notifresetowner");
+            var trackerId = await TestApi.CreateTracker(ownerClient, "Tasks");
+            var amountFieldId = await TestApi.IdOf(await ownerClient.PostAsJsonAsync($"trackers/{trackerId}/fields",
+                new CreateFieldDto { Name = "Amount", Type = DataTypes.Number }));
+            var created = Notification(await Data(await ownerClient.PostAsJsonAsync($"trackers/{trackerId}/notifications",
+                TriggeredAnalyticDto("Check", amountFieldId))));
+
+            var outsiderClient = await _factory.NewUserClient("notifresetoutsider");
+            var response = await outsiderClient.PostAsync($"trackers/{trackerId}/notifications/{created.Id}/reset", null);
+
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        }
+
+        [Fact]
         public async Task Delete_RemovesNotificationAndChildRows()
         {
             var client = await _factory.NewUserClient("notifdelete");
@@ -300,6 +361,106 @@ namespace Operum.Tests.Tests.Notifications
             Assert.False(await db.TrackerNotifications.AnyAsync(n => n.Id == created.Id));
             Assert.False(await db.NotificationEvents.AnyAsync(e => e.NotificationId == created.Id));
             Assert.False(await db.NotificationConditionFilters.AnyAsync(f => f.Condition.NotificationId == created.Id));
+        }
+
+        [Fact]
+        public async Task Update_ChangesScalarFields_PersistsThemNotJustChildRows()
+        {
+            var client = await _factory.NewUserClient("notifprobe1");
+            var trackerId = await TestApi.CreateTracker(client, "Weight");
+            var amountFieldId = await TestApi.IdOf(await client.PostAsJsonAsync($"trackers/{trackerId}/fields",
+                new CreateFieldDto { Name = "Amount", Type = DataTypes.Number }));
+            var viewId = await TestApi.CreateView(client, trackerId, new Operum.Model.DTOs.Views.Requests.CreateViewDto { Name = "V1" });
+
+            var created = Notification(await Data(await client.PostAsJsonAsync($"trackers/{trackerId}/notifications",
+                TriggeredAnalyticDto("Orig", amountFieldId, OperatorTypes.GreaterThan, "10"))));
+
+            var updateDto = new UpdateTrackerNotificationDto
+            {
+                Name = "Renamed",
+                IsEnabled = false,
+                ViewId = viewId,
+                MessageTemplate = "Value is {value}",
+                Event = new CreateNotificationEventDto
+                {
+                    EventType = "Week",
+                    TimeOfDay = "07:30",
+                    IntervalWeeks = 3,
+                    DaysOfWeek = ["Mon", "Thu"],
+                },
+                Condition = new CreateNotificationConditionDto
+                {
+                    ValueMode = "Analytic",
+                    AnalyticCode = AnalyticCodes.Average,
+                    PurposeFields = [new CreateNotificationConditionPurposeFieldDto { Purpose = AnalyticPurposes.Value, FieldId = amountFieldId }],
+                    Filters = [new CreateNotificationConditionFilterDto { Operator = OperatorTypes.LessThan, Value = "5" }],
+                },
+            };
+
+            await client.PutAsJsonAsync($"trackers/{trackerId}/notifications/{created.Id}", updateDto);
+            var reGot = Notification((await Data(await client.GetAsync($"trackers/{trackerId}/notifications"))).EnumerateArray().Single());
+
+            Assert.Equal("Renamed", reGot.Name);
+            Assert.False(reGot.IsEnabled);
+            Assert.Equal(viewId, reGot.ViewId);
+            Assert.Equal("Value is {value}", reGot.MessageTemplate);
+            Assert.Equal("Week", reGot.Event.EventType);
+            Assert.Equal("07:30", reGot.Event.TimeOfDay);
+            Assert.Equal(3, reGot.Event.IntervalWeeks);
+            Assert.Equal(2, reGot.Event.DaysOfWeek?.Count);
+            Assert.Single(reGot.Condition.Filters);
+            Assert.Equal("5", reGot.Condition.Filters[0].Value);
+        }
+
+        [Fact]
+        public async Task Update_EntryMode_ReplacesFiltersAndDisplayFields()
+        {
+            var client = await _factory.NewUserClient("notifprobe2");
+            var trackerId = await TestApi.CreateTracker(client, "Tasks");
+            var statusFieldId = await TestApi.IdOf(await client.PostAsJsonAsync($"trackers/{trackerId}/fields",
+                new CreateFieldDto { Name = "Status", Type = DataTypes.String }));
+            var priorityFieldId = await TestApi.IdOf(await client.PostAsJsonAsync($"trackers/{trackerId}/fields",
+                new CreateFieldDto { Name = "Priority", Type = DataTypes.String }));
+
+            var created = Notification(await Data(await client.PostAsJsonAsync($"trackers/{trackerId}/notifications", new CreateTrackerNotificationDto
+            {
+                Name = "Open tasks",
+                Event = new CreateNotificationEventDto { EventType = "Triggered" },
+                Condition = new CreateNotificationConditionDto
+                {
+                    ValueMode = "Entry",
+                    PurposeFields = [new CreateNotificationConditionPurposeFieldDto { Purpose = NotificationPurposes.Display, FieldId = statusFieldId }],
+                    Filters = [new CreateNotificationConditionFilterDto { FieldId = statusFieldId, Operator = OperatorTypes.EqualsOperator, Value = "Open" }],
+                },
+            })));
+
+            var updateDto = new UpdateTrackerNotificationDto
+            {
+                Name = "Open tasks",
+                IsEnabled = true,
+                Event = new CreateNotificationEventDto { EventType = "Triggered" },
+                Condition = new CreateNotificationConditionDto
+                {
+                    ValueMode = "Entry",
+                    PurposeFields =
+                    [
+                        new CreateNotificationConditionPurposeFieldDto { Purpose = NotificationPurposes.Display, FieldId = statusFieldId },
+                        new CreateNotificationConditionPurposeFieldDto { Purpose = NotificationPurposes.Display, FieldId = priorityFieldId },
+                    ],
+                    Filters =
+                    [
+                        new CreateNotificationConditionFilterDto { FieldId = priorityFieldId, Operator = OperatorTypes.EqualsOperator, Value = "High" },
+                    ],
+                },
+            };
+
+            await client.PutAsJsonAsync($"trackers/{trackerId}/notifications/{created.Id}", updateDto);
+            var reGot = Notification((await Data(await client.GetAsync($"trackers/{trackerId}/notifications"))).EnumerateArray().Single());
+
+            Assert.Equal(2, reGot.Condition.PurposeFields.Count);
+            Assert.Single(reGot.Condition.Filters);
+            Assert.Equal(priorityFieldId, reGot.Condition.Filters[0].FieldId);
+            Assert.Equal("High", reGot.Condition.Filters[0].Value);
         }
     }
 }

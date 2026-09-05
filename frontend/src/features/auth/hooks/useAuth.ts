@@ -3,6 +3,7 @@ import {
     writeDefaultPage,
 } from "../../../shared/constants/defaultPage";
 import globalStore from "../../../shared/stores/GlobalStore";
+import inboxStore from "../../../shared/stores/InboxStore";
 import navigationStore from "../../../shared/stores/NavigationStore";
 import { authController } from "../api/authenticationController";
 import { AuthResponseDto } from "../types/AuthResponseDto";
@@ -70,6 +71,7 @@ const useAuth = () => {
     const clearUserData = () => {
         globalStore.setCurrentUser(undefined);
         navigationStore.clear();
+        inboxStore.reset();
         writeDefaultPage(null);
         localStorage.removeItem(USERNAME_KEY);
         localStorage.removeItem(ID_KEY);

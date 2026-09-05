@@ -61,7 +61,9 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import useAuth from "../../../features/auth/hooks/useAuth";
 import { dashboardController } from "../../../features/dashboard/api/dashboardController";
+import InboxBell from "../../../features/inbox/components/InboxBell";
 import { areIntegrationsEnabled } from "../../../features/integrations/config/integrationsFeature";
+import { areNotificationsEnabled } from "../../../features/notifications/config/notificationsFeature";
 import { trackersController } from "../../../features/trackers/api/trackersController";
 import { resolveTrackerIcon } from "../../constants/TrackerIcons";
 import { TrackerFilters } from "../../constants/TrackerFilters";
@@ -215,30 +217,47 @@ const AppSidebar = observer(
                                 </Title>
                             </UnstyledButton>
                         )}
-                        {showCollapseToggle && (
-                            <ActionIcon
-                                variant="subtle"
-                                color="gray"
-                                onClick={onToggleCollapse}
-                                aria-label={
-                                    collapsed
-                                        ? "Expand sidebar"
-                                        : "Collapse sidebar"
-                                }
-                            >
-                                {collapsed ? (
-                                    <TbChevronRight size={18} />
-                                ) : (
-                                    <TbChevronLeft size={18} />
-                                )}
-                            </ActionIcon>
-                        )}
-                        <CloseButton
-                            hiddenFrom="sm"
-                            size="lg"
-                            onClick={onClose}
-                            aria-label="Close navigation"
-                        />
+                        <Group gap="xs" wrap="nowrap" align="center">
+                            {!collapsed && areNotificationsEnabled && (
+                                <InboxBell collapsed={false} />
+                            )}
+                            {showCollapseToggle && (
+                                <ActionIcon
+                                    variant="subtle"
+                                    color="gray"
+                                    onClick={onToggleCollapse}
+                                    aria-label={
+                                        collapsed
+                                            ? "Expand sidebar"
+                                            : "Collapse sidebar"
+                                    }
+                                >
+                                    {collapsed ? (
+                                        <TbChevronRight size={18} />
+                                    ) : (
+                                        <TbChevronLeft size={18} />
+                                    )}
+                                </ActionIcon>
+                            )}
+                            <CloseButton
+                                hiddenFrom="sm"
+                                size="lg"
+                                onClick={onClose}
+                                aria-label="Close navigation"
+                            />
+                        </Group>
+                    </Group>
+                )}
+
+                {collapsed && areNotificationsEnabled && (
+                    <Group
+                        justify="center"
+                        align="center"
+                        h={BLOCK_HEIGHT}
+                        px={px}
+                        mb="xs"
+                    >
+                        <InboxBell collapsed />
                     </Group>
                 )}
 

@@ -99,7 +99,12 @@ namespace Operum.Service.Services.Notifications
         {
             var user = currentUserService.GetCurrentUser();
 
+            // AsTracking: the context is configured NoTracking by default, but this method
+            // relies on EF picking up in-place scalar edits to the notification, its event
+            // and its condition. Without tracking those assignments below would be silently
+            // dropped and only the explicitly Add/ExecuteDelete'd child rows would persist.
             var notification = await db.TrackerNotifications
+                .AsTracking()
                 .Include(n => n.Tracker)
                     .ThenInclude(t => t.ApplicationUserTrackers)
                 .Include(n => n.Event)
@@ -216,6 +221,33 @@ namespace Operum.Service.Services.Notifications
                     .Where(t => t.NotificationId == notificationId)
                     .ExecuteDeleteAsync();
             }
+
+            db.TrackerNotifications.Update(notification);
+            await db.SaveChangesAsync();
+
+            return await GetNotificationResult(trackerId, notificationId);
+        }
+
+        public async Task<Result<TrackerNotificationDto>> ResetTriggeredState(string trackerId, string notificationId)
+        {
+            var user = currentUserService.GetCurrentUser();
+
+            var notification = await db.TrackerNotifications
+                .Include(n => n.Tracker)
+                    .ThenInclude(t => t.ApplicationUserTrackers)
+                .FirstOrDefaultAsync(n => n.Id == notificationId && n.TrackerId == trackerId);
+
+            var isOwner = notification?.Tracker.OwnerId == user.Id;
+            var userTracker = notification?.Tracker.ApplicationUserTrackers.FirstOrDefault(ut => ut.ApplicationUserId == user.Id);
+            if (notification == null || (!isOwner && userTracker?.CanEditSchema != true))
+                return Result.Failure(ResultStatusCodes.NotFound);
+
+            // Drop every record of what this notification has already fired about, so the next
+            // evaluation treats all current matches as new and alerts again.
+            notification.IsTriggered = false;
+            await db.NotificationTriggeredEntries
+                .Where(t => t.NotificationId == notificationId)
+                .ExecuteDeleteAsync();
 
             db.TrackerNotifications.Update(notification);
             await db.SaveChangesAsync();

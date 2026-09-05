@@ -21,12 +21,17 @@ enum OpenDialogType {
     Create,
     Edit,
     Delete,
+    Reset,
 }
 
 export default function Notifications() {
     const { tracker, canEditSchema } = useTracker();
-    const { notifications, refreshNotificationsIfDirty, _deleteNotification } =
-        useNotifications();
+    const {
+        notifications,
+        refreshNotificationsIfDirty,
+        _deleteNotification,
+        _resetNotification,
+    } = useNotifications();
     const { views, refreshViewsIfDirty } = useViews();
     const { status: pushStatus, subscribe, unsubscribe } = usePushNotifications();
 
@@ -99,6 +104,10 @@ export default function Notifications() {
                                         setSelectedNotification(notification);
                                         setOpenDialogType(OpenDialogType.Delete);
                                     }}
+                                    onReset={(notification) => {
+                                        setSelectedNotification(notification);
+                                        setOpenDialogType(OpenDialogType.Reset);
+                                    }}
                                 />
                             ))}
                         </Stack>
@@ -140,6 +149,22 @@ export default function Notifications() {
                         }}
                         severity="warning"
                         message={`Are you sure you want to delete the notification "${selectedNotification.name}"?`}
+                    />
+                )}
+
+            {selectedNotification &&
+                openDialogType === OpenDialogType.Reset && (
+                    <ConfirmationDialog
+                        isOpen
+                        onClose={() => setOpenDialogType(undefined)}
+                        onConfirm={async () => {
+                            await _resetNotification(selectedNotification.id);
+                            setOpenDialogType(undefined);
+                            setSelectedNotification(undefined);
+                        }}
+                        severity="info"
+                        title="Reset notification"
+                        message={`"${selectedNotification.name}" will alert again on its next check about everything that currently matches, including entries it has already reported.`}
                     />
                 )}
         </>

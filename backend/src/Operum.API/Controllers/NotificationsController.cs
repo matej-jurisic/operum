@@ -40,5 +40,11 @@ namespace Operum.API.Controllers
         {
             return GetApiResponse(await notificationsService.ToggleEnabled(trackerId, notificationId));
         }
+
+        [HttpPost("{notificationId}/reset")]
+        public async Task<IActionResult> ResetTriggeredState([FromRoute] string trackerId, [FromRoute] string notificationId)
+        {
+            return GetApiResponse(await notificationsService.ResetTriggeredState(trackerId, notificationId));
+        }
     }
 }
