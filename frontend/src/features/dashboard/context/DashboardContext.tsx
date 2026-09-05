@@ -6,11 +6,18 @@ import React, {
 } from "react";
 import { dashboardController } from "../api/dashboardController";
 import {
+    FilterFollowLinks,
+    filterWidgetIndexByQueryId,
+    filterWidgetToSaveDto,
+    toFollowerLink,
+} from "../components/filterLinkUtils";
+import {
     AddDashboardHeaderItemDto,
     AddDashboardNoteItemDto,
     AddDashboardQuickAddItemDto,
     CreateAndPlaceEntriesWidgetDto,
     CreateAndPlaceWidgetDto,
+    DashboardItemDto,
     DashboardLayoutItemDto,
     DashboardWidgetDto,
     LayoutVariant,
@@ -28,12 +35,27 @@ type DashboardContextType = {
     widgets: DashboardWidgetDto[];
     isLoading: boolean;
     refreshWidgets: () => Promise<void>;
-    createAndPlaceWidget: (dto: CreateAndPlaceWidgetDto) => Promise<void>;
-    placeWidget: (dto: PlaceWidgetDto) => Promise<void>;
+    /** followFilters carries which of the board's existing filter widgets to link the new
+        widget's tracker(s) to, one entry per source, applied in the same step so it never
+        loads unfiltered first. See FilterFollowChecklist. */
+    createAndPlaceWidget: (
+        dto: CreateAndPlaceWidgetDto,
+        followFilters?: FilterFollowLinks[],
+    ) => Promise<DashboardItemDto | undefined>;
+    placeWidget: (
+        dto: PlaceWidgetDto,
+        followFilters?: FilterFollowLinks[],
+    ) => Promise<DashboardItemDto | undefined>;
     addQuickAddItem: (dto: AddDashboardQuickAddItemDto) => Promise<void>;
     addFilterItem: (dto: SaveFilterItemDto) => Promise<void>;
-    createAndPlaceEntriesWidget: (dto: CreateAndPlaceEntriesWidgetDto) => Promise<void>;
-    placeEntriesWidget: (dto: PlaceEntriesWidgetDto) => Promise<void>;
+    createAndPlaceEntriesWidget: (
+        dto: CreateAndPlaceEntriesWidgetDto,
+        followFilters?: FilterFollowLinks,
+    ) => Promise<DashboardItemDto | undefined>;
+    placeEntriesWidget: (
+        dto: PlaceEntriesWidgetDto,
+        followFilters?: FilterFollowLinks,
+    ) => Promise<DashboardItemDto | undefined>;
     addHeaderItem: (dto: AddDashboardHeaderItemDto) => Promise<void>;
     addDividerItem: () => Promise<void>;
     addNoteItem: (dto: AddDashboardNoteItemDto) => Promise<void>;
@@ -69,14 +91,54 @@ export const DashboardProvider: React.FC<{
         setIsLoading(false);
     }, [dashboardId]);
 
-    const createAndPlaceWidget = async (dto: CreateAndPlaceWidgetDto) => {
-        await dashboardController.createAndPlaceWidget(dashboardId, dto);
-        await refreshWidgets();
+    // Appends one link per source to whichever existing filter widget it names, resubmitting
+    // each affected filter widget once (even when more than one source follows it) so an
+    // "unfiltered" first paint is never visible once the new widget lands on the board.
+    const applyFilterFollows = async (itemId: string, sources: FilterFollowLinks[]) => {
+        const byFilter = new Map<
+            string,
+            { trackerId: string; fieldByQueryId: Record<string, string> }[]
+        >();
+        for (const { trackerId, links } of sources) {
+            for (const [filterItemId, fieldByQueryId] of Object.entries(links)) {
+                if (Object.keys(fieldByQueryId).length === 0) continue;
+                const list = byFilter.get(filterItemId) ?? [];
+                list.push({ trackerId, fieldByQueryId });
+                byFilter.set(filterItemId, list);
+            }
+        }
+        for (const [filterItemId, followers] of byFilter) {
+            const widget = widgets.find((w) => w.id === filterItemId);
+            if (!widget) continue;
+            const indexByQueryId = filterWidgetIndexByQueryId(widget);
+            const dto = filterWidgetToSaveDto(widget);
+            dto.links = [
+                ...dto.links,
+                ...followers.map((f) => toFollowerLink(indexByQueryId, { itemId, ...f })),
+            ];
+            await dashboardController.updateFilterItem(dashboardId, filterItemId, dto);
+        }
     };
 
-    const placeWidget = async (dto: PlaceWidgetDto) => {
-        await dashboardController.placeWidget(dashboardId, dto);
+    const createAndPlaceWidget = async (
+        dto: CreateAndPlaceWidgetDto,
+        followFilters?: FilterFollowLinks[],
+    ) => {
+        const res = await dashboardController.createAndPlaceWidget(dashboardId, dto);
+        if (res.data && followFilters?.length) {
+            await applyFilterFollows(res.data.id, followFilters);
+        }
         await refreshWidgets();
+        return res.data;
+    };
+
+    const placeWidget = async (dto: PlaceWidgetDto, followFilters?: FilterFollowLinks[]) => {
+        const res = await dashboardController.placeWidget(dashboardId, dto);
+        if (res.data && followFilters?.length) {
+            await applyFilterFollows(res.data.id, followFilters);
+        }
+        await refreshWidgets();
+        return res.data;
     };
 
     const addQuickAddItem = async (dto: AddDashboardQuickAddItemDto) => {
@@ -89,14 +151,28 @@ export const DashboardProvider: React.FC<{
         await refreshWidgets();
     };
 
-    const createAndPlaceEntriesWidget = async (dto: CreateAndPlaceEntriesWidgetDto) => {
-        await dashboardController.createAndPlaceEntriesWidget(dashboardId, dto);
+    const createAndPlaceEntriesWidget = async (
+        dto: CreateAndPlaceEntriesWidgetDto,
+        followFilters?: FilterFollowLinks,
+    ) => {
+        const res = await dashboardController.createAndPlaceEntriesWidget(dashboardId, dto);
+        if (res.data && followFilters) {
+            await applyFilterFollows(res.data.id, [followFilters]);
+        }
         await refreshWidgets();
+        return res.data;
     };
 
-    const placeEntriesWidget = async (dto: PlaceEntriesWidgetDto) => {
-        await dashboardController.placeEntriesWidget(dashboardId, dto);
+    const placeEntriesWidget = async (
+        dto: PlaceEntriesWidgetDto,
+        followFilters?: FilterFollowLinks,
+    ) => {
+        const res = await dashboardController.placeEntriesWidget(dashboardId, dto);
+        if (res.data && followFilters) {
+            await applyFilterFollows(res.data.id, [followFilters]);
+        }
         await refreshWidgets();
+        return res.data;
     };
 
     const addHeaderItem = async (dto: AddDashboardHeaderItemDto) => {

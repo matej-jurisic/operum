@@ -1,33 +1,47 @@
 import { Button, Group, MultiSelect, Select, Stack, TextInput } from "@mantine/core";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { fieldsController } from "../../fields/api/fieldsController";
 import { FieldDto } from "../../fields/types/FieldDto";
 import { trackersController } from "../../trackers/api/trackersController";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
+import { useDashboard } from "../context/DashboardContext";
 import {
     CreateAndPlaceEntriesWidgetDto,
     DashboardItemDisplayMode,
 } from "../types/DashboardDto";
+import { FilterFollowChecklist } from "./FilterFollowChecklist";
+import {
+    FilterFollowLinks,
+    filterCandidatesFor,
+    followLinksComplete,
+} from "./filterLinkUtils";
 import { WidgetDisplayModeFields } from "./WidgetDisplayModeFields";
 
 interface Props {
     /** Steps back to the widget type picker. */
     onBack: () => void;
-    onAdd: (dto: CreateAndPlaceEntriesWidgetDto) => Promise<void>;
+    onAdd: (
+        dto: CreateAndPlaceEntriesWidgetDto,
+        followFilters?: FilterFollowLinks,
+    ) => Promise<void>;
 }
 
 /**
  * Defines a new Widget Library Entries table and places it on this board in one step: the
- * tracker it reads from and which of that tracker's fields it shows as columns. How the
- * table is filtered isn't chosen here — that comes from linking it to a View Selector
- * widget on the board afterwards.
+ * tracker it reads from and which of that tracker's fields it shows as columns. It can also
+ * be linked to any of the board's existing filter widgets right away, via the "Follow
+ * filters" checklist -- otherwise that's done afterwards from the filter widget's own edit
+ * dialog.
  */
 export function EntriesWidgetForm({ onBack, onAdd }: Props) {
+    const { widgets } = useDashboard();
+    const filterCandidates = useMemo(() => filterCandidatesFor(widgets), [widgets]);
     const [trackers, setTrackers] = useState<TrackerDto[]>([]);
     const [trackerId, setTrackerId] = useState<string | null>(null);
     const [name, setName] = useState("");
     const [fields, setFields] = useState<FieldDto[]>([]);
     const [columnFieldIds, setColumnFieldIds] = useState<string[]>([]);
+    const [filterLinks, setFilterLinks] = useState<Record<string, Record<string, string>>>({});
     const [displayMode, setDisplayMode] = useState(DashboardItemDisplayMode.Full);
     const [mobileDisplayMode, setMobileDisplayMode] = useState(
         DashboardItemDisplayMode.Full,
@@ -45,6 +59,7 @@ export function EntriesWidgetForm({ onBack, onAdd }: Props) {
         setTrackerId(value);
         setColumnFieldIds([]);
         setFields([]);
+        setFilterLinks({});
         if (!value) return;
 
         setIsLoadingTracker(true);
@@ -53,16 +68,22 @@ export function EntriesWidgetForm({ onBack, onAdd }: Props) {
         setIsLoadingTracker(false);
     };
 
+    const canSubmit =
+        !!trackerId && followLinksComplete(filterLinks, filterCandidates, fields);
+
     const handleSubmit = async () => {
-        if (!trackerId) return;
+        if (!canSubmit || !trackerId) return;
         setIsSubmitting(true);
-        await onAdd({
-            trackerId,
-            name: name.trim() || undefined,
-            columnFieldIds: columnFieldIds.length ? columnFieldIds : undefined,
-            displayMode,
-            mobileDisplayMode,
-        });
+        await onAdd(
+            {
+                trackerId,
+                name: name.trim() || undefined,
+                columnFieldIds: columnFieldIds.length ? columnFieldIds : undefined,
+                displayMode,
+                mobileDisplayMode,
+            },
+            { trackerId, links: filterLinks },
+        );
         setIsSubmitting(false);
     };
 
@@ -104,6 +125,15 @@ export function EntriesWidgetForm({ onBack, onAdd }: Props) {
                 clearable
             />
 
+            {trackerId && !isLoadingTracker && (
+                <FilterFollowChecklist
+                    fields={fields}
+                    filters={filterCandidates}
+                    links={filterLinks}
+                    onLinksChange={setFilterLinks}
+                />
+            )}
+
             <WidgetDisplayModeFields
                 displayMode={displayMode}
                 mobileDisplayMode={mobileDisplayMode}
@@ -116,7 +146,7 @@ export function EntriesWidgetForm({ onBack, onAdd }: Props) {
                     Back
                 </Button>
                 <Button
-                    disabled={!trackerId}
+                    disabled={!canSubmit}
                     loading={isSubmitting}
                     onClick={handleSubmit}
                 >

@@ -41,7 +41,7 @@ Build any number of dashboards ("boards"), each with its own name, color, and ic
 | Header / Divider / Note | Layout and annotation |
 | Container | A panel holding a sub-grid of other widgets, so a group can be moved, resized, and titled as one. Nesting is one level deep |
 
-The **Widget Library** holds chart and table definitions independently of any board. Build one once, place it on as many boards as you want, edit or delete it in one place. A filter widget can offer board-level saved filter sets as one-tap presets, and each followed widget picks which of its tracker's fields the filter runs against.
+The **Widget Library** holds chart and table definitions independently of any board. Build one once, place it on as many boards as you want, edit or delete it in one place. A filter widget can offer board-level saved filter sets as one-tap presets, and each followed widget picks which of its tracker's fields the filter runs against. Adding a chart or table to a board with existing filter widgets offers a checklist to follow them right away, so the new widget doesn't load unfiltered.
 
 ### Analytics
 

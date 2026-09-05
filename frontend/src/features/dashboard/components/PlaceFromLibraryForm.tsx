@@ -1,5 +1,5 @@
 import { Alert, Button, Group, MultiSelect, Paper, Select, Stack, Text, TextInput } from "@mantine/core";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { fieldsController } from "../../fields/api/fieldsController";
 import { FieldDto } from "../../fields/types/FieldDto";
 import { trackersController } from "../../trackers/api/trackersController";
@@ -8,11 +8,18 @@ import { viewsController } from "../../views/api/viewsController";
 import { ViewDto } from "../../views/types/ViewDto";
 import { WidgetDto, EntriesWidgetDefinitionDto } from "../../widgets/types/WidgetDto";
 import { useWidgets } from "../../widgets/context/WidgetsContext";
+import { useDashboard } from "../context/DashboardContext";
 import {
     DashboardItemDisplayMode,
     PlaceEntriesWidgetDto,
     PlaceWidgetDto,
 } from "../types/DashboardDto";
+import { FilterFollowChecklist } from "./FilterFollowChecklist";
+import {
+    FilterFollowLinks,
+    filterCandidatesFor,
+    followLinksComplete,
+} from "./filterLinkUtils";
 import { WidgetDisplayModeFields } from "./WidgetDisplayModeFields";
 import { SourceViewSelect, ViewSelection } from "./SourceViewSelect";
 import { YAxisScaleOption } from "./YAxisScaleOption";
@@ -21,8 +28,11 @@ import { AnalyticResultTypeEnum } from "../../analytics/enums/AnalyticResultType
 interface Props {
     /** Steps back to the widget type picker. */
     onBack: () => void;
-    onPlaceWidget: (dto: PlaceWidgetDto) => Promise<void>;
-    onPlaceEntriesWidget: (dto: PlaceEntriesWidgetDto) => Promise<void>;
+    onPlaceWidget: (dto: PlaceWidgetDto, followFilters?: FilterFollowLinks[]) => Promise<void>;
+    onPlaceEntriesWidget: (
+        dto: PlaceEntriesWidgetDto,
+        followFilters?: FilterFollowLinks,
+    ) => Promise<void>;
     /** When the library item is already chosen (the Charts/Tables tab's "Add" action), the
         form drops its own tracker/widget pickers and only shows the placement settings. */
     presetWidget?: WidgetDto;
@@ -51,6 +61,8 @@ export function PlaceFromLibraryForm({
     presetEntriesWidget,
 }: Props) {
     const { widgets, entriesWidgets, isLoading: isLoadingLibrary } = useWidgets();
+    const { widgets: boardWidgets } = useDashboard();
+    const filterCandidates = useMemo(() => filterCandidatesFor(boardWidgets), [boardWidgets]);
     const preset = presetWidget
         ? `${WIDGET_PREFIX}${presetWidget.id}`
         : presetEntriesWidget
@@ -60,9 +72,16 @@ export function PlaceFromLibraryForm({
     const [trackerFilter, setTrackerFilter] = useState<string | null>(null);
     const [selection, setSelection] = useState<string | null>(preset);
     const [viewsByTracker, setViewsByTracker] = useState<Map<string, ViewDto[]>>(new Map());
+    const [fieldsByTracker, setFieldsByTracker] = useState<Map<string, FieldDto[]>>(new Map());
     const [sourceOverrides, setSourceOverrides] = useState<Record<string, SourceOverride>>({});
+    const [sourceFilterLinks, setSourceFilterLinks] = useState<
+        Record<string, Record<string, Record<string, string>>>
+    >({});
     const [entriesFields, setEntriesFields] = useState<FieldDto[]>([]);
     const [entriesColumnFieldIds, setEntriesColumnFieldIds] = useState<string[]>([]);
+    const [entriesFilterLinks, setEntriesFilterLinks] = useState<
+        Record<string, Record<string, string>>
+    >({});
     const [displayMode, setDisplayMode] = useState(DashboardItemDisplayMode.Full);
     const [mobileDisplayMode, setMobileDisplayMode] = useState(
         DashboardItemDisplayMode.Full,
@@ -90,18 +109,25 @@ export function PlaceFromLibraryForm({
         ? entriesWidgets.find((w) => w.id === selection.slice(ENTRIES_PREFIX.length))
         : undefined;
 
-    // Loads what the current pick needs -- a chart's per-tracker views, or an Entries
-    // table's tracker fields for its column picker -- and resets the placement-only fields
+    // Loads what the current pick needs -- a chart's per-tracker views and fields (fields
+    // for the "Follow filters" checklist below), or an Entries table's tracker fields for
+    // its column picker and the same checklist -- and resets the placement-only fields
     // below it, which belong to whatever was selected before.
     useEffect(() => {
         if (selectedWidget) {
             const trackerIds = [...new Set(selectedWidget.sources.map((s) => s.trackerId))];
             Promise.all(
                 trackerIds.map(async (trackerId) => {
-                    const res = await viewsController.getViewList(trackerId);
-                    return [trackerId, res.data ?? []] as const;
+                    const [viewsRes, fieldsRes] = await Promise.all([
+                        viewsController.getViewList(trackerId),
+                        fieldsController.getFields(trackerId),
+                    ]);
+                    return [trackerId, viewsRes.data ?? [], fieldsRes.data ?? []] as const;
                 })
-            ).then((entries) => setViewsByTracker(new Map(entries)));
+            ).then((entries) => {
+                setViewsByTracker(new Map(entries.map(([id, views]) => [id, views])));
+                setFieldsByTracker(new Map(entries.map(([id, , fields]) => [id, fields])));
+            });
         } else if (selectedEntriesWidget) {
             fieldsController
                 .getFields(selectedEntriesWidget.trackerId)
@@ -118,8 +144,10 @@ export function PlaceFromLibraryForm({
                   )
                 : {}
         );
+        setSourceFilterLinks({});
         setEntriesFields([]);
         setEntriesColumnFieldIds([]);
+        setEntriesFilterLinks({});
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selection]);
 
@@ -127,29 +155,38 @@ export function PlaceFromLibraryForm({
         setIsSubmitting(true);
         try {
             if (selectedWidget) {
-                await onPlaceWidget({
-                    widgetId: selectedWidget.id,
-                    displayMode,
-                    mobileDisplayMode,
-                    yAxisFromZero: isLineChartWidget ? yAxisFromZero : undefined,
-                    sourceOverrides: selectedWidget.sources.map((source) => {
-                        const override = sourceOverrides[source.id];
-                        return {
-                            widgetSourceId: source.id,
-                            label: override?.label.trim() || undefined,
-                            viewId: override?.viewId ?? null,
-                        };
-                    }),
-                });
+                await onPlaceWidget(
+                    {
+                        widgetId: selectedWidget.id,
+                        displayMode,
+                        mobileDisplayMode,
+                        yAxisFromZero: isLineChartWidget ? yAxisFromZero : undefined,
+                        sourceOverrides: selectedWidget.sources.map((source) => {
+                            const override = sourceOverrides[source.id];
+                            return {
+                                widgetSourceId: source.id,
+                                label: override?.label.trim() || undefined,
+                                viewId: override?.viewId ?? null,
+                            };
+                        }),
+                    },
+                    selectedWidget.sources.map((source) => ({
+                        trackerId: source.trackerId,
+                        links: sourceFilterLinks[source.id] ?? {},
+                    })),
+                );
             } else if (selectedEntriesWidget) {
-                await onPlaceEntriesWidget({
-                    entriesWidgetId: selectedEntriesWidget.id,
-                    columnFieldIds: entriesColumnFieldIds.length
-                        ? entriesColumnFieldIds
-                        : undefined,
-                    displayMode,
-                    mobileDisplayMode,
-                });
+                await onPlaceEntriesWidget(
+                    {
+                        entriesWidgetId: selectedEntriesWidget.id,
+                        columnFieldIds: entriesColumnFieldIds.length
+                            ? entriesColumnFieldIds
+                            : undefined,
+                        displayMode,
+                        mobileDisplayMode,
+                    },
+                    { trackerId: selectedEntriesWidget.trackerId, links: entriesFilterLinks },
+                );
             }
         } finally {
             setIsSubmitting(false);
@@ -258,6 +295,17 @@ export function PlaceFromLibraryForm({
                                         }))
                                     }
                                 />
+                                <FilterFollowChecklist
+                                    fields={fieldsByTracker.get(source.trackerId) ?? []}
+                                    filters={filterCandidates}
+                                    links={sourceFilterLinks[source.id] ?? {}}
+                                    onLinksChange={(links) =>
+                                        setSourceFilterLinks((prev) => ({
+                                            ...prev,
+                                            [source.id]: links,
+                                        }))
+                                    }
+                                />
                             </Stack>
                         </Paper>
                     );
@@ -275,6 +323,15 @@ export function PlaceFromLibraryForm({
                     onChange={setEntriesColumnFieldIds}
                     searchable
                     clearable
+                />
+            )}
+
+            {selectedEntriesWidget && (
+                <FilterFollowChecklist
+                    fields={entriesFields}
+                    filters={filterCandidates}
+                    links={entriesFilterLinks}
+                    onLinksChange={setEntriesFilterLinks}
                 />
             )}
 
@@ -297,7 +354,23 @@ export function PlaceFromLibraryForm({
                     Back
                 </Button>
                 <Button
-                    disabled={!selectedWidget && !selectedEntriesWidget}
+                    disabled={
+                        (!selectedWidget && !selectedEntriesWidget) ||
+                        (selectedWidget != null &&
+                            !selectedWidget.sources.every((source) =>
+                                followLinksComplete(
+                                    sourceFilterLinks[source.id] ?? {},
+                                    filterCandidates,
+                                    fieldsByTracker.get(source.trackerId) ?? [],
+                                ),
+                            )) ||
+                        (selectedEntriesWidget != null &&
+                            !followLinksComplete(
+                                entriesFilterLinks,
+                                filterCandidates,
+                                entriesFields,
+                            ))
+                    }
                     loading={isSubmitting}
                     onClick={handleSubmit}
                 >

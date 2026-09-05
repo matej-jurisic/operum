@@ -121,6 +121,26 @@ export interface FilterWidgetConfig {
     presetIds: string[];
 }
 
+/** Config is free-form JSON per widget type, same caveat as parseTextWidgetConfig. Shared
+    by the filter widget's own edit dialog and anything that appends a follower link to it
+    without going through that dialog. */
+export function parseFilterWidgetConfig(config: string | undefined): FilterWidgetConfig | null {
+    if (!config) return null;
+    try {
+        const parsed = JSON.parse(config);
+        return Array.isArray(parsed?.queryIds)
+            ? {
+                  queryIds: parsed.queryIds,
+                  valueByQuery: parsed.valueByQuery ?? {},
+                  links: parsed.links ?? [],
+                  presetIds: parsed.presetIds ?? [],
+              }
+            : null;
+    } catch {
+        return null;
+    }
+}
+
 /** One clause of a filter widget's own typed clause set, resolved server-side for the
     card to render an input for. queryId keys the widget's valueByQuery map. */
 export interface FilterClauseDto {

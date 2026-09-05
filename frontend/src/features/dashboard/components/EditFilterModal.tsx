@@ -3,7 +3,7 @@ import { useMediaQuery } from "@mantine/hooks";
 import { QueryKinds } from "../../../shared/constants/QueryKinds";
 import { useDashboard } from "../context/DashboardContext";
 import {
-    FilterWidgetConfig,
+    parseFilterWidgetConfig,
     SaveFilterItemDto,
     WidgetLink,
     WidgetTypes,
@@ -18,29 +18,12 @@ interface Props {
     onSave: (itemId: string, dto: SaveFilterItemDto) => Promise<void>;
 }
 
-function parseConfig(config: string | undefined): FilterWidgetConfig | null {
-    if (!config) return null;
-    try {
-        const parsed = JSON.parse(config);
-        return Array.isArray(parsed?.queryIds)
-            ? {
-                  queryIds: parsed.queryIds,
-                  valueByQuery: parsed.valueByQuery ?? {},
-                  links: parsed.links ?? [],
-                  presetIds: parsed.presetIds ?? [],
-              }
-            : null;
-    } catch {
-        return null;
-    }
-}
-
 export function EditFilterModal({ itemId, color, onClose, onSave }: Props) {
     const { widgets } = useDashboard();
     const isMobile = useMediaQuery("(max-width: 48em)");
     const widget = widgets.find((w) => w.id === itemId);
     const isFilter = widget?.type === WidgetTypes.Filter;
-    const config = isFilter ? parseConfig(widget.config) : null;
+    const config = isFilter ? parseFilterWidgetConfig(widget.config) : null;
     const clauseDtos = (isFilter && widget.filter?.clauses) || [];
 
     // The form works in clause indices; the stored links are keyed by pooled query id, so

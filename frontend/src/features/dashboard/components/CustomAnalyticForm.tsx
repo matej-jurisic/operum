@@ -29,10 +29,17 @@ import { trackersController } from "../../trackers/api/trackersController";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { viewsController } from "../../views/api/viewsController";
 import { ViewDto } from "../../views/types/ViewDto";
+import { useDashboard } from "../context/DashboardContext";
 import {
     CreateAndPlaceWidgetDto,
     DashboardItemDisplayMode,
 } from "../types/DashboardDto";
+import { FilterFollowChecklist } from "./FilterFollowChecklist";
+import {
+    FilterFollowLinks,
+    filterCandidatesFor,
+    followLinksComplete,
+} from "./filterLinkUtils";
 import { WidgetDisplayModeFields } from "./WidgetDisplayModeFields";
 import { SourceViewSelect } from "./SourceViewSelect";
 import { YAxisScaleOption } from "./YAxisScaleOption";
@@ -40,7 +47,7 @@ import { YAxisScaleOption } from "./YAxisScaleOption";
 interface Props {
     /** Steps back to the widget type picker. */
     onBack: () => void;
-    onAdd: (dto: CreateAndPlaceWidgetDto) => Promise<void>;
+    onAdd: (dto: CreateAndPlaceWidgetDto, followFilters?: FilterFollowLinks[]) => Promise<void>;
 }
 
 // One tracker's contribution to the item. The chart type and calculation are picked once
@@ -53,6 +60,9 @@ interface TrackerRow {
     // Loaded per tracker
     fields: FieldDto[];
     views: ViewDto[];
+    // Which of the board's existing filter widgets this source should follow, and which
+    // field of this tracker maps to each of that filter's clauses.
+    filterLinks: Record<string, Record<string, string>>;
 }
 
 // Result types that can read from any number of trackers. Line/bar merge onto a shared
@@ -81,6 +91,7 @@ const makeEmptyRow = (): TrackerRow => ({
     viewId: null,
     fields: [],
     views: [],
+    filterLinks: {},
 });
 
 /**
@@ -90,6 +101,8 @@ const makeEmptyRow = (): TrackerRow => ({
  * the Library, and editing it there updates every placement, this one included.
  */
 export function CustomAnalyticForm({ onBack, onAdd }: Props) {
+    const { widgets } = useDashboard();
+    const filterCandidates = useMemo(() => filterCandidatesFor(widgets), [widgets]);
     const [trackers, setTrackers] = useState<TrackerDto[]>([]);
     const [config, setConfig] = useState<AnalyticConfigDto>();
     const [resultType, setResultType] = useState<string | null>(null);
@@ -186,6 +199,7 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
             viewId: null,
             fields: [],
             views: [],
+            filterLinks: {},
         });
         if (!trackerId) return;
 
@@ -247,23 +261,26 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
     const handleSubmit = async () => {
         if (!canSubmit) return;
         setIsSubmitting(true);
-        await onAdd({
-            name: name.trim() || undefined,
-            resultType: resultType!,
-            code: code!,
-            matchedValuesOnly:
-                rows.length > 1 && !!xAxisPurpose && matchedValuesOnly,
-            yAxisFromZero: isLineChart ? yAxisFromZero : undefined,
-            displayMode,
-            mobileDisplayMode,
-            sources: rows.map((row) => ({
-                trackerId: row.trackerId!,
-                analyticFields: Object.entries(row.fieldMappings)
-                    .filter(([, fieldId]) => !!fieldId)
-                    .map(([purpose, fieldId]) => ({ purpose, fieldId })),
-                viewId: row.viewId,
-            })),
-        });
+        await onAdd(
+            {
+                name: name.trim() || undefined,
+                resultType: resultType!,
+                code: code!,
+                matchedValuesOnly:
+                    rows.length > 1 && !!xAxisPurpose && matchedValuesOnly,
+                yAxisFromZero: isLineChart ? yAxisFromZero : undefined,
+                displayMode,
+                mobileDisplayMode,
+                sources: rows.map((row) => ({
+                    trackerId: row.trackerId!,
+                    analyticFields: Object.entries(row.fieldMappings)
+                        .filter(([, fieldId]) => !!fieldId)
+                        .map(([purpose, fieldId]) => ({ purpose, fieldId })),
+                    viewId: row.viewId,
+                })),
+            },
+            rows.map((row) => ({ trackerId: row.trackerId!, links: row.filterLinks })),
+        );
         setIsSubmitting(false);
     };
 
@@ -281,6 +298,7 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
     const canSubmit =
         !!selectedCode &&
         rows.every(isRowComplete) &&
+        rows.every((row) => followLinksComplete(row.filterLinks, filterCandidates, row.fields)) &&
         (!isPairedCode || rows.length === 2);
 
     return (
@@ -378,6 +396,17 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
                                 }
                                 disabled={!row.trackerId}
                             />
+
+                            {row.trackerId && (
+                                <FilterFollowChecklist
+                                    fields={row.fields}
+                                    filters={filterCandidates}
+                                    links={row.filterLinks}
+                                    onLinksChange={(filterLinks) =>
+                                        updateRow(index, { filterLinks })
+                                    }
+                                />
+                            )}
                         </Stack>
                     </Paper>
                 );

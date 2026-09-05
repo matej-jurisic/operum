@@ -213,9 +213,9 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
     // went wrong, and closing throws away what was filled in) and closes the whole modal on
     // success.
     const closeAfter =
-        <T,>(handler: (dto: T) => Promise<void>) =>
-        async (dto: T) => {
-            await handler(dto);
+        <A extends unknown[]>(handler: (...args: A) => Promise<unknown>) =>
+        async (...args: A) => {
+            await handler(...args);
             onClose();
         };
 

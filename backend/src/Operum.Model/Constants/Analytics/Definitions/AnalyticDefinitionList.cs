@@ -339,14 +339,20 @@ namespace Operum.Model.Constants.Analytics.Definitions
                 ? codeDef.AllowedDataTypes.Keys
                 : [];
 
-        // The human-readable name for an analytic, e.g. "Monthly Totals: Day, Amount".
-        // Shared by tracker analytic summaries and dashboard sources so a saved and an
-        // ad hoc analytic with the same definition read identically.
+        // The human-readable name for an analytic, e.g. "Line Chart · Monthly Totals: Day,
+        // Amount". Leads with the chart type because a calculation label alone doesn't
+        // always identify the analytic: Bar and Donut both call their per-category sum "Sum
+        // per Category", and "Single Value · Average" reads very differently from "Line
+        // Chart · Average" once it's sitting in a list next to other widgets. Skipped when
+        // it would just repeat the calculation (e.g. Calendar's only code is also called
+        // "Calendar"). Shared by tracker analytic summaries and dashboard sources so a saved
+        // and an ad hoc analytic with the same definition read identically.
         public static string GetDisplayName(string resultType, string code, IEnumerable<string> fieldNames)
         {
             var label = GetLabel(resultType, code);
             var names = fieldNames.Where(n => !string.IsNullOrEmpty(n)).ToList();
-            return names.Count > 0 ? $"{label}: {string.Join(", ", names)}" : label;
+            var calculation = names.Count > 0 ? $"{label}: {string.Join(", ", names)}" : label;
+            return label == resultType ? calculation : $"{resultType} · {calculation}";
         }
 
         public static string GetLabel(string resultType, string code) =>
