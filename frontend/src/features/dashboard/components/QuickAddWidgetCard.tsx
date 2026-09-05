@@ -89,7 +89,7 @@ export function QuickAddWidgetCard({
           <Button
             color={trackerColor}
             disabled={isConfiguring}
-            variant="subtle"
+            variant="outline"
             radius="md"
             w={"100%"}
             h={"100%"}
