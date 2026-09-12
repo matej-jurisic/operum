@@ -1,0 +1,278 @@
+/* ── Sections ────────────────────────────────────────────────────────────────── */
+
+/* The whole page is one continuous surface: no bands, no group headings. Even spacing
+   between sections is the only thing separating them. */
+
+/* An anchor target for the navbar. */
+.home-section {
+    scroll-margin-top: 60px;
+}
+
+/* The hero's example trackers. */
+.home-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 14px 4px 4px;
+    border: 1px solid var(--mantine-color-default-border);
+    border-radius: 999px;
+    background: var(--mantine-color-body);
+}
+
+/* ── Diagrams ────────────────────────────────────────────────────────────────── */
+
+/* Each feature section is illustrated with a diagram of the idea, never a replica of the
+   app's screens. No window chrome, no tab strips, no stand-in dialogs: a visitor should
+   read these as an explanation and never mistake one for a picture of the product. */
+
+/* Every diagram shares a width and a reserved height so the six of them read as one
+   series down the page instead of six differently shaped one-offs. */
+.diagram {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    max-width: 540px;
+}
+
+.diagram-label {
+    order: -1;
+    font-size: var(--mantine-font-size-xs);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--mantine-color-dimmed);
+}
+
+.diagram-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+}
+
+/* Reserved only where the two-column layout applies. On phones the diagram sits under
+   its copy and dead space below a short one would just be a gap to scroll past. */
+@media (min-width: 48em) {
+    .diagram-body {
+        min-height: 300px;
+    }
+}
+
+/* One labelled box in a diagram: a field, a value, a column. */
+.node {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border: 1px solid var(--mantine-color-default-border);
+    border-radius: var(--mantine-radius-md);
+}
+
+.node-type {
+    margin-left: auto;
+    padding-left: 10px;
+    font-family: var(--mantine-font-family-monospace);
+    font-size: var(--mantine-font-size-xs);
+    color: var(--mantine-color-dimmed);
+}
+
+.node[data-accent] {
+    border-color: transparent;
+    background: var(--mantine-color-violet-light);
+}
+
+.formula {
+    display: block;
+    font-family: var(--mantine-font-family-monospace);
+    font-size: var(--mantine-font-size-xs);
+    color: var(--mantine-color-violet-light-color);
+    overflow-wrap: anywhere;
+}
+
+/* A labelled link between two nodes, drawn as a short dashed stem. */
+.connector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: 22px;
+    font-size: var(--mantine-font-size-xs);
+    color: var(--mantine-color-dimmed);
+}
+
+.connector::before {
+    content: "";
+    align-self: stretch;
+    min-height: 22px;
+    border-left: 2px dashed var(--mantine-color-default-border);
+}
+
+/* ── Mapping rows (integrations) ─────────────────────────────────────────────── */
+
+.mapping {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    color: var(--mantine-color-dimmed);
+}
+
+.mapping > span {
+    padding: 3px 8px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    border-radius: var(--mantine-radius-sm);
+    background: var(--mantine-color-default-hover);
+    font-size: var(--mantine-font-size-xs);
+    color: var(--mantine-color-text);
+}
+
+.mapping > span[data-target] {
+    background: var(--mantine-primary-color-light);
+    color: var(--mantine-primary-color-light-color);
+    font-weight: 500;
+}
+
+/* ── Rules (notifications) ───────────────────────────────────────────────────── */
+
+/* A rule read as a sentence: the keyword column lines up so the three clauses scan
+   down the left edge. */
+.rule {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 6px 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--mantine-color-default-border);
+    border-radius: var(--mantine-radius-md);
+}
+
+.rule-keyword {
+    font-family: var(--mantine-font-family-monospace);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 1.7;
+    color: var(--mantine-color-dimmed);
+}
+
+/* ── Permission matrix (collaboration) ───────────────────────────────────────── */
+
+/* The row separator is a border-top on each cell, so the cells of a row have to line up
+   exactly or the line breaks up. Two things would break it, and both are load-bearing:
+   no column gap (a gap punches a hole per column), and no align-items here. Cells must
+   stretch to a shared row height, since centering shrinks each to its own content and
+   leaves the taller name cell's border sitting above the check cells'. Each cell centers
+   its own content instead. */
+.matrix {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) repeat(4, 40px);
+}
+
+@media (min-width: 36em) {
+    .matrix {
+        grid-template-columns: minmax(0, 1fr) repeat(4, 64px);
+    }
+}
+
+/* Headings sit flush to the bottom so a label that wraps to two lines still lines up
+   with the single-line ones beside it. */
+.matrix-head {
+    align-self: end;
+    padding: 0 4px 10px;
+    font-size: 10px;
+    line-height: 1.25;
+    text-align: center;
+    color: var(--mantine-color-dimmed);
+}
+
+@media (min-width: 36em) {
+    .matrix-head {
+        font-size: var(--mantine-font-size-xs);
+    }
+}
+
+.matrix-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 0;
+}
+
+.matrix-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px 8px 0;
+    min-width: 0;
+}
+
+.matrix-row {
+    display: contents;
+}
+
+.matrix-row > * {
+    border-top: 1px solid var(--mantine-color-default-border);
+}
+
+/* ── Saved views ─────────────────────────────────────────────────────────────── */
+
+.view-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.view-pill {
+    padding: 4px 12px;
+    border: 1px solid var(--mantine-color-default-border);
+    border-radius: 999px;
+    font-size: var(--mantine-font-size-sm);
+    color: var(--mantine-color-dimmed);
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease;
+}
+
+.view-pill:hover {
+    background: var(--mantine-color-default-hover);
+}
+
+.view-pill[data-active] {
+    border-color: transparent;
+    background: var(--mantine-primary-color-light);
+    color: var(--mantine-primary-color-light-color);
+    font-weight: 500;
+}
+
+/* Every view's result sits in the same grid cell, so switching views never resizes the
+   diagram and shifts the copy beside it. */
+.swap {
+    display: grid;
+}
+
+.swap-item {
+    grid-area: 1 / 1;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+        opacity 0.25s ease,
+        visibility 0s linear 0.25s;
+}
+
+.swap-item[data-active] {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.25s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .swap-item,
+    .swap-item[data-active],
+    .view-pill {
+        transition: none;
+    }
+}
+
+/* The widgets section reuses .home-chip for its grouped list of widget names. */

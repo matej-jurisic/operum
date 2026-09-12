@@ -8,15 +8,11 @@ import {
 } from "@mantine/core";
 import { observer } from "mobx-react";
 import Header from "../../../shared/components/Header";
+import { HOME_SECTIONS } from "../constants/homeSections";
 
-const NAV_LINKS = [
-    { label: "Features", id: "features" },
-    { label: "Dashboards", id: "dashboards" },
-    { label: "Analytics", id: "analytics" },
-    { label: "Integrations", id: "integrations" },
-    { label: "Notifications", id: "notifications" },
-    { label: "Collaboration", id: "collaboration" },
-];
+const NAV_LINKS = HOME_SECTIONS.flatMap((section) =>
+    section.navLabel ? [{ label: section.navLabel, id: section.id }] : [],
+);
 
 interface Props {
     scrolled: boolean;

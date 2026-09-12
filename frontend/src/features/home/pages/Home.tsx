@@ -1,514 +1,315 @@
 import {
-    BarChart,
-    DonutChart,
-    Heatmap,
-    LineChart,
-    ScatterChart,
-} from "@mantine/charts";
-import {
     Anchor,
     Badge,
     Box,
     Button,
     Card,
     Container,
-    Divider,
     Grid,
     Group,
-    List,
-    Progress,
     ScrollArea,
     SimpleGrid,
     Stack,
+    Table,
     Text,
     ThemeIcon,
     Title,
+    UnstyledButton,
     useMantineColorScheme,
     useMantineTheme,
 } from "@mantine/core";
 import { observer } from "mobx-react";
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 import {
-    TbAdjustmentsHorizontal,
-    TbAlphabetLatin,
-    TbArrowsJoin,
+    TbArrowNarrowRight,
     TbBarbell,
     TbBell,
     TbBook,
-    TbBoxMultiple,
+    TbBoxAlignTop,
     TbCalendar,
-    TbCalendarClock,
-    TbChartBar,
+    TbCheck,
     TbCheckbox,
-    TbClock,
-    TbCrown,
-    TbDatabase,
+    TbCommand,
+    TbCompass,
     TbDeviceGamepad,
-    TbEdit,
-    TbEye,
+    TbFileImport,
     TbFilter,
-    TbHash,
+    TbGitBranch,
     TbHeading,
+    TbLayoutColumns,
     TbLayoutDashboard,
-    TbLayoutGrid,
-    TbLink,
-    TbMessage,
-    TbMicroscope,
+    TbMinus,
     TbMovie,
-    TbPlug,
-    TbPlus,
-    TbRefresh,
+    TbNote,
+    TbSeparatorHorizontal,
+    TbSquareRoundedPlus,
     TbTable,
-    TbTemplate,
-    TbToggleRight,
-    TbUsers,
     TbVariable,
     TbWallet,
-    TbWand,
-    TbWebhook,
 } from "react-icons/tb";
 import { Link, useNavigate } from "react-router-dom";
 import AuthDialog from "../../auth/components/AuthDialog";
 import HomeNavbar from "../components/HomeNavbar";
+import { HOME_SECTIONS } from "../constants/homeSections";
 import { readDefaultPage } from "../../../shared/constants/defaultPage";
 import globalStore from "../../../shared/stores/GlobalStore";
+import "./Home.css";
 
-const LINE_DATA = [
-    { month: "Jan", value: 18 },
-    { month: "Feb", value: 27 },
-    { month: "Mar", value: 23 },
-    { month: "Apr", value: 41 },
-    { month: "May", value: 35 },
-    { month: "Jun", value: 52 },
-    { month: "Jul", value: 48 },
+// ─── Sample data ──────────────────────────────────────────────────────────────
+
+// The example running tracker the diagrams are drawn from. It is sample data for an
+// illustration, not a reproduction of any screen in the app. Kept small on purpose: the
+// views diagram renders every row, so a longer set would crowd the section.
+
+const SCHEMA_FIELDS = [
+    { name: "Date", type: "date" },
+    { name: "Distance", type: "number" },
+    { name: "Duration", type: "timespan" },
+    { name: "Terrain", type: "string" },
+    { name: "Shoes", type: "reference" },
 ];
 
-const BAR_DATA = [
-    { day: "Mon", count: 8 },
-    { day: "Tue", count: 14 },
-    { day: "Wed", count: 9 },
-    { day: "Thu", count: 17 },
-    { day: "Fri", count: 13 },
-    { day: "Sat", count: 6 },
-    { day: "Sun", count: 4 },
+type RunRow = {
+    date: string;
+    distance: number;
+    duration: string;
+    terrain: string;
+    speed: string;
+};
+
+type RunColumn = keyof RunRow;
+
+const RUN_COLUMN_LABELS: Record<RunColumn, string> = {
+    date: "Date",
+    distance: "Distance",
+    duration: "Duration",
+    terrain: "Terrain",
+    speed: "Speed",
+};
+
+const RUNS: RunRow[] = [
+    { date: "Jun 24", distance: 8.2, duration: "42:10", terrain: "Road", speed: "11.7" },
+    { date: "Jun 22", distance: 21.1, duration: "1:52:40", terrain: "Road", speed: "11.2" },
+    { date: "Jun 19", distance: 6.5, duration: "38:05", terrain: "Trail", speed: "10.2" },
+    { date: "Jun 15", distance: 16, duration: "1:31:20", terrain: "Trail", speed: "10.5" },
+    { date: "May 30", distance: 18.4, duration: "1:40:15", terrain: "Road", speed: "11.0" },
 ];
 
-const DONUT_DATA = [
-    { name: "Work", value: 35, color: "blue.6" },
-    { name: "Personal", value: 28, color: "teal.5" },
-    { name: "Health", value: 22, color: "grape.5" },
-    { name: "Other", value: 15, color: "orange.5" },
-];
-
-const SCATTER_DATA = [
+// Saved views the diagram switches between. Each keeps its own clauses and columns, and
+// its rows are what those clauses would return from RUNS.
+const VIEWS: {
+    name: string;
+    clauses: { kind: "filter" | "sort"; label: string }[];
+    columns: RunColumn[];
+    rows: RunRow[];
+}[] = [
     {
-        name: "Entries",
-        color: "blue.5",
-        data: [
-            { x: 2, y: 12 },
-            { x: 4, y: 18 },
-            { x: 3, y: 15 },
-            { x: 7, y: 28 },
-            { x: 5, y: 22 },
-            { x: 8, y: 34 },
-            { x: 6, y: 26 },
-            { x: 9, y: 38 },
-            { x: 10, y: 42 },
-            { x: 1, y: 8 },
-            { x: 11, y: 45 },
-            { x: 12, y: 50 },
+        name: "All runs",
+        clauses: [{ kind: "sort", label: "Date, newest first" }],
+        columns: ["date", "distance", "duration", "terrain"],
+        rows: RUNS,
+    },
+    {
+        name: "This month",
+        clauses: [
+            { kind: "filter", label: "Date ≥ Start of month" },
+            { kind: "sort", label: "Date, newest first" },
         ],
+        columns: ["date", "distance", "speed"],
+        rows: RUNS.filter((run) => run.date.startsWith("Jun")),
+    },
+    {
+        name: "Long runs",
+        clauses: [
+            { kind: "filter", label: "Distance ≥ 15" },
+            { kind: "sort", label: "Distance, highest first" },
+        ],
+        columns: ["date", "distance", "duration", "speed"],
+        rows: RUNS.filter((run) => run.distance >= 15).sort(
+            (a, b) => b.distance - a.distance,
+        ),
+    },
+    {
+        name: "Trails",
+        clauses: [{ kind: "filter", label: "Terrain = Trail" }],
+        columns: ["date", "distance", "terrain"],
+        rows: RUNS.filter((run) => run.terrain === "Trail"),
     },
 ];
 
-const FEATURES = [
+const MAPPINGS = [
+    { source: "Resting HR", field: "Resting HR" },
+    { source: "Sleep time", field: "Sleep" },
+    { source: "HRV", field: "HRV" },
+    { source: "Weight", field: "Body Weight" },
+];
+
+const RULES = [
     {
-        icon: <TbLayoutGrid size={22} />,
-        color: "indigo",
-        title: "Custom Trackers",
-        description:
-            "Define any schema with your choice of field types. Color-code and name them freely.",
+        when: "An entry is added to Expenses",
+        condition: "Amount is over $200",
+        then: "Push notification and an inbox item",
+        sample: "1 new entry: Groceries, $214.60",
     },
     {
-        icon: <TbVariable size={22} />,
-        color: "blue",
-        title: "Calculated Fields",
-        description:
-            "Derive values automatically with formula syntax. Reference any field using {FieldName}.",
-    },
-    {
-        icon: <TbDatabase size={22} />,
-        color: "cyan",
-        title: "Constants",
-        description:
-            "Named reusable values with up to 6 conditional variants. Perfect for dynamic rates.",
-    },
-    {
-        icon: <TbFilter size={22} />,
-        color: "teal",
-        title: "Saved Views",
-        description:
-            "Persist filter, sort, and column combinations. Dynamic dates like 'start of month' resolve at query time.",
-    },
-    {
-        icon: <TbLayoutDashboard size={22} />,
-        color: "green",
-        title: "Dashboards",
-        description:
-            "Arrange charts, tables, and quick-add buttons on boards. Separate desktop and mobile layouts.",
-    },
-    {
-        icon: <TbChartBar size={22} />,
-        color: "orange",
-        title: "Analytics",
-        description:
-            "Seven chart types, including goals that track progress toward a target and line and bar charts you shape by grouping and calculation independently. Combine trackers on one axis or scope a chart to a view.",
-    },
-    {
-        icon: <TbPlug size={22} />,
-        color: "grape",
-        title: "Integrations",
-        description:
-            "Pull data from intervals.icu and Firefly III straight onto tracker fields you map.",
-    },
-    {
-        icon: <TbBell size={22} />,
-        color: "pink",
-        title: "Notifications",
-        description:
-            "Alert rules per tracker, on a schedule or the moment a condition turns true, by push and inbox.",
-    },
-    {
-        icon: <TbUsers size={22} />,
-        color: "red",
-        title: "Collaboration",
-        description:
-            "Share trackers with teammates using fine-grained read and write permissions.",
+        when: "Every Sunday at 20:00",
+        condition: "This week's total is over $500",
+        then: "Push notification and an inbox item",
+        sample: "Weekly spend: $612.40",
     },
 ];
 
-const NOTIFICATION_ASPECTS = [
-    {
-        icon: <TbCalendarClock size={22} />,
-        color: "blue",
-        title: "Scheduled or on change",
-        detail:
-            "Run a daily, weekly, or monthly check at a set time, or fire the moment a condition turns true.",
-    },
-    {
-        icon: <TbBell size={22} />,
-        color: "teal",
-        title: "Push and inbox",
-        detail:
-            "Every rule reaches all tracker collaborators as a browser notification and an in-app inbox item.",
-    },
-    {
-        icon: <TbMessage size={22} />,
-        color: "grape",
-        title: "Your own message",
-        detail:
-            "Write the alert text with count, value, and field-list tokens, or keep the generated default.",
-    },
-];
+const PERMISSIONS = ["View", "Edit data", "Edit schema", "Settings"];
 
-const DATA_TYPES = [
-    {
-        icon: <TbHash size={20} />,
-        color: "blue",
-        label: "Number",
-        description: "Integer and decimal values with full math support.",
-    },
-    {
-        icon: <TbAlphabetLatin size={20} />,
-        color: "teal",
-        label: "String",
-        description: "Free text or predefined select options.",
-    },
-    {
-        icon: <TbToggleRight size={20} />,
-        color: "grape",
-        label: "Boolean",
-        description: "True / false values for yes/no tracking.",
-    },
-    {
-        icon: <TbCalendar size={20} />,
-        color: "orange",
-        label: "Date",
-        description: "Calendar date without time, filterable and sortable.",
-    },
-    {
-        icon: <TbCalendarClock size={20} />,
-        color: "red",
-        label: "DateTime",
-        description: "Full timestamp with date and time components.",
-    },
-    {
-        icon: <TbClock size={20} />,
-        color: "indigo",
-        label: "TimeSpan",
-        description: "Duration values for tracking time spent.",
-    },
-    {
-        icon: <TbLink size={20} />,
-        color: "grape",
-        label: "Reference",
-        description: "Link an entry to an entry in another tracker.",
-    },
+const PEOPLE = [
+    { name: "you", color: "blue", role: "owner", granted: 4 },
+    { name: "alex", color: "indigo", role: "", granted: 3 },
+    { name: "sam", color: "pink", role: "", granted: 2 },
+    { name: "jordan", color: "orange", role: "", granted: 1 },
 ];
 
 const USE_CASES = [
+    { icon: <TbBook size={14} />, color: "indigo", label: "Reading list" },
+    { icon: <TbBarbell size={14} />, color: "teal", label: "Workout log" },
+    { icon: <TbWallet size={14} />, color: "green", label: "Expenses" },
+    { icon: <TbCheckbox size={14} />, color: "grape", label: "Habits" },
+    { icon: <TbDeviceGamepad size={14} />, color: "orange", label: "Game library" },
+    { icon: <TbMovie size={14} />, color: "red", label: "Watchlist" },
+];
+
+// Every widget kind a board can hold, named and grouped by what it is for. Names only:
+// the section's job is to show the range of pieces, not to document each one.
+const WIDGET_GROUPS = [
     {
-        icon: <TbBook size={22} />,
+        label: "Data",
+        items: [
+            { icon: <TbLayoutDashboard size={14} />, color: "indigo", label: "Charts" },
+            { icon: <TbVariable size={14} />, color: "violet", label: "Calculations" },
+            { icon: <TbCalendar size={14} />, color: "blue", label: "Calendar" },
+            { icon: <TbTable size={14} />, color: "orange", label: "Entries" },
+        ],
+    },
+    {
+        label: "Input",
+        items: [
+            { icon: <TbSquareRoundedPlus size={14} />, color: "teal", label: "Quick add" },
+            { icon: <TbFilter size={14} />, color: "grape", label: "Filter" },
+        ],
+    },
+    {
+        label: "Layout",
+        items: [
+            { icon: <TbHeading size={14} />, color: "cyan", label: "Header" },
+            { icon: <TbNote size={14} />, color: "pink", label: "Note" },
+            { icon: <TbSeparatorHorizontal size={14} />, color: "gray", label: "Divider" },
+            { icon: <TbBoxAlignTop size={14} />, color: "red", label: "Container" },
+            { icon: <TbLayoutColumns size={14} />, color: "yellow", label: "Tabs" },
+        ],
+    },
+];
+
+const EXTRAS = [
+    {
+        icon: <TbCompass size={20} />,
         color: "indigo",
-        title: "Reading List",
-        description: "Track books, ratings, and reading progress over time.",
+        title: "Explore",
+        text: "Run a one-off calculation over any tracker, then keep it as a widget if it earns a spot.",
     },
     {
-        icon: <TbBarbell size={22} />,
+        icon: <TbFileImport size={20} />,
         color: "teal",
-        title: "Workout Log",
-        description: "Log exercises, sets, reps, and weight each session.",
+        title: "CSV import and export",
+        text: "Bring in rows you already have, or export a tracker filtered to one of its views.",
     },
     {
-        icon: <TbWallet size={22} />,
-        color: "green",
-        title: "Expense Tracker",
-        description: "Monitor spending by category, date, and amount.",
-    },
-    {
-        icon: <TbCheckbox size={22} />,
+        icon: <TbGitBranch size={20} />,
         color: "grape",
-        title: "Habit Tracker",
-        description: "Build streaks with daily boolean check-ins.",
+        title: "Extract to a tracker",
+        text: "Move values that repeat across entries into a tracker of their own, linked back by reference.",
     },
     {
-        icon: <TbDeviceGamepad size={22} />,
+        icon: <TbCommand size={20} />,
         color: "orange",
-        title: "Game Library",
-        description: "Catalog games with ratings, playtime, and status.",
-    },
-    {
-        icon: <TbMovie size={22} />,
-        color: "red",
-        title: "Movie Watchlist",
-        description: "Track films and shows with scores and notes.",
+        title: "Command palette",
+        text: "Press Ctrl+K or Cmd+K to jump to any tracker or board, or start a new one.",
     },
 ];
 
-const ANALYTICS_CARDS = {
-    single: {
-        title: "Headline Metric",
-        subtitle: "One number from any calculation: count, sum, average, extremes",
-    },
-    goal: {
-        title: "Goal Progress",
-        subtitle: "A single value tracked toward a target you set",
-    },
-    line: { title: "Trend Analysis", subtitle: "Track values changing over time" },
-    bar: {
-        title: "Period Comparison",
-        subtitle: "Compare totals across categories",
-    },
-    donut: { title: "Distribution", subtitle: "See proportions at a glance" },
-    scatter: {
-        title: "Correlation",
-        subtitle: "Find relationships between fields",
-    },
-    calendar: {
-        title: "Calendar",
-        subtitle: "Map entries onto the days they happened",
-    },
-};
+// ─── Diagram pieces ───────────────────────────────────────────────────────────
 
-// Deterministic pseudo-random sample data.
-const CALENDAR_DATA: Record<string, number> = Object.fromEntries(
-    Array.from({ length: 364 }, (_, i) => {
-        const day = new Date(Date.UTC(2025, 0, 1 + i));
-        const noise = Math.sin(i * 12.9898) * 43758.5453;
-        const r = noise - Math.floor(noise);
-        return [
-            day.toISOString().slice(0, 10),
-            r > 0.62 ? Math.ceil((r - 0.62) * 10) : 0,
-        ];
-    }),
-);
-
-const WIDGET_TYPES = [
-    {
-        icon: <TbChartBar size={20} />,
-        color: "indigo",
-        label: "Charts",
-        description:
-            "Any chart from the Widget Library, built once and placed on as many boards as you want.",
-    },
-    {
-        icon: <TbTable size={20} />,
-        color: "blue",
-        label: "Entries tables",
-        description:
-            "A tracker's most recent rows with the columns you choose.",
-    },
-    {
-        icon: <TbPlus size={20} />,
-        color: "teal",
-        label: "Quick-add buttons",
-        description:
-            "Open a tracker's quick-add entry dialog straight from the board.",
-    },
-    {
-        icon: <TbAdjustmentsHorizontal size={20} />,
-        color: "green",
-        label: "Filters",
-        description:
-            "Live controls that narrow the charts and tables set to follow them.",
-    },
-    {
-        icon: <TbHeading size={20} />,
-        color: "grape",
-        label: "Headers and notes",
-        description: "Section titles, dividers, and free-form text.",
-    },
-    {
-        icon: <TbBoxMultiple size={20} />,
-        color: "cyan",
-        label: "Containers",
-        description:
-            "Group widgets into a panel, or a set of tabs, that moves, resizes, and is titled as one.",
-    },
-    {
-        icon: <TbArrowsJoin size={20} />,
-        color: "orange",
-        label: "Combined charts",
-        description:
-            "Line and bar charts that draw several trackers on one shared axis.",
-    },
-];
-
-const START_METHODS = [
-    {
-        icon: <TbTemplate size={22} />,
-        color: "indigo",
-        title: "Clone a template",
-        description:
-            "Start from a published template and get its fields and structure ready to fill in.",
-    },
-    {
-        icon: <TbWand size={22} />,
-        color: "teal",
-        title: "Guided wizard",
-        description:
-            "Step through name, color, icon, and fields, with common field presets one tap away.",
-    },
-    {
-        icon: <TbPlus size={22} />,
-        color: "grape",
-        title: "Field by field",
-        description:
-            "Or skip the wizard and add fields one at a time as the shape of your data settles.",
-    },
-];
-
-const PROVIDERS = [
-    {
-        icon: <TbRefresh size={22} />,
-        color: "blue",
-        title: "intervals.icu",
-        detail: "Pulled on a schedule with an API key.",
-        abilities: [
-            "Daily wellness snapshots",
-            "Activities",
-            "Fans in Garmin, Strava, Wahoo, and more",
-        ],
-    },
-    {
-        icon: <TbWebhook size={22} />,
-        color: "teal",
-        title: "Firefly III",
-        detail: "Pushed by webhook from your self-hosted instance.",
-        abilities: [
-            "Transactions as they happen",
-            "Signed deliveries with a rotatable secret",
-            "Point it at your own instance URL",
-        ],
-    },
-];
-
-const COLLAB_ROLES = [
-    {
-        icon: <TbEye size={22} />,
-        color: "blue",
-        title: "View Only",
-        abilities: [
-            "View all entries",
-            "Access saved views",
-            "See analytics",
-        ],
-    },
-    {
-        icon: <TbEdit size={22} />,
-        color: "teal",
-        title: "Edit Data",
-        abilities: [
-            "Add and edit entries",
-            "Delete entries",
-            "Cannot modify schema",
-        ],
-    },
-    {
-        icon: <TbMicroscope size={22} />,
-        color: "grape",
-        title: "Edit Schema",
-        abilities: [
-            "Create and edit fields",
-            "Manage views and constants",
-            "Cannot manage collaborators",
-        ],
-    },
-    {
-        icon: <TbCrown size={22} />,
-        color: "orange",
-        title: "Owner",
-        abilities: [
-            "Full access to everything",
-            "Add and remove collaborators",
-            "Delete the tracker",
-        ],
-    },
-];
-
-function SectionHeader({
-    eyebrow,
-    title,
-    subtitle,
-    primaryColor,
-}: {
-    eyebrow: string;
-    title: string;
-    subtitle?: string;
-    primaryColor: string;
-}) {
+// A diagram stands in for the product mock a marketing page would usually carry. It is
+// labelled as a diagram and drawn with plain boxes and connectors, so it explains the
+// idea without implying the app looks like this. Every section's right column is one of
+// these, at a shared width and reserved height, so they read as a series.
+// The label names what the diagram shows. It is dropped where the section's own heading
+// and description already say it, rather than captioning the same thing a third time.
+function Diagram({ label, children }: { label?: string; children: ReactNode }) {
     return (
-        <Stack gap={8} align="center">
-            <Text
-                size="sm"
-                fw={700}
-                tt="uppercase"
-                c={primaryColor}
-                style={{ letterSpacing: "0.08em" }}
-            >
-                {eyebrow}
-            </Text>
-            <Title order={2} ta="center">
-                {title}
-            </Title>
-            {subtitle && (
-                <Text size="md" c="dimmed" ta="center" maw={520}>
-                    {subtitle}
-                </Text>
+        <figure className="diagram">
+            {label && (
+                <figcaption className="diagram-label">{label}</figcaption>
             )}
-        </Stack>
+            <div className="diagram-body">{children}</div>
+        </figure>
     );
 }
+
+function Node({
+    name,
+    type,
+    accent,
+    children,
+}: {
+    name: string;
+    type?: string;
+    accent?: boolean;
+    children?: ReactNode;
+}) {
+    return (
+        <div className="node" data-accent={accent || undefined}>
+            <Box miw={0} style={{ flex: 1 }}>
+                <Text size="sm" fw={500}>
+                    {name}
+                </Text>
+                {children}
+            </Box>
+            {type && <span className="node-type">{type}</span>}
+        </div>
+    );
+}
+
+function Connector({ label }: { label: string }) {
+    return <div className="connector">{label}</div>;
+}
+
+// A row of labelled pills, used for both the hero's example trackers and the widget kinds.
+function Chips({
+    items,
+}: {
+    items: { icon: ReactNode; color: string; label: string }[];
+}) {
+    return (
+        <Group gap="xs">
+            {items.map((item) => (
+                <div key={item.label} className="home-chip">
+                    <ThemeIcon
+                        size={24}
+                        radius="xl"
+                        variant="light"
+                        color={item.color}
+                    >
+                        {item.icon}
+                    </ThemeIcon>
+                    <Text size="sm" fw={500}>
+                        {item.label}
+                    </Text>
+                </div>
+            ))}
+        </Group>
+    );
+}
+
+// ─── CTA buttons ─────────────────────────────────────────────────────────────
 
 function CtaButtons({
     onAuthOpen,
@@ -528,16 +329,376 @@ function CtaButtons({
             <Button size="lg" onClick={() => onAuthOpen("register")}>
                 Get Started
             </Button>
-            <Button
-                size="lg"
-                variant="outline"
-                onClick={() => onAuthOpen("login")}
-            >
+            <Button size="lg" variant="outline" onClick={() => onAuthOpen("login")}>
                 Sign In
             </Button>
         </Group>
     );
 }
+
+// ─── Page structure ───────────────────────────────────────────────────────────
+
+// Copy left, diagram right, on every section without exception. The fixed axis is the
+// point: alternating sides made the page read as noise rather than a rhythm.
+function FeatureRow({
+    id,
+    title,
+    description,
+    diagram,
+}: {
+    id: string;
+    title: string;
+    description?: string;
+    diagram: ReactNode;
+}) {
+    return (
+        <Box id={id} className="home-section">
+            <Grid gutter={{ base: 32, md: 64 }} align="center">
+                <Grid.Col span={{ base: 12, md: 5 }}>
+                    <Title order={2} mb="md">
+                        {title}
+                    </Title>
+                    {description && (
+                        <Text c="dimmed" lh={1.7}>
+                            {description}
+                        </Text>
+                    )}
+                </Grid.Col>
+                <Grid.Col span={{ base: 12, md: 7 }}>{diagram}</Grid.Col>
+            </Grid>
+        </Box>
+    );
+}
+
+// ─── Diagrams ─────────────────────────────────────────────────────────────────
+
+// A tracker's fields, with the calculated one shown as the product of the two it reads.
+// Each node carries its own type, which is what the list of field types used to say.
+function SchemaDiagram() {
+    return (
+        <Diagram label="A tracker's fields">
+            {SCHEMA_FIELDS.map((field) => (
+                <Node key={field.name} name={field.name} type={field.type} />
+            ))}
+            <Connector label="Distance and Duration feed" />
+            <Node name="Speed" type="calculated" accent>
+                <code className="formula">{"{Distance} / {Duration.hours}"}</code>
+            </Node>
+        </Diagram>
+    );
+}
+
+const formatRunCell = (run: RunRow, column: RunColumn) => {
+    if (column === "distance") return `${run.distance.toFixed(1)} km`;
+    if (column === "speed") return `${run.speed} km/h`;
+    return run[column];
+};
+
+// Picking a view swaps the clauses, the columns, and the rows they return. Every view's
+// result stays stacked in one grid cell so the diagram never changes height.
+function ViewsDiagram() {
+    const [active, setActive] = useState(2);
+
+    return (
+        <Diagram label="One tracker, four saved views">
+            <div className="view-pills">
+                {VIEWS.map((view, i) => (
+                    <UnstyledButton
+                        key={view.name}
+                        className="view-pill"
+                        data-active={i === active || undefined}
+                        aria-pressed={i === active}
+                        onClick={() => setActive(i)}
+                    >
+                        {view.name}
+                    </UnstyledButton>
+                ))}
+            </div>
+            <div className="swap">
+                {VIEWS.map((view, i) => (
+                    <div
+                        key={view.name}
+                        className="swap-item"
+                        data-active={i === active || undefined}
+                        aria-hidden={i !== active}
+                    >
+                        <Stack gap={8}>
+                            <Group gap={6}>
+                                {view.clauses.map((clause) => (
+                                    <Badge
+                                        key={clause.label}
+                                        variant="light"
+                                        color={
+                                            clause.kind === "filter"
+                                                ? "blue"
+                                                : "gray"
+                                        }
+                                        radius="sm"
+                                        tt="none"
+                                        fw={500}
+                                    >
+                                        {clause.label}
+                                    </Badge>
+                                ))}
+                            </Group>
+                            <Text size="xs" c="dimmed">
+                                {view.rows.length} of {RUNS.length} entries,{" "}
+                                {view.columns.length} columns
+                            </Text>
+                            <Table fz="xs" verticalSpacing={6} horizontalSpacing="xs">
+                                <Table.Thead>
+                                    <Table.Tr>
+                                        {view.columns.map((column) => (
+                                            <Table.Th key={column}>
+                                                {RUN_COLUMN_LABELS[column]}
+                                            </Table.Th>
+                                        ))}
+                                    </Table.Tr>
+                                </Table.Thead>
+                                <Table.Tbody>
+                                    {view.rows.map((run) => (
+                                        <Table.Tr key={run.date}>
+                                            {view.columns.map((column) => (
+                                                <Table.Td key={column}>
+                                                    {formatRunCell(run, column)}
+                                                </Table.Td>
+                                            ))}
+                                        </Table.Tr>
+                                    ))}
+                                </Table.Tbody>
+                            </Table>
+                        </Stack>
+                    </div>
+                ))}
+            </div>
+        </Diagram>
+    );
+}
+
+// The widget kinds a board can hold, grouped by what they are for.
+function WidgetsDiagram() {
+    return (
+        <Diagram label="Widget kinds">
+            <Stack gap="md">
+                {WIDGET_GROUPS.map((group) => (
+                    <Stack key={group.label} gap={8}>
+                        <Text
+                            size="xs"
+                            fw={600}
+                            tt="uppercase"
+                            c="dimmed"
+                            style={{ letterSpacing: "0.06em" }}
+                        >
+                            {group.label}
+                        </Text>
+                        <Chips items={group.items} />
+                    </Stack>
+                ))}
+            </Stack>
+        </Diagram>
+    );
+}
+
+// A connection, the tracker it feeds, and which of its values fill which fields.
+function IntegrationsDiagram() {
+    return (
+        <Diagram label="A connection filling a tracker's fields">
+            <Node name="intervals.icu" type="pull" />
+            <Connector label="On a schedule, mapped field by field" />
+            <div className="node">
+                <Box miw={0} style={{ flex: 1 }}>
+                    <Text size="sm" fw={500} mb={8}>
+                        Wellness
+                    </Text>
+                    <Stack gap={6}>
+                        {MAPPINGS.map((mapping) => (
+                            <div key={mapping.source} className="mapping">
+                                <span>{mapping.source}</span>
+                                <TbArrowNarrowRight size={14} />
+                                <span data-target>{mapping.field}</span>
+                            </div>
+                        ))}
+                    </Stack>
+                </Box>
+            </div>
+            <Connector label="A second connection, pushed in by webhook" />
+            <Node name="Firefly III" type="push">
+                <Text size="xs" c="dimmed">
+                    Transactions into Expenses, 3 fields mapped
+                </Text>
+            </Node>
+        </Diagram>
+    );
+}
+
+// Two alert rules read as sentences: what starts the check, what has to be true, what happens.
+function RulesDiagram() {
+    const theme = useMantineTheme();
+
+    return (
+        <Diagram label="Two alert rules">
+            {RULES.map((rule) => (
+                <div key={rule.when} className="rule">
+                    <span className="rule-keyword">WHEN</span>
+                    <Text size="sm">{rule.when}</Text>
+                    <span className="rule-keyword">IF</span>
+                    <Text size="sm">{rule.condition}</Text>
+                    <span className="rule-keyword">THEN</span>
+                    <Box>
+                        <Text size="sm">{rule.then}</Text>
+                        <Group gap={6} wrap="nowrap" mt={6}>
+                            <ThemeIcon
+                                size={20}
+                                radius="sm"
+                                variant="light"
+                                color={theme.primaryColor}
+                            >
+                                <TbBell size={12} />
+                            </ThemeIcon>
+                            <Text size="xs" c="dimmed" truncate>
+                                {rule.sample}
+                            </Text>
+                        </Group>
+                    </Box>
+                </div>
+            ))}
+        </Diagram>
+    );
+}
+
+// Who can do what on a shared tracker. Everyone can view; the owner keeps the last column.
+function PermissionsDiagram() {
+    return (
+        <Diagram label="Who can do what on a shared tracker">
+            <div className="matrix">
+                <div />
+                {PERMISSIONS.map((permission) => (
+                    <div key={permission} className="matrix-head">
+                        {permission}
+                    </div>
+                ))}
+                {PEOPLE.map((person) => (
+                    <div key={person.name} className="matrix-row">
+                        <div className="matrix-name">
+                            <ThemeIcon
+                                size={26}
+                                radius="xl"
+                                variant="light"
+                                color={person.color}
+                            >
+                                <Text size="xs" fw={700}>
+                                    {person.name.charAt(0).toUpperCase()}
+                                </Text>
+                            </ThemeIcon>
+                            <Box miw={0}>
+                                <Text size="sm" fw={500} truncate>
+                                    {person.name}
+                                </Text>
+                                {person.role && (
+                                    <Text size="xs" c="dimmed">
+                                        {person.role}
+                                    </Text>
+                                )}
+                            </Box>
+                        </div>
+                        {PERMISSIONS.map((permission, i) => (
+                            <div key={permission} className="matrix-cell">
+                                {i < person.granted ? (
+                                    <Box c="green" style={{ display: "flex" }}>
+                                        <TbCheck size={16} />
+                                    </Box>
+                                ) : (
+                                    <Box c="dimmed" style={{ display: "flex" }}>
+                                        <TbMinus size={16} />
+                                    </Box>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                ))}
+            </div>
+        </Diagram>
+    );
+}
+
+function ExtrasDiagram() {
+    return (
+        <Diagram>
+            <SimpleGrid cols={{ base: 1, xs: 2 }} spacing="lg" verticalSpacing="lg">
+                {EXTRAS.map((extra) => (
+                    <Stack key={extra.title} gap={6}>
+                        <ThemeIcon
+                            size={34}
+                            radius="md"
+                            variant="light"
+                            color={extra.color}
+                        >
+                            {extra.icon}
+                        </ThemeIcon>
+                        <Text fw={600} size="sm">
+                            {extra.title}
+                        </Text>
+                        <Text size="sm" c="dimmed" lh={1.5}>
+                            {extra.text}
+                        </Text>
+                    </Stack>
+                ))}
+            </SimpleGrid>
+        </Diagram>
+    );
+}
+
+// ─── Section copy ─────────────────────────────────────────────────────────────
+
+// Keyed by the ids in HOME_SECTIONS, so that one list drives both the nav links and the
+// page body and they cannot drift apart.
+const SECTION_COPY: Record<
+    string,
+    { title: string; description?: string; diagram: ReactNode }
+> = {
+    trackers: {
+        title: "Trackers",
+        description:
+            "A tracker is a table you design. Give it the columns you need: numbers, text, dates, a link to a row in another tracker, or a formula.",
+        diagram: <SchemaDiagram />,
+    },
+    views: {
+        title: "Views",
+        description:
+            "A view is a saved filter, sort, and column choice.",
+        diagram: <ViewsDiagram />,
+    },
+    widgets: {
+        title: "Widgets",
+        description:
+            "A board is a grid of widgets you drag into place, with separate desktop and mobile layouts.",
+        diagram: <WidgetsDiagram />,
+    },
+    integrations: {
+        title: "Integrations",
+        description:
+            "Connect a service, pick a tracker, and choose which of its values fill which fields.",
+        diagram: <IntegrationsDiagram />,
+    },
+    notifications: {
+        title: "Notifications",
+        description:
+            "Alert rules watch a tracker's entries or a chart's value, on a schedule or the moment a condition turns true.",
+        diagram: <RulesDiagram />,
+    },
+    collaboration: {
+        title: "Collaboration",
+        description:
+            "Share a tracker and pick what each person can do: view it, edit the entries, or change the fields too.",
+        diagram: <PermissionsDiagram />,
+    },
+    more: {
+        title: "More",
+        diagram: <ExtrasDiagram />,
+    },
+};
+
+// ─── Home ─────────────────────────────────────────────────────────────────────
 
 const Home = observer(() => {
     const theme = useMantineTheme();
@@ -557,10 +718,6 @@ const Home = observer(() => {
         ? "radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px)"
         : "radial-gradient(circle, rgba(0,0,0,0.08) 1px, transparent 1px)";
 
-    const altBg = isDark
-        ? "var(--mantine-color-dark-8)"
-        : "var(--mantine-color-gray-0)";
-
     const scrollTo = (id: string) =>
         document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 
@@ -573,6 +730,7 @@ const Home = observer(() => {
             />
 
             <Box style={{ position: "relative", height: "100%", background: heroBg }}>
+                {/* Dot grid */}
                 <Box
                     style={{
                         position: "absolute",
@@ -593,6 +751,7 @@ const Home = observer(() => {
                     }}
                     onScrollPositionChange={({ y }) => setScrolled(y > 20)}
                 >
+                    {/* ── Hero ──────────────────────────────────────────── */}
                     <Box id="hero" style={{ scrollMarginTop: "60px" }}>
                         <Container size="lg" pt={140} pb={100}>
                             <Stack align="center" gap="xl">
@@ -609,8 +768,7 @@ const Home = observer(() => {
                                     order={1}
                                     ta="center"
                                     style={{
-                                        fontSize:
-                                            "clamp(2.5rem, 6vw, 4.5rem)",
+                                        fontSize: "clamp(2.5rem, 6vw, 4.5rem)",
                                         fontWeight: 900,
                                         lineHeight: 1.1,
                                         backgroundImage: titleGradient,
@@ -632,814 +790,37 @@ const Home = observer(() => {
                                     ta="center"
                                     lh={1.6}
                                 >
-                                    Define custom schemas, log entries, build
-                                    saved views, and assemble dashboards that
-                                    visualize your data, without writing a
-                                    single line of code.
+                                    Create a tracker with the fields you want,
+                                    log entries against it, and build boards
+                                    from what you have logged.
                                 </Text>
 
                                 <CtaButtons onAuthOpen={setAuthTab} />
 
-                                <Divider w="100%" maw={500} opacity={0.3} />
-
-                                <SimpleGrid cols={3} spacing={40}>
-                                    {[
-                                        {
-                                            value: "7",
-                                            label: "Data Types",
-                                        },
-                                        {
-                                            value: "7",
-                                            label: "Chart Types",
-                                        },
-                                        {
-                                            value: "∞",
-                                            label: "Combinations",
-                                        },
-                                    ].map((stat) => (
-                                        <Stack
-                                            key={stat.label}
-                                            align="center"
-                                            gap={4}
-                                        >
-                                            <Text
-                                                style={{
-                                                    fontSize: "2.2rem",
-                                                    fontWeight: 900,
-                                                    lineHeight: 1,
-                                                    backgroundImage:
-                                                        titleGradient,
-                                                    WebkitBackgroundClip:
-                                                        "text",
-                                                    WebkitTextFillColor:
-                                                        "transparent",
-                                                    backgroundClip: "text",
-                                                }}
-                                            >
-                                                {stat.value}
-                                            </Text>
-                                            <Text size="sm" c="dimmed" ta="center">
-                                                {stat.label}
-                                            </Text>
-                                        </Stack>
-                                    ))}
-                                </SimpleGrid>
+                                <Stack gap="sm" align="center" mt="lg">
+                                    <Text size="sm" c="dimmed">
+                                        For example
+                                    </Text>
+                                    <Group justify="center" maw={640}>
+                                        <Chips items={USE_CASES} />
+                                    </Group>
+                                </Stack>
                             </Stack>
                         </Container>
                     </Box>
 
-                    <Box
-                        id="features"
-                        style={{ background: altBg, scrollMarginTop: "60px" }}
-                    >
-                        <Container size="lg" py={80}>
-                            <Stack gap={48}>
-                                <SectionHeader
-                                    eyebrow="Features"
-                                    title="Everything you need"
-                                    subtitle="All the building blocks to capture, filter, and understand any kind of data."
-                                    primaryColor={theme.primaryColor}
+                    {/* ── Features ──────────────────────────────────────── */}
+                    <Container size="lg" py={80}>
+                        <Stack gap={80}>
+                            {HOME_SECTIONS.map((section) => (
+                                <FeatureRow
+                                    key={section.id}
+                                    id={section.id}
+                                    {...SECTION_COPY[section.id]}
                                 />
-                                <Grid>
-                                    {FEATURES.map((f) => (
-                                        <Grid.Col
-                                            key={f.title}
-                                            span={{ base: 6, sm: 6, md: 3 }}
-                                        >
-                                            <Card
-                                                withBorder
-                                                radius="md"
-                                                p="lg"
-                                                h="100%"
-                                                style={{
-                                                    borderTop: `3px solid var(--mantine-color-${f.color}-5)`,
-                                                }}
-                                            >
-                                                <Stack gap="sm">
-                                                    <ThemeIcon
-                                                        size={44}
-                                                        radius="md"
-                                                        variant="light"
-                                                        color={f.color}
-                                                    >
-                                                        {f.icon}
-                                                    </ThemeIcon>
-                                                    <Text fw={600} size="sm">
-                                                        {f.title}
-                                                    </Text>
-                                                    <Text
-                                                        size="xs"
-                                                        c="dimmed"
-                                                        lh={1.5}
-                                                    >
-                                                        {f.description}
-                                                    </Text>
-                                                </Stack>
-                                            </Card>
-                                        </Grid.Col>
-                                    ))}
-                                </Grid>
-                            </Stack>
-                        </Container>
-                    </Box>
-
-                    <Box id="data-types" style={{ scrollMarginTop: "60px" }}>
-                        <Container size="lg" py={80}>
-                            <Grid gutter={60} align="center">
-                                <Grid.Col span={{ base: 12, md: 5 }}>
-                                    <Stack gap="lg">
-                                        <div>
-                                            <Text
-                                                size="sm"
-                                                fw={700}
-                                                tt="uppercase"
-                                                c={theme.primaryColor}
-                                                style={{
-                                                    letterSpacing: "0.08em",
-                                                }}
-                                                mb={8}
-                                            >
-                                                Data Types
-                                            </Text>
-                                            <Title order={2} mb="md">
-                                                The right type for every field
-                                            </Title>
-                                            <Text c="dimmed" lh={1.7}>
-                                                Choose from seven data types to
-                                                model your data precisely.
-                                                Number, TimeSpan, and Boolean
-                                                fields support calculated values,
-                                                derived automatically from
-                                                other fields using formula
-                                                syntax.
-                                            </Text>
-                                        </div>
-
-                                    </Stack>
-                                </Grid.Col>
-
-                                <Grid.Col span={{ base: 12, md: 7 }}>
-                                    <SimpleGrid cols={2} spacing="md">
-                                        {DATA_TYPES.map((dt) => (
-                                            <Card
-                                                key={dt.label}
-                                                withBorder
-                                                radius="md"
-                                                p="lg"
-                                            >
-                                                <Group gap="md" mb="xs">
-                                                    <ThemeIcon
-                                                        size={36}
-                                                        radius="md"
-                                                        variant="light"
-                                                        color={dt.color}
-                                                    >
-                                                        {dt.icon}
-                                                    </ThemeIcon>
-                                                    <Text fw={600} size="sm">
-                                                        {dt.label}
-                                                    </Text>
-                                                </Group>
-                                                <Text size="xs" c="dimmed" lh={1.5}>
-                                                    {dt.description}
-                                                </Text>
-                                            </Card>
-                                        ))}
-                                    </SimpleGrid>
-                                </Grid.Col>
-                            </Grid>
-                        </Container>
-                    </Box>
-
-                    <Box
-                        id="use-cases"
-                        style={{ background: altBg, scrollMarginTop: "60px" }}
-                    >
-                        <Container size="lg" py={80}>
-                            <Stack gap={48}>
-                                <SectionHeader
-                                    eyebrow="Use Cases"
-                                    title="Track anything you can imagine"
-                                    subtitle="From personal habits to complex projects. If it has data, you can track it."
-                                    primaryColor={theme.primaryColor}
-                                />
-                                <Grid>
-                                    {USE_CASES.map((uc) => (
-                                        <Grid.Col
-                                            key={uc.title}
-                                            span={{ base: 6, sm: 6, md: 4 }}
-                                        >
-                                            <Card
-                                                withBorder
-                                                radius="md"
-                                                p="lg"
-                                                h="100%"
-                                            >
-                                                <Stack gap="sm">
-                                                    <ThemeIcon
-                                                        size={44}
-                                                        radius="md"
-                                                        variant="light"
-                                                        color={uc.color}
-                                                    >
-                                                        {uc.icon}
-                                                    </ThemeIcon>
-                                                    <Text fw={600} size="sm">
-                                                        {uc.title}
-                                                    </Text>
-                                                    <Text
-                                                        size="xs"
-                                                        c="dimmed"
-                                                        lh={1.5}
-                                                    >
-                                                        {uc.description}
-                                                    </Text>
-                                                </Stack>
-                                            </Card>
-                                        </Grid.Col>
-                                    ))}
-                                </Grid>
-                            </Stack>
-                        </Container>
-                    </Box>
-
-                    <Box
-                        id="getting-started"
-                        style={{ scrollMarginTop: "60px" }}
-                    >
-                        <Container size="lg" py={80}>
-                            <Stack gap={48}>
-                                <SectionHeader
-                                    eyebrow="Getting Started"
-                                    title="Set up a tracker in minutes"
-                                    subtitle="Start from a template, follow the wizard, or build it by hand."
-                                    primaryColor={theme.primaryColor}
-                                />
-                                <Grid>
-                                    {START_METHODS.map((m) => (
-                                        <Grid.Col
-                                            key={m.title}
-                                            span={{ base: 12, sm: 4 }}
-                                        >
-                                            <Card
-                                                withBorder
-                                                radius="md"
-                                                p="lg"
-                                                h="100%"
-                                                style={{
-                                                    borderTop: `3px solid var(--mantine-color-${m.color}-5)`,
-                                                }}
-                                            >
-                                                <Stack gap="sm">
-                                                    <ThemeIcon
-                                                        size={44}
-                                                        radius="md"
-                                                        variant="light"
-                                                        color={m.color}
-                                                    >
-                                                        {m.icon}
-                                                    </ThemeIcon>
-                                                    <Text fw={600} size="sm">
-                                                        {m.title}
-                                                    </Text>
-                                                    <Text
-                                                        size="xs"
-                                                        c="dimmed"
-                                                        lh={1.5}
-                                                    >
-                                                        {m.description}
-                                                    </Text>
-                                                </Stack>
-                                            </Card>
-                                        </Grid.Col>
-                                    ))}
-                                </Grid>
-                            </Stack>
-                        </Container>
-                    </Box>
-
-                    <Box id="dashboards" style={{ scrollMarginTop: "60px" }}>
-                        <Container size="lg" py={80}>
-                            <Stack gap={48}>
-                                <SectionHeader
-                                    eyebrow="Dashboards"
-                                    title="Put it all on one board"
-                                    subtitle="Drag widgets into place on any number of boards. Keep separate desktop and mobile layouts, arranging the phone version in a phone-width frame without leaving your desk."
-                                    primaryColor={theme.primaryColor}
-                                />
-                                <Grid>
-                                    {WIDGET_TYPES.map((w) => (
-                                        <Grid.Col
-                                            key={w.label}
-                                            span={{ base: 6, sm: 6, md: 4 }}
-                                        >
-                                            <Card
-                                                withBorder
-                                                radius="md"
-                                                p="lg"
-                                                h="100%"
-                                            >
-                                                <Group gap="md" mb="xs">
-                                                    <ThemeIcon
-                                                        size={36}
-                                                        radius="md"
-                                                        variant="light"
-                                                        color={w.color}
-                                                    >
-                                                        {w.icon}
-                                                    </ThemeIcon>
-                                                    <Text fw={600} size="sm">
-                                                        {w.label}
-                                                    </Text>
-                                                </Group>
-                                                <Text size="xs" c="dimmed" lh={1.5}>
-                                                    {w.description}
-                                                </Text>
-                                            </Card>
-                                        </Grid.Col>
-                                    ))}
-                                </Grid>
-                            </Stack>
-                        </Container>
-                    </Box>
-
-                    <Box
-                        id="analytics"
-                        style={{ background: altBg, scrollMarginTop: "60px" }}
-                    >
-                        <Container size="lg" py={80}>
-                            <Stack gap={48}>
-                                <SectionHeader
-                                    eyebrow="Analytics"
-                                    title="Many ways to see your data"
-                                    subtitle="Seven chart types, with line and bar charts shaped by grouping and calculation independently. Combine trackers on one axis, or scope a chart to a saved view."
-                                    primaryColor={theme.primaryColor}
-                                />
-                                <Grid>
-                                    <Grid.Col span={{ base: 12, sm: 6 }}>
-                                        <Card withBorder radius="md" p="lg" h="100%">
-                                            <Stack gap="xs" mb="md">
-                                                <Text fw={600} size="sm">
-                                                    {ANALYTICS_CARDS.single.title}
-                                                </Text>
-                                                <Text size="xs" c="dimmed">
-                                                    {ANALYTICS_CARDS.single.subtitle}
-                                                </Text>
-                                            </Stack>
-                                            <Stack
-                                                align="center"
-                                                justify="center"
-                                                h={240}
-                                                gap={4}
-                                            >
-                                                <Text
-                                                    style={{
-                                                        fontSize: "3.5rem",
-                                                        fontWeight: 900,
-                                                        lineHeight: 1,
-                                                        backgroundImage:
-                                                            titleGradient,
-                                                        WebkitBackgroundClip:
-                                                            "text",
-                                                        WebkitTextFillColor:
-                                                            "transparent",
-                                                        backgroundClip: "text",
-                                                    }}
-                                                >
-                                                    1,284
-                                                </Text>
-                                                <Text size="sm" c="dimmed">
-                                                    entries logged this year
-                                                </Text>
-                                            </Stack>
-                                        </Card>
-                                    </Grid.Col>
-
-                                    <Grid.Col span={{ base: 12, sm: 6 }}>
-                                        <Card withBorder radius="md" p="lg" h="100%">
-                                            <Stack gap="xs" mb="md">
-                                                <Text fw={600} size="sm">
-                                                    {ANALYTICS_CARDS.goal.title}
-                                                </Text>
-                                                <Text size="xs" c="dimmed">
-                                                    {ANALYTICS_CARDS.goal.subtitle}
-                                                </Text>
-                                            </Stack>
-                                            <Stack justify="center" h={240} gap={14}>
-                                                <Group
-                                                    justify="space-between"
-                                                    align="baseline"
-                                                >
-                                                    <Text
-                                                        fw={700}
-                                                        style={{
-                                                            fontSize: "2rem",
-                                                            lineHeight: 1,
-                                                        }}
-                                                    >
-                                                        18,240
-                                                    </Text>
-                                                    <Text
-                                                        fw={600}
-                                                        size="sm"
-                                                        c={theme.primaryColor}
-                                                    >
-                                                        73%
-                                                    </Text>
-                                                </Group>
-                                                <Progress
-                                                    value={73}
-                                                    color={`${theme.primaryColor}.6`}
-                                                    size="lg"
-                                                    radius="xl"
-                                                />
-                                                <Text size="xs" c="dimmed">
-                                                    Target: 25,000 steps
-                                                </Text>
-                                            </Stack>
-                                        </Card>
-                                    </Grid.Col>
-
-                                    <Grid.Col span={{ base: 12, sm: 6 }}>
-                                        <Card withBorder radius="md" p="lg" h="100%">
-                                            <Stack gap="xs" mb="md">
-                                                <Text fw={600} size="sm">
-                                                    {ANALYTICS_CARDS.line.title}
-                                                </Text>
-                                                <Text size="xs" c="dimmed">
-                                                    {ANALYTICS_CARDS.line.subtitle}
-                                                </Text>
-                                            </Stack>
-                                            <LineChart
-                                                data={LINE_DATA}
-                                                dataKey="month"
-                                                series={[
-                                                    {
-                                                        name: "value",
-                                                        color: `${theme.primaryColor}.6`,
-                                                        label: "Entries",
-                                                    },
-                                                ]}
-                                                h={240}
-                                                gridAxis="x"
-                                                withDots={false}
-                                                withTooltip={false}
-                                            />
-                                        </Card>
-                                    </Grid.Col>
-
-                                    <Grid.Col span={{ base: 12, sm: 6 }}>
-                                        <Card withBorder radius="md" p="lg" h="100%">
-                                            <Stack gap="xs" mb="md">
-                                                <Text fw={600} size="sm">
-                                                    {ANALYTICS_CARDS.bar.title}
-                                                </Text>
-                                                <Text size="xs" c="dimmed">
-                                                    {ANALYTICS_CARDS.bar.subtitle}
-                                                </Text>
-                                            </Stack>
-                                            <BarChart
-                                                data={BAR_DATA}
-                                                dataKey="day"
-                                                series={[
-                                                    {
-                                                        name: "count",
-                                                        color: "teal.6",
-                                                        label: "Count",
-                                                    },
-                                                ]}
-                                                h={240}
-                                                withTooltip={false}
-                                                gridAxis="x"
-                                            />
-                                        </Card>
-                                    </Grid.Col>
-
-                                    <Grid.Col span={{ base: 12, sm: 6 }}>
-                                        <Card withBorder radius="md" p="lg" h="100%">
-                                            <Stack gap="xs" mb="md">
-                                                <Text fw={600} size="sm">
-                                                    {ANALYTICS_CARDS.donut.title}
-                                                </Text>
-                                                <Text size="xs" c="dimmed">
-                                                    {ANALYTICS_CARDS.donut.subtitle}
-                                                </Text>
-                                            </Stack>
-                                            <Box
-                                                style={{
-                                                    display: "flex",
-                                                    justifyContent: "center",
-                                                }}
-                                            >
-                                                <DonutChart
-                                                    data={DONUT_DATA}
-                                                    size={160}
-                                                    thickness={22}
-                                                    paddingAngle={2}
-                                                    withLabels
-                                                    withLabelsLine
-                                                    labelsType="percent"
-                                                    tooltipDataSource="segment"
-                                                    h={240}
-                                                />
-                                            </Box>
-                                        </Card>
-                                    </Grid.Col>
-
-                                    <Grid.Col span={{ base: 12, sm: 6 }}>
-                                        <Card withBorder radius="md" p="lg" h="100%">
-                                            <Stack gap="xs" mb="md">
-                                                <Text fw={600} size="sm">
-                                                    {ANALYTICS_CARDS.scatter.title}
-                                                </Text>
-                                                <Text size="xs" c="dimmed">
-                                                    {
-                                                        ANALYTICS_CARDS.scatter
-                                                            .subtitle
-                                                    }
-                                                </Text>
-                                            </Stack>
-                                            <ScatterChart
-                                                data={SCATTER_DATA}
-                                                dataKey={{ x: "x", y: "y" }}
-                                                h={240}
-                                                gridAxis="x"
-                                                withTooltip={false}
-                                            />
-                                        </Card>
-                                    </Grid.Col>
-
-                                    <Grid.Col span={12}>
-                                        <Card withBorder radius="md" p="lg" h="100%">
-                                            <Stack gap="xs" mb="md">
-                                                <Text fw={600} size="sm">
-                                                    {ANALYTICS_CARDS.calendar.title}
-                                                </Text>
-                                                <Text size="xs" c="dimmed">
-                                                    {
-                                                        ANALYTICS_CARDS.calendar
-                                                            .subtitle
-                                                    }
-                                                </Text>
-                                            </Stack>
-                                            <Box style={{ overflowX: "auto" }}>
-                                                <Heatmap
-                                                    data={CALENDAR_DATA}
-                                                    startDate="2025-01-01"
-                                                    endDate="2025-12-31"
-                                                    withMonthLabels
-                                                    withTooltip={false}
-                                                    rectSize={13}
-                                                    gap={3}
-                                                    colors={[
-                                                        `var(--mantine-color-${theme.primaryColor}-3)`,
-                                                        `var(--mantine-color-${theme.primaryColor}-5)`,
-                                                        `var(--mantine-color-${theme.primaryColor}-7)`,
-                                                        `var(--mantine-color-${theme.primaryColor}-9)`,
-                                                    ]}
-                                                />
-                                            </Box>
-                                        </Card>
-                                    </Grid.Col>
-                                </Grid>
-                            </Stack>
-                        </Container>
-                    </Box>
-
-                    <Box id="integrations" style={{ scrollMarginTop: "60px" }}>
-                        <Container size="lg" py={80}>
-                            <Grid gutter={60} align="center">
-                                <Grid.Col span={{ base: 12, md: 5 }}>
-                                    <Stack gap="lg">
-                                        <div>
-                                            <Text
-                                                size="sm"
-                                                fw={700}
-                                                tt="uppercase"
-                                                c={theme.primaryColor}
-                                                style={{
-                                                    letterSpacing: "0.08em",
-                                                }}
-                                                mb={8}
-                                            >
-                                                Integrations
-                                            </Text>
-                                            <Title order={2} mb="md">
-                                                Bring data in automatically
-                                            </Title>
-                                            <Text c="dimmed" lh={1.7}>
-                                                Connect a service and map its
-                                                values onto tracker fields.
-                                                Imports are read-only and update
-                                                rows in place instead of
-                                                duplicating them, and you can
-                                                re-import from any date to
-                                                backfill history. Stored
-                                                credentials are encrypted at
-                                                rest.
-                                            </Text>
-                                        </div>
-                                    </Stack>
-                                </Grid.Col>
-
-                                <Grid.Col span={{ base: 12, md: 7 }}>
-                                    <SimpleGrid
-                                        cols={{ base: 1, sm: 2 }}
-                                        spacing="md"
-                                    >
-                                        {PROVIDERS.map((p) => (
-                                            <Card
-                                                key={p.title}
-                                                withBorder
-                                                radius="md"
-                                                p="lg"
-                                                h="100%"
-                                                style={{
-                                                    borderTop: `3px solid var(--mantine-color-${p.color}-5)`,
-                                                }}
-                                            >
-                                                <Stack gap="sm">
-                                                    <ThemeIcon
-                                                        size={44}
-                                                        radius="md"
-                                                        variant="light"
-                                                        color={p.color}
-                                                    >
-                                                        {p.icon}
-                                                    </ThemeIcon>
-                                                    <Text fw={600} size="sm">
-                                                        {p.title}
-                                                    </Text>
-                                                    <Text
-                                                        size="xs"
-                                                        c="dimmed"
-                                                        lh={1.5}
-                                                    >
-                                                        {p.detail}
-                                                    </Text>
-                                                    <List
-                                                        size="xs"
-                                                        c="dimmed"
-                                                        spacing={4}
-                                                    >
-                                                        {p.abilities.map((a) => (
-                                                            <List.Item key={a}>
-                                                                {a}
-                                                            </List.Item>
-                                                        ))}
-                                                    </List>
-                                                </Stack>
-                                            </Card>
-                                        ))}
-                                    </SimpleGrid>
-                                </Grid.Col>
-                            </Grid>
-                        </Container>
-                    </Box>
-
-                    <Box
-                        id="notifications"
-                        style={{ background: altBg, scrollMarginTop: "60px" }}
-                    >
-                        <Container size="lg" py={80}>
-                            <Grid gutter={60} align="center">
-                                <Grid.Col span={{ base: 12, md: 5 }}>
-                                    <Stack gap="lg">
-                                        <div>
-                                            <Text
-                                                size="sm"
-                                                fw={700}
-                                                tt="uppercase"
-                                                c={theme.primaryColor}
-                                                style={{
-                                                    letterSpacing: "0.08em",
-                                                }}
-                                                mb={8}
-                                            >
-                                                Notifications
-                                            </Text>
-                                            <Title order={2} mb="md">
-                                                Know when your data moves
-                                            </Title>
-                                            <Text c="dimmed" lh={1.7}>
-                                                Give a tracker alert rules that
-                                                watch its entries or a chart's
-                                                value. Each rule checks on a
-                                                schedule or the instant a
-                                                condition turns true, scopes to a
-                                                view, and resolves times in your
-                                                account time zone.
-                                            </Text>
-                                        </div>
-                                    </Stack>
-                                </Grid.Col>
-
-                                <Grid.Col span={{ base: 12, md: 7 }}>
-                                    <SimpleGrid
-                                        cols={{ base: 1, sm: 3 }}
-                                        spacing="md"
-                                    >
-                                        {NOTIFICATION_ASPECTS.map((a) => (
-                                            <Card
-                                                key={a.title}
-                                                withBorder
-                                                radius="md"
-                                                p="lg"
-                                                h="100%"
-                                                style={{
-                                                    borderTop: `3px solid var(--mantine-color-${a.color}-5)`,
-                                                }}
-                                            >
-                                                <Stack gap="sm">
-                                                    <ThemeIcon
-                                                        size={44}
-                                                        radius="md"
-                                                        variant="light"
-                                                        color={a.color}
-                                                    >
-                                                        {a.icon}
-                                                    </ThemeIcon>
-                                                    <Text fw={600} size="sm">
-                                                        {a.title}
-                                                    </Text>
-                                                    <Text
-                                                        size="xs"
-                                                        c="dimmed"
-                                                        lh={1.5}
-                                                    >
-                                                        {a.detail}
-                                                    </Text>
-                                                </Stack>
-                                            </Card>
-                                        ))}
-                                    </SimpleGrid>
-                                </Grid.Col>
-                            </Grid>
-                        </Container>
-                    </Box>
-
-                    <Box
-                        id="collaboration"
-                        style={{ scrollMarginTop: "60px" }}
-                    >
-                        <Container size="lg" py={80}>
-                            <Stack gap={48}>
-                                <SectionHeader
-                                    eyebrow="Collaboration"
-                                    title="Share with the right permissions"
-                                    subtitle="Grant teammates exactly the level of access they need, nothing more."
-                                    primaryColor={theme.primaryColor}
-                                />
-                                <Grid>
-                                    {COLLAB_ROLES.map((role) => (
-                                        <Grid.Col
-                                            key={role.title}
-                                            span={{ base: 6, sm: 6, md: 3 }}
-                                        >
-                                            <Card
-                                                withBorder
-                                                radius="md"
-                                                p="lg"
-                                                h="100%"
-                                                style={{
-                                                    borderTop: `3px solid var(--mantine-color-${role.color}-5)`,
-                                                }}
-                                            >
-                                                <Stack gap="sm">
-                                                    <ThemeIcon
-                                                        size={44}
-                                                        radius="md"
-                                                        variant="light"
-                                                        color={role.color}
-                                                    >
-                                                        {role.icon}
-                                                    </ThemeIcon>
-                                                    <Text fw={600} size="sm">
-                                                        {role.title}
-                                                    </Text>
-                                                    <List
-                                                        size="xs"
-                                                        c="dimmed"
-                                                        spacing={4}
-                                                    >
-                                                        {role.abilities.map(
-                                                            (a) => (
-                                                                <List.Item
-                                                                    key={a}
-                                                                >
-                                                                    {a}
-                                                                </List.Item>
-                                                            )
-                                                        )}
-                                                    </List>
-                                                </Stack>
-                                            </Card>
-                                        </Grid.Col>
-                                    ))}
-                                </Grid>
-                            </Stack>
-                        </Container>
-                    </Box>
+                            ))}
+                        </Stack>
+                    </Container>
 
                     {/* ── CTA ───────────────────────────────────────────── */}
                     {!globalStore.currentUser && (
@@ -1456,7 +837,7 @@ const Home = observer(() => {
                             >
                                 <Stack align="center" gap="lg" py="xl">
                                     <Title order={2} ta="center">
-                                        Ready to start tracking?
+                                        Create an account
                                     </Title>
                                     <Text
                                         size="lg"
@@ -1464,14 +845,15 @@ const Home = observer(() => {
                                         ta="center"
                                         maw={480}
                                     >
-                                        Create an account and build your first
-                                        tracker in minutes.
+                                        Build your first tracker and start
+                                        logging entries.
                                     </Text>
                                     <CtaButtons onAuthOpen={setAuthTab} />
                                 </Stack>
                             </Card>
                         </Container>
                     )}
+                    {/* ── Footer ───────────────────────────────────────── */}
                     <Box
                         style={{
                             borderTop: "1px solid var(--mantine-color-default-border)",

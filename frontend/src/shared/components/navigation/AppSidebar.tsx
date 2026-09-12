@@ -197,7 +197,7 @@ const AppSidebar = observer(
                         mb="xs"
                     >
                         {!collapsed && showBrand && (
-                            <UnstyledButton onClick={() => go("/dashboard")}>
+                            <UnstyledButton onClick={() => go("/home")}>
                                 <Title order={3} c={theme.primaryColor}>
                                     Operum
                                 </Title>
