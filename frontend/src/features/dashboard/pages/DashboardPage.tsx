@@ -20,6 +20,7 @@ import {
 } from "react-icons/tb";
 import { useNavigate, useParams } from "react-router-dom";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
+import NotFound from "../../../shared/components/NotFound";
 import SidebarBurger from "../../../shared/components/navigation/SidebarBurger";
 import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
 import navigationStore from "../../../shared/stores/NavigationStore";
@@ -415,7 +416,7 @@ const DashboardPage = observer(function DashboardPage() {
 
     const activeBoard = boards.find((b) => b.id === dashboardId);
 
-    // Resolve a bare /dashboard (or a stale id) to the last board that was opened
+    // Resolve a bare /dashboard to the last board that was opened
     useEffect(() => {
         if (isLoadingBoards || boards.length === 0) return;
 
@@ -424,10 +425,13 @@ const DashboardPage = observer(function DashboardPage() {
             return;
         }
 
+        // An id that matches no board gets the not-found page below instead
+        if (dashboardId) return;
+
         const remembered = localStorage.getItem(LAST_BOARD_KEY);
         const target = boards.find((b) => b.id === remembered) ?? boards[0];
         navigate(`/dashboard/${target.id}`, { replace: true });
-    }, [isLoadingBoards, boards, activeBoard, navigate]);
+    }, [isLoadingBoards, boards, activeBoard, dashboardId, navigate]);
 
     const handleCreate = async (values: {
         name: string;
@@ -521,9 +525,12 @@ const DashboardPage = observer(function DashboardPage() {
         );
     }
 
-    // The effect above is redirecting to a real board; this is a one-frame
-    // gap, not a fetch, so it gets no spinner of its own either.
     if (!activeBoard) {
+        if (dashboardId) {
+            return <NotFound path={`/dashboard/${dashboardId}`} />;
+        }
+        // The effect above is redirecting to a real board; this is a one-frame
+        // gap, not a fetch, so it gets no spinner of its own either.
         return null;
     }
 

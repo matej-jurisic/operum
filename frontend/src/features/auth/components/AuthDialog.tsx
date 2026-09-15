@@ -1,4 +1,4 @@
-import { Anchor, Checkbox, Group, Modal, PasswordInput, Stack, Text, TextInput } from "@mantine/core";
+import { Alert, Anchor, Checkbox, Group, Modal, PasswordInput, Stack, Text, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -64,9 +64,6 @@ export default function AuthDialog(props: Props) {
                 if (!/\d/.test(value)) {
                     return "Password must include a number";
                 }
-                if (!/[^\w\d\s]/.test(value)) {
-                    return "Password must include a special character";
-                }
                 return null;
             },
             confirmPassword: (value, values) => {
@@ -93,12 +90,19 @@ export default function AuthDialog(props: Props) {
         }
     };
 
+    const [selectedTab, setSelectedTab] = useState(props.initialTab ?? "login");
+    const [registeredNotice, setRegisteredNotice] = useState<string>();
+
     const onRegister = async (values: RegisterDto & { agreedToTerms: boolean }) => {
         const { agreedToTerms: _, ...dto } = values;
-        await authController.register(dto);
+        const res = await authController.register(dto);
+        if (res.isSuccess) {
+            // The message says whether to confirm the email first or log in right away
+            setRegisteredNotice(res.messages[0]);
+            loginForm.setFieldValue("credentials", dto.userName);
+            setSelectedTab("login");
+        }
     };
-
-    const [selectedTab, setSelectedTab] = useState(props.initialTab ?? "login");
 
     return (
         <>
@@ -111,6 +115,11 @@ export default function AuthDialog(props: Props) {
                             onSubmit={onLogin}
                             onSwitchMode={() => setSelectedTab("register")}
                         >
+                            {registeredNotice && (
+                                <Alert color="teal" variant="light">
+                                    {registeredNotice}
+                                </Alert>
+                            )}
                             <TextInput
                                 label="Username or Email"
                                 required

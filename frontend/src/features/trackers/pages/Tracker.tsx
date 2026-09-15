@@ -11,6 +11,7 @@ import {
 } from "react-icons/ci";
 import { useNavigate, useParams } from "react-router-dom";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
+import NotFound from "../../../shared/components/NotFound";
 import { readDefaultPage } from "../../../shared/constants/defaultPage";
 import { ComposedTrackerProvider } from "../../../shared/context/ComposedTrackerProvider";
 import globalStore from "../../../shared/stores/GlobalStore";
@@ -36,6 +37,7 @@ export default function Tracker() {
     const [tracker, setTracker] = useState<TrackerDto>();
     const [editOpen, setEditOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
+    const [missingTrackerId, setMissingTrackerId] = useState<string>();
 
     const urlParts = (splat ?? "").split("/").filter(Boolean);
     const rawTab = urlParts[0] || "entries";
@@ -53,8 +55,14 @@ export default function Tracker() {
 
     const fetchTracker = useCallback(async () => {
         if (trackerId) {
-            const response = await trackersController.getTracker(trackerId);
-            setTracker(response.data);
+            try {
+                const response = await trackersController.getTracker(trackerId);
+                setTracker(response.data);
+            } catch (error) {
+                // The api layer rejects with the response body, or with nothing when no
+                // response came back at all (offline, timeout). Only the former means gone.
+                if (error) setMissingTrackerId(trackerId);
+            }
         }
     }, [trackerId]);
 
@@ -78,6 +86,9 @@ export default function Tracker() {
     // Until the freshly fetched tracker matches the id in the URL, the providers below
     // would be seeded with the previous tracker -- they only read initialTracker once.
     // Holding the render (and keying on the id) forces a clean remount per tracker.
+    if (trackerId && missingTrackerId === trackerId) {
+        return <NotFound path={`/trackers/${trackerId}`} />;
+    }
     if (!tracker || tracker.id !== trackerId) return <></>;
 
     const isOwner = tracker.ownerId === globalStore.currentUser?.id;

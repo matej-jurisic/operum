@@ -51,7 +51,7 @@
   "RateLimiting": {
     "WindowMinutes": 1,
     "PermitLimit": 120,
-    "QueueLimit": 10
+    "QueueLimit": 0
   },
   "Lockout": {
     "DurationMinutes": 30,

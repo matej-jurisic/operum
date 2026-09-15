@@ -17,6 +17,7 @@ import {
     useMantineTheme,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import { notifications } from "@mantine/notifications";
 import { observer } from "mobx-react";
 import { useEffect, useState } from "react";
 import { TbDatabase, TbLayoutGrid, TbUsers } from "react-icons/tb";
@@ -132,6 +133,11 @@ const ProfilePage = observer(function ProfilePage() {
                 userName: res.data.userName ?? values.userName,
                 roles: user.roles,
             });
+            notifications.show({
+                message: "Username updated",
+                color: "teal",
+                withBorder: true,
+            });
         }
     };
 
@@ -139,6 +145,11 @@ const ProfilePage = observer(function ProfilePage() {
         const res = await profileController.updateTimezone(values.timeZone);
         if (res.isSuccess) {
             globalStore.setCurrentUser({ ...user, timeZone: values.timeZone });
+            notifications.show({
+                message: "Time zone updated",
+                color: "teal",
+                withBorder: true,
+            });
         }
     };
 
@@ -147,7 +158,14 @@ const ProfilePage = observer(function ProfilePage() {
             values.currentPassword,
             values.newPassword,
         );
-        if (res.isSuccess) passwordForm.reset();
+        if (res.isSuccess) {
+            passwordForm.reset();
+            notifications.show({
+                message: "Password changed",
+                color: "teal",
+                withBorder: true,
+            });
+        }
     };
 
     const handleDeleteAccount = async () => {

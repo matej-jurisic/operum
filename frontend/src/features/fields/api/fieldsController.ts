@@ -1,4 +1,4 @@
-import api from "../../../shared/api/api";
+import api, { LONG_REQUEST_TIMEOUT_MS } from "../../../shared/api/api";
 import { ApiResponse } from "../../../shared/types/ApiResponse";
 import { CreateFieldDto } from "../types/CreateFieldDto";
 import {
@@ -48,7 +48,8 @@ export const fieldsController = {
     ): Promise<ApiResponse<ExtractFieldsResultDto>> => {
         return await api.post(
             `/trackers/${trackerId}/fields/extract`,
-            values
+            values,
+            { timeout: LONG_REQUEST_TIMEOUT_MS }
         );
     },
 };

@@ -1,5 +1,7 @@
 ﻿using MicroElements.Swashbuckle.FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
+using System.Security.Claims;
 using System.Threading.RateLimiting;
 
 namespace Operum.API.Configuration
@@ -15,6 +17,7 @@ namespace Operum.API.Configuration
             services.AddRouting(options => options.LowercaseUrls = true);
             services.AddHttpContextAccessor();
             services.RegisterCors(configuration);
+            services.RegisterForwardedHeaders();
             services.RegisterRateLimiting(configuration);
 
             DatabaseConfiguration.Configure(services, configuration);
@@ -50,13 +53,40 @@ namespace Operum.API.Configuration
 
             services.AddRateLimiter(options =>
             {
-                options.AddFixedWindowLimiter("fixed", config =>
+                options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+                // One window per signed-in user, and per client address for anonymous calls
+                // (login, register, webhooks), so one busy client never throttles everyone else.
+                options.AddPolicy("fixed", httpContext =>
                 {
-                    config.Window = TimeSpan.FromMinutes(windowMinutes ?? 1);
-                    config.PermitLimit = permitLimit ?? 120;
-                    config.QueueLimit = queueLimit ?? 10;
-                    config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                    var userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+                    var partitionKey = userId != null
+                        ? $"user:{userId}"
+                        : $"ip:{httpContext.Connection.RemoteIpAddress}";
+
+                    return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+                    {
+                        Window = TimeSpan.FromMinutes(windowMinutes ?? 1),
+                        PermitLimit = permitLimit ?? 120,
+                        // Queued requests wait for the next window, which outlasts the client's
+                        // timeout, so rejecting straight away gives a clearer error.
+                        QueueLimit = queueLimit ?? 0,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    });
                 });
+            });
+        }
+
+        private static void RegisterForwardedHeaders(this IServiceCollection services)
+        {
+            services.Configure<ForwardedHeadersOptions>(options =>
+            {
+                options.ForwardedHeaders = ForwardedHeaders.XForwardedFor;
+                // The API port is bound to loopback and only reached through the host's reverse
+                // proxy, so its X-Forwarded-For is trusted. Without this every anonymous request
+                // would carry the proxy's address and share one rate limit window.
+                options.KnownNetworks.Clear();
+                options.KnownProxies.Clear();
             });
         }
     }

@@ -7,6 +7,7 @@ import { areNotificationsEnabled } from "../../../features/notifications/config/
 import globalStore from "../../stores/GlobalStore";
 import inboxStore from "../../stores/InboxStore";
 import navigationStore from "../../stores/NavigationStore";
+import ErrorBoundary from "../ErrorBoundary";
 import AppSidebar from "./AppSidebar";
 import AppSpotlight from "./AppSpotlight";
 import NavCreateHost from "./NavCreateHost";
@@ -125,7 +126,10 @@ const AppLayout = observer(() => {
                 h="100%"
                 style={{ backgroundImage: dotPattern, backgroundSize: "28px 28px" }}
             >
-                <Outlet />
+                {/* Keyed on the path, so a crashed page recovers once the sidebar navigates away */}
+                <ErrorBoundary resetKey={location.pathname}>
+                    <Outlet />
+                </ErrorBoundary>
             </AppShell.Main>
 
             <AppSpotlight />

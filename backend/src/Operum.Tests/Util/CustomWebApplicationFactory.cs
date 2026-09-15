@@ -48,6 +48,10 @@ namespace Operum.Tests.Util
         {
             builder.UseEnvironment("Testing");
 
+            // Every test shares one in-process client address and a few seeded users, so the
+            // real limit would throttle the suite. A subclass's Settings can still lower it.
+            builder.UseSetting("RateLimiting:PermitLimit", int.MaxValue.ToString());
+
             foreach (var (key, value) in Settings)
                 builder.UseSetting(key, value);
 

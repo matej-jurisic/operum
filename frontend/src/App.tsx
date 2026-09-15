@@ -6,6 +6,8 @@ import useAuth from "./features/auth/hooks/useAuth";
 import { areIntegrationsEnabled } from "./features/integrations/config/integrationsFeature";
 import { readDefaultPage } from "./shared/constants/defaultPage";
 import AppLayout from "./shared/components/navigation/AppLayout";
+import ErrorBoundary from "./shared/components/ErrorBoundary";
+import NotFound from "./shared/components/NotFound";
 import OperumLoader from "./shared/components/OperumLoader";
 import GenericRoute from "./shared/components/routing/GenericRoute";
 import PrivateRoute from "./shared/components/routing/PrivateRoute";
@@ -72,107 +74,119 @@ const App = observer(() => {
         <>
             <OperumLoader visible={loading} />
             <BrowserRouter>
-                <Suspense fallback={<OperumLoader visible />}>
-                    <Routes>
-                        {/* Public pages -- no app chrome */}
-                        <Route
-                            path="home"
-                            element={
-                                <PublicShell>
-                                    <GenericRoute page={<Home />} />
-                                </PublicShell>
-                            }
-                        />
-                        <Route
-                            path="privacy"
-                            element={
-                                <PublicShell>
-                                    <GenericRoute page={<PrivacyPolicy />} />
-                                </PublicShell>
-                            }
-                        />
-                        <Route
-                            path="terms"
-                            element={
-                                <PublicShell>
-                                    <GenericRoute page={<TermsOfService />} />
-                                </PublicShell>
-                            }
-                        />
-                        <Route
-                            path="confirm-email"
-                            element={
-                                <PublicShell>
-                                    <PublicRoute page={<ConfirmEmail />} />
-                                </PublicShell>
-                            }
-                        />
+                {/* Last resort for crashes outside the signed-in shell, which has its own
+                    boundary so the sidebar stays usable. */}
+                <ErrorBoundary>
+                    <Suspense fallback={<OperumLoader visible />}>
+                        <Routes>
+                            {/* Public pages -- no app chrome */}
+                            <Route
+                                path="home"
+                                element={
+                                    <PublicShell>
+                                        <GenericRoute page={<Home />} />
+                                    </PublicShell>
+                                }
+                            />
+                            <Route
+                                path="privacy"
+                                element={
+                                    <PublicShell>
+                                        <GenericRoute page={<PrivacyPolicy />} />
+                                    </PublicShell>
+                                }
+                            />
+                            <Route
+                                path="terms"
+                                element={
+                                    <PublicShell>
+                                        <GenericRoute page={<TermsOfService />} />
+                                    </PublicShell>
+                                }
+                            />
+                            <Route
+                                path="confirm-email"
+                                element={
+                                    <PublicShell>
+                                        <PublicRoute page={<ConfirmEmail />} />
+                                    </PublicShell>
+                                }
+                            />
 
-                        {/* Signed-in app -- sidebar + command palette */}
-                        <Route element={<AppLayout />}>
-                            <Route
-                                path="profile"
-                                element={<PrivateRoute page={<ProfilePage />} />}
-                            />
-                            <Route
-                                path="trackers/:trackerId"
-                                element={<PrivateRoute page={<Tracker />} />}
-                            />
-                            <Route
-                                path="trackers/:trackerId/*"
-                                element={<PrivateRoute page={<Tracker />} />}
-                            />
-                            <Route
-                                path="explore"
-                                element={<PrivateRoute page={<ExplorePage />} />}
-                            />
-                            <Route
-                                path="dashboard"
-                                element={<PrivateRoute page={<DashboardPage />} />}
-                            />
-                            <Route
-                                path="dashboard/:dashboardId"
-                                element={<PrivateRoute page={<DashboardPage />} />}
-                            />
-                            {/* Gated at build time, so the route simply does not exist
-                                when the feature is off -- the backend 404s it either way. */}
-                            {areIntegrationsEnabled && (
+                            {/* Signed-in app -- sidebar + command palette */}
+                            <Route element={<AppLayout />}>
                                 <Route
-                                    path="integrations"
+                                    path="profile"
+                                    element={<PrivateRoute page={<ProfilePage />} />}
+                                />
+                                <Route
+                                    path="trackers/:trackerId"
+                                    element={<PrivateRoute page={<Tracker />} />}
+                                />
+                                <Route
+                                    path="trackers/:trackerId/*"
+                                    element={<PrivateRoute page={<Tracker />} />}
+                                />
+                                <Route
+                                    path="explore"
+                                    element={<PrivateRoute page={<ExplorePage />} />}
+                                />
+                                <Route
+                                    path="dashboard"
+                                    element={<PrivateRoute page={<DashboardPage />} />}
+                                />
+                                <Route
+                                    path="dashboard/:dashboardId"
+                                    element={<PrivateRoute page={<DashboardPage />} />}
+                                />
+                                {/* Gated at build time, so the route simply does not exist
+                                    when the feature is off -- the backend 404s it either way. */}
+                                {areIntegrationsEnabled && (
+                                    <Route
+                                        path="integrations"
+                                        element={
+                                            <PrivateRoute page={<IntegrationsPage />} />
+                                        }
+                                    />
+                                )}
+                                <Route
+                                    path="admin-panel"
                                     element={
-                                        <PrivateRoute page={<IntegrationsPage />} />
+                                        <Navigate to="/admin-panel/overview" replace />
                                     }
                                 />
-                            )}
-                            <Route
-                                path="admin-panel"
-                                element={
-                                    <Navigate to="/admin-panel/overview" replace />
-                                }
-                            />
-                            <Route
-                                path="admin-panel/*"
-                                element={
-                                    <PrivateRoute
-                                        allowedRoles={["admin"]}
-                                        page={<AdminPanel />}
-                                    />
-                                }
-                            />
-                        </Route>
+                                <Route
+                                    path="admin-panel/*"
+                                    element={
+                                        <PrivateRoute
+                                            allowedRoles={["admin"]}
+                                            page={<AdminPanel />}
+                                        />
+                                    }
+                                />
+                            </Route>
 
-                        <Route
-                            path="*"
-                            element={
-                                globalStore.currentUser ? (
-                                    <Navigate to={readDefaultPage()} />
-                                ) : (
-                                    <Navigate to={"/home"} />
-                                )
-                            }
-                        />
-                    </Routes>
-                </Suspense>
+                            <Route
+                                path="/"
+                                element={
+                                    globalStore.currentUser ? (
+                                        <Navigate to={readDefaultPage()} />
+                                    ) : (
+                                        <Navigate to={"/home"} />
+                                    )
+                                }
+                            />
+                            <Route
+                                path="*"
+                                element={
+                                    <PublicShell>
+                                        <NotFound />
+                                    </PublicShell>
+                                }
+                            />
+                        </Routes>
+                    </Suspense>
+                </ErrorBoundary>
             </BrowserRouter>
         </>
     );

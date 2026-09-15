@@ -61,6 +61,9 @@ const showSessionExpiredNotification = () => {
     });
 };
 
+/** Timeout for calls that can legitimately run long: imports, bulk edits, and integration syncs. */
+export const LONG_REQUEST_TIMEOUT_MS = 5 * 60 * 1000;
+
 const api = axios.create({
     baseURL: import.meta.env.VITE_REACT_API_URL,
     headers: {
@@ -88,17 +91,6 @@ api.interceptors.response.use(
             return response;
         }
 
-        const messages = response.data?.messages;
-        if (messages?.length) {
-            messages.forEach((m: string) => {
-                notifications.show({
-                    title: "Success",
-                    message: m,
-                    color: "teal",
-                    withBorder: true,
-                });
-            });
-        }
         return response.data;
     },
     async (error: AxiosError<ApiResponse>) => {
@@ -154,6 +146,16 @@ api.interceptors.response.use(
                     // We must still reject the original request promise here
                     return Promise.reject(refreshError);
                 }
+            }
+
+            if (error.response?.status === 429) {
+                notifications.show({
+                    title: "Error",
+                    message: "Too many requests. Wait a moment and try again.",
+                    color: "red",
+                    withBorder: true,
+                });
+                return Promise.reject(error.response.data);
             }
 
             if (

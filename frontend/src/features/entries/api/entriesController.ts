@@ -1,5 +1,5 @@
 import { AxiosRequestConfig, AxiosResponse } from "axios";
-import api from "../../../shared/api/api";
+import api, { LONG_REQUEST_TIMEOUT_MS } from "../../../shared/api/api";
 import { ApiResponse } from "../../../shared/types/ApiResponse";
 import { PagedResult } from "../../../shared/types/PagedResult";
 import { EntryDto } from "../types/EntryDto";
@@ -15,7 +15,7 @@ export const entriesController = {
         const qs = params.toString();
         return await api.get(
             `/trackers/${trackerId}/entries/export-csv${qs ? `?${qs}` : ""}`,
-            { responseType: "blob" }
+            { responseType: "blob", timeout: LONG_REQUEST_TIMEOUT_MS }
         );
     },
     getEntry: async (
@@ -79,6 +79,7 @@ export const entriesController = {
     ): Promise<ApiResponse> => {
         return await api.delete(`/trackers/${trackerId}/entries`, {
             data: selection,
+            timeout: LONG_REQUEST_TIMEOUT_MS,
         });
     },
     recalculateEntries: async (
@@ -87,7 +88,8 @@ export const entriesController = {
     ): Promise<ApiResponse> => {
         return await api.post(
             `/trackers/${trackerId}/entries/recalculate`,
-            selection
+            selection,
+            { timeout: LONG_REQUEST_TIMEOUT_MS }
         );
     },
     batchEntries: async (
@@ -108,6 +110,7 @@ export const entriesController = {
             headers: {
                 "Content-Type": "multipart/form-data",
             },
+            timeout: LONG_REQUEST_TIMEOUT_MS,
         };
         return await api.post(
             `/trackers/${trackerId}/entries/import-csv`,

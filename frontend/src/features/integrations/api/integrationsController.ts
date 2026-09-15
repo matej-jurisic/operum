@@ -1,4 +1,4 @@
-import api from "../../../shared/api/api";
+import api, { LONG_REQUEST_TIMEOUT_MS } from "../../../shared/api/api";
 import { ApiResponse } from "../../../shared/types/ApiResponse";
 import {
     IntegrationDto,
@@ -48,18 +48,30 @@ export const integrationsController = {
         integrationId: string,
         targetId: string,
     ): Promise<ApiResponse<SyncResultDto>> =>
-        api.post(`/integrations/${integrationId}/targets/${targetId}/sync`, {}),
+        api.post(
+            `/integrations/${integrationId}/targets/${targetId}/sync`,
+            {},
+            { timeout: LONG_REQUEST_TIMEOUT_MS },
+        ),
 
     resyncTarget: async (
         integrationId: string,
         targetId: string,
     ): Promise<ApiResponse<SyncResultDto>> =>
-        api.post(`/integrations/${integrationId}/targets/${targetId}/resync`, {}),
+        api.post(
+            `/integrations/${integrationId}/targets/${targetId}/resync`,
+            {},
+            { timeout: LONG_REQUEST_TIMEOUT_MS },
+        ),
 
     syncIntegration: async (
         integrationId: string,
     ): Promise<ApiResponse<SyncResultDto>> =>
-        api.post(`/integrations/${integrationId}/sync`, {}),
+        api.post(
+            `/integrations/${integrationId}/sync`,
+            {},
+            { timeout: LONG_REQUEST_TIMEOUT_MS },
+        ),
 
     /**
      * Sets a push target's signing secret. For Firefly III, pass the secret copied from its

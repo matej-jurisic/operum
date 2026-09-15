@@ -24,6 +24,8 @@ public partial class Program
 
         var app = builder.Build();
 
+        app.UseForwardedHeaders();
+
         app.UsePathBase("/api");
 
         app.UseSerilogRequestLogging();
@@ -52,6 +54,9 @@ public partial class Program
         app.UseCors("CorsPolicy");
 
         app.UseAuthentication();
+
+        // After authentication, so the limiter can give each signed-in user their own window
+        app.UseRateLimiter();
 
         app.UseHttpMetrics();
 
