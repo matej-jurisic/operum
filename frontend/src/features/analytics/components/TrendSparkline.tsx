@@ -97,28 +97,36 @@ export function TrendSparkline({
             }}
         >
             {spark && (
-                <svg
-                    viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-                    width="80%"
-                    height={HEIGHT}
-                    preserveAspectRatio="none"
-                    style={{ display: "block" }}
+                <div
+                    style={{
+                        width: "80%",
+                        maxWidth: WIDTH,
+                        aspectRatio: `${WIDTH} / ${HEIGHT}`,
+                    }}
                 >
-                    <path
-                        d={spark.linePath}
-                        fill="none"
-                        stroke="var(--mantine-color-dimmed)"
-                        strokeWidth={1.5}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    />
-                    <circle
-                        cx={spark.last[0]}
-                        cy={spark.last[1]}
-                        r={2.5}
-                        fill={`var(--mantine-color-${color ?? "blue"}-6)`}
-                    />
-                </svg>
+                    <svg
+                        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+                        width="100%"
+                        height="100%"
+                        preserveAspectRatio="none"
+                        style={{ display: "block" }}
+                    >
+                        <path
+                            d={spark.linePath}
+                            fill="none"
+                            stroke="var(--mantine-color-dimmed)"
+                            strokeWidth={1.5}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        />
+                        <circle
+                            cx={spark.last[0]}
+                            cy={spark.last[1]}
+                            r={2.5}
+                            fill={`var(--mantine-color-${color ?? "blue"}-6)`}
+                        />
+                    </svg>
+                </div>
             )}
             {delta !== undefined && (
                 <Text

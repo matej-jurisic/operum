@@ -85,7 +85,7 @@ export function SingleValueCard({
                         : undefined
                 }
             >
-                <Stack w={"100%"} h={"100%"} gap={4} justify="space-evenly">
+                <Stack w={"100%"} h={"100%"} gap={10} justify="center">
                     <Text
                         size={valueFontSize ? undefined : "xl"}
                         fw={600}
