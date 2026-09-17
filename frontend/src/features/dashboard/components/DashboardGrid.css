@@ -51,6 +51,15 @@
     cursor: grab;
 }
 
+/* Every drag/resize repositions other tiles beneath it, changing their height and
+   position. The browser's scroll anchoring then "corrects" the page's scroll offset to
+   keep whichever tile it picked as an anchor visually still, which is exactly the
+   unwanted scroll a user fights near the bottom of the board. Excluding the grid's
+   subtree from anchor selection while arranging stops it. */
+.dashboard-grid.is-editing {
+    overflow-anchor: none;
+}
+
 /* While the board is arranged a press on a widget is only ever the start of a drag, never
    a text selection. Left enabled, a touch or long-press that lands on (or just beside) the
    drag grip starts selecting the card's text under it. Turn selection off across every
