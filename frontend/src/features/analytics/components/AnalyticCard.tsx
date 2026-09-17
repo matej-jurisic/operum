@@ -40,11 +40,7 @@ interface AnalyticCardProps {
     onEntryClick?: (entryId: string) => void;
 }
 
-/**
- * The card a result type is drawn with. Shared by the masonry on a tracker page and by
- * the dashboard grid, which differ only in whether the card sizes itself or is sized by
- * the cell it was dropped into.
- */
+/** Shared by the tracker masonry and the dashboard grid. */
 export function AnalyticCard({
     analytic,
     color,

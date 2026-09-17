@@ -75,10 +75,8 @@ namespace Operum.Tests.Tests.Views
             Assert.Equal(expected, notes);
         }
 
-        // Comparing or ordering by a timespan in the database is deliberately not covered:
-        // SQLite refuses TimeSpan in comparisons and ORDER BY, so such a test would fail here
-        // for a reason Postgres does not share. Timespan values themselves are covered in
-        // EntriesTests and EntriesCsvTests.
+        // Timespan filtering/sorting isn't covered here: SQLite (unlike Postgres) refuses TimeSpan
+        // in comparisons and ORDER BY. Timespan values themselves are covered in EntriesTests/EntriesCsvTests.
 
         [Fact]
         public async Task DateFilter_EqualsMatchesEveryTimeOfThatDay()
@@ -130,9 +128,8 @@ namespace Operum.Tests.Tests.Views
             await TestApi.CreateField(client, trackerId, "Note", DataTypes.String);
             var amountId = await TestApi.CreateField(client, trackerId, "Amount", DataTypes.Number);
             var withValue = await TestApi.CreateEntry(client, trackerId, new() { ["Note"] = "has none", ["Amount"] = "1" });
-            // Updating without the Amount key deletes its row entirely, which is not the same
-            // as holding a null. There is no "OR" in the view filter builder, so "not equals"
-            // has to be the one place a value-less entry can still show up: it isn't 5 either.
+            // Omitting the Amount key deletes its row rather than storing null. The filter builder
+            // has no "OR", so "not equals" is the only operator where a value-less entry can still match.
             await TestApi.PutEntry(client, trackerId, withValue, new() { ["Note"] = "has none" });
             await TestApi.CreateEntry(client, trackerId, new() { ["Note"] = "is five", ["Amount"] = "5" });
             await TestApi.CreateEntry(client, trackerId, new() { ["Note"] = "is nine", ["Amount"] = "9" });
@@ -167,8 +164,7 @@ namespace Operum.Tests.Tests.Views
             await TestApi.CreateField(client, trackerId, "Note", DataTypes.String);
             await TestApi.CreateEntry(client, trackerId, new() { ["Note"] = "before the field" });
             await TestApi.CreateEntry(client, trackerId, new() { ["Note"] = "also before" });
-            // Adding the field now leaves the existing entries with no FieldValue row for it,
-            // which "is empty" still has to treat as empty.
+            // Adding the field afterward leaves old entries with no FieldValue row, which "is empty" must still match.
             var amountId = await TestApi.CreateField(client, trackerId, "Amount", DataTypes.Number);
             await TestApi.CreateEntry(client, trackerId, new() { ["Note"] = "filled", ["Amount"] = "1" });
             var viewId = await TestApi.CreateFilterView(client, trackerId, "Missing amount", amountId, OperatorTypes.EqualsOperator, null);

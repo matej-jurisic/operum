@@ -53,8 +53,7 @@ const useAuth = () => {
             timeZone: user.timeZone,
             defaultPage: user.defaultPage,
         });
-        // Partial calls (e.g. the profile page after a username change) omit this;
-        // only mirror it to storage when the caller actually carried a value.
+        // Partial calls (e.g. a username change) omit defaultPage; only mirror it when present.
         if (user.defaultPage !== undefined) writeDefaultPage(user.defaultPage);
         localStorage.setItem(USERNAME_KEY, user.userName);
         localStorage.setItem(ID_KEY, user.id);

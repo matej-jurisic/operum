@@ -24,8 +24,8 @@ namespace Operum.Service.Services.Trackers
         public async Task<Result<TrackerDto>> CreateTracker(CreateTrackerDto tracker)
         {
             var user = currentUserService.GetCurrentUser();
-            // Templates (non-null TrackerTypeId) are a separate class of tracker and don't
-            // count against a user's personal cap, the same exclusion the list queries make.
+            // Templates (non-null TrackerTypeId) don't count against a user's personal cap, the
+            // same exclusion the list queries make.
             var trackerCount = await db.Trackers.Where(x => x.OwnerId == user.Id && x.TrackerTypeId == null).CountAsync();
             if (trackerCount >= DataLimits.MaxTrackerCount)
             {
@@ -54,7 +54,6 @@ namespace Operum.Service.Services.Trackers
                 }
             }
 
-            // Create the tracker
             var trackerModel = mapper.Map<CreateTrackerDto, Tracker>(tracker);
             trackerModel.OwnerId = user.Id;
             trackerModel.Color = trackerModel.Color?.ToLower();
@@ -62,7 +61,6 @@ namespace Operum.Service.Services.Trackers
             await db.Trackers.AddAsync(trackerModel);
             await db.SaveChangesAsync();
 
-            // If creating from template, copy template data
             if (templateTracker != null)
             {
                 await CopyTemplateData(templateTracker, trackerModel);
@@ -74,9 +72,7 @@ namespace Operum.Service.Services.Trackers
 
         private async Task CopyTemplateData(Tracker templateTracker, Tracker newTracker)
         {
-            // Dictionary to map old field IDs to new field IDs
             var fieldIdMapping = new Dictionary<string, string>();
-            // Copy fields
             foreach (var templateField in templateTracker.Fields)
             {
                 var newField = new Field
@@ -93,11 +89,10 @@ namespace Operum.Service.Services.Trackers
                 fieldIdMapping[templateField.Id] = newField.Id;
                 await db.Fields.AddAsync(newField);
             }
-            // Save fields first so they exist for view/query references
+            // Save fields first so they exist for view/query references.
             await db.SaveChangesAsync();
-            // Dictionary to map old view IDs to new view IDs
             var viewIdMapping = new Dictionary<string, string>();
-            // Copy views (shells only — their Queries are copied and linked below)
+            // Copy view shells only; their Queries are copied and linked below.
             foreach (var templateView in templateTracker.Views)
             {
                 var newView = new View
@@ -114,9 +109,9 @@ namespace Operum.Service.Services.Trackers
             // Save the view shells first so they exist for the link references below.
             await db.SaveChangesAsync();
 
-            // Re-link each template ViewQuery: its clause is field-agnostic and pooled under
-            // the new tracker's owner, and it is bound to the copied field. A link whose
-            // field was not copied is dropped whole.
+            // Re-link each template ViewQuery: its clause is field-agnostic and pooled under the
+            // new tracker's owner, then bound to the copied field. A link whose field was not
+            // copied is dropped whole.
             foreach (var templateView in templateTracker.Views)
             {
                 if (!viewIdMapping.TryGetValue(templateView.Id, out var newViewId))
@@ -148,9 +143,8 @@ namespace Operum.Service.Services.Trackers
                 }
             }
 
-            // Widgets aren't tracker-owned any more, so there's nothing analogous to copy
-            // here -- a tracker created from a template simply starts with none, the same
-            // as one created from scratch.
+            // Widgets aren't tracker-owned any more, so a tracker created from a template simply
+            // starts with none, the same as one created from scratch.
             await db.SaveChangesAsync();
         }
 
@@ -259,8 +253,8 @@ namespace Operum.Service.Services.Trackers
                         (x.OwnerId == user.Id || x.ApplicationUserTrackers.Any(a => a.ApplicationUserId == user.Id)))
                     .ToListAsync();
 
-                // Owned trackers sort by Tracker.Order, shared ones by this user's
-                // UserTracker.Order -- the same keys the two single-filter lists use.
+                // Owned trackers sort by Tracker.Order, shared ones by this user's UserTracker.Order
+                // -- the same keys the two single-filter lists use.
                 var ordered = trackers
                     .OrderBy(x => AccessibleOrderKey(x, user.Id))
                     .ThenBy(x => x.Name)
@@ -272,8 +266,8 @@ namespace Operum.Service.Services.Trackers
             return Result.Failure(ResultStatusCodes.BadRequest, Messages.ItemNotFound("filter"));
         }
 
-        // Sort key for the "Accessible" list: the owner's Tracker.Order when this user owns
-        // it, otherwise the user's own UserTracker.Order. Missing orders sink to the bottom.
+        // Sort key for the "Accessible" list: the owner's Tracker.Order when this user owns it,
+        // otherwise their own UserTracker.Order. Missing orders sink to the bottom.
         private static int AccessibleOrderKey(Tracker tracker, string userId)
         {
             if (tracker.OwnerId == userId)
@@ -283,8 +277,8 @@ namespace Operum.Service.Services.Trackers
             return ut?.Order ?? int.MaxValue;
         }
 
-        // Fills EntryCount / LastEntryAt for a page of trackers in a single grouped query
-        // rather than one round-trip per card.
+        // Fills EntryCount / LastEntryAt for a page of trackers in a single grouped query rather
+        // than one round-trip per card.
         private async Task<List<TrackerDto>> WithEntryStats(List<TrackerDto> dtos)
         {
             if (dtos.Count == 0) return dtos;
@@ -560,8 +554,7 @@ namespace Operum.Service.Services.Trackers
                 else if (dto.Filter == TrackerFilters.Accessible)
                 {
                     // The sidebar list: a mix of owned and shared trackers. Each id updates
-                    // whichever order it has -- Tracker.Order for owned, UserTracker.Order
-                    // for shared.
+                    // whichever order it has -- Tracker.Order for owned, UserTracker.Order for shared.
                     var accessible = await db.Trackers
                         .Include(x => x.ApplicationUserTrackers)
                         .Where(x => x.TrackerTypeId == null &&

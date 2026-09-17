@@ -3,9 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Operum.Model.Models
 {
-    // The shared definition of an Entries (read-only table) widget: just which tracker it
-    // reads from. Not owned by any one dashboard -- placed the same way a chart Widget is,
-    // via DashboardItem.EntriesWidgetId.
+    // Not owned by any one dashboard; placed via DashboardItem.EntriesWidgetId.
     public class EntriesWidget
     {
         [Key]

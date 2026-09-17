@@ -40,26 +40,19 @@ interface Props {
         dto: PlaceEntriesWidgetDto,
         followFilters?: FilterFollowLinks,
     ) => Promise<void>;
-    /** When the library item is already chosen (the Charts/Tables tab's "Add" action), the
-        form drops its own tracker/widget pickers and only shows the placement settings. */
+    /** When set, the form drops its own tracker/widget pickers and only shows placement settings. */
     presetWidget?: WidgetDto;
     presetEntriesWidget?: EntriesWidgetDefinitionDto;
 }
 
-// Prefixes distinguishing a chart Widget's id from an EntriesWidget's in the one picker
-// below, the same trick SourceViewSelect uses to offer a fixed view and a linked one from
-// a single Select.
+// Distinguishes a chart Widget's id from an EntriesWidget's in the one picker below.
 const WIDGET_PREFIX = "widget:";
 const ENTRIES_PREFIX = "entries:";
 
 type SourceOverride = ViewSelection & { label: string };
 
-/**
- * Places an existing Widget Library chart or Entries table onto this board by reference:
- * unlike the old copy-on-add, nothing is duplicated here. Editing the widget afterwards --
- * in the Library, or from any other dashboard placing it -- changes what this placement
- * draws too.
- */
+/** Places by reference: editing the widget afterwards, in the Library or from any other
+ *  dashboard placing it, changes what this placement draws too. */
 export function PlaceFromLibraryForm({
     onBack,
     onPlaceWidget,
@@ -119,10 +112,7 @@ export function PlaceFromLibraryForm({
         ? entriesWidgets.find((w) => w.id === selection.slice(ENTRIES_PREFIX.length))
         : undefined;
 
-    // Loads what the current pick needs -- a chart's per-tracker views and fields (fields
-    // for the "Follow filters" checklist below), or an Entries table's tracker fields for
-    // its column picker and the same checklist -- and resets the placement-only fields
-    // below it, which belong to whatever was selected before.
+    // Also resets the placement-only fields below, which belong to whatever was selected before.
     useEffect(() => {
         if (selectedWidget) {
             const trackerIds = [...new Set(selectedWidget.sources.map((s) => s.trackerId))];
@@ -162,9 +152,8 @@ export function PlaceFromLibraryForm({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selection]);
 
-    // A goal's conditional targets key off whichever of the board's filter clauses this
-    // placement's source(s) follow, drawn from the checklist selections above rather than
-    // from saved config since nothing is persisted yet.
+    // Drawn from the checklist selections above rather than saved config, since nothing is
+    // persisted yet.
     const isGoalWidget = selectedWidget?.resultType === AnalyticResultTypeEnum.Goal;
     const goalConnectedClauses = useMemo(() => {
         if (!isGoalWidget) return [];

@@ -6,8 +6,7 @@ import { getAxisFormatter } from "./ChartFormatters";
 
 interface Props {
     analytic: DonutChartAnaylticDto;
-    /** Firefly-style data whose categories are all outflows: the ring shows magnitudes,
-        so shares are taken against the total magnitude too. */
+    /** True when categories are all outflows and the ring shows magnitudes instead of raw values. */
     isAbsolute: boolean;
     opened: boolean;
     onClose: () => void;

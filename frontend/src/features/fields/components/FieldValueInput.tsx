@@ -1,4 +1,3 @@
-// Updated FieldValueInput.tsx
 import { Autocomplete, NumberInput, Select, Textarea } from "@mantine/core";
 import { DatePickerInput, DateTimePicker, TimePicker } from "@mantine/dates";
 import { UseFormReturnType } from "@mantine/form";
@@ -6,8 +5,7 @@ import { CSSProperties } from "react";
 import { FieldDto } from "../types/FieldDto";
 import ReferenceValueInput from "./ReferenceValueInput";
 
-// Loose form typing lets the many differently-shaped forms across the app share this
-// component without a cast at each call site. Matches ReferenceValueInput's AnyForm.
+// Loose typing lets differently-shaped forms share this component without a cast at each call site.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyForm = UseFormReturnType<any>;
 

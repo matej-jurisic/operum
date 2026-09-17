@@ -327,7 +327,7 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                         {...form.getInputProps("type")}
                         onChange={(val) => {
                             form.setFieldValue("type", val ?? "");
-                            // Clear values/value when type changes — they'd be invalid for the new type
+                            // Existing values are invalid for the new type.
                             form.setFieldValue("value", "");
                             form.setFieldValue(
                                 "values",
@@ -348,7 +348,6 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                         onChange={(v) => form.setFieldValue("value", v)}
                     />
 
-                    {/* Conditional Values */}
                     <Stack gap="sm">
                         <Group justify="space-between" align="center">
                             <Title order={5}>
@@ -393,7 +392,6 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                                 {form.values.values.map((cv, vi) => (
                                     <Paper key={vi} p="md" withBorder>
                                         <Stack gap="md">
-                                            {/* Priority + Value + Delete — all aligned to bottom */}
                                             <Group gap="md" align="flex-end">
                                                 <NumberInput
                                                     label="Priority"
@@ -436,7 +434,6 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                                                 </ActionIcon>
                                             </Group>
 
-                                            {/* Filters */}
                                             <Stack gap="xs">
                                                 <Group
                                                     justify="space-between"

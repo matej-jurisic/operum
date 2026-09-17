@@ -10,11 +10,7 @@ import {
 import globalStore from "../stores/GlobalStore";
 
 interface Props {
-    /**
-     * The missing page's own path. When it is the saved start page (a tracker or board
-     * deleted since it was chosen), the choice is dropped and the user lands on the
-     * fallback page instead of a dead end every time the app opens.
-     */
+    /** If this matches the saved default page, that choice is cleared so it doesn't dead-end future visits. */
     path?: string;
 }
 

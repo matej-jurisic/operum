@@ -31,21 +31,20 @@ interface Props {
   tracker: QuickAddTrackerDto | undefined;
   /** The board's color, used only if the tracker carries none of its own. */
   color: string | undefined;
+  /** A placement-level override (EditWidgetModal), beating both the tracker's own color
+        and the board's. */
+  colorOverride?: string | null;
   isConfiguring: boolean;
   onRemove?: (itemId: string) => void;
 }
 
-/**
- * A board widget that is a shortcut rather than a chart: pressing it opens the same
- * QuickAddEntryDialog the tracker's own page uses. The button itself renders from the
- * tracker summary the board already fetched; only the fields the dialog needs to build
- * its form are fetched, and only once the button is actually pressed.
- */
+/** The dialog's fields are only fetched once the button is actually pressed. */
 export function QuickAddWidgetCard({
   widgetId,
   config,
   tracker,
   color,
+  colorOverride,
   isConfiguring,
   onRemove,
 }: Props) {
@@ -54,12 +53,10 @@ export function QuickAddWidgetCard({
   const [dialogTracker, setDialogTracker] = useState<TrackerDto>();
   const { refreshWidgets } = useDashboard();
 
-  const trackerColor = tracker?.color || color;
+  const trackerColor = colorOverride || tracker?.color || color;
 
-  // The button stacks an icon over the tracker name. As the widget is dragged
-  // smaller the icon gives up room first, then its "+" badge, then the name
-  // drops to a single line, so the content stays inside the cell instead of
-  // spilling over the widget below.
+  // As the widget shrinks: icon gives up room first, then its "+" badge, then the name
+  // drops to one line.
   const measured = buttonBox.width > 0 && buttonBox.height > 0;
   const iconSize = measured
     ? Math.max(0, Math.min(40, buttonBox.height * 0.4, buttonBox.width * 0.55))

@@ -1,8 +1,9 @@
-import { ActionIcon, Box, Text } from "@mantine/core";
+import { ActionIcon, Box, Stack, Text } from "@mantine/core";
 import { MdLink } from "react-icons/md";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 import { SingleValueAnalyticDto } from "../types/AnalyticDto";
 import { useCardLayout, useSyncedElementSize } from "./cardSizing";
+import { TrendSparkline } from "./TrendSparkline";
 import { WidgetShell } from "./WidgetShell";
 
 interface Props {
@@ -16,11 +17,8 @@ interface Props {
     fillHeight?: boolean;
 }
 
-// The value is the whole card, so on a dashboard it is set to whatever the room left
-// under the header will take rather than to one fixed size: a single number is the one
-// analytic that reads as well on two cells as it does on twenty.
 const MIN_VALUE_FONT = 18;
-const MAX_VALUE_FONT = 72;
+const MAX_VALUE_FONT = 60;
 
 export function SingleValueCard({
     analytic,
@@ -40,16 +38,12 @@ export function SingleValueCard({
                   MIN_VALUE_FONT,
                   Math.min(
                       MAX_VALUE_FONT,
-                      // Height caps how tall a line can be; width caps how long a value
-                      // can get before it has to wrap to stay inside the card.
                       valueBox.height * 0.55,
                       valueBox.width * 0.22,
                   ),
               )
             : undefined;
 
-    // Keep the compared value a caption next to the headline: legible, never competing
-    // with it, and not stuck at 14px when the headline has scaled up on a large card.
     const secondaryFontSize = valueFontSize
         ? Math.max(12, Math.min(22, valueFontSize * 0.4))
         : undefined;
@@ -91,13 +85,14 @@ export function SingleValueCard({
                         : undefined
                 }
             >
-                <div style={{ minWidth: 0 }}>
+                <Stack w={"100%"} h={"100%"} gap={4} justify="space-evenly">
                     <Text
                         size={valueFontSize ? undefined : "xl"}
                         fw={600}
                         style={{
                             wordBreak: "break-word",
                             lineHeight: 1.2,
+                            textAlign: "center",
                             fontSize: valueFontSize,
                         }}
                     >
@@ -122,7 +117,16 @@ export function SingleValueCard({
                             )}
                         </Text>
                     )}
-                </div>
+                    {analytic.trend && (
+                        <TrendSparkline
+                            trend={analytic.trend}
+                            currentValue={analytic.value}
+                            valueFieldType={analytic.valueField?.type}
+                            color={color}
+                            direction="neutral"
+                        />
+                    )}
+                </Stack>
             </Box>
         </WidgetShell>
     );

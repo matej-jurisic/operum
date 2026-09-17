@@ -1,8 +1,6 @@
 namespace Operum.Model.DTOs.Dashboard
 {
-    // A named clause set a dashboard's view selectors can offer. Clauses are field-agnostic:
-    // QueryId is the pooled clause's id, which is how a view selector's FieldByQuery map
-    // keys the per-widget field it runs against.
+    // QueryId is the pooled clause's id (see QueryPool), keyed by a filter widget's FieldByQuery map.
     public class DashboardViewDto
     {
         public string Id { get; set; } = string.Empty;

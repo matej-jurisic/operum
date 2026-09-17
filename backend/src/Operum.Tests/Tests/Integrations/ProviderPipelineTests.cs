@@ -18,11 +18,7 @@ using System.Text.Json;
 
 namespace Operum.Tests.Tests.Integrations
 {
-    /// <summary>
-    /// The shared pipeline -- provider to projector to writer -- driven by a fake provider, so
-    /// it is proven before any real integration exists and a later regression surfaces here
-    /// rather than against a live account.
-    /// </summary>
+    /// <summary>The shared pipeline (provider to projector to writer) driven by a fake provider, proven before any real integration exists.</summary>
     public class ProviderPipelineTests(CustomWebApplicationFactory factory) : IClassFixture<CustomWebApplicationFactory>
     {
         private readonly CustomWebApplicationFactory _factory = factory;
@@ -64,8 +60,6 @@ namespace Operum.Tests.Tests.Integrations
         private static SourceRecord Upsert(string externalId, Dictionary<string, string?> values) =>
             new(externalId, SourceOperation.Upsert, DateTime.UtcNow, values);
 
-        // ---- registry ----
-
         [Fact]
         public void Registry_ResolvesByCapability()
         {
@@ -92,15 +86,12 @@ namespace Operum.Tests.Tests.Integrations
         [Fact]
         public void Registry_RefusesTwoProvidersUnderOneKey()
         {
-            // Otherwise which one ran would depend on registration order, and the loser's
-            // stored connections would quietly start syncing from somewhere else.
+            // Otherwise which one ran would depend on registration order.
             var ex = Assert.Throws<InvalidOperationException>(() =>
                 new IntegrationProviderRegistry([new FakeIntegrationProvider("dup"), new FakeIntegrationProvider("dup")]));
 
             Assert.Contains("dup", ex.Message);
         }
-
-        // ---- projector ----
 
         [Fact]
         public void Project_OnlyMappedKeysSurvive()
@@ -124,8 +115,7 @@ namespace Operum.Tests.Tests.Integrations
             var result = SourceRecordProjector.Project(
                 Upsert("r1", new() { ["amount"] = null }), mappings);
 
-            // Omitted rather than null, which is how the writer is told to leave the field
-            // as it found it instead of clearing it.
+            // Omitted rather than null: tells the writer to leave the field as it found it.
             Assert.Empty(result.ValuesByFieldId);
         }
 
@@ -163,8 +153,6 @@ namespace Operum.Tests.Tests.Integrations
             Assert.Equal(Model.Common.EntryWriteOperation.Delete, result.Operation);
             Assert.Empty(result.ValuesByFieldId);
         }
-
-        // ---- mapping validation ----
 
         private static List<Field> TrackerFields() =>
         [
@@ -256,8 +244,6 @@ namespace Operum.Tests.Tests.Integrations
             Assert.NotNull(MappingValidator.Validate([], new FakeIntegrationProvider().Catalog(FakeIntegrationProvider.ResourceType), TrackerFields()));
         }
 
-        // ---- provider -> projector -> writer ----
-
         [Fact]
         public async Task Pipeline_PullThenReSync_WritesOnceThenUpdates()
         {
@@ -281,7 +267,6 @@ namespace Operum.Tests.Tests.Integrations
             Assert.Equal(2, first.Created);
             Assert.Equal(0, first.Updated);
 
-            // Same window again, one record revised upstream.
             provider.Records.Clear();
             provider.Records.Add(Upsert("r1", new() { ["amount"] = "11", ["note"] = "first, revised" }));
             provider.Records.Add(Upsert("r2", new() { ["amount"] = "20", ["note"] = "second" }));
@@ -372,8 +357,6 @@ namespace Operum.Tests.Tests.Integrations
             var entry = (await StoredEntries(trackerId)).Single();
             Assert.Equal(55, entry.FieldValues.Single(fv => fv.FieldId == fields["Amount"]).NumberValue);
         }
-
-        // ---- helpers ----
 
         /// <summary>Provider to projector to writer, the way the sync service will run it.</summary>
         private async Task<Model.Common.EntryWriteResult> RunPull(

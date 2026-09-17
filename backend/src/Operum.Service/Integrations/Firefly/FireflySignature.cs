@@ -6,26 +6,14 @@ using System.Text;
 
 namespace Operum.Service.Integrations.Firefly
 {
-    /// <summary>
-    /// Firefly III signs a delivery the way Stripe does: a <c>Signature</c> header carrying a
-    /// timestamp and a versioned digest, over "&lt;timestamp&gt;.&lt;raw body&gt;".
-    /// <para>
-    /// The digest is HMAC-SHA3-256. .NET has <c>HMACSHA3_256</c>, but it is a thin wrapper over
-    /// the platform's crypto library and reports <c>IsSupported == false</c> on Windows before
-    /// 24H2 -- so relying on it would mean signature checks that pass in a Linux container and
-    /// throw on a developer's machine. BouncyCastle is used instead: one implementation, the
-    /// same everywhere. It costs nothing to depend on, since WebPush already brings it in; the
-    /// package is now referenced explicitly rather than relied on transitively.
-    /// </para>
-    /// </summary>
+    // Verifies a Signature header ("t=...,v1=...") using HMAC-SHA3-256 over "<timestamp>.<raw body>".
+    // BouncyCastle is used instead of .NET's HMACSHA3_256, which reports IsSupported == false
+    // on Windows before 24H2.
     public static class FireflySignature
     {
         public const string HeaderName = "Signature";
 
-        /// <summary>
-        /// How far out of date a delivery's timestamp may be. Bounds how long a captured
-        /// request stays replayable.
-        /// </summary>
+        // Bounds how long a captured request stays replayable.
         public static readonly TimeSpan MaxAge = TimeSpan.FromMinutes(5);
 
         public enum Outcome { Valid, Malformed, Expired, Mismatch }
@@ -51,7 +39,6 @@ namespace Operum.Service.Integrations.Firefly
                 : Outcome.Mismatch;
         }
 
-        /// <summary>HMAC-SHA3-256 over "&lt;timestamp&gt;.&lt;raw body&gt;".</summary>
         public static byte[] Compute(long timestamp, string rawBody, string secret)
         {
             var payload = Encoding.UTF8.GetBytes($"{timestamp}.{rawBody}");
@@ -68,7 +55,6 @@ namespace Operum.Service.Integrations.Firefly
         public static string ComputeHex(long timestamp, string rawBody, string secret) =>
             Convert.ToHexString(Compute(timestamp, rawBody, secret)).ToLowerInvariant();
 
-        /// <summary>Parses "t=1610738765,v1=d62463af…"; unknown parts are ignored.</summary>
         private static bool TryParse(string? header, out long timestamp, out string signature)
         {
             timestamp = 0;
@@ -88,8 +74,6 @@ namespace Operum.Service.Integrations.Firefly
 
                 if (name == "t")
                     long.TryParse(value, out timestamp);
-                // v1 is the only live scheme; a future v2 would be added here rather than
-                // replacing this, so old senders keep working.
                 else if (name == "v1")
                     signature = value;
             }

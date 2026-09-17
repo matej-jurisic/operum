@@ -9,13 +9,8 @@ using System.Text.Json;
 namespace Operum.Tests.Tests.Views
 {
     /// <summary>
-    /// A view's columns are the fields it shows. They belong to the view rather than being
-    /// queries of their own: a column names a field and nothing else, so there is no clause
-    /// to author and nothing to reuse across views.
-    ///
-    /// They are also the one part of a view the server never applies to the entries query:
-    /// whatever renders the entries decides what to draw, so a filter or a sort over a
-    /// hidden field has to keep working exactly as it did.
+    /// A view's columns just name which fields to show; they carry no clause and are never applied
+    /// to the entries query, so a filter or sort over a hidden field must still work.
     /// </summary>
     public class ViewColumnsTests(CustomWebApplicationFactory factory) : IClassFixture<CustomWebApplicationFactory>
     {
@@ -52,8 +47,7 @@ namespace Operum.Tests.Tests.Views
                 ColumnFieldIds = [fixture.NoteFieldId, fixture.AmountFieldId]
             });
 
-            // The order the view names them in is the column order, which is why it is not
-            // re-sorted into field order.
+            // Column order follows the order named in the view, not field order.
             Assert.Equal(
                 [fixture.NoteFieldId, fixture.AmountFieldId],
                 await ViewColumnFieldIds(client, fixture.TrackerId, viewId));
@@ -152,8 +146,7 @@ namespace Operum.Tests.Tests.Views
                 ColumnFieldIds = [fixture.NoteFieldId]
             });
 
-            // Columns narrow what is drawn, never what is sent: the entry still has to carry
-            // the values an edit dialog, a recalculation or an export needs.
+            // Columns narrow what is drawn, not what is sent: the entry still carries every value.
             var entry = (await TestApi.ListEntries(client, fixture.TrackerId, viewId)).Single();
             Assert.Equal(7, TestApi.ValueOf(entry, "Amount")?.GetDouble());
             Assert.Equal("kept", TestApi.ValueOf(entry, "Note")?.GetString());

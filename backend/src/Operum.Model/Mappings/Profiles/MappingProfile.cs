@@ -80,9 +80,7 @@ namespace Operum.Service.Mappings.Profiles
                 }
             });
 
-            // View/ViewDto mapping is hand-rolled in ViewsService (it walks the ordered
-            // ViewQuery join and flattens each clause together with its bound field), so
-            // there is nothing to register for it here.
+            // View/ViewDto mapping is hand-rolled in ViewsService; nothing to register here.
 
             mapper.Register<TrackerConstant, TrackerConstantDto>((s, d) =>
             {

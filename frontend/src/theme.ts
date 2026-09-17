@@ -1,15 +1,6 @@
 import { createTheme, MantineColorsTuple, rem } from "@mantine/core";
 
-/**
- * The app's one theme. Before this the MantineProvider ran on stock defaults (blue
- * primary, system font), so this file is where the product's look now lives: the
- * typeface, the accent, and a softer shadow ramp that the dashboard's borderless
- * widgets lean on to read as panels rather than outlined cards.
- */
-
-// Indigo, replacing Mantine's default blue. Tailwind's indigo ramp: a balanced,
-// contrast-checked scale, so per-board palette colours (still plain Mantine names)
-// sit next to it without clashing. Index 6 is the filled/primary shade.
+// Tailwind's indigo ramp; index 6 is the filled/primary shade Mantine expects.
 const brand: MantineColorsTuple = [
     "#eef2ff",
     "#e0e7ff",
@@ -47,7 +38,6 @@ export const theme = createTheme({
         },
     },
 
-    // Softer and more layered than Mantine's defaults.
     shadows: {
         xs: "0 1px 3px rgba(17, 20, 38, 0.08), 0 1px 2px rgba(17, 20, 38, 0.05)",
         sm: "0 2px 8px rgba(17, 20, 38, 0.08), 0 1px 3px rgba(17, 20, 38, 0.05)",

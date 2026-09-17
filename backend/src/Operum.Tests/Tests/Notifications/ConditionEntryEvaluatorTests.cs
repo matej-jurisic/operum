@@ -12,12 +12,8 @@ using System.Net.Http.Json;
 
 namespace Operum.Tests.Tests.Notifications
 {
-    // ConditionEntryEvaluator is the Entry-mode counterpart to ConditionAnalyticEvaluator
-    // (see ConditionAnalyticEvaluatorTests) and had no coverage of its own: it reprojects a
-    // NotificationCondition's own filters into the view-filter machinery and, when a view is
-    // scoped, ANDs the two filter sets together. Both are exercised directly against
-    // ConditionEntryEvaluator, the same shape NotificationEvaluatorService passes it in
-    // production.
+    // ConditionEntryEvaluator reprojects a NotificationCondition's filters into the view-filter
+    // machinery and, when a view is scoped, ANDs the two filter sets together.
     public class ConditionEntryEvaluatorTests(CustomWebApplicationFactory factory) : IClassFixture<CustomWebApplicationFactory>
     {
         private readonly CustomWebApplicationFactory _factory = factory;

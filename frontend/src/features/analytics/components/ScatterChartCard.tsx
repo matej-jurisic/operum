@@ -36,8 +36,7 @@ export function ScatterChartCard({
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
     const layout = useCardLayout(fillHeight);
 
-    // The backend returns the analytic with no axis fields when they can no longer be
-    // resolved (e.g. a field was deleted). Nothing can be plotted in that case.
+    // xField/yField are undefined when their source fields were deleted.
     const { xField, yField } = analytic;
     const warnings = analytic.warnings ?? [];
 

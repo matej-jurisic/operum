@@ -73,30 +73,20 @@ import navigationStore from "../../stores/NavigationStore";
 interface Props {
     collapsed: boolean;
     showCollapseToggle: boolean;
-    // Shown everywhere the rail is expanded -- on desktop and in the mobile
-    // drawer, which has no app header of its own to carry the wordmark.
+    /** Also shown in the mobile drawer, which has no app header of its own for the wordmark. */
     showBrand: boolean;
     onToggleCollapse: () => void;
     onNavigate: () => void;
-    // Dismisses the drawer on mobile. The close affordance lives here rather than
-    // in a top bar -- there is no top bar anymore.
     onClose: () => void;
 }
 
-// Every sidebar row -- nav link, collapsed icon button, and reorder handle row --
-// renders at this exact height. Keeping it constant across all three is what stops
-// the list from jumping when you collapse the rail or toggle reorder mode.
+// Kept constant across nav link, collapsed icon, and reorder row so the list doesn't jump between modes.
 const ROW_HEIGHT = 44;
-// The header and search blocks are likewise pinned so the first list item never
-// changes vertical position between the collapsed and expanded rail.
 const BLOCK_HEIGHT = 40;
-// Row icon box + glyph. Sized up together with ROW_HEIGHT so the list breathes
-// instead of feeling stuffed.
 const ROW_ICON_BOX = 26;
 const ROW_ICON_GLYPH = 18;
 
-// The ⌘ / K hints in the search button. Mantine's Kbd is pill-shaped by default;
-// pinning width to height keeps each key a clean square.
+// Mantine's Kbd is pill-shaped by default; pin width to height for a square key.
 const KBD_STYLE: CSSProperties = {
     minWidth: 18,
     height: 18,
@@ -124,8 +114,6 @@ const AppSidebar = observer(
 
         const isAdmin = globalStore.userHasRole("admin");
         const pathname = location.pathname;
-        // Equal padding on both edges of every row group -- the source of the
-        // left/right asymmetry was a scrollbar gutter only reserved on the right.
         const px = collapsed ? 0 : "xs";
 
         const go = (to: string) => {
@@ -197,8 +185,6 @@ const AppSidebar = observer(
 
         return (
             <Stack h="100%" gap={0} py="xs">
-                {/* Header: the wordmark, plus the collapse toggle on desktop and
-                    a close button in the mobile drawer. */}
                 {(showBrand || showCollapseToggle) && (
                     <Group
                         justify={
@@ -261,7 +247,6 @@ const AppSidebar = observer(
                     </Group>
                 )}
 
-                {/* Search */}
                 <Box px={px} mb="xs" h={BLOCK_HEIGHT}>
                     {collapsed ? (
                         <Group justify="center" h="100%">
@@ -315,7 +300,6 @@ const AppSidebar = observer(
 
                 <Divider my="xs" />
 
-                {/* Lists */}
                 <ScrollArea flex={1} type="hover" scrollbarSize={6}>
                     <Box px={px}>
                         <SidebarList
@@ -388,9 +372,6 @@ const AppSidebar = observer(
 
                 <Divider my="xs" />
 
-                {/* Footer: theme, integrations, profile, admin, and logout folded
-                    into one account menu so they cost a single row instead of
-                    five. */}
                 <Box px={px}>
                     <AccountMenu
                         collapsed={collapsed}
@@ -413,10 +394,7 @@ export default AppSidebar;
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * The footer's utility rows (theme, integrations, profile, admin, logout) folded
- * into one, so they cost a single row instead of five.
- */
+/** Footer utility rows (theme, integrations, profile, admin, logout) folded into one menu. */
 function AccountMenu({
     collapsed,
     userName,
@@ -549,10 +527,7 @@ interface ListItem {
     onClick: () => void;
 }
 
-/**
- * One navigation row. Expanded it is a Mantine NavLink; collapsed it is a
- * tooltip'd, centered icon button so nothing sits off-axis in the rail.
- */
+/** One navigation row: a Mantine NavLink expanded, a tooltip'd icon button collapsed. */
 function NavItem({
     collapsed,
     label,
@@ -664,12 +639,8 @@ function SidebarList({
     onReorder: (ids: string[]) => void;
     onAdd?: () => void;
     addMenuItems?: { label: string; icon: React.ReactNode; onClick: () => void }[];
-    // An extra control shown in the section header, left of the reorder/add icons.
-    // Rendered only when the rail is expanded, same as the rest of the header.
     headerAction?: React.ReactNode;
 }) {
-    // Each list owns its reorder toggle, sitting beside its add button -- there
-    // is no shared rail-level control.
     const [reordering, setReordering] = useState(false);
 
     const sensors = useSensors(
@@ -700,7 +671,6 @@ function SidebarList({
         );
     }
 
-    // Reordering needs the expanded rail and at least two rows to move.
     const canReorder = !collapsed && items.length > 1;
     const isReordering = reordering && canReorder;
     const singular = title.replace(/s$/, "").toLowerCase();

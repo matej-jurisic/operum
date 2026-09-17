@@ -232,8 +232,7 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
         setSelectedCode(singleValueCodes.find((c) => c.code === code));
     };
 
-    // A condition compares the calculated value itself, so the optional purposes that only
-    // change what a widget displays (Min/Max's Display field) are left out here.
+    // Optional purposes only affect widget display (e.g. Min/Max's Display field), not the condition.
     const analyticPurposes = (selectedCode?.purposes ?? []).filter((p) => !p.optional);
 
     const mappedValueFieldId = form.values.fieldMappings["Value"];
@@ -252,8 +251,6 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
 
     const isEntry = form.values.valueMode === "Entry";
     const isScheduled = form.values.eventType !== "Triggered";
-
-    // --- Live "Notify me..." preview ---
 
     const sentence = useMemo(() => {
         const clauses = isEntry

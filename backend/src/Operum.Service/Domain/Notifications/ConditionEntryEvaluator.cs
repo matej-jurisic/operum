@@ -30,7 +30,6 @@ namespace Operum.Service.Domain.Notifications
             if (view != null)
                 entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, ViewQueryBuilder.ResolveFilters(view), tz);
 
-            // Project condition filters to resolved clauses so the view filter builder can be reused
             var conditionFilters = condition.Filters
                 .Where(f => f.FieldId != null && f.Field != null)
                 .Select(f => new ResolvedClause(f.FieldId!, f.Field!.Type, f.Operator, f.Value, false))

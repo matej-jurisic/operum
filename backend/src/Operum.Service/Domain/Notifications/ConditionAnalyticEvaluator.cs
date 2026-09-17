@@ -54,7 +54,6 @@ namespace Operum.Service.Domain.Notifications
             if (!result.IsSuccess || result.Data is not SingleValueAnalyticDto svDto)
                 return new AnalyticEvaluationResult(false, null);
 
-            // All condition filters must match (AND semantics)
             var conditionMet = condition.Filters.All(f =>
                 NotificationConditionEvaluator.Evaluate(svDto.Value, f.Operator, f.Value ?? string.Empty, tz));
 

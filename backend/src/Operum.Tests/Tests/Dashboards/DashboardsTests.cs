@@ -31,10 +31,7 @@ namespace Operum.Tests.Tests.Dashboards
             return data;
         }
 
-        // A tracker with one entry and the three field types the dashboard tests draw on:
-        // a date and a number (a line chart's X/Y) and a string (a bar chart's category,
-        // or a line chart X of a different data type). Deliberately has no analytic of its
-        // own — a dashboard item never reuses one.
+        // Deliberately has no analytic of its own: a dashboard item never reuses one.
         private static async Task<CapableTracker> CreateCapableTracker(HttpClient client, string name, string? color = null)
         {
             var tracker = await Data(await client.PostAsJsonAsync("trackers", new CreateTrackerDto { Name = name, Color = color }));
@@ -67,8 +64,6 @@ namespace Operum.Tests.Tests.Dashboards
 
         private sealed record CapableTracker(string Id, string DayFieldId, string AmountFieldId, string CategoryFieldId);
 
-        // The "Raw Values" line chart source for a tracker, mapping the given field to the
-        // x-axis (Day unless a test wants a differently typed axis) and Amount to the y-axis.
         private static CreateAndPlaceWidgetSourceDto LineSource(CapableTracker tracker, string? xFieldId = null) => new()
         {
             TrackerId = tracker.Id,
@@ -79,8 +74,7 @@ namespace Operum.Tests.Tests.Dashboards
             ]
         };
 
-        // The "Count per Category" bar chart source for a tracker — Name is the only purpose
-        // that code requires.
+        // Name is the only purpose this code requires.
         private static CreateAndPlaceWidgetSourceDto BarSource(CapableTracker tracker) => new()
         {
             TrackerId = tracker.Id,
@@ -98,8 +92,7 @@ namespace Operum.Tests.Tests.Dashboards
             ]
         };
 
-        // One side of a correlation scatter: Day is the shared match key, Amount the value
-        // that becomes this source's axis.
+        // Day is the shared match key, Amount the value that becomes this source's axis.
         private static CreateAndPlaceWidgetSourceDto CorrelationSource(CapableTracker tracker) => new()
         {
             TrackerId = tracker.Id,
@@ -122,8 +115,6 @@ namespace Operum.Tests.Tests.Dashboards
             return dashboard.GetProperty("id").GetString()!;
         }
 
-        // The board as the client renders it: a placement per widget wrapped around the
-        // chart calculated for it, which is what these tests are usually after.
         private static async Task<JsonElement> Widgets(HttpClient client, string dashboardId)
             => await Data(await client.GetAsync($"dashboard/{dashboardId}/widgets"));
 
@@ -133,8 +124,6 @@ namespace Operum.Tests.Tests.Dashboards
 
         private static JsonElement MobileLayout(JsonElement widget) => widget.GetProperty("mobileLayout");
 
-        // Defines a new "Raw Values" line chart Widget and places it on the board in one
-        // call, and hands back the placement's item id.
         private static async Task<string> AddLineItem(HttpClient client, string dashboardId, CapableTracker tracker)
         {
             var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
@@ -148,8 +137,7 @@ namespace Operum.Tests.Tests.Dashboards
             return (await Data(addResponse)).GetProperty("id").GetString()!;
         }
 
-        // The sources of an item as the board reports them: an edit has to name every source
-        // id, so this is where a test gets them from.
+        // An edit has to name every source id, so this is where a test reads them from.
         private static async Task<JsonElement> ItemSources(HttpClient client, string dashboardId, string itemId)
         {
             var dashboard = await Data(await client.GetAsync($"dashboard/{dashboardId}"));
@@ -161,9 +149,6 @@ namespace Operum.Tests.Tests.Dashboards
         private static async Task<string> SingleSourceId(HttpClient client, string dashboardId, string itemId)
             => (await ItemSources(client, dashboardId, itemId))[0].GetProperty("id").GetString()!;
 
-        // Creates a "Raw Values" line chart Widget in the Library and hands back its full
-        // definition (including WidgetSource ids), so a test can place it on a board the
-        // way the widget picker does.
         private static async Task<JsonElement> CreateWidget(HttpClient client, CapableTracker tracker, string? name = null)
         {
             var response = await client.PostAsJsonAsync("widgets", new CreateWidgetDto
@@ -246,6 +231,79 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(AnalyticTypes.Goal, analytic.GetProperty("resultType").GetString());
             Assert.Equal("60", analytic.GetProperty("target").GetString());
             Assert.Equal(0.5, analytic.GetProperty("progress").GetDouble(), 3);
+            Assert.Equal(GoalDirections.HigherIsBetter, analytic.GetProperty("direction").GetString());
+        }
+
+        [Fact]
+        public async Task CreateAndPlaceWidget_GoalLowerIsBetter_InvertsProgressTowardTheCap()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("goallowerisbetter");
+
+            var tracker = await CreateCapableTracker(client, "Budget");
+            // CreateCapableTracker already logged Amount 5; another 25 brings the sum to 30.
+            await AddEntry(client, tracker.Id, "2026-01-02", "25");
+
+            var dashboardId = await CreateDashboard(client);
+
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
+            {
+                ResultType = AnalyticTypes.Goal,
+                Code = AnalyticCodes.Sum,
+                GoalTarget = "60",
+                GoalDirection = GoalDirections.LowerIsBetter,
+                Sources =
+                [
+                    new CreateAndPlaceWidgetSourceDto
+                    {
+                        TrackerId = tracker.Id,
+                        AnalyticFields = [new CreateAnalyticFieldDto { FieldId = tracker.AmountFieldId, Purpose = AnalyticPurposes.Value }]
+                    }
+                ]
+            });
+            Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
+
+            // LowerIsBetter's inverted ratio (target / value) reads well past 1 for the same
+            // numbers a HigherIsBetter goal would call "half done".
+            var analytic = Analytic((await Widgets(client, dashboardId))[0]);
+            Assert.Equal(GoalDirections.LowerIsBetter, analytic.GetProperty("direction").GetString());
+            Assert.Equal(2.0, analytic.GetProperty("progress").GetDouble(), 3);
+        }
+
+        [Fact]
+        public async Task CreateAndPlaceWidget_GoalLowerIsBetter_OverTheCapReadsAsUnderOne()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("goallowerisbetterover");
+
+            var tracker = await CreateCapableTracker(client, "Budget");
+            // CreateCapableTracker already logged Amount 5; another 25 brings the sum to 30.
+            await AddEntry(client, tracker.Id, "2026-01-02", "25");
+
+            var dashboardId = await CreateDashboard(client);
+
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
+            {
+                ResultType = AnalyticTypes.Goal,
+                Code = AnalyticCodes.Sum,
+                GoalTarget = "10",
+                GoalDirection = GoalDirections.LowerIsBetter,
+                Sources =
+                [
+                    new CreateAndPlaceWidgetSourceDto
+                    {
+                        TrackerId = tracker.Id,
+                        AnalyticFields = [new CreateAnalyticFieldDto { FieldId = tracker.AmountFieldId, Purpose = AnalyticPurposes.Value }]
+                    }
+                ]
+            });
+            Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
+
+            // Over budget: the ratio drops under 1, the same as HigherIsBetter falling under 1
+            // for not having reached its target yet.
+            var analytic = Analytic((await Widgets(client, dashboardId))[0]);
+            var progress = analytic.GetProperty("progress").GetDouble();
+            Assert.True(progress < 1, $"Expected progress under 1 once over the cap, got {progress}");
         }
 
         [Fact]
@@ -274,7 +332,6 @@ namespace Operum.Tests.Tests.Dashboards
             var goalId = goalItem.GetProperty("id").GetString()!;
             var sourceId = goalItem.GetProperty("sources")[0].GetProperty("id").GetString()!;
 
-            // A filter on Amount, followed by the goal.
             var filter = await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/filter", new SaveFilterItemDto
             {
                 Clauses = AmountOverClauses(),
@@ -342,9 +399,8 @@ namespace Operum.Tests.Tests.Dashboards
             var goalId = goalItem.GetProperty("id").GetString()!;
             var sourceId = goalItem.GetProperty("sources")[0].GetProperty("id").GetString()!;
 
-            // A date filter on Day, followed by the goal. "on or before" keeps the seeded
-            // 2026-01-01 entry in scope for every value the test sets, so the goal always
-            // calculates and only its target changes.
+            // "on or before" keeps the seeded 2026-01-01 entry in scope for every value the
+            // test sets, so the goal always calculates and only its target changes.
             var filter = await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/filter", new SaveFilterItemDto
             {
                 Clauses =
@@ -396,6 +452,98 @@ namespace Operum.Tests.Tests.Dashboards
             var onSecond = await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{filterId}/filter-values",
                 new SetFilterValuesDto { Values = new() { [slotId] = secondOfMonth } });
             Assert.Equal("60", Analytic(ChartFor(await Data(onSecond), goalId)).GetProperty("target").GetString());
+        }
+
+        [Fact]
+        public async Task SingleValue_FollowingADateRangeFilter_ComputesTheTrend()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("trendfollow");
+
+            // Seeded Day 2026-01-01, Amount 5 lands in the previous window below; Jan 10/12
+            // land in the current window (10 + 20 = 30).
+            var tracker = await CreateCapableTracker(client, "Spending");
+            await AddEntry(client, tracker.Id, "2026-01-10", "10");
+            await AddEntry(client, tracker.Id, "2026-01-12", "20");
+
+            var dashboardId = await CreateDashboard(client);
+
+            var sumItem = await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
+            {
+                ResultType = AnalyticTypes.SingleValue,
+                Code = AnalyticCodes.Sum,
+                Sources =
+                [
+                    new CreateAndPlaceWidgetSourceDto
+                    {
+                        TrackerId = tracker.Id,
+                        AnalyticFields = [new CreateAnalyticFieldDto { FieldId = tracker.AmountFieldId, Purpose = AnalyticPurposes.Value }]
+                    }
+                ]
+            }));
+            var sumId = sumItem.GetProperty("id").GetString()!;
+
+            var filter = await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/filter", new SaveFilterItemDto
+            {
+                Clauses =
+                [
+                    new ClauseDto { Kind = QueryKinds.Filter, DataType = DataTypes.Date, Operator = OperatorTypes.GreaterThanOrEqual },
+                    new ClauseDto { Kind = QueryKinds.Filter, DataType = DataTypes.Date, Operator = OperatorTypes.LessThanOrEqual }
+                ],
+                Links =
+                [
+                    new WidgetLinkDto
+                    {
+                        ItemId = sumId,
+                        TrackerId = tracker.Id,
+                        FieldByQuery = new() { ["0"] = tracker.DayFieldId, ["1"] = tracker.DayFieldId }
+                    }
+                ]
+            }));
+            var filterId = filter.GetProperty("id").GetString()!;
+            var lowerSlotId = await FilterSlotId(client, dashboardId, filterId, 0);
+            var upperSlotId = await FilterSlotId(client, dashboardId, filterId, 1);
+
+            // Current window Jan 8-15 (10 + 20 = 30); the equal-length previous window is
+            // Jan 1 up to (not including) Jan 8, which only the seeded Jan 1 entry (5) falls in.
+            var setValues = await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{filterId}/filter-values",
+                new SetFilterValuesDto { Values = new() { [lowerSlotId] = "2026-01-08", [upperSlotId] = "2026-01-15" } });
+            Assert.Equal(HttpStatusCode.OK, setValues.StatusCode);
+
+            var analytic = Analytic(ChartFor(await Data(setValues), sumId));
+            Assert.Equal("30.00", analytic.GetProperty("value").GetString());
+            Assert.Equal("5.00", analytic.GetProperty("trend").GetProperty("previousValue").GetString());
+
+            var points = analytic.GetProperty("trend").GetProperty("points").EnumerateArray().ToList();
+            Assert.Equal(30, points.Sum(p => p.GetProperty("y").GetDouble()));
+        }
+
+        [Fact]
+        public async Task SingleValue_NotFollowingADateFilter_HasNoTrend()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("trendnofilter");
+
+            var tracker = await CreateCapableTracker(client, "Spending");
+            var dashboardId = await CreateDashboard(client);
+
+            var sumItem = await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
+            {
+                ResultType = AnalyticTypes.SingleValue,
+                Code = AnalyticCodes.Sum,
+                Sources =
+                [
+                    new CreateAndPlaceWidgetSourceDto
+                    {
+                        TrackerId = tracker.Id,
+                        AnalyticFields = [new CreateAnalyticFieldDto { FieldId = tracker.AmountFieldId, Purpose = AnalyticPurposes.Value }]
+                    }
+                ]
+            }));
+            var sumId = sumItem.GetProperty("id").GetString()!;
+
+            var analytic = Analytic(ChartFor(await Widgets(client, dashboardId), sumId));
+            Assert.False(analytic.TryGetProperty("trend", out var trend) && trend.ValueKind != JsonValueKind.Null);
         }
 
         [Fact]
@@ -461,8 +609,6 @@ namespace Operum.Tests.Tests.Dashboards
             var combined = Analytic(results[0]);
             Assert.Equal(AnalyticTypes.Composed, combined.GetProperty("resultType").GetString());
             Assert.Equal(2, combined.GetProperty("series").GetArrayLength());
-            // One definition for both sources, and both plot a date on the x-axis, so there
-            // is nothing left to warn about.
             Assert.Equal(0, combined.GetProperty("warnings").GetArrayLength());
         }
 
@@ -501,8 +647,6 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(new HashSet<string?> { "blue", "green" }, colors);
         }
 
-        // Sharing a definition still leaves one thing sources can disagree on: the data type
-        // of the field on the x-axis, which the combined chart has to render on one axis.
         [Fact]
         public async Task CreateAndPlaceWidget_SourcesWithDifferentXAxisTypes_WarnsWithoutRejecting()
         {
@@ -568,7 +712,6 @@ namespace Operum.Tests.Tests.Dashboards
             var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
             {
                 ResultType = AnalyticTypes.LineChart,
-                // A donut chart code, which the line chart definition knows nothing about.
                 Code = AnalyticCodes.DonutChart,
                 Sources = [LineSource(tracker)]
             });
@@ -582,7 +725,6 @@ namespace Operum.Tests.Tests.Dashboards
             await _factory.SeedDatabaseAsync();
             var client = await _factory.NewUserClient("correlationpairs");
 
-            // Each capable tracker starts with one entry on 2026-01-01, Amount 5.
             var weight = await CreateCapableTracker(client, "Weight");
             var sleep = await CreateCapableTracker(client, "Sleep");
             await AddEntry(client, weight.Id, "2026-01-02", "6");
@@ -607,7 +749,6 @@ namespace Operum.Tests.Tests.Dashboards
                 .OrderBy(p => p.X)
                 .ToList();
 
-            // Only 2026-01-01 (5, 5) and 2026-01-02 (6, 8) appear on both trackers.
             Assert.Equal(2, points.Count);
             Assert.Equal(5, points[0].X);
             Assert.Equal(5, points[0].Y);
@@ -646,11 +787,8 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(HttpStatusCode.BadRequest, three.StatusCode);
         }
 
-        // Regression test: two separate dashboard items whose sources both point at the same
-        // Tracker used to make GetUserDashboard's untracked query materialize that Tracker as
-        // two distinct CLR instances (no identity resolution under the app's default
-        // QueryTrackingBehavior.NoTracking). Remove() then threw when attaching the detached
-        // graph and hitting the second same-key instance. See DashboardService.GetUserDashboard.
+        // Regression: two items sharing a Tracker under NoTracking used to materialize two CLR
+        // instances, and Remove() threw on the second same-key instance. See DashboardService.GetUserDashboard.
         [Fact]
         public async Task DeleteDashboard_ItemsShareATracker_Succeeds()
         {
@@ -677,8 +815,7 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(HttpStatusCode.OK, deleteResponse.StatusCode);
         }
 
-        // Same underlying scenario as above, but via the single-item removal endpoint rather
-        // than deleting the whole dashboard.
+        // Same scenario as above, via the single-item removal endpoint instead.
         [Fact]
         public async Task RemoveDashboardItem_OtherItemSharesATracker_Succeeds()
         {
@@ -708,16 +845,13 @@ namespace Operum.Tests.Tests.Dashboards
         }
 
         // Building a chart inline from a dashboard still creates a first-class Widget Library
-        // entry behind the scenes -- there's no such thing as a dashboard-only chart
-        // definition any more, the way there was no way to reach a tracker's own analytics
-        // page in the old model.
+        // entry; there's no such thing as a dashboard-only chart definition any more.
         [Fact]
         public async Task CreateAndPlaceWidget_Source_CreatesAReusableLibraryWidgetInsteadOfATrackerAnalytic()
         {
             await _factory.SeedDatabaseAsync();
-            // A fresh user, not the shared DefaultUsers.TestUserData: the widget-count
-            // assertion below reads every widget this user owns, and the class shares one
-            // database across every test authenticated as the default user.
+            // Fresh user: the widget-count assertion below reads every widget this user owns,
+            // and the class shares one database across every test on the default user.
             var client = await _factory.NewUserClient("inlinewidgetreuse");
 
             var tracker = await CreateCapableTracker(client, "Weight");
@@ -736,8 +870,6 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(1, results.GetArrayLength());
             Assert.Equal(AnalyticTypes.LineChart, Analytic(results[0]).GetProperty("resultType").GetString());
 
-            // It shows up in the Widget Library, ready to be placed elsewhere -- there's no
-            // separate tracker-owned analytics list any more for it to *not* show up in.
             var libraryWidgets = await Data(await client.GetAsync("widgets"));
             Assert.Equal(1, libraryWidgets.GetArrayLength());
         }
@@ -762,7 +894,6 @@ namespace Operum.Tests.Tests.Dashboards
                     new CreateAndPlaceWidgetSourceDto
                     {
                         TrackerId = tracker.Id,
-                        // Y-axis left unmapped.
                         AnalyticFields = [new CreateAnalyticFieldDto { FieldId = tracker.DayFieldId, Purpose = AnalyticPurposes.Xaxis }]
                     }
                 ]
@@ -771,8 +902,7 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(HttpStatusCode.BadRequest, addResponse.StatusCode);
         }
 
-        // A dashboard spans trackers, so a source must not be able to reach a field that
-        // belongs to a different tracker than the one it reads entries from.
+        // A dashboard spans trackers, so a source must not reach a field on another tracker.
         [Fact]
         public async Task CreateAndPlaceWidget_SourceFieldFromAnotherTracker_ReturnsNotFound()
         {
@@ -808,8 +938,8 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(HttpStatusCode.NotFound, addResponse.StatusCode);
         }
 
-        // Placing a widget is a reference, never a copy: there is nothing left on the
-        // placement itself once the definition it points at is gone.
+        // Placing a widget is a reference, never a copy: nothing is left on the placement
+        // itself once the definition it points at is gone.
         [Fact]
         public async Task PlaceWidget_ReferencesTheWidgetInsteadOfCopyingIt()
         {
@@ -832,8 +962,6 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(1, item.GetProperty("sources").GetArrayLength());
             Assert.Equal(2, item.GetProperty("sources")[0].GetProperty("fields").GetArrayLength());
 
-            // The whole point: deleting the widget from the Library takes the placement
-            // down with it, because there was never a copy to fall back to.
             var deleteResponse = await client.DeleteAsync($"widgets/{widgetId}");
             Assert.Equal(HttpStatusCode.OK, deleteResponse.StatusCode);
 
@@ -841,8 +969,6 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(0, widgets.GetArrayLength());
         }
 
-        // The core promise of the new model: a placement without its own label reads
-        // whatever the shared widget is named right now, everywhere it's placed.
         [Fact]
         public async Task PlaceWidget_RenamingTheWidgetInTheLibrary_UpdatesEveryPlacement()
         {
@@ -880,7 +1006,6 @@ namespace Operum.Tests.Tests.Dashboards
             var sourceId = widget.GetProperty("sources")[0].GetProperty("id").GetString()!;
             var dashboardId = await CreateDashboard(client);
 
-            // Nothing has a category of "Strength", so the view filters the single entry out.
             var view = await Data(await client.PostAsJsonAsync($"trackers/{tracker.Id}/views", new CreateViewDto
             {
                 Name = "Strength only",
@@ -899,9 +1024,8 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(0, Analytic(widgets[0]).GetProperty("points").GetArrayLength());
         }
 
-        // Regression: a numeric field left blank on an entry is not the number zero. Charts
-        // used to coerce a missing y/value to 0 -- planting a fake point on a line or scatter
-        // and dragging sums and averages down. Such entries are now left out of the chart.
+        // Regression: charts used to coerce a missing y/value to 0, dragging sums and averages
+        // down. Such entries are now left out of the chart entirely.
         [Fact]
         public async Task LineChart_EntryWithNoYValue_IsExcludedFromPoints()
         {
@@ -909,7 +1033,6 @@ namespace Operum.Tests.Tests.Dashboards
             var client = await _factory.NewUserClient("chartnully");
 
             var tracker = await CreateCapableTracker(client, "Weight");
-            // A second entry with a date but no Amount -- nothing to plot on the y-axis.
             await client.PostAsJsonAsync($"trackers/{tracker.Id}/entries", new CreateEntryDto
             {
                 FieldValues = new() { ["Day"] = "2026-01-02", ["Category"] = "Cardio" }
@@ -918,7 +1041,6 @@ namespace Operum.Tests.Tests.Dashboards
             var dashboardId = await CreateDashboard(client);
             var chartId = await PlaceLineChart(client, dashboardId, tracker);
 
-            // Only the seeded entry (Amount = 5) is plotted; the blank-Amount entry is dropped.
             Assert.Equal(1, PointsOf(await Widgets(client, dashboardId), chartId));
         }
 
@@ -929,8 +1051,7 @@ namespace Operum.Tests.Tests.Dashboards
             var client = await _factory.NewUserClient("chartnullavg");
 
             var tracker = await CreateCapableTracker(client, "Weight");
-            // Same category as the seeded entry, but no Amount. A coerced 0 here would drag
-            // the category's average down from 5 to 2.5.
+            // A coerced 0 here would drag the category's average down from 5 to 2.5.
             await client.PostAsJsonAsync($"trackers/{tracker.Id}/entries", new CreateEntryDto
             {
                 FieldValues = new() { ["Day"] = "2026-01-02", ["Category"] = "Cardio" }
@@ -963,17 +1084,15 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(5, points[0].GetProperty("value").GetDouble());
         }
 
-        // The date-bucketed bar charts group the Name field's date into a period and sum the
-        // value over it, ordering the bars chronologically the same way the line chart's
-        // Monthly Totals does.
+        // Date-bucketed bar charts group the Name field's date into a period and order the
+        // bars chronologically, the same as the line chart.
         [Fact]
         public async Task MonthlyBarChart_BucketsTheNameDateAndSumsEachPeriod()
         {
             await _factory.SeedDatabaseAsync();
             var client = await _factory.NewUserClient("chartmonthlybar");
 
-            // Seeded entry: Day 2026-01-01, Amount 5. Add two more so January sums to 8 and
-            // March has its own bar, seeded out of order to prove the chronological sort.
+            // Seeded out of order (March before the later January entry) to prove the sort.
             var tracker = await CreateCapableTracker(client, "Weight");
             await client.PostAsJsonAsync($"trackers/{tracker.Id}/entries", new CreateEntryDto
             {
@@ -1014,16 +1133,13 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(7, points[1].GetProperty("value").GetDouble());
         }
 
-        // Grouping and aggregation are separate now: a weekly line chart can average each
-        // week's values, not only sum them.
+        // Grouping and aggregation are independent: a weekly chart can average instead of summing.
         [Fact]
         public async Task WeeklyAverageLineChart_AveragesEachWeeksValues()
         {
             await _factory.SeedDatabaseAsync();
             var client = await _factory.NewUserClient("weeklyavgline");
 
-            // Seeded entry: 2026-01-01 (Thursday), Amount 5. Same week gets a 15 (avg 10);
-            // the following week a lone 20.
             var tracker = await CreateCapableTracker(client, "Weight");
             await AddEntry(client, tracker.Id, "2026-01-02", "15");
             await AddEntry(client, tracker.Id, "2026-01-08", "20");
@@ -1084,7 +1200,6 @@ namespace Operum.Tests.Tests.Dashboards
             await _factory.SeedDatabaseAsync();
             var client = await _factory.NewUserClient("monthlycumline");
 
-            // Seeded 2026-01-01 Amount 5; +3 in January (total 8), +7 in March (8 -> 15).
             var tracker = await CreateCapableTracker(client, "Weight");
             await AddEntry(client, tracker.Id, "2026-01-20", "3");
             await AddEntry(client, tracker.Id, "2026-03-10", "7");
@@ -1101,14 +1216,12 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(15, points[1].GetProperty("y").GetDouble());
         }
 
-        // Min per category: the lowest value in each category, not the sum.
         [Fact]
         public async Task MinPerCategoryBarChart_TakesTheLowestValueInEachCategory()
         {
             await _factory.SeedDatabaseAsync();
             var client = await _factory.NewUserClient("minpercatbar");
 
-            // Seeded: Category "Cardio", Amount 5. Add a lower Cardio and a lone Strength.
             var tracker = await CreateCapableTracker(client, "Weight");
             await client.PostAsJsonAsync($"trackers/{tracker.Id}/entries", new CreateEntryDto
             {
@@ -1149,16 +1262,12 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(9, points["Strength"]);
         }
 
-        // Raw values (the None grouping): one bar per entry, no bucketing and no
-        // aggregation, the same as the line chart's raw values.
         [Fact]
         public async Task RawValuesBarChart_PlotsOneBarPerEntry_WithNoAggregation()
         {
             await _factory.SeedDatabaseAsync();
             var client = await _factory.NewUserClient("rawvaluesbar");
 
-            // Seeded: Category "Cardio", Amount 5. Add a second Cardio and a Strength: raw
-            // values keeps all three, including the two that share a category.
             var tracker = await CreateCapableTracker(client, "Weight");
             await client.PostAsJsonAsync($"trackers/{tracker.Id}/entries", new CreateEntryDto
             {
@@ -1216,9 +1325,7 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(HttpStatusCode.NotFound, addResponse.StatusCode);
         }
 
-        // A widget is only ever placeable by its own owner today -- there is no sharing
-        // model yet -- so a stranger's widget id simply doesn't resolve, the same as any
-        // other id that names nothing of theirs.
+        // No sharing model yet: a stranger's widget id simply doesn't resolve.
         [Fact]
         public async Task PlaceWidget_WidgetOwnedByAnotherUser_ReturnsNotFound()
         {
@@ -1238,16 +1345,13 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(HttpStatusCode.NotFound, addResponse.StatusCode);
         }
 
-        // Removing a placement is not the same as deleting the widget: the shared
-        // definition created alongside it survives in the Library, unlike the old model
-        // where a dashboard item's definition only ever existed on that one item.
+        // Removing a placement doesn't delete the shared widget; it stays in the Library.
         [Fact]
         public async Task RemoveDashboardItem_LeavesTheSharedWidgetInPlace()
         {
             await _factory.SeedDatabaseAsync();
-            // A fresh user, not the shared DefaultUsers.TestUserData: the widget-count
-            // assertion below reads every widget this user owns, and the class shares one
-            // database across every test authenticated as the default user.
+            // Fresh user: the widget-count assertion below reads every widget this user owns,
+            // and the class shares one database across every test on the default user.
             var client = await _factory.NewUserClient("removeitemwidget");
 
             var tracker = await CreateCapableTracker(client, "Weight");
@@ -1268,7 +1372,6 @@ namespace Operum.Tests.Tests.Dashboards
             var fetched = await Data(await client.GetAsync($"dashboard/{dashboardId}"));
             Assert.Equal(0, fetched.GetProperty("items").GetArrayLength());
 
-            // The widget itself is untouched -- it just isn't placed anywhere right now.
             var libraryWidgets = await Data(await client.GetAsync("widgets"));
             Assert.Equal(1, libraryWidgets.GetArrayLength());
         }
@@ -1292,7 +1395,7 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(tracker.Id, widgets[0].GetProperty("entriesWidget").GetProperty("trackerId").GetString());
         }
 
-        // The Entries equivalent of PlaceWidget_ReferencesTheWidgetInsteadOfCopyingIt.
+        // Entries-widget equivalent of PlaceWidget_ReferencesTheWidgetInsteadOfCopyingIt.
         [Fact]
         public async Task PlaceEntriesWidget_ReferencesTheEntriesWidgetInsteadOfCopyingIt()
         {
@@ -1316,8 +1419,6 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(0, widgets.GetArrayLength());
         }
 
-        // A widget the user has not placed yet still has to land somewhere sensible, which
-        // means below what is already on the board rather than on top of it.
         [Fact]
         public async Task CreateAndPlaceWidget_PlacesTheWidgetUnderTheOnesAlreadyOnTheBoard()
         {
@@ -1367,8 +1468,6 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(7, layout.GetProperty("h").GetInt32());
         }
 
-        // A client that lays out more columns than the grid has would otherwise push widgets
-        // off the right edge, where they cannot be dragged back.
         [Fact]
         public async Task UpdateDashboardLayout_PlacementOutsideTheGrid_IsClampedNotRejected()
         {
@@ -1392,8 +1491,7 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(DashboardGrid.MaxHeight, layout.GetProperty("h").GetInt32());
         }
 
-        // The grid sends the whole board at once, so an item that was removed in another tab
-        // must not fail the save for everything else.
+        // An item removed in another tab must not fail the save for everything else.
         [Fact]
         public async Task UpdateDashboardLayout_UnknownItem_IsIgnored()
         {
@@ -1420,9 +1518,8 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(4, Layout(widgets[0]).GetProperty("w").GetInt32());
         }
 
-        // A board is arranged twice, so a widget added on one screen still has to be
-        // somewhere sensible on the other. The narrow grid has no room beside anything, so
-        // a new widget takes the full width of it and stacks under what is already there.
+        // The narrow grid has no room beside anything, so a new widget takes its full width
+        // and stacks under what is already there.
         [Fact]
         public async Task CreateAndPlaceWidget_PlacesTheWidgetOnBothGrids()
         {
@@ -1451,9 +1548,7 @@ namespace Operum.Tests.Tests.Dashboards
                 second.GetProperty("y").GetInt32());
         }
 
-        // The whole point of storing two arrangements: dragging a widget on a phone must
-        // not move it on the desktop board, and arranging the desktop board afterwards must
-        // not undo what was done on the phone.
+        // Dragging a widget on a phone must not move it on the desktop board, and vice versa.
         [Fact]
         public async Task UpdateDashboardLayout_WritesOnlyTheGridItWasMadeOn()
         {
@@ -1492,7 +1587,6 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(4, mobile.GetProperty("w").GetInt32());
             Assert.Equal(9, mobile.GetProperty("h").GetInt32());
 
-            // Arranging the desktop board again leaves the phone's arrangement where it is.
             var reDesktopResponse = await client.PutAsJsonAsync($"dashboard/{dashboardId}/layout", new UpdateDashboardLayoutDto
             {
                 Variant = DashboardLayoutVariants.Desktop,
@@ -1506,8 +1600,7 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(9, afterMobile.GetProperty("h").GetInt32());
         }
 
-        // A placement is clamped to the grid it was made on, not to the widest one there is,
-        // or a phone could push a widget three columns off its own right edge.
+        // A placement is clamped to the grid it was made on, not the widest one there is.
         [Fact]
         public async Task UpdateDashboardLayout_MobilePlacementOutsideTheNarrowGrid_IsClamped()
         {
@@ -1530,8 +1623,8 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(0, mobile.GetProperty("x").GetInt32());
         }
 
-        // Unlike a placement, an unknown variant cannot be clamped into something sensible:
-        // there is no telling which grid the numbers beside it belong to.
+        // Unlike a placement, an unknown variant can't be clamped: there's no telling which
+        // grid the numbers beside it belong to.
         [Fact]
         public async Task UpdateDashboardLayout_UnknownVariant_ReturnsBadRequest()
         {
@@ -1551,9 +1644,8 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(HttpStatusCode.BadRequest, layoutResponse.StatusCode);
         }
 
-        // The two arrangements can disagree about what comes first, so only the wide grid
-        // gets a say in the board's reading order. Otherwise it would flip back and forth
-        // with whichever screen was used last.
+        // Only the wide grid decides the board's reading order, or it would flip back and
+        // forth with whichever screen was used last.
         [Fact]
         public async Task UpdateDashboardLayout_MobileVariant_DoesNotRewriteTheReadingOrder()
         {
@@ -1565,7 +1657,6 @@ namespace Operum.Tests.Tests.Dashboards
             var firstId = await AddLineItem(client, dashboardId, tracker);
             var secondId = await AddLineItem(client, dashboardId, tracker);
 
-            // Stack them the other way round on the phone: second on top, first below.
             var layoutResponse = await client.PutAsJsonAsync($"dashboard/{dashboardId}/layout", new UpdateDashboardLayoutDto
             {
                 Variant = DashboardLayoutVariants.Mobile,
@@ -1603,9 +1694,6 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(HttpStatusCode.NotFound, layoutResponse.StatusCode);
         }
 
-        // ----- Tabs container -----
-
-        // Adds a tabs container and hands back its item id plus its tab ids in order.
         private async Task<(string ItemId, string[] TabIds)> AddTabsContainer(HttpClient client, string dashboardId)
         {
             var add = await client.PostAsync($"dashboard/{dashboardId}/items/tabs-container", null);
@@ -1678,7 +1766,6 @@ namespace Operum.Tests.Tests.Dashboards
             var dashboardId = await CreateDashboard(client);
             var (containerId, _) = await AddTabsContainer(client, dashboardId);
 
-            // Give it a second tab, then drop a widget into that second tab.
             var tabIds = await TabIds(client, dashboardId, containerId);
             await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{containerId}/tabs-container", new SaveTabsContainerDto
             {
@@ -1698,7 +1785,6 @@ namespace Operum.Tests.Tests.Dashboards
             var child = WidgetById(await Widgets(client, dashboardId), childId);
             Assert.Equal(tabIds[1], child.GetProperty("parentTabId").GetString());
 
-            // Remove the second tab; its child falls back to the first.
             await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{containerId}/tabs-container", new SaveTabsContainerDto
             {
                 Tabs = [new SaveTabDto { Id = tabIds[0], Name = "One" }]
@@ -1783,8 +1869,7 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.False(container.TryGetProperty("parentItemId", out var p) && p.ValueKind != JsonValueKind.Null && !string.IsNullOrEmpty(p.GetString()));
         }
 
-        // Regression test: GetUserDashboard's query must be tracked, otherwise mutating the
-        // fetched entity and calling SaveChanges silently persists nothing.
+        // Regression: GetUserDashboard's query must be tracked, or SaveChanges silently persists nothing.
         [Fact]
         public async Task AddQuickAddItem_ValidTracker_AddsAQuickAddWidget()
         {
@@ -1805,15 +1890,12 @@ namespace Operum.Tests.Tests.Dashboards
             var config = JsonDocument.Parse(widgets[0].GetProperty("config").GetString()!).RootElement;
             Assert.Equal(tracker.Id, config.GetProperty("trackerId").GetString());
 
-            // The tracker is resolved server-side so the card can render its button
-            // without fetching the tracker itself once it mounts.
+            // Resolved server-side so the card can render its button without a separate fetch.
             var quickAddTracker = widgets[0].GetProperty("quickAddTracker");
             Assert.Equal(tracker.Id, quickAddTracker.GetProperty("id").GetString());
             Assert.Equal("Weight", quickAddTracker.GetProperty("name").GetString());
         }
 
-        // A quick-add button is still a way to reach a tracker's entries, so it must not
-        // become a way around tracker access.
         [Fact]
         public async Task AddQuickAddItem_TrackerNotAccessibleToUser_ReturnsForbidden()
         {
@@ -1847,10 +1929,8 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal("Renamed board", fetched.GetProperty("name").GetString());
         }
 
-        // Nothing has a category of "Strength", so a source (or a View widget) filtered by
-        // this view keeps zero of the tracker's one seeded entry — the same shape
-        // PlaceWidget_ViewIdsNarrowTheWidget uses, factored out for the View widget tests
-        // below.
+        // No entry has category Strength, so this view matches nothing; shared by
+        // PlaceWidget_ViewIdsNarrowTheWidget and the View widget tests below.
         private static async Task<string> CreateStrengthOnlyView(HttpClient client, CapableTracker tracker)
         {
             var view = await Data(await client.PostAsJsonAsync($"trackers/{tracker.Id}/views", new CreateViewDto
@@ -1861,8 +1941,6 @@ namespace Operum.Tests.Tests.Dashboards
             return view.GetProperty("id").GetString()!;
         }
 
-        // Places a plain, unfiltered line chart on the board and returns its item id — the
-        // "before" a View widget's own link picker acts on.
         private static async Task<string> PlaceLineChart(HttpClient client, string dashboardId, CapableTracker tracker, string? viewId = null)
         {
             var source = LineSource(tracker);
@@ -1879,8 +1957,6 @@ namespace Operum.Tests.Tests.Dashboards
             return (await Data(response)).GetProperty("id").GetString()!;
         }
 
-        // Places a line chart that buckets Day by `grouping` and aggregates Amount with
-        // `code`, and returns its item id.
         private static async Task<string> PlaceGroupedLineChart(
             HttpClient client, string dashboardId, CapableTracker tracker, string grouping, string code)
         {
@@ -1901,8 +1977,6 @@ namespace Operum.Tests.Tests.Dashboards
         private static int PointsOf(JsonElement widgets, string itemId)
             => Analytic(ChartFor(widgets, itemId)).GetProperty("points").GetArrayLength();
 
-        // What an edit is for: the widget's own name, changed without disturbing the chart
-        // it was built to draw.
         [Fact]
         public async Task UpdateDashboardItem_RenamesTheWidgetWithoutTouchingItsDefinition()
         {
@@ -1930,7 +2004,6 @@ namespace Operum.Tests.Tests.Dashboards
             });
             Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
 
-            // Renamed in the response the edit hands back, and still drawing the same chart.
             var updated = (await Data(updateResponse))[0];
             Assert.Equal("Trend", Analytic(updated).GetProperty("name").GetString());
             Assert.Equal(AnalyticTypes.LineChart, Analytic(updated).GetProperty("resultType").GetString());
@@ -1940,9 +2013,8 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal("Trend", Analytic(widgets[0]).GetProperty("name").GetString());
         }
 
-        // The y-axis anchoring is a placement choice: a line chart is 0-based by default, an
-        // edit can switch it to fit the data range, and the board carries the choice back on
-        // the calculated chart so the client knows how to draw the axis.
+        // Y-axis anchoring is a per-placement choice: an edit can switch a chart from
+        // 0-based to fitting the data range.
         [Fact]
         public async Task UpdateDashboardItem_YAxisFromZero_TogglesThePlacementsAxisScaling()
         {
@@ -1953,7 +2025,6 @@ namespace Operum.Tests.Tests.Dashboards
             var dashboardId = await CreateDashboard(client);
             var itemId = await AddLineItem(client, dashboardId, tracker);
 
-            // Defaults to 0-based when the widget is first placed.
             var placed = await Widgets(client, dashboardId);
             Assert.True(Analytic(placed[0]).GetProperty("yAxisFromZero").GetBoolean());
 
@@ -1967,13 +2038,11 @@ namespace Operum.Tests.Tests.Dashboards
 
             Assert.False(Analytic((await Data(updateResponse))[0]).GetProperty("yAxisFromZero").GetBoolean());
 
-            // And it sticks: the board still reports the fitted axis on a fresh read.
             var widgets = await Widgets(client, dashboardId);
             Assert.False(Analytic(widgets[0]).GetProperty("yAxisFromZero").GetBoolean());
         }
 
-        // A name of nothing at all is not a blank title: the widget goes back to reading as
-        // the definition it was built from, the same as one that was never named.
+        // A blank label falls back to the definition's name, same as no label at all.
         [Fact]
         public async Task UpdateDashboardItem_BlankLabel_FallsBackToTheDefinitionsLabel()
         {
@@ -1995,7 +2064,6 @@ namespace Operum.Tests.Tests.Dashboards
 
             var sourceId = await SingleSourceId(client, dashboardId, itemId);
 
-            // The same chart with no label of its own, to read the fallback name off.
             var unnamedId = await AddLineItem(client, dashboardId, tracker);
             var defaultName = Analytic((await Widgets(client, dashboardId)).EnumerateArray()
                 .Single(w => w.GetProperty("id").GetString() == unnamedId)).GetProperty("name").GetString();
@@ -2014,8 +2082,8 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(JsonValueKind.Null, storedSource.GetProperty("label").ValueKind);
         }
 
-        // The payload stands for the whole widget, so a combined chart that names only one of
-        // its two sources is refused rather than half applied.
+        // The payload stands for the whole widget: naming only one of two sources is refused
+        // rather than half applied.
         [Fact]
         public async Task UpdateDashboardItem_SourcesNotNamedInFull_ReturnsBadRequest()
         {
@@ -2067,8 +2135,7 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(HttpStatusCode.NotFound, updateResponse.StatusCode);
         }
 
-        // A widget with no sources has neither a name nor a filter of its own to edit, so it
-        // is not something this endpoint knows about at all.
+        // A widget with no sources has nothing this endpoint knows how to edit.
         [Fact]
         public async Task UpdateDashboardItem_WidgetThatIsNotAnAnalytic_ReturnsNotFound()
         {
@@ -2110,9 +2177,7 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(HttpStatusCode.NotFound, updateResponse.StatusCode);
         }
 
-        // ----- Filter widget -----
-
-        // A date preset -- the wrong clause shape for AmountOverClauses(), used to prove a
+        // A date preset, the wrong clause shape for AmountOverClauses(); proves a
         // shape-mismatched preset is rejected.
         private static SaveDashboardViewDto LateInYearSet() => new()
         {
@@ -2129,8 +2194,7 @@ namespace Operum.Tests.Tests.Dashboards
             ]
         };
 
-        // "Amount greater than ?" -- the value is left for the filter widget to supply on
-        // the board. The seeded entry's Amount is 5.
+        // Value is left blank for the filter widget to supply on the board. Seeded entry's Amount is 5.
         private static List<ClauseDto> AmountOverClauses() =>
         [
             new ClauseDto
@@ -2141,8 +2205,8 @@ namespace Operum.Tests.Tests.Dashboards
             }
         ];
 
-        // A preset whose clause shape matches AmountOverClauses() -- "Amount greater than
-        // <value>" -- so a filter widget built from those clauses may offer it.
+        // Clause shape matches AmountOverClauses(), so a filter widget built from those
+        // clauses may offer it.
         private static SaveDashboardViewDto AmountOverSet(string value) => new()
         {
             Name = $"Amount over {value}",
@@ -2158,9 +2222,7 @@ namespace Operum.Tests.Tests.Dashboards
             ]
         };
 
-        // The slot id of the filter widget's first clause -- the key SetFilterValues and a
-        // goal's conditional targets expect, read back off the board.
-        // The raw Config JSON of one filter widget on the board.
+        // Raw Config JSON of one filter widget on the board.
         private static string FilterConfig(JsonElement widgets, string filterId)
         {
             foreach (var w in widgets.EnumerateArray())
@@ -2169,6 +2231,8 @@ namespace Operum.Tests.Tests.Dashboards
             throw new InvalidOperationException("filter widget not on the board");
         }
 
+        // Slot id of a filter widget's clause; the key SetFilterValues and a goal's
+        // conditional targets expect.
         private static Task<string> FilterSlotId(HttpClient client, string dashboardId, string filterId) =>
             FilterSlotId(client, dashboardId, filterId, 0);
 
@@ -2254,8 +2318,7 @@ namespace Operum.Tests.Tests.Dashboards
                 new SetFilterValuesDto { Values = new() { [slotId] = "10" } });
             Assert.Equal(0, PointsOf(await Data(narrowed), chartId));
 
-            // Edit the widget to also follow a second chart. The edit form sends clause
-            // shape only, never the value that was typed on the board.
+            // The edit form sends clause shape only, never the value typed on the board.
             var secondChartId = await PlaceLineChart(client, dashboardId, tracker);
             var updated = await client.PutAsJsonAsync(
                 $"dashboard/{dashboardId}/items/{filterId}/filter",
@@ -2266,8 +2329,6 @@ namespace Operum.Tests.Tests.Dashboards
                 });
             Assert.Equal(HttpStatusCode.OK, updated.StatusCode);
 
-            // The value survived the edit: both followers stay narrowed, and it is still
-            // the persisted starting point on a fresh load.
             var widgets = await Data(updated);
             Assert.Equal(0, PointsOf(widgets, chartId));
             Assert.Equal(0, PointsOf(widgets, secondChartId));
@@ -2304,9 +2365,8 @@ namespace Operum.Tests.Tests.Dashboards
             var removed = await client.DeleteAsync($"dashboard/{dashboardId}/items/{chartId}");
             Assert.Equal(HttpStatusCode.OK, removed.StatusCode);
 
-            // The removed placement is gone from the stored config, not just from the board:
-            // anything that resubmits this widget's links (adding a new widget that follows
-            // it, say) sends the list back verbatim and a dangling id would be rejected.
+            // Gone from the stored config, not just the board: resubmitting this widget's
+            // links verbatim would otherwise reject the dangling id.
             var config = FilterConfig(await Widgets(client, dashboardId), filterId);
             Assert.DoesNotContain(chartId, config);
             Assert.Contains(secondChartId, config);
@@ -2351,12 +2411,10 @@ namespace Operum.Tests.Tests.Dashboards
                 }));
             var filterId = item.GetProperty("id").GetString()!;
 
-            // Deleting the definition from the Library cascades the placement off the board
-            // without going through RemoveDashboardItem, so the link is left dangling.
+            // Deleting the definition cascades the placement off the board without going
+            // through RemoveDashboardItem, leaving the link dangling.
             Assert.Equal(HttpStatusCode.OK, (await client.DeleteAsync($"widgets/{widgetId}")).StatusCode);
 
-            // The edit form resubmits the widget's stored links as they were. The dangling
-            // one is dropped rather than failing the save the other one rides in on.
             var resaved = await client.PutAsJsonAsync(
                 $"dashboard/{dashboardId}/items/{filterId}/filter",
                 new SaveFilterItemDto
@@ -2393,8 +2451,6 @@ namespace Operum.Tests.Tests.Dashboards
                 new SaveFilterItemDto { Clauses = AmountOverClauses(), Links = [LinkTo(chartId)] }));
             var filterId = item.GetProperty("id").GetString()!;
 
-            // A link the widget never had is a mistake, not something that went stale under
-            // it: adding one to a widget that isn't on the board is still rejected.
             var response = await client.PutAsJsonAsync(
                 $"dashboard/{dashboardId}/items/{filterId}/filter",
                 new SaveFilterItemDto
@@ -2437,12 +2493,9 @@ namespace Operum.Tests.Tests.Dashboards
                 $"dashboard/{dashboardId}/items/{filterId}/filter-values",
                 new SetFilterValuesDto { Values = new() { [slotId] = "10" } });
 
-            // Change the clause from "greater than" to "greater than or equal" -- a
-            // different shape (a new pooled query id), so the old value ("Amount > 10",
-            // which was hiding the Amount-5 entry) must not ride along. A blank clause
-            // here just gets dropped (unlike Equals/NotEquals, which treat a blank value
-            // as its own "is empty" filter), so a leaked "10" is the only thing that could
-            // still hide the entry.
+            // A changed operator is a new pooled query id, so the old typed value must not
+            // ride along. A blank clause is dropped here, unlike Equals/NotEquals, which
+            // treat a blank value as its own "is empty" filter.
             var updated = await client.PutAsJsonAsync(
                 $"dashboard/{dashboardId}/items/{filterId}/filter",
                 new SaveFilterItemDto
@@ -2516,8 +2569,6 @@ namespace Operum.Tests.Tests.Dashboards
             var dashboardId = await CreateDashboard(client);
             var chartId = await PlaceLineChart(client, dashboardId, tracker);
 
-            // Two clauses of the very same shape -- "number on or below ?" -- mapped to two
-            // different fields of the followed chart's tracker.
             var filter = await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/filter", new SaveFilterItemDto
             {
                 Clauses =
@@ -2537,7 +2588,7 @@ namespace Operum.Tests.Tests.Dashboards
             }));
             var filterId = filter.GetProperty("id").GetString()!;
 
-            // Both clauses survive as their own input -- the second no longer collapses onto
+            // Both clauses survive as their own input; the second no longer collapses onto
             // the first just because they pool to the same query.
             var clauses = (await Widgets(client, dashboardId)).EnumerateArray()
                 .First(w => w.GetProperty("id").GetString() == filterId)
@@ -2547,13 +2598,12 @@ namespace Operum.Tests.Tests.Dashboards
             var scoreSlot = clauses[1].GetProperty("slotId").GetString()!;
             Assert.NotEqual(amountSlot, scoreSlot);
 
-            // The seeded entry has Amount 5 and no Score. A ceiling on Score alone drops it...
+            // Entry has Amount 5, no Score: a ceiling on Score alone drops it...
             var byScore = await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{filterId}/filter-values",
                 new SetFilterValuesDto { Values = new() { [scoreSlot] = "100" } });
             Assert.Equal(0, PointsOf(await Data(byScore), chartId));
 
-            // ...while the same ceiling on Amount alone keeps it, proving each clause runs
-            // against its own field.
+            // ...while the same ceiling on Amount keeps it: each clause runs against its own field.
             var byAmount = await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{filterId}/filter-values",
                 new SetFilterValuesDto { Values = new() { [amountSlot] = "100" } });
             Assert.Equal(1, PointsOf(await Data(byAmount), chartId));
@@ -2569,8 +2619,6 @@ namespace Operum.Tests.Tests.Dashboards
             var reviewedFieldId = (await Data(await client.PostAsJsonAsync($"trackers/{tracker.Id}/fields",
                 new CreateFieldDto { Name = "Reviewed", Type = DataTypes.Date }))).GetProperty("id").GetString()!;
 
-            // A second entry that has a Reviewed date, so a "Reviewed on or before" filter
-            // still leaves the goal something to sum rather than blanking it out.
             var seedEntry = await client.PostAsJsonAsync($"trackers/{tracker.Id}/entries", new CreateEntryDto
             {
                 FieldValues = new()
@@ -2602,8 +2650,6 @@ namespace Operum.Tests.Tests.Dashboards
             var goalId = goalItem.GetProperty("id").GetString()!;
             var sourceId = goalItem.GetProperty("sources")[0].GetProperty("id").GetString()!;
 
-            // "on or before ?" on Day, and the same shape again on Reviewed -- both followed
-            // by the goal.
             var filter = await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/filter", new SaveFilterItemDto
             {
                 Clauses =
@@ -2626,7 +2672,6 @@ namespace Operum.Tests.Tests.Dashboards
             var reviewedSlot = await FilterSlotId(client, dashboardId, filterId, 1);
             Assert.NotEqual(daySlot, reviewedSlot);
 
-            // One conditional row per clause, each keyed off its own slot.
             var update = await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{goalId}", new UpdateDashboardItemDto
             {
                 Sources = [new UpdateDashboardItemSourceDto { SourceId = sourceId }],
@@ -2638,12 +2683,10 @@ namespace Operum.Tests.Tests.Dashboards
             });
             Assert.Equal(HttpStatusCode.OK, update.StatusCode);
 
-            // Setting the Day clause hits the first row; the Reviewed clause is untouched.
             var onDay = await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{filterId}/filter-values",
                 new SetFilterValuesDto { Values = new() { [daySlot] = "2026-03-01" } });
             Assert.Equal("111", Analytic(ChartFor(await Data(onDay), goalId)).GetProperty("target").GetString());
 
-            // Setting the Reviewed clause instead hits the second row.
             var onReviewed = await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{filterId}/filter-values",
                 new SetFilterValuesDto { Values = new() { [reviewedSlot] = "2026-03-01" } });
             Assert.Equal("222", Analytic(ChartFor(await Data(onReviewed), goalId)).GetProperty("target").GetString());
@@ -2715,7 +2758,6 @@ namespace Operum.Tests.Tests.Dashboards
                         {
                             ItemId = chartId,
                             TrackerId = tracker.Id,
-                            // Day is a date field, but the clause is a number clause.
                             FieldByQuery = new() { ["0"] = tracker.DayFieldId }
                         }
                     ]
@@ -2763,8 +2805,6 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(HttpStatusCode.BadRequest, badKey.StatusCode);
         }
 
-        // ----- Filter widget presets (named value sets matched to the clause shape) -----
-
         [Fact]
         public async Task AddFilter_MatchingPreset_ExposesItsValuesOnTheCard()
         {
@@ -2804,7 +2844,6 @@ namespace Operum.Tests.Tests.Dashboards
             var dashboardId = await CreateDashboard(client);
             await PlaceLineChart(client, dashboardId, tracker);
 
-            // The preset is a date clause; the widget's clauses are a number clause.
             var view = await Data(await client.PostAsJsonAsync(
                 $"dashboard/{dashboardId}/views", LateInYearSet()));
             var viewId = view.GetProperty("id").GetString()!;
@@ -2867,9 +2906,6 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(HttpStatusCode.BadRequest, overflow.StatusCode);
         }
 
-        // ----- Entries widget rows & columns -----
-
-        // Places a new Entries table widget on the board and returns its item id.
         private static async Task<string> PlaceEntriesTable(
             HttpClient client, string dashboardId, CapableTracker tracker, List<string>? columnFieldIds = null)
         {
@@ -2906,7 +2942,6 @@ namespace Operum.Tests.Tests.Dashboards
 
             var widgets = await Widgets(client, dashboardId);
             Assert.Equal(1, EntriesRowCount(widgets, itemId));
-            // The fixed-view binding is gone -- the payload no longer carries a viewId.
             Assert.False(EntriesWidgetFor(widgets, itemId).TryGetProperty("viewId", out _));
         }
 
@@ -2973,7 +3008,6 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(HttpStatusCode.OK, updated.StatusCode);
             Assert.Equal(["Amount"], EntriesColumnNames(await Data(updated), itemId));
 
-            // And it stays put on the next plain load.
             Assert.Equal(["Amount"], EntriesColumnNames(await Widgets(client, dashboardId), itemId));
         }
 

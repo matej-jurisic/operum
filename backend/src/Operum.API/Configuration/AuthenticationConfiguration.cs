@@ -104,14 +104,11 @@ namespace Operum.API.Configuration
             {
                 options.User.RequireUniqueEmail = true;
 
-                // Password requirements
                 options.Password.RequireDigit = true;
                 options.Password.RequiredLength = 6;
                 options.Password.RequireNonAlphanumeric = false;
                 options.Password.RequireUppercase = false;
                 options.Password.RequireLowercase = false;
-
-                // Account lockout
 
                 var durationMinutes = configuration.GetValue<int?>("Lockout:DurationMinutes");
                 var maxFailedAttempts = configuration.GetValue<int?>("Lockout:MaxFailedAttempts");

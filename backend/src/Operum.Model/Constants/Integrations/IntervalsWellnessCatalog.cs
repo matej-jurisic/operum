@@ -4,32 +4,19 @@ using Operum.Model.Integrations;
 namespace Operum.Model.Constants.Integrations
 {
     /// <summary>
-    /// The values an intervals.icu daily wellness record can supply. A fixed schema, so this
-    /// is a hardcoded catalog rather than anything inferred at runtime -- same shape as
-    /// <see cref="DataTypes"/> and <c>OperatorTypes</c>.
-    /// <para>
-    /// Each Key is also the JSON property the provider reads. Matching is done on a
-    /// normalised form (case-insensitive, underscores ignored), so a payload using
-    /// <c>sleep_secs</c> resolves the same key as one using <c>sleepSecs</c> -- both spellings
-    /// appear in circulation and the provider should not care which arrives.
-    /// </para>
+    /// Keys are matched on a normalised form (case-insensitive, underscores ignored), so both
+    /// <c>sleep_secs</c> and <c>sleepSecs</c> resolve the same key.
     /// </summary>
     public static class IntervalsWellnessCatalog
     {
         public const string ResourceType = "wellness";
 
-        /// <summary>
-        /// The record's own id -- the date it describes. The provider always uses it as the
-        /// ExternalId, which is what makes a re-sync update rather than duplicate. It stays
-        /// mappable as well, since a tracker of daily records nearly always wants that date
-        /// in a field of its own.
-        /// </summary>
+        // The date this record describes; used as ExternalId, and kept mappable too.
         public const string RecordKey = "id";
 
-        /// <summary>Last revision timestamp; used as the sync cursor, not offered for mapping.</summary>
+        // Used as the sync cursor, not offered for mapping.
         public const string UpdatedKey = "updated";
 
-        /// <summary>Seconds in the payload, offered as a timespan; the provider converts.</summary>
         public const string SleepSecondsKey = "sleepSecs";
 
         public static readonly IReadOnlyList<SourceField> Fields =
@@ -49,14 +36,13 @@ namespace Operum.Model.Constants.Integrations
             new("bodyFat", DataTypes.Number, "Body fat"),
             new("abdomen", DataTypes.Number, "Abdomen"),
 
-            // Computed training load, not something the athlete logs.
+            // Computed, not athlete-logged.
             new("ctl", DataTypes.Number, "Fitness (CTL)"),
             new("atl", DataTypes.Number, "Fatigue (ATL)"),
             new("rampRate", DataTypes.Number, "Ramp rate"),
             new("ctlLoad", DataTypes.Number, "CTL load"),
             new("atlLoad", DataTypes.Number, "ATL load"),
 
-            // Subjective 1-5 scales.
             new("soreness", DataTypes.Number, "Soreness"),
             new("fatigue", DataTypes.Number, "Fatigue"),
             new("stress", DataTypes.Number, "Stress"),
@@ -89,12 +75,9 @@ namespace Operum.Model.Constants.Integrations
             new("tempWeight", DataTypes.Bool, "Weight is provisional"),
             new("tempRestingHR", DataTypes.Bool, "Resting HR is provisional"),
 
-            // sportInfo is left out on purpose: it is a nested array of per-sport values
-            // (type/eftp/wPrime/pMax) and a field holds a flat scalar. Adding it means
-            // flattening per sport -- eFTP_Ride, eFTP_Run -- which is its own decision.
+            // sportInfo omitted: nested per-sport array, doesn't fit a flat scalar field.
         ];
 
-        /// <summary>What a user may map: everything but the record key and the cursor.</summary>
         public static readonly IReadOnlyList<SourceField> Mappable =
             [.. Fields.Where(f => f.Key != UpdatedKey)];
     }

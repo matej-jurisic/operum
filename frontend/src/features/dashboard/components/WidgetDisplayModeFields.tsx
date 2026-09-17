@@ -36,14 +36,8 @@ function ModeRow({
     );
 }
 
-/**
- * How an Analytic/Entries widget is drawn on each of the board's two grids, set on its
- * create/edit form. Shared rather than repeated across CustomAnalyticForm,
- * PlaceFromLibraryForm, EntriesWidgetForm, EditWidgetModal and EditEntriesWidgetModal.
- *
- * Button collapses the widget to a tile that opens it in a popup; Hidden drops it from
- * that grid entirely, leaving it reachable only from the board's hidden-widgets list.
- */
+/** Hidden drops the widget from that grid entirely, reachable only from the board's
+ *  hidden-widgets list. */
 export function WidgetDisplayModeFields({
     displayMode,
     mobileDisplayMode,

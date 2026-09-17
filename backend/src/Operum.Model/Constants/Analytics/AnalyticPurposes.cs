@@ -9,13 +9,10 @@
         public const string When = "When";
         public const string Name = "Name";
 
-        // Min/Max only, and optional: the field whose value the widget shows. The
-        // calculation still picks the entry by the Value field; this only changes what is
-        // displayed once that entry is found.
+        // Min/Max only, optional: field shown for the entry picked by Value.
         public const string Display = "Display";
 
-        // The field two correlation-scatter sources are joined on: a point pairs the two
-        // trackers' values for each match key they share.
+        // Join key for correlation-scatter's two sources.
         public const string Match = "Match";
 
         public static readonly HashSet<string> All =

@@ -13,35 +13,18 @@ using System.Text.Json;
 
 namespace Operum.Service.Integrations.Intervals
 {
-    /// <summary>
-    /// intervals.icu daily wellness and activities, pulled on a schedule.
-    /// <para>
-    /// Chosen as the first connector because its API is self-serve -- an athlete makes a key
-    /// in settings, with no partner programme to be approved by -- and because it already
-    /// aggregates from Garmin, Strava, Wahoo, Zwift, Polar and Coros, so one connector fans in
-    /// from most vendors.
-    /// </para>
-    /// <para>
-    /// Both resources are a date-range GET that returns the whole window in one response, so
-    /// they differ only in route, catalog, and -- for wellness alone -- a revision cursor.
-    /// <see cref="ResourceSpec"/> captures that difference; everything else is shared.
-    /// </para>
-    /// </summary>
-    /// <remarks>
-    /// Takes a client factory rather than an HttpClient: the provider is a singleton, and a
-    /// singleton holding one typed client would pin a single handler for the life of the
-    /// process instead of letting the factory rotate them.
-    /// </remarks>
+    // intervals.icu daily wellness and activities, pulled on a schedule. Both resources are a
+    // date-range GET returning the whole window in one response; ResourceSpec captures the
+    // differences (route, catalog, revision cursor). Uses IHttpClientFactory rather than a
+    // singleton HttpClient so handlers rotate normally.
     public class IntervalsProvider(IHttpClientFactory httpClientFactory, ILogger<IntervalsProvider> logger) : IPullIntegrationProvider
     {
         public const string ProviderKey = "intervals.icu";
 
-        // Documented as Basic auth with the username the literal "API_KEY" and the athlete's
-        // key as the password.
+        // Basic auth with username "API_KEY" and the athlete's key as password.
         private const string ApiKeyUserName = "API_KEY";
 
-        // "0" resolves to whichever athlete the key belongs to, so a user never has to find
-        // their own id to connect.
+        // Resolves to whichever athlete the key belongs to.
         private const string SelfAthleteId = "0";
 
         public string Key => ProviderKey;
@@ -59,12 +42,6 @@ namespace Operum.Service.Integrations.Intervals
             _ => [],
         };
 
-        /// <summary>
-        /// Everything that differs between the resources this provider serves: how the window
-        /// becomes a route, which payload key is the stable id, which -- if any -- carries the
-        /// revision timestamp, and the fields to read out. Null for a resource this provider
-        /// does not serve.
-        /// </summary>
         private sealed record ResourceSpec(
             string RoutePath,
             string RecordKey,
@@ -82,8 +59,7 @@ namespace Operum.Service.Integrations.Intervals
             IntervalsActivitiesCatalog.ResourceType => new(
                 "activities",
                 IntervalsActivitiesCatalog.RecordKey,
-                // Activities carry no "last modified" field, so there is no cursor: every
-                // record reads as fresh and the reconciliation window bounds the re-read.
+                // Activities carry no "last modified" field; every record reads as fresh.
                 null,
                 IntervalsActivitiesCatalog.Fields),
 
@@ -152,15 +128,10 @@ namespace Operum.Service.Integrations.Intervals
             using var request = BuildRequest(HttpMethod.Get, route, connection.Credential);
             using var response = await http.SendAsync(request, ct);
 
-            // Let the sync service record the failure against the target: it knows which one
-            // this is, and one athlete's revoked key must not stop the tick for everyone else.
             response.EnsureSuccessStatusCode();
 
             var body = await response.Content.ReadAsStringAsync(ct);
 
-            // The whole window arrives in one response -- this endpoint takes a date range
-            // rather than paging -- so there is nothing to loop over. FetchAsync is a stream
-            // regardless, because a paginated provider needs it to be.
             foreach (var record in ReadArray(body))
             {
                 ct.ThrowIfCancellationRequested();
@@ -193,9 +164,7 @@ namespace Operum.Service.Integrations.Intervals
 
             var values = new Dictionary<string, string?>();
 
-            // Every catalog key is emitted, present with a null where the athlete logged
-            // nothing. That presence is what a mapping's SkipWhenNull acts on -- omitting the
-            // key instead would mean "nothing to say", which is a different instruction.
+            // Every catalog key is emitted, null where the athlete logged nothing; SkipWhenNull acts on that presence.
             foreach (var field in spec.Fields)
             {
                 normalised.TryGetValue(Normalise(field.Key), out var element);
@@ -205,12 +174,8 @@ namespace Operum.Service.Integrations.Intervals
             return new SourceRecord(externalId!, SourceOperation.Upsert, updatedAt, values);
         }
 
-        /// <summary>
-        /// Reads one payload value as the string the write path consumes, per the type the
-        /// catalog declares. Anything absent, null, or of an unexpected shape reads as null:
-        /// an unlogged metric is missing data, and coercing it to 0 or "" would drag averages
-        /// and charts around.
-        /// </summary>
+        // Anything absent, null, or of unexpected shape reads as null rather than 0/"": an
+        // unlogged metric is missing data, not a zero value.
         private string? Coerce(JsonElement element, SourceField field)
         {
             if (element.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
@@ -220,8 +185,7 @@ namespace Operum.Service.Integrations.Intervals
             {
                 return field.Type switch
                 {
-                    // The one unit conversion: the payload counts seconds, the field holds a
-                    // duration.
+                    // The payload counts seconds; the field holds a duration.
                     DataTypes.TimeSpan when element.ValueKind == JsonValueKind.Number =>
                         TimeSpan.FromSeconds(element.GetDouble()).ToString(),
 
@@ -251,10 +215,7 @@ namespace Operum.Service.Integrations.Intervals
             return request;
         }
 
-        /// <summary>
-        /// Keys are compared with case and underscores ignored, so a payload spelling a field
-        /// sleep_secs resolves the same catalog entry as one spelling it sleepSecs.
-        /// </summary>
+        // Case and underscores ignored, so "sleep_secs" and "sleepSecs" resolve to the same catalog entry.
         private static string Normalise(string key) =>
             key.Replace("_", string.Empty).ToLowerInvariant();
 
@@ -274,10 +235,8 @@ namespace Operum.Service.Integrations.Intervals
             _ => null,
         };
 
-        // Deserialized loosely rather than into a DTO of ~45 nullable properties: the catalog
-        // is already the schema, a wrong property name is then a one-line fix there, and
-        // "absent" and "null" stay distinguishable without every value type being nullable
-        // by hand.
+        // Deserialized loosely rather than into a DTO: the catalog is already the schema, and
+        // "absent" vs "null" stay distinguishable.
         private Dictionary<string, JsonElement>? ReadObject(string body)
         {
             try

@@ -9,11 +9,7 @@ interface Props {
     onDelete: () => void;
 }
 
-/**
- * Edit / delete for the tracker whose page this is, as a cog in the top-right
- * corner -- the same control, in the same place, as a dashboard's BoardActions.
- * Only rendered for the tracker's owner.
- */
+/** Only rendered for the tracker's owner. */
 export default function TrackerActions({
     color,
     isMobile,

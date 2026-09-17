@@ -26,8 +26,7 @@ function PublicShell({ children }: { children: React.ReactNode }) {
         : "radial-gradient(circle, rgba(0,0,0,0.08) 1px, transparent 1px)";
 
     return (
-        // 100% rather than 100vw: 100vw counts the vertical scrollbar, so any page tall
-        // enough to scroll would also overflow sideways by the scrollbar's width.
+        // 100% not 100vw: 100vw counts the scrollbar, overflowing sideways on tall pages.
         <AppShell h={"100vh"} w={"100%"} transitionDuration={0}>
             <AppShell.Main
                 h="100%"
@@ -74,12 +73,10 @@ const App = observer(() => {
         <>
             <OperumLoader visible={loading} />
             <BrowserRouter>
-                {/* Last resort for crashes outside the signed-in shell, which has its own
-                    boundary so the sidebar stays usable. */}
+                {/* Signed-in shell has its own boundary; this covers crashes outside it. */}
                 <ErrorBoundary>
                     <Suspense fallback={<OperumLoader visible />}>
                         <Routes>
-                            {/* Public pages -- no app chrome */}
                             <Route
                                 path="home"
                                 element={
@@ -113,7 +110,6 @@ const App = observer(() => {
                                 }
                             />
 
-                            {/* Signed-in app -- sidebar + command palette */}
                             <Route element={<AppLayout />}>
                                 <Route
                                     path="profile"
@@ -139,8 +135,7 @@ const App = observer(() => {
                                     path="dashboard/:dashboardId"
                                     element={<PrivateRoute page={<DashboardPage />} />}
                                 />
-                                {/* Gated at build time, so the route simply does not exist
-                                    when the feature is off -- the backend 404s it either way. */}
+                                {/* Build-time gate: route doesn't exist when off; backend 404s it either way. */}
                                 {areIntegrationsEnabled && (
                                     <Route
                                         path="integrations"

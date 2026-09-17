@@ -10,8 +10,7 @@ namespace Operum.Model.DTOs.Widgets
     public class WidgetSourceDto
     {
         public string Id { get; set; } = string.Empty;
-        // The widget's definition read through this source's fields, e.g. "Monthly Totals:
-        // Day, Amount" -- the same display name a dashboard source computes for itself.
+        // e.g. "Monthly Totals: Day, Amount".
         public string Name { get; set; } = string.Empty;
         public List<WidgetSourceFieldDto> Fields { get; set; } = [];
         public string TrackerId { get; set; } = string.Empty;
@@ -19,9 +18,7 @@ namespace Operum.Model.DTOs.Widgets
         public int Order { get; set; }
     }
 
-    // A reusable chart definition as the Widget Library reads and edits it. Not scoped to
-    // any one dashboard -- see DashboardWidgetDto for how a placement of this renders on a
-    // board.
+    // Not scoped to any one dashboard; see DashboardWidgetDto for a placement's rendering.
     public class WidgetDto
     {
         public string Id { get; set; } = string.Empty;
@@ -29,13 +26,13 @@ namespace Operum.Model.DTOs.Widgets
         public string? Description { get; set; }
         public string ResultType { get; set; } = string.Empty;
         public string Code { get; set; } = string.Empty;
-        // Line/Bar only: how the axis field is bucketed before Code aggregates it (see
-        // AnalyticGroupings). Null for every other result type.
+        // Line/Bar only.
         public string? Grouping { get; set; }
         public bool MatchedValuesOnly { get; set; }
-        // Goal widgets only: the target the calculated value is shown as progress toward, in
-        // the value field's own string format. Null for every other result type.
+        // Goal widgets only, in the value field's own string format.
         public string? GoalTarget { get; set; }
+        // Goal widgets only. Null reads as HigherIsBetter.
+        public string? GoalDirection { get; set; }
         public List<WidgetSourceDto> Sources { get; set; } = [];
     }
 }

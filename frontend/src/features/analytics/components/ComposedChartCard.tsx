@@ -26,9 +26,7 @@ interface Props {
     fillHeight?: boolean;
 }
 
-// Fallback only, for a series whose tracker carries no color of its own: cycled per
-// series, with the board color reserved for the first one so a combined chart still leads
-// with the dashboard's own accent color absent anything more specific to draw it with.
+// Fallback for a series with no tracker color; index 0 is reserved for the board color.
 const SERIES_COLORS = [
     "blue",
     "orange",
@@ -51,10 +49,7 @@ export function ComposedChartCard({
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
     const layout = useCardLayout(fillHeight);
 
-    // Union of every series' x labels, sorted. Sources may bucket by different
-    // semantics (dates vs. category names, monthly vs. yearly, ...) — see the
-    // `warnings` surfaced below — so this is a best-effort shared axis, not a
-    // guaranteed-meaningful one.
+    // Union of every series' x labels; best-effort shared axis since series may use different x semantics (see `warnings`).
     const data = useMemo(() => {
         const xValues = new Set<string>();
         analytic.series.forEach((s) =>
@@ -74,9 +69,6 @@ export function ComposedChartCard({
     const chartSeries = analytic.series.map((s, index) => ({
         name: s.key,
         type: s.renderType,
-        // Each line/bar is colored like the tracker it came from, so a combined chart
-        // still reads as "which tracker" at a glance. Only a series whose tracker has no
-        // color of its own falls back to the cycling palette.
         color:
             s.color ??
             (index === 0
@@ -85,15 +77,11 @@ export function ComposedChartCard({
         label: s.label,
     }));
 
-    // Same best-effort caveat as the tooltip: the shared axis is formatted using the
-    // first series' field type, which may not hold for every mixed-semantics series.
     const xAxisFormatter = analytic.series[0]?.xField
         ? getAxisFormatter(analytic.series[0].xField.type)
         : undefined;
 
-    // The Y axis is shared across every series, so it can only be formatted when the
-    // series agree on a value type (e.g. two duration trackers). A mixed chart falls
-    // back to raw numbers; the per-series tooltip still formats each value correctly.
+    // Only formatted when every series shares a value type; a mixed chart falls back to raw numbers.
     const yValueType = analytic.series[0]?.valueField.type;
     const yAxisFormatter =
         yValueType &&
@@ -142,8 +130,6 @@ export function ComposedChartCard({
                 xAxisProps={{ tickFormatter: xAxisFormatter }}
                 yAxisProps={{
                     tickFormatter: yAxisFormatter,
-                    // Matches LineChartCard: 0-anchored by default, fitted to the data
-                    // range when the widget opts out.
                     domain: analytic.yAxisFromZero
                         ? [0, "auto"]
                         : ["auto", "auto"],

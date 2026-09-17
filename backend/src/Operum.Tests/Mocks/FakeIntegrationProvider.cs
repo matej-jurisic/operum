@@ -7,11 +7,7 @@ using System.Runtime.CompilerServices;
 
 namespace Operum.Tests.Mocks
 {
-    /// <summary>
-    /// A provider that does both ingest paths without touching a network, so the shared
-    /// pipeline can be tested before any real provider exists -- and so a later regression in
-    /// it is caught here rather than against someone's live account.
-    /// </summary>
+    /// <summary>Covers both ingest paths without a network, so the shared pipeline can be tested before any real provider exists.</summary>
     public class FakeIntegrationProvider : IPullIntegrationProvider, IPushIntegrationProvider
     {
         public const string ResourceType = "things";
@@ -77,8 +73,7 @@ namespace Operum.Tests.Mocks
             string rawBody,
             IReadOnlyDictionary<string, string> headers)
         {
-            // Stands in for a real signature check: the point under test is that a failure
-            // yields Forbidden and no records, not the particular hash a provider uses.
+            // Stands in for a real signature check; only the Forbidden-on-failure behavior is under test.
             if (!headers.TryGetValue("X-Fake-Signature", out var signature) || signature != secret)
                 return Result.Failure(ResultStatusCodes.Forbidden, "Signature verification failed.");
 

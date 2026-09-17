@@ -55,12 +55,7 @@ function matchValues(
     return filters.map((f) => f.value ?? null);
 }
 
-/**
- * The preset facet of the filter widget editor. A preset is a board DashboardView that is
- * nothing but a named set of values for this exact clause set; only views whose clause
- * shape matches the widget's are offered, and a "New preset" form creates one from the
- * current clauses. Shown only once the widget's clauses are complete.
- */
+/** A preset is a board DashboardView holding a named set of values for this exact clause set. */
 export function FilterPresetsSection({
     clauses,
     presetIds,

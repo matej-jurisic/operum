@@ -35,8 +35,7 @@ export function BarChartCard({
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
     const layout = useCardLayout(fillHeight);
 
-    // The backend returns the analytic with no category field when it can no longer be
-    // resolved (e.g. a field was deleted). Nothing can be plotted in that case.
+    // nameField is undefined when its source field was deleted.
     const { nameField } = analytic;
 
     return (

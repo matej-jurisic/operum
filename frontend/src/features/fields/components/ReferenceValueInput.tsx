@@ -14,10 +14,7 @@ interface ReferenceValueInputProps {
     form: AnyForm;
     fieldPath?: string;
     styles?: CSSProperties;
-    /**
-     * "id" (entry forms) stores the linked entry's id; "label" (filter editors) stores
-     * the label text so the existing string-matching filter plumbing applies.
-     */
+    /** "id" (entry forms) stores the linked entry's id; "label" (filter editors) stores the label text. */
     valueMode?: "id" | "label";
     /** Label for the currently selected value, so it renders before a search runs. */
     referenceLabel?: string;

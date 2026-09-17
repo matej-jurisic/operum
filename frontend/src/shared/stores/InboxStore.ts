@@ -4,11 +4,7 @@ import { InboxNotificationDto } from "../../features/inbox/types/InboxNotificati
 
 const PAGE_SIZE = 15;
 
-/**
- * Backs the sidebar notification bell: the unread badge (polled while the app is
- * open) and the modal list (loaded on open, paged with "Load more"). App-wide
- * rather than tracker-scoped, so it lives beside GlobalStore instead of in a context.
- */
+/** App-wide (not tracker-scoped), so it lives beside GlobalStore instead of in a context. */
 class InboxStore {
     items: InboxNotificationDto[] = [];
     unreadCount = 0;

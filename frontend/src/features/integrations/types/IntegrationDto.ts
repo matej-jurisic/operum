@@ -20,11 +20,7 @@ export interface ProviderDto {
     supportsPush: boolean;
     /** Whether the connect form must ask for the user's own instance URL. */
     requiresBaseUrl: boolean;
-    /**
-     * True when this push provider mints the webhook secret itself and the user pastes it
-     * into Operum (Firefly III). False when Operum generates it for the user to paste into
-     * the provider.
-     */
+    /** True when the provider mints the webhook secret itself (Firefly III), not Operum. */
     providerSuppliesSecret: boolean;
     resources: ProviderResourceDto[];
 }
@@ -51,16 +47,9 @@ export interface IntegrationTargetDto {
     lastSyncError?: string | null;
     /** Where a push provider delivers. Null for a pull target. */
     webhookUrl?: string | null;
-    /**
-     * Only ever present on the response that created the target or issued a new Operum
-     * secret. It is stored encrypted and cannot be shown again, so the UI has to make the
-     * user copy it there and then. Always null for a provider that supplies its own secret.
-     */
+    /** Only present on the response that created the target or issued a new Operum secret; never shown again after. */
     webhookSecret?: string | null;
-    /**
-     * Whether a signing secret is set on this push target. False on a Firefly target
-     * between creating it and pasting in the secret from Firefly. Null for a pull target.
-     */
+    /** Null for a pull target. */
     hasWebhookSecret?: boolean | null;
     mappings: FieldMappingDto[];
 }

@@ -47,10 +47,7 @@ const ORDERED_OPERATORS = [
 
 const EQUALITY_OPERATORS = [OperatorTypes.Equals, OperatorTypes.NotEquals];
 
-/**
- * Which operators a field of this type accepts, mirroring the server's own rule:
- * text operators are string-only and ordering operators are rejected on strings.
- */
+/** Mirrors the server's rule: text operators are string-only, ordering operators rejected on strings. */
 export const operatorsForFieldType = (type: string | undefined) => {
     const allowed =
         type === FieldTypes.String

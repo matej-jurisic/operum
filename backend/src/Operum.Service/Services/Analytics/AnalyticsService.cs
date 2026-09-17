@@ -29,9 +29,7 @@ namespace Operum.Service.Services.Analytics
                     Codes = [.. rt.Value.Codes.Select(code => new AnalyticConfigCode
                     {
                         Code = code.Key,
-                        // For a grouping type the composed label depends on the grouping too,
-                        // so the form builds the display name itself; Name here is the bare
-                        // aggregation label.
+                        // A grouping type's display name is composed client-side; this is just the bare aggregation label.
                         Name = rt.Value.UsesGrouping
                             ? AnalyticDefinitionList.GetAggregationLabel(code.Key)
                             : string.IsNullOrEmpty(code.Value.Label) ? code.Key : code.Value.Label,
@@ -56,32 +54,25 @@ namespace Operum.Service.Services.Analytics
             return Result.Success(config);
         }
 
-        // Mirrors the placement pipeline in DashboardService.BuildWidgets, minus the shared
-        // Widget/DashboardItemSource entities: nothing is saved, each source's field mapping
-        // comes straight off the request, and its base filter/sort is an optional saved view
-        // with any number of inline clauses ANDed on top. A single source renders on its
-        // own; multiple sources merge the same way a multi-tracker widget does.
+        // Mirrors DashboardService.BuildWidgets but persists nothing; field mapping comes
+        // straight off the request.
         public async Task<Result<AnalyticDto>> Evaluate(EvaluateWidgetDto dto)
         {
             var user = currentUserService.GetCurrentUser();
 
-            // A shared Explore URL bookmarked before grouping and aggregation were split
-            // carries a single fused Line/Bar code; rewrite it to the current pair.
+            // Rewrites a legacy fused Line/Bar code (from before grouping and aggregation were split) to the current pair.
             var (grouping, code) = LegacyLineBarCodes.Resolve(dto.Grouping, dto.Code);
 
             if (!AnalyticDefinitionList.IsValidForType(dto.ResultType, code, grouping))
                 return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("code for this result type"));
 
-            // A Goal needs a target to be worth anything, and that only exists on a saved
-            // Widget -- there's nothing to evaluate ad hoc.
+            // A Goal's target only exists on a saved Widget; there's nothing to evaluate ad hoc.
             if (dto.ResultType == AnalyticTypes.Goal)
                 return Result.Failure(ResultStatusCodes.BadRequest, Messages.NotAllowed("evaluating a goal without a saved target"));
 
             var isPaired = AnalyticTypes.RequiresPairedSources(dto.ResultType, code);
 
-            // Source count, gated exactly as WidgetsService.CreateWidget does: a correlation
-            // pairs exactly two trackers, the merge types (line/bar/calendar) take one or
-            // more, everything else is single-source.
+            // Gated the same way as WidgetsService.CreateWidget.
             if (isPaired)
             {
                 if (dto.Sources.Count != 2)
@@ -121,14 +112,10 @@ namespace Operum.Service.Services.Analytics
                 if (!entriesResult.IsSuccess)
                     return Result.Failure(entriesResult.StatusCode, entriesResult.Messages);
 
-                // A correlation source has no calculation of its own: each side is the
-                // (match key -> value) list a raw-values line chart produces, which
-                // MultiSourceAnalyticMerger.MergeCorrelation then joins -- same trick as
-                // DashboardService.BuildWidgets.
+                // A correlation source has no calculation of its own: each side is the (match
+                // key -> value) list a raw-values line chart produces, for MergeCorrelation to join.
                 var request = new AnalyticResultBuilderRequest
                 {
-                    // No persisted Analytic -- the pipeline only reads Id/Code/ResultType off
-                    // a transient one, same as DashboardService does for a placement.
                     Analytic = new Analytic
                     {
                         Id = $"explore-{i}",
@@ -158,10 +145,7 @@ namespace Operum.Service.Services.Analytics
             return Result.Success(merged);
         }
 
-        // Validates one source's purpose -> field mapping the same way
-        // WidgetsService.BuildSourceFields does: the supplied purposes must cover the ones
-        // the code requires and add nothing it doesn't accept, each field must belong to the
-        // tracker, and its data type must be one the code allows for that purpose.
+        // Validates one source's purpose -> field mapping the same way WidgetsService.BuildSourceFields does.
         private static Result<Dictionary<string, Field>> BuildFieldMap(
             string resultType, string code, string? grouping, EvaluateSourceDto src, IReadOnlyDictionary<string, Field> trackerFields)
         {
@@ -191,8 +175,6 @@ namespace Operum.Service.Services.Analytics
             return Result.Success(map);
         }
 
-        // The live entries one source contributes: its tracker's rows, optionally narrowed
-        // by a saved view (base filter + sort) and then by any inline clauses ANDed on top.
         private async Task<Result<List<Entry>>> BuildSourceEntries(
             EvaluateSourceDto src, IReadOnlyDictionary<string, Field> trackerFields, TimeZoneInfo tz)
         {
@@ -221,9 +203,7 @@ namespace Operum.Service.Services.Analytics
             return Result.Success(await entriesQuery.ToListAsync());
         }
 
-        // Inline clauses resolved to the field they run against. A clause whose field is
-        // unknown is dropped; a blank value is only kept for the equality operators
-        // ("is empty" / "has a value"), matching DashboardService.ResolveFilterClauses.
+        // A blank value is only kept for the equality operators ("is empty" / "has a value").
         private static List<ResolvedClause> ResolveInlineFilters(
             List<EvaluateFilterClauseDto> filters, IReadOnlyDictionary<string, Field> trackerFields)
         {

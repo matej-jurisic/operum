@@ -2,10 +2,7 @@ using System.Collections.Generic;
 
 namespace Operum.Service.Domain.Notifications
 {
-    /// <summary>
-    /// Resolves a notification's custom push body, if any, against a small set of tokens.
-    /// Keeps the default, generic body when the user hasn't written their own.
-    /// </summary>
+    // Falls back to the generic body when the user hasn't written a custom template.
     public static class NotificationMessageBuilder
     {
         public static string Build(string? template, string fallback, IReadOnlyDictionary<string, string> tokens)

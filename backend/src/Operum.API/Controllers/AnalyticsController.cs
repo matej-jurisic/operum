@@ -16,9 +16,7 @@ namespace Operum.API.Controllers
             return GetApiResponse(analyticsService.GetAnalyticConfig());
         }
 
-        // Calculates a chart definition once against live data without saving it -- the
-        // Explore page. Authorized: unlike the catalog lookup above, this reads the user's
-        // trackers and entries.
+        // Explore page: evaluates a chart definition once against live data without saving it. Authorized, unlike the catalog lookup above, since it reads the user's trackers and entries.
         [Authorize]
         [HttpPost("evaluate")]
         public async Task<IActionResult> Evaluate([FromBody] EvaluateWidgetDto dto)

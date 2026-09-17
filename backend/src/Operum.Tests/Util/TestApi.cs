@@ -8,10 +8,7 @@ using System.Text.Json;
 
 namespace Operum.Tests.Util
 {
-    /// <summary>
-    /// Wrappers over the endpoints tests use to build their fixtures. Whatever a test is
-    /// actually asserting on is still called inline, so the request under test stays visible.
-    /// </summary>
+    /// <summary>Wrappers over the endpoints tests use for fixtures; the request under test itself is still called inline so it stays visible.</summary>
     public static class TestApi
     {
         /// <summary>The "data" payload of an ApiResponse, with the body in the error when it is missing.</summary>

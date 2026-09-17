@@ -50,9 +50,6 @@ enum OpenDialogType {
     ExtractFields,
 }
 
-// Only plain stored values can be pulled into their own tracker. A calculated field is
-// derived from others and a reference already points elsewhere, so neither means anything
-// on its own.
 function extractBlockReason(field: FieldDto): string | undefined {
     if (field.isCalculated) return "Calculated fields cannot be extracted.";
     if (field.type === "reference")

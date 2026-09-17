@@ -12,14 +12,6 @@ interface Props {
     onEdit?: (itemId: string) => void;
 }
 
-/**
- * A board widget that draws no data at all: a short line of text meant to read as a
- * section title, the way a heading breaks up the board's deliberate empty space into
- * named regions instead of looking like unfinished layout.
- *
- * The text is the whole card, so, like QuickAdd and View, its header is compact: present
- * only to carry the edit/remove icons while the board is being arranged.
- */
 export function HeaderWidgetCard({
     widgetId,
     config,

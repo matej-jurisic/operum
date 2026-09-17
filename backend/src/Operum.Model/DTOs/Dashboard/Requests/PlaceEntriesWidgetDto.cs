@@ -5,19 +5,16 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Operum.Model.DTOs.Dashboard.Requests
 {
-    // Places an existing Widget Library Entries table onto this dashboard by reference --
-    // see PlaceWidgetDto for the equivalent on a chart. The tracker it reads from is fixed
-    // on the EntriesWidget itself; only the columns and layout are this placement's own.
+    // The tracker is fixed on the EntriesWidget itself; only columns and layout are this
+    // placement's own. See PlaceWidgetDto for the equivalent on a chart.
     public class PlaceEntriesWidgetDto
     {
         [Required]
         public string EntriesWidgetId { get; set; } = string.Empty;
 
-        // The tracker fields to show as columns, in order. Empty shows every field.
+        // Empty shows every field.
         public List<string> ColumnFieldIds { get; set; } = [];
 
-        // How the table draws on each of the board's two grids — inline, as a button that
-        // opens it in a modal, or dropped from that grid entirely.
         public DashboardItemDisplayMode DisplayMode { get; set; }
         public DashboardItemDisplayMode MobileDisplayMode { get; set; }
     }

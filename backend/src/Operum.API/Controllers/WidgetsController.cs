@@ -29,17 +29,14 @@ namespace Operum.API.Controllers
             return GetApiResponse(await widgetsService.CreateWidget(dto));
         }
 
-        // Only the widget's name and description -- the definition (result type, code,
-        // sources, field mapping) is fixed at creation. See UpdateWidgetDto.
+        // Only the widget's name and description; the definition (result type, code, sources, field mapping) is fixed at creation. See UpdateWidgetDto.
         [HttpPut("{widgetId}")]
         public async Task<IActionResult> UpdateWidget([FromRoute] string widgetId, [FromBody] UpdateWidgetDto dto)
         {
             return GetApiResponse(await widgetsService.UpdateWidget(widgetId, dto));
         }
 
-        // Removes the widget everywhere -- every dashboard placing it loses the placement
-        // too (see WidgetsService.DeleteWidget). The client is expected to confirm this
-        // with the user before calling it.
+        // Removes the widget everywhere: every dashboard placing it loses the placement too (see WidgetsService.DeleteWidget). The client must confirm with the user before calling it.
         [HttpDelete("{widgetId}")]
         public async Task<IActionResult> DeleteWidget([FromRoute] string widgetId)
         {

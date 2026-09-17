@@ -16,7 +16,6 @@ import { MdDelete, MdDragHandle, MdEdit } from "react-icons/md";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { FieldDto } from "../types/FieldDto";
 
-// Sortable Field Card Component
 interface SortableFieldCardProps {
     field: FieldDto;
     onEdit: (field: FieldDto) => void;
@@ -94,7 +93,6 @@ export default function SortableFieldCard({
                         />
                     </Tooltip>
                 )}
-                {/* Drag handle */}
                 {isReordering && (
                     <ActionIcon
                         variant="outline"
@@ -112,7 +110,6 @@ export default function SortableFieldCard({
                         <MdDragHandle size={25} />
                     </ActionIcon>
                 )}
-                {/* Field info section */}
                 <Stack gap="xs" flex={1}>
                     <Title order={4} lineClamp={1} className="wrapped-text">
                         {field.name}
@@ -142,7 +139,6 @@ export default function SortableFieldCard({
                     </Group>
                 </Stack>
 
-                {/* Action buttons */}
                 {canEditSchema && !isSelecting && (
                     <Group gap="xs" wrap="nowrap">
                         <ActionIcon

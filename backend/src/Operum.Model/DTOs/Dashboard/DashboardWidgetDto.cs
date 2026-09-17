@@ -11,14 +11,12 @@ namespace Operum.Model.DTOs.Dashboard
         public int Y { get; set; }
         public int W { get; set; }
         public int H { get; set; }
-        // Analytic/Entries widgets only: how this grid draws the widget — inline, as a
-        // button that opens the real thing in a modal, or not at all.
+        // Analytic/Entries widgets only.
         public DashboardItemDisplayMode DisplayMode { get; set; }
     }
 
-    // The tracker summary a QuickAdd widget's button needs — resolved server-side from
-    // Config's trackerId so the client can render the button immediately instead of
-    // fetching the tracker itself once the card mounts.
+    // Resolved server-side from Config's trackerId so the client can render the button
+    // immediately instead of fetching the tracker once the card mounts.
     public class QuickAddTrackerDto
     {
         public string Id { get; set; } = string.Empty;
@@ -27,11 +25,8 @@ namespace Operum.Model.DTOs.Dashboard
         public string? Icon { get; set; }
     }
 
-    // One clause of a Filter widget's own typed clause set, resolved for the card to
-    // render an input for: what it filters (data type + operator, shown as a label) and the
-    // value currently typed on the board (null when unset -- the clause is then not applied).
-    // SlotId is the widget-local clause id, the key SetFilterValues writes back under and the
-    // key a goal's conditional target names it by.
+    // Null Value means the clause is unset and not applied. SlotId is the widget-local id
+    // SetFilterValues writes back under, and that a goal's conditional target names.
     public class FilterClauseDto
     {
         public string SlotId { get; set; } = string.Empty;
@@ -41,9 +36,7 @@ namespace Operum.Model.DTOs.Dashboard
         public string? Value { get; set; }
     }
 
-    // One preset a Filter widget offers -- a DashboardView on the same board whose clause
-    // shape matches the widget's, resolved to its id, name and the value per clause in the
-    // widget's own clause order, so picking it on the board just fills those value inputs.
+    // A DashboardView whose clause shape matches the widget's; Values are in the widget's own clause order.
     public class FilterPresetOptionDto
     {
         public string Id { get; set; } = string.Empty;
@@ -51,21 +44,14 @@ namespace Operum.Model.DTOs.Dashboard
         public List<string?> Values { get; set; } = [];
     }
 
-    // What a DashboardWidgetTypes.Filter widget's card needs -- resolved server-side from
-    // Config the same way QuickAddTrackerDto is: the widget's own filter clauses with their
-    // current values, and the matching-shape DashboardViews it offers as presets.
     public class FilterWidgetDto
     {
         public List<FilterClauseDto> Clauses { get; set; } = [];
         public List<FilterPresetOptionDto> Presets { get; set; } = [];
     }
 
-    // What a DashboardWidgetTypes.Entries widget's table needs — resolved server-side the
-    // same way QuickAddTrackerDto is: the tracker it reads from, the columns to show in
-    // order (Config's ColumnFieldIds, or every field when it names none), and the rows
-    // themselves, already filtered/sorted by whatever view selectors this placement follows
-    // and capped to the most recent handful. Unlike the tracker page, the card does not
-    // fetch its own rows -- the board hands them over.
+    // Rows are already filtered/sorted by whatever filter widgets this placement follows,
+    // capped to the most recent handful; the card does not fetch its own rows.
     public class EntriesWidgetDto
     {
         public string TrackerId { get; set; } = string.Empty;
@@ -76,35 +62,29 @@ namespace Operum.Model.DTOs.Dashboard
         public List<EntryDto> Entries { get; set; } = [];
     }
 
-    // One item of a dashboard as the client renders it: where it sits on each of the two
-    // grids, what kind of widget it is, and the payload that kind needs. An analytic widget
-    // carries the chart calculated for it; a QuickAdd widget carries the tracker its button
-    // opens instead; a Filter widget carries its typed clauses and presets; an Entries
-    // widget carries its table's tracker, columns and rows.
     public class DashboardWidgetDto
     {
         public string Id { get; set; } = string.Empty;
         public string Type { get; set; } = string.Empty;
-        // The Container widget this one sits inside on the wide grid, or null when it sits
-        // on the board itself. Layout below is then relative to that container's sub-grid.
-        // Always null on the narrow grid, where containers are flattened away.
+        // Null on the board itself, and always null on the narrow grid (containers are
+        // flattened there).
         public string? ParentItemId { get; set; }
-        // When the parent is a TabsContainer, which of its tabs this widget sits in; null
-        // otherwise. Only the active tab's widgets are drawn when the board is read.
+        // Set when the parent is a TabsContainer; only the active tab's widgets are drawn.
         public string? ParentTabId { get; set; }
-        // Placement on the wide grid, in DashboardGrid.Columns columns.
+        // In DashboardGrid.Columns columns.
         public DashboardWidgetLayoutDto Layout { get; set; } = new();
-        // Placement on the narrow grid, in DashboardGrid.MobileColumns columns. The client
-        // picks between the two by its own width, and only writes back the one it rendered.
+        // In DashboardGrid.MobileColumns columns; the client writes back only the one it rendered.
         public DashboardWidgetLayoutDto MobileLayout { get; set; } = new();
         public string? Config { get; set; }
         public AnalyticDto? Analytic { get; set; }
         public QuickAddTrackerDto? QuickAddTracker { get; set; }
         public FilterWidgetDto? Filter { get; set; }
         public EntriesWidgetDto? EntriesWidget { get; set; }
-        // The color of the single tracker every source of this widget reads from. Null when
-        // the widget has no single owning tracker — a combined chart spanning more than one —
-        // so the client falls back to the dashboard's own color instead.
+        // Null when the widget spans more than one tracker (a combined chart); client then
+        // falls back to the dashboard's own color.
         public string? TrackerColor { get; set; }
+        // Beats TrackerColor and the dashboard color; only set for a single-tracker widget,
+        // see DashboardService.BuildWidgets.
+        public string? Color { get; set; }
     }
 }

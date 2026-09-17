@@ -11,8 +11,7 @@ interface Props {
 // Kept in step with DataLimits.MaxHeaderTextLength on the backend.
 const MAX_LENGTH = 100;
 
-/** Names the section title a Header widget draws. Nothing else about it is configurable —
-    it carries no tracker, no view, no chart. */
+/** Names the section title a Header widget draws; it carries no tracker, view, or chart. */
 export function HeaderWidgetForm({ onBack, onAdd }: Props) {
     const [text, setText] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);

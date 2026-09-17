@@ -39,14 +39,12 @@ namespace Operum.Service.Mappings.Mapper
             var sourceType = typeof(TSource);
             var destinationType = typeof(TDestination);
 
-            // Check for direct mapping
             if (_mappings.TryGetValue((sourceType, destinationType), out var del) &&
                 del is Func<TSource, TDestination> mapFunc)
             {
                 return mapFunc(source);
             }
 
-            // Handle enumerable types
             if (IsEnumerableType(sourceType, out var sourceElementType) &&
                 IsEnumerableType(destinationType, out var destinationElementType))
             {
@@ -56,9 +54,6 @@ namespace Operum.Service.Mappings.Mapper
             throw new InvalidOperationException($"No mapping registered for {sourceType.Name} → {destinationType.Name}");
         }
 
-        /// <summary>
-        /// Maps source object to an existing destination object
-        /// </summary>
         public TDestination Map<TSource, TDestination>(TSource source, TDestination destination)
         {
             if (source == null)
@@ -70,27 +65,19 @@ namespace Operum.Service.Mappings.Mapper
             var sourceType = typeof(TSource);
             var destinationType = typeof(TDestination);
 
-            // Check if we have a registered mapping and try to extract the manual mapping action
+            // A registered mapping's manual-map action can't be extracted here, so only the
+            // property copy runs for a registered pair.
             if (_mappings.TryGetValue((sourceType, destinationType), out var del) &&
                 del is Func<TSource, TDestination>)
             {
-                // For registered mappings, we need to perform the property mapping manually
-                // since the registered function creates a new instance
                 MapPropertiesToExisting(source, destination);
-
-                // If there was a manual mapping action in the registration, we can't easily extract it
-                // This is a limitation of the current design - consider refactoring if needed
                 return destination;
             }
 
-            // Fallback to direct property mapping
             MapPropertiesToExisting(source, destination);
             return destination;
         }
 
-        /// <summary>
-        /// Maps source object to an existing destination object with custom mapping action
-        /// </summary>
         public TDestination Map<TSource, TDestination>(TSource source, TDestination destination, Action<TSource, TDestination> customMapping)
         {
             if (source == null)
@@ -99,10 +86,7 @@ namespace Operum.Service.Mappings.Mapper
             if (destination == null)
                 throw new ArgumentNullException(nameof(destination));
 
-            // First do the standard property mapping
             MapPropertiesToExisting(source, destination);
-
-            // Then apply custom mapping
             customMapping?.Invoke(source, destination);
 
             return destination;
@@ -113,7 +97,6 @@ namespace Operum.Service.Mappings.Mapper
             var sourceProps = GetCachedProperties(typeof(TSource));
             var destProps = GetCachedProperties(typeof(TDestination));
 
-            // Create a dictionary for faster property lookup
             var destPropDict = destProps.Where(p => p.CanWrite)
                                       .ToDictionary(p => p.Name, p => p);
 
@@ -142,7 +125,6 @@ namespace Operum.Service.Mappings.Mapper
             var sourceProps = GetCachedProperties(typeof(TSource));
             var destProps = GetCachedProperties(typeof(TDestination));
 
-            // Create a dictionary for faster property lookup
             var destPropDict = destProps.Where(p => p.CanWrite)
                                       .ToDictionary(p => p.Name, p => p);
 
@@ -162,7 +144,6 @@ namespace Operum.Service.Mappings.Mapper
                         }
                         catch (Exception ex)
                         {
-                            // Log or handle mapping errors as needed
                             throw new InvalidOperationException(
                                 $"Failed to map property '{sourceProp.Name}' from {typeof(TSource).Name} to {typeof(TDestination).Name}", ex);
                         }
@@ -184,7 +165,6 @@ namespace Operum.Service.Mappings.Mapper
 
             var result = mapMethod.Invoke(this, [sourceEnumerable]);
 
-            // Handle different collection types
             var destinationType = typeof(TDestination);
 
             if (destinationType.IsArray)
@@ -229,18 +209,15 @@ namespace Operum.Service.Mappings.Mapper
         {
             elementType = null;
 
-            // Don't treat string as enumerable
             if (type == typeof(string))
                 return false;
 
-            // Check if it's an array
             if (type.IsArray)
             {
                 elementType = type.GetElementType();
                 return true;
             }
 
-            // Check if it implements IEnumerable<T>
             if (type.IsGenericType)
             {
                 var genericTypeDef = type.GetGenericTypeDefinition();
@@ -254,7 +231,6 @@ namespace Operum.Service.Mappings.Mapper
                 }
             }
 
-            // Check interfaces
             var enumerableInterface = type.GetInterfaces()
                 .FirstOrDefault(i => i.IsGenericType &&
                                i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
@@ -292,9 +268,6 @@ namespace Operum.Service.Mappings.Mapper
             return false;
         }
 
-        /// <summary>
-        /// Creates a mapping registration dynamically at runtime for types that support parameterless construction
-        /// </summary>
         public void RegisterDynamic(Type sourceType, Type destinationType, Delegate? customMapping = null)
         {
             if (destinationType.IsAbstract || destinationType.GetConstructor(Type.EmptyTypes) == null)

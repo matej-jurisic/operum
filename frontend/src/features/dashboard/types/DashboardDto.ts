@@ -321,6 +321,9 @@ export interface DashboardWidgetDto {
     filter?: FilterWidgetDto;
     entriesWidget?: EntriesWidgetDto;
     trackerColor?: string;
+    /** This placement's color override (EditWidgetModal), beating trackerColor and the
+        dashboard's own color. Only ever set for a single-tracker widget. */
+    color?: string;
 }
 
 export interface DashboardLayoutItemDto extends WidgetLayoutDto {
@@ -395,6 +398,13 @@ export interface DashboardItemDto {
     yAxisFromZero: boolean;
     /** Goal widgets only: the placement's conditional targets, in order. */
     goalConditionalTargets: GoalConditionalTargetDto[];
+    /** The color override currently set on this placement, or absent for "Auto". */
+    color?: string;
+    /** SingleValue/Goal widgets only: whether the trend sparkline is shown when this
+        placement follows a date-bounded filter clause. */
+    showTrend: boolean;
+    /** Goal widgets only: the shared widget's direction (see GoalDirections). */
+    goalDirection?: string;
     sources: DashboardItemSourceDto[];
 }
 
@@ -428,6 +438,8 @@ export interface CreateAndPlaceWidgetDto {
     matchedValuesOnly?: boolean;
     /** Goal widgets only, and required for them: a number or an hh:mm:ss duration. */
     goalTarget?: string;
+    /** Goal widgets only: a GoalDirection value. Left unset behaves as HigherIsBetter. */
+    goalDirection?: string;
     displayMode?: DashboardItemDisplayMode;
     mobileDisplayMode?: DashboardItemDisplayMode;
     /** Line charts only; defaults to true (0-anchored) server-side when omitted. */
@@ -496,6 +508,11 @@ export interface UpdateDashboardItemDto {
     yAxisFromZero: boolean;
     /** Goal widgets only: the whole conditional-target list. An empty list clears them. */
     goalConditionalTargets: GoalConditionalTargetDto[];
+    /** Overrides this placement's color. Null clears it back to "Auto". Ignored server-side
+        for a combined (multi-source) widget. */
+    color?: string | null;
+    /** SingleValue/Goal widgets only: whether the trend sparkline is shown. */
+    showTrend: boolean;
     sources: UpdateDashboardItemSourceDto[];
 }
 

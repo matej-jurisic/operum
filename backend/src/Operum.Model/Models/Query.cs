@@ -4,14 +4,10 @@ using Operum.Model.Constants;
 
 namespace Operum.Model.Models
 {
-    // A reusable, field-agnostic single clause: one filter or one sort expressed by data
-    // type rather than by a concrete field ("date >= start_of_month", "number descending").
-    // The field it actually runs against is bound at the point of use -- ViewQuery.FieldId
-    // for a tracker view, or a view selector's per-widget map on a dashboard.
-    //
-    // Rows are value-deduplicated per owner (see QueryPool): two clauses that read the same
-    // share one row. A Query has no name and is never surfaced to the client on its own --
-    // what it does is read off the kind, data type, operator and value.
+    // A reusable, field-agnostic clause (filter or sort) bound to a concrete field at the
+    // point of use -- ViewQuery.FieldId for a tracker view, or a per-widget map on a
+    // dashboard. Rows are value-deduplicated per owner (see QueryPool); a Query has no
+    // name and is never surfaced to the client on its own.
     public class Query
     {
         [Key]

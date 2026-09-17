@@ -20,17 +20,14 @@ import { UnknownWidgetCard } from "./UnknownWidgetCard";
 
 interface Props {
     widget: DashboardWidgetDto;
-    /** Which of the board's two grids this is being rendered on -- decides whether an
-        Analytic/Entries widget reads its display mode from layout or from mobileLayout,
-        since the two are set (and can differ) independently. */
+    /** Decides whether an Analytic/Entries widget reads its display mode from layout or
+        mobileLayout: the two are set (and can differ) independently. */
     variant: LayoutVariant;
     color: string | undefined;
     isConfiguring: boolean;
     onRemove?: (itemId: string) => void;
-    /** Opens the widget's edit dialog. Analytic, Entries, Header, Note and Filter widgets:
-        a Filter widget's edit dialog sets its clauses, its presets and which widgets
-        follow it. A QuickAdd widget's tracker is fixed at add time and a Divider has
-        nothing to edit. */
+    /** QuickAdd's tracker is fixed at add time and Divider has nothing to edit, so neither
+        uses this. */
     onEdit?: (itemId: string) => void;
     onEntryClick?: (entryId: string) => void;
     onFilterSetValues?: (
@@ -39,9 +36,8 @@ interface Props {
     ) => void;
 }
 
-// How the current grid draws this widget — see DashboardItemDisplayMode. Only
-// Analytic/Entries widgets carry it; a Hidden widget is filtered out of the grid upstream
-// (see DashboardGrid), so the switch below only ever sees Full or Expandable in practice.
+// Only Analytic/Entries widgets carry a display mode; Hidden is filtered upstream (see
+// DashboardGrid), so the switch below only ever sees Full or Expandable in practice.
 const displayModeHere = (
     widget: DashboardWidgetDto,
     variant: LayoutVariant,
@@ -50,8 +46,6 @@ const displayModeHere = (
         ? widget.mobileLayout.displayMode
         : widget.layout.displayMode;
 
-// Config is free-form JSON per widget type, so it only ever parses to what the widget
-// itself expects — never trusted further than that.
 function parseQuickAddConfig(config: string | undefined): QuickAddWidgetConfig | null {
     if (!config) return null;
     try {
@@ -62,11 +56,7 @@ function parseQuickAddConfig(config: string | undefined): QuickAddWidgetConfig |
     }
 }
 
-/**
- * Renders one cell of the dashboard grid. Everything a widget needs to know about the
- * grid stops here: the card below is sized by its cell, and anything added to the switch
- * inherits the same placement and edit mode.
- */
+/** Renders one cell of the dashboard grid; the card below is sized by its cell. */
 export function DashboardWidget({
     widget,
     variant,
@@ -85,10 +75,8 @@ export function DashboardWidget({
             if (displayModeHere(widget, variant) === DashboardItemDisplayMode.Hidden)
                 return null;
 
-            // A widget backed by a single tracker reads as that tracker; one combining
-            // several (a composed chart) has no single tracker to take the color from, so
-            // it keeps the board's own.
-            const chartColor = widget.trackerColor ?? color;
+            // Precedence: placement override (single-source only) > tracker color > board color.
+            const chartColor = widget.color ?? widget.trackerColor ?? color;
 
             if (
                 displayModeHere(widget, variant) ===
@@ -135,6 +123,7 @@ export function DashboardWidget({
                     config={config}
                     tracker={widget.quickAddTracker}
                     color={color}
+                    colorOverride={widget.color}
                     isConfiguring={isConfiguring}
                     onRemove={onRemove}
                 />
@@ -156,7 +145,7 @@ export function DashboardWidget({
             if (displayModeHere(widget, variant) === DashboardItemDisplayMode.Hidden)
                 return null;
 
-            const entriesColor = widget.entriesWidget?.color ?? color;
+            const entriesColor = widget.color ?? widget.entriesWidget?.color ?? color;
 
             if (
                 displayModeHere(widget, variant) ===
@@ -172,8 +161,8 @@ export function DashboardWidget({
                         onRemove={onRemove}
                         onEdit={onEdit}
                         renderExpanded={() => (
-                            // EntriesWidgetCard always fills its container's height; the
-                            // grid cell normally supplies that, so the modal has to here.
+                            // EntriesWidgetCard fills its container's height; the grid cell
+                            // normally supplies that, so the modal must here.
                             <div style={{ height: "70vh" }}>
                                 <EntriesWidgetCard
                                     widgetId={widget.id}
@@ -220,9 +209,7 @@ export function DashboardWidget({
             );
         case WidgetTypes.Container:
         case WidgetTypes.TabsContainer:
-            // A container's sub-grid is drawn by DashboardContainerTile / TabsContainerTile,
-            // which the grid renders in place of this card. Nothing to draw here, and on the
-            // narrow grid a container is dropped entirely.
+            // Drawn by DashboardContainerTile / TabsContainerTile instead, in place of this card.
             return null;
         case WidgetTypes.Note:
             return (

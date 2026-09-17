@@ -11,8 +11,7 @@ interface Props {
 // Kept in step with DataLimits.MaxNoteTextLength on the backend.
 const MAX_LENGTH = 500;
 
-/** Writes the free-form text a Note widget draws. Nothing else about it is configurable —
-    it carries no tracker, no view, no chart. */
+/** Writes the free-form text a Note widget draws; it carries no tracker, view, or chart. */
 export function NoteWidgetForm({ onBack, onAdd }: Props) {
     const [text, setText] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);

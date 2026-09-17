@@ -87,8 +87,8 @@ namespace Operum.Service.Services.Integrations
             string? externalAccountId = null;
 
             // A pull provider can prove the credential before anything is stored. A push-only
-            // provider has nothing to call, so its connection is made unverified and the first
-            // delivery is what proves it.
+            // provider has nothing to call, so its connection is unverified until the first
+            // delivery proves it.
             if (registry.GetPull(provider.Key) is { } pullProvider)
             {
                 var connection = new ProviderConnection(dto.BaseUrl, dto.Credential, null);
@@ -129,7 +129,7 @@ namespace Operum.Service.Services.Integrations
             if (integration == null)
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("integration"));
 
-            // Targets and mappings cascade. Entries already imported keep their Source and
+            // Targets and mappings cascade; entries already imported keep their Source and
             // ExternalId and are otherwise untouched -- they are the user's data.
             db.Integrations.Remove(integration);
             await db.SaveChangesAsync();
@@ -181,9 +181,9 @@ namespace Operum.Service.Services.Integrations
 
                 if (registry.GetPush(integration.Provider) is { ProviderSuppliesSecret: true })
                 {
-                    // Firefly mints the secret in its own webhook screen. It is usually not
-                    // known yet here, the user needs the URL below to create the webhook
-                    // first, so it is optional and set afterward through the secret endpoint.
+                    // Firefly mints the secret in its own webhook screen, usually after the user
+                    // has the URL below to create the webhook, so it's optional here and set
+                    // afterward through the secret endpoint.
                     if (!string.IsNullOrWhiteSpace(dto.WebhookSecret))
                         target.WebhookSecretCiphertext = credentialProtector.Protect(dto.WebhookSecret.Trim());
                 }
@@ -214,9 +214,8 @@ namespace Operum.Service.Services.Integrations
             if (target == null)
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("integration target"));
 
-            // Which tracker and which resource a target feeds are what identify it; changing
-            // them would orphan whatever it already imported under the old pairing. Delete and
-            // remake instead.
+            // Which tracker and which resource a target feeds are what identify it; changing them
+            // would orphan whatever it already imported under the old pairing.
             if (target.TrackerId != dto.TrackerId || target.ResourceType != dto.ResourceType)
                 return Result.Failure(ResultStatusCodes.BadRequest, "A target's tracker and data type cannot be changed. Remove it and add a new one.");
 
@@ -269,8 +268,8 @@ namespace Operum.Service.Services.Integrations
             if (target == null)
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("integration target"));
 
-            // Same executor the scheduled tick runs, so a manual sync cannot behave differently
-            // from an automatic one.
+            // Same executor the scheduled tick runs, so a manual sync behaves the same as an
+            // automatic one.
             var result = await syncExecutor.SyncTargetAsync(target.Id);
             if (result.IsFailure)
                 return Result.Failure(result.StatusCode, result.Messages);
@@ -288,8 +287,8 @@ namespace Operum.Service.Services.Integrations
             if (target == null)
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("integration target"));
 
-            // Same executor as a normal sync, told to ignore the cursor for this run so it
-            // re-reads and re-applies the whole history rather than just what changed.
+            // Same executor as a normal sync, told to ignore the cursor so it re-reads and
+            // re-applies the whole history rather than just what changed.
             var result = await syncExecutor.SyncTargetAsync(target.Id, fullResync: true);
             if (result.IsFailure)
                 return Result.Failure(result.StatusCode, result.Messages);
@@ -355,8 +354,6 @@ namespace Operum.Service.Services.Integrations
             return Result.Success(ToDto(target, integration.Provider, plaintextSecret), Messages.Success);
         }
 
-        // ---- shared checks ----
-
         /// <summary>
         /// The validation a create and an update both need: the provider serves this resource,
         /// the caller owns the tracker, the mode is one the provider supports, and every
@@ -378,9 +375,8 @@ namespace Operum.Service.Services.Integrations
             if (tracker == null)
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("tracker"));
 
-            // Owner-only, matching how tracker metadata and collaborator management already
-            // work. A collaborator with CanEditData cannot attach their own connection to
-            // someone else's tracker.
+            // Owner-only, matching tracker metadata and collaborator management: a collaborator
+            // with CanEditData cannot attach their own connection to someone else's tracker.
             if (tracker.OwnerId != userId)
                 return Result.Failure(ResultStatusCodes.Forbidden);
 
@@ -407,8 +403,7 @@ namespace Operum.Service.Services.Integrations
             var supportsPush = provider.Capabilities.HasFlag(IntegrationCapabilities.Push);
 
             if (string.IsNullOrWhiteSpace(requested))
-                // Pull is the default where a provider offers both: it backfills, which push
-                // alone cannot.
+                // Pull is the default where a provider offers both: it backfills, which push alone cannot.
                 return supportsPull
                     ? Result.Success(IntegrationMode.Pull)
                     : Result.Success(IntegrationMode.Push);
@@ -442,9 +437,9 @@ namespace Operum.Service.Services.Integrations
             if (uri.IsLoopback)
                 return "The instance address cannot point at this server.";
 
-            // A literal private or link-local address is the shape of an attempt to reach
-            // something inside this network. A hostname resolving to one is not caught here --
-            // that check belongs at request time, with the resolved address in hand.
+            // A literal private or link-local address is the shape of an SSRF attempt. A hostname
+            // resolving to one isn't caught here -- that check belongs at request time, with the
+            // resolved address in hand.
             if (System.Net.IPAddress.TryParse(uri.Host, out var ip) && IsPrivate(ip))
                 return "The instance address cannot be a private network address.";
 
@@ -486,8 +481,6 @@ namespace Operum.Service.Services.Integrations
                     .ThenInclude(t => t.Tracker)
                 .FirstOrDefaultAsync(i => i.Id == integrationId && i.UserId == userId);
         }
-
-        // ---- mapping to DTOs ----
 
         private IntegrationDto ToDto(Integration integration) => new()
         {

@@ -5,6 +5,7 @@ using Operum.Model.DTOs.Widgets.Requests;
 using Operum.Tests.Util;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace Operum.Tests.Tests.Widgets
 {
@@ -96,6 +97,56 @@ namespace Operum.Tests.Tests.Widgets
             var response = await client.PutAsJsonAsync($"widgets/{widgetId}", new UpdateWidgetDto { GoalTarget = "250" });
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal("250", (await TestApi.Data(response)).GetProperty("goalTarget").GetString());
+        }
+
+        [Fact]
+        public async Task CreateWidget_GoalWithoutDirection_DefaultsToNull()
+        {
+            var client = await OwnerClient();
+            var (trackerId, fieldId) = await CreateTrackerWithField(client);
+
+            var response = await client.PostAsJsonAsync("widgets", GoalWidgetDto(trackerId, fieldId, "100"));
+            var widget = await TestApi.Data(response);
+            Assert.Equal(JsonValueKind.Null, widget.GetProperty("goalDirection").ValueKind);
+        }
+
+        [Fact]
+        public async Task CreateWidget_GoalWithLowerIsBetter_StoresTheDirection()
+        {
+            var client = await OwnerClient();
+            var (trackerId, fieldId) = await CreateTrackerWithField(client);
+
+            var dto = GoalWidgetDto(trackerId, fieldId, "100");
+            dto.GoalDirection = GoalDirections.LowerIsBetter;
+
+            var response = await client.PostAsJsonAsync("widgets", dto);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(GoalDirections.LowerIsBetter, (await TestApi.Data(response)).GetProperty("goalDirection").GetString());
+        }
+
+        [Fact]
+        public async Task CreateWidget_GoalWithInvalidDirection_ReturnsBadRequest()
+        {
+            var client = await OwnerClient();
+            var (trackerId, fieldId) = await CreateTrackerWithField(client);
+
+            var dto = GoalWidgetDto(trackerId, fieldId, "100");
+            dto.GoalDirection = "Sideways";
+
+            var response = await client.PostAsJsonAsync("widgets", dto);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task UpdateWidget_Goal_ChangesTheDirection()
+        {
+            var client = await OwnerClient();
+            var (trackerId, fieldId) = await CreateTrackerWithField(client);
+            var widgetId = await TestApi.IdOf(await client.PostAsJsonAsync("widgets", GoalWidgetDto(trackerId, fieldId, "100")));
+
+            var response = await client.PutAsJsonAsync($"widgets/{widgetId}", new UpdateWidgetDto { GoalDirection = GoalDirections.LowerIsBetter });
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(GoalDirections.LowerIsBetter, (await TestApi.Data(response)).GetProperty("goalDirection").GetString());
         }
 
         [Fact]

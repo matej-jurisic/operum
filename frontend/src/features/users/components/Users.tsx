@@ -21,7 +21,6 @@ export default function Users() {
     const [openDialogType, setOpenDialogType] = useState<OpenDialogType>();
     const [loading, setLoading] = useState<boolean>(true);
 
-    // Check if mobile
     const isMobile = useMediaQuery("(max-width: 768px)");
 
     useEffect(() => {
@@ -87,7 +86,6 @@ export default function Users() {
                 </Stack>
             </Skeleton>
 
-            {/* Dialogs */}
             {openDialogType === OpenDialogType.EditRoles && selectedUser && (
                 <UserRolesFormDialog
                     user={selectedUser}

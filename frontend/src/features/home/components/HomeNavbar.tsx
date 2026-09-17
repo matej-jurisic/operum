@@ -67,7 +67,6 @@ const HomeNavbar = observer(({ scrolled, scrollTo, color }: Props) => {
                     </Title>
                 </Box>
 
-                {/* Navigation Links */}
                 <Group gap={2} visibleFrom="md">
                     {NAV_LINKS.map((link) => (
                         <Anchor

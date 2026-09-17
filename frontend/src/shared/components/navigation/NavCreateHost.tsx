@@ -6,12 +6,7 @@ import TrackerFormDialog from "../../../features/trackers/components/TrackerForm
 import TrackerWizard from "../../../features/trackers/components/TrackerWizard";
 import navigationStore from "../../stores/NavigationStore";
 
-/**
- * The tracker / dashboard creation dialogs, hosted once for the whole signed-in
- * shell. The sidebar "+" buttons and the command palette only flip a flag on
- * NavigationStore; this watches those flags and renders the right dialog.
- * Rendered inside AppLayout so it always has a router context.
- */
+/** Watches NavigationStore's create flags (set by the sidebar "+" buttons and command palette) and renders the matching dialog. */
 const NavCreateHost = observer(() => {
     const navigate = useNavigate();
     const mode = navigationStore.trackerCreate;

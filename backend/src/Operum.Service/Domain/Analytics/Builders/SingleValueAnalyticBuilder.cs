@@ -7,34 +7,13 @@ using Operum.Model.DTOs.Fields;
 using Operum.Model.Enums;
 using Operum.Model.Extensions;
 using Operum.Model.Models;
-using Operum.Service.Domain.Analytics.Calculators;
+using Operum.Service.Domain.Analytics;
 
 namespace Operum.Service.Domain.Analytics.Builders
 {
     public class SingleValueAnalyticBuilder : AnalyticResultBuilderBase
     {
-        private readonly Dictionary<string, ISingleValueCalculator> _calculators;
-
         public override string SupportedType => AnalyticTypes.SingleValue;
-
-        public SingleValueAnalyticBuilder()
-        {
-            _calculators = new Dictionary<string, ISingleValueCalculator>
-            {
-                [AnalyticCodes.Count] = new CountCalculator(),
-                [AnalyticCodes.TrueCount] = new TrueCountCalculator(),
-                [AnalyticCodes.FalseCount] = new FalseCountCalculator(),
-                [AnalyticCodes.TruePercentage] = new TruePercentageCalculator(),
-                [AnalyticCodes.Min] = new MinCalculator(),
-                [AnalyticCodes.Max] = new MaxCalculator(),
-                [AnalyticCodes.Average] = new AverageCalculator(),
-                [AnalyticCodes.Sum] = new SumCalculator(),
-                [AnalyticCodes.StdDev] = new StdDevCalculator(),
-                [AnalyticCodes.CountDistinct] = new CountDistinctCalculator(),
-                [AnalyticCodes.MostCommon] = new MostCommonCalculator(),
-                [AnalyticCodes.LeastCommon] = new LeastCommonCalculator()
-            };
-        }
 
         protected override Result<AnalyticDto> BuildResult(AnalyticResultBuilderRequest request)
         {
@@ -53,7 +32,8 @@ namespace Operum.Service.Domain.Analytics.Builders
                 .SelectMany(e => e.FieldValues.Where(fv => fv.FieldId == valueField.Id))
                 .ToList();
 
-            if (!_calculators.TryGetValue(request.Analytic.Code, out var calculator))
+            var calculator = SingleValueCalculators.Get(request.Analytic.Code);
+            if (calculator == null)
                 return Result.Failure(ResultStatusCodes.BadRequest,
                     $"Unsupported analytic code: {request.Analytic.Code}");
 
@@ -65,8 +45,7 @@ namespace Operum.Service.Domain.Analytics.Builders
             result.Value = opResult.Data.Value;
             result.EntryId = opResult.Data.EntryId;
 
-            // Min/Max pick an entry, so they can show a different field than the one they
-            // compared: the value stays what the winning entry holds in the Display field.
+            // Min/Max pick an entry, so they can show a different field than the one compared.
             var displayField = request.FieldMap.GetValueOrDefault(AnalyticPurposes.Display);
             if (displayField != null && result.EntryId != null)
             {
@@ -75,7 +54,6 @@ namespace Operum.Service.Domain.Analytics.Builders
                     .FirstOrDefault(fv => fv.FieldId == displayField.Id)
                     ?.GetValueAsString();
 
-                // Keep the compared value around so the card can show it under the label.
                 result.SecondaryValue = result.Value;
                 result.SecondaryValueField = MapField(valueField, valueField.Type);
 
@@ -85,8 +63,7 @@ namespace Operum.Service.Domain.Analytics.Builders
                 return Result.Success<AnalyticDto>(result);
             }
 
-            // CountDistinct returns a plain integer count — override type so the
-            // frontend doesn't try to format it as the original field type (e.g. timespan).
+            // Override type for count-based codes so the frontend doesn't format them as the original field type.
             var syntheticNumberCodes = new HashSet<string>
             {
                 AnalyticCodes.Count,
@@ -104,8 +81,7 @@ namespace Operum.Service.Domain.Analytics.Builders
             return Result.Success<AnalyticDto>(result);
         }
 
-        // The field the frontend formats the value with. Type is passed in because it isn't
-        // always the field's own: a count of anything reads as a plain number.
+        // Type is passed in separately since it isn't always the field's own (e.g. a count reads as a plain number).
         private static FieldDto MapField(Field field, string type) => new()
         {
             Description = field.Description,

@@ -4,20 +4,10 @@ using Operum.Model.Models;
 
 namespace Operum.Service.Domain.Integrations
 {
-    /// <summary>
-    /// Checks a target's mappings before they are saved, so a bad one is refused at the point
-    /// the user made it rather than surfacing much later as a sync error with no obvious cause.
-    /// Returns null when everything is valid, otherwise the first problem found.
-    /// </summary>
+    // Returns null when every mapping is valid, otherwise the first problem found.
     public static class MappingValidator
     {
-        /// <summary>
-        /// What a tracker field of each type may be fed from. Mostly an exact match; the two
-        /// exceptions are date/datetime, which are one storage column and already
-        /// interchangeable everywhere else, and timespan into number, which lets a duration be
-        /// tracked as raw seconds by anyone who would rather have a plain number to do
-        /// arithmetic on.
-        /// </summary>
+        // Mostly an exact type match; date/datetime are interchangeable, and timespan may feed a number field.
         private static readonly Dictionary<string, string[]> AcceptedFieldTypes = new(StringComparer.OrdinalIgnoreCase)
         {
             [DataTypes.Number] = [DataTypes.Number],
@@ -48,8 +38,6 @@ namespace Operum.Service.Domain.Integrations
                 if (!fieldsById.TryGetValue(mapping.FieldId, out var field))
                     return "A mapped field does not belong to this tracker.";
 
-                // A calculated field is derived from a formula; writing to it would be
-                // overwritten on the next evaluation anyway.
                 if (field.IsCalculated)
                     return $"'{field.Name}' is a calculated field and cannot be filled by an integration.";
 
@@ -63,10 +51,7 @@ namespace Operum.Service.Domain.Integrations
                 if (!accepted.Contains(field.Type, StringComparer.OrdinalIgnoreCase))
                     return $"'{sourceField.Label}' is a {sourceField.Type} and cannot fill '{field.Name}', which is a {field.Type}.";
 
-                // With SkipWhenNull the mapper omits the key whenever the provider reports no
-                // value, and the writer refuses to create an entry missing a required field --
-                // so every record without this metric would be dropped, silently and forever.
-                // Clearing instead is the only coherent pairing.
+                // SkipWhenNull on a required field would silently drop every record missing this metric.
                 if (field.Required && mapping.SkipWhenNull)
                     return $"'{field.Name}' is required, so its mapping cannot skip empty values -- a record without '{sourceField.Label}' could never be imported.";
             }

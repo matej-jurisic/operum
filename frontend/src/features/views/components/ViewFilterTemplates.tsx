@@ -7,12 +7,11 @@ import {
     serializeAnchorToken,
 } from "../../../shared/constants/dynamicDateTokens";
 
-// Filter template definitions
 export interface FilterTemplate {
     id: string;
     name: string;
     icon: React.ReactNode;
-    fieldTypes: string[]; // Field types this template works with
+    fieldTypes: string[];
     filters: Array<{
         operator: string;
         value?: string | number;
@@ -21,13 +20,7 @@ export interface FilterTemplate {
 
 const DATE_FIELD_TYPES = [FieldTypes.Date, FieldTypes.DateTime];
 
-/**
- * Date templates emit dynamic date tokens rather than concrete dates: a template is applied once
- * but the view it builds is read forever, so "Current Month" has to mean whichever month it is
- * when the view runs, not the month it was created in.
- *
- * A bounded period takes two filters, a lower and an upper bound, which the caller ANDs together.
- */
+/** Emits dynamic date tokens (not concrete dates) so e.g. "Current Month" tracks the current month whenever the view runs. */
 function periodTemplate(
     id: string,
     name: string,
@@ -69,9 +62,7 @@ function lastNDaysTemplate(id: string, name: string, n: number): FilterTemplate 
     };
 }
 
-/** A lower + upper bound with no values filled in — the caller (or the board, for a
- *  filter widget) supplies the ends. Lets someone build a customizable range without
- *  starting from a preset period like "Current Month". */
+/** Lower and upper bound with no values filled in; the caller supplies the ends. */
 function blankRangeTemplate(
     id: string,
     name: string,

@@ -1,8 +1,7 @@
 namespace Operum.Model.DTOs.Widgets
 {
-    // The Widget Library's view of an Entries widget's definition -- just which tracker it
-    // reads from. Distinct from Operum.Model.DTOs.Dashboard.EntriesWidgetDto, which is the
-    // resolved-for-rendering shape a placement returns (tracker name/color/icon/columns).
+    // Distinct from Operum.Model.DTOs.Dashboard.EntriesWidgetDto, the resolved-for-rendering
+    // shape a placement returns.
     public class EntriesWidgetDefinitionDto
     {
         public string Id { get; set; } = string.Empty;

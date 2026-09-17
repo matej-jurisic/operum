@@ -215,7 +215,6 @@ const ProfilePage = observer(function ProfilePage() {
                 <ScrollArea flex={1}>
                     <Stack align="center">
                         <Stack gap="xl" maw={680}>
-                            {/* Identity card */}
                             <Card withBorder radius="md" p="xl">
                                 <Group gap="xl" align="flex-start">
                                     <Avatar
@@ -251,7 +250,6 @@ const ProfilePage = observer(function ProfilePage() {
                                 </Group>
                             </Card>
 
-                            {/* Stats */}
                             <SimpleGrid cols={{ base: 1, sm: 3 }}>
                                 {statCards.map((s) => (
                                     <Card
@@ -283,7 +281,6 @@ const ProfilePage = observer(function ProfilePage() {
                                 ))}
                             </SimpleGrid>
 
-                            {/* Change username */}
                             <Card withBorder radius="md" p="lg">
                                 <form
                                     onSubmit={usernameForm.onSubmit(
@@ -310,7 +307,6 @@ const ProfilePage = observer(function ProfilePage() {
                                 </form>
                             </Card>
 
-                            {/* Timezone */}
                             <Card withBorder radius="md" p="lg">
                                 <form
                                     onSubmit={timezoneForm.onSubmit(
@@ -337,7 +333,6 @@ const ProfilePage = observer(function ProfilePage() {
                                 </form>
                             </Card>
 
-                            {/* Default landing page */}
                             <Card withBorder radius="md" p="lg">
                                 <Stack gap="md">
                                     <Text fw={600}>Default page</Text>
@@ -352,7 +347,6 @@ const ProfilePage = observer(function ProfilePage() {
                                 </Stack>
                             </Card>
 
-                            {/* Change password */}
                             <Card withBorder radius="md" p="lg">
                                 <form
                                     onSubmit={passwordForm.onSubmit(
@@ -391,7 +385,6 @@ const ProfilePage = observer(function ProfilePage() {
                                 </form>
                             </Card>
 
-                            {/* Danger zone */}
                             <Card
                                 withBorder
                                 radius="md"

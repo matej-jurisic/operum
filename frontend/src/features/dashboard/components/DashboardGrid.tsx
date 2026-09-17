@@ -43,8 +43,8 @@ interface Props extends DashboardTileCallbacks {
   widgets: DashboardWidgetDto[];
   color: string | undefined;
   isConfiguring: boolean;
-  /** Box the board to a phone-width frame so the narrow grid renders and every drag saves
-      to the Mobile arrangement, whatever the real viewport is. Arrange mode only. */
+  /** Boxes the board to a phone-width frame so the narrow grid renders and drags save to
+      the Mobile arrangement, whatever the real viewport is. Arrange mode only. */
   previewMobile?: boolean;
   onLayoutSave: (
     variant: LayoutVariant,
@@ -60,10 +60,7 @@ export function DashboardGrid({
   onLayoutSave,
   ...callbacks
 }: Props) {
-  // Measured with a ResizeObserver. The grid renders only once `mounted` is true, so it
-  // never lays itself out at the hook's assumed default width and overflows a narrower
-  // container for a frame. In mobile preview the frame around this element caps it to a
-  // phone width, so the measurement itself lands in the narrow variant.
+  // Renders only once `mounted`, so it never lays out at the hook's default width first.
   const { width, containerRef, mounted } = useContainerWidth();
   const variant = previewMobile
     ? LayoutVariants.Mobile
@@ -94,9 +91,8 @@ export function DashboardGrid({
     </div>
   );
 
-  // The frame carries the border and the inset; the measured element inside it stays
-  // padding-free so the width the grid is handed is the width it renders into (a padded
-  // measured element leaves the grid overflowing it).
+  // The measured element stays padding-free so the width the grid is handed matches what
+  // it renders into; the frame carries the border and inset instead.
   return previewMobile ? (
     <div className="dashboard-mobile-frame">{board}</div>
   ) : (
@@ -104,13 +100,9 @@ export function DashboardGrid({
   );
 }
 
-/** snapgrid renders the layout it is handed as-is and only compacts during a drag. The
-    desktop board is never recompacted server-side, so a stored stack with gaps -- a
-    widget deleted, resized smaller, set Hidden, or moved into a container -- shows those
-    gaps as dead space, and a freshly added widget (the backend seeds it below the lowest
-    row any item ever reached) floats far below the real content. Close the gaps on the
-    way in; the first drag in arrange mode then persists the compacted stack. minW/minH
-    aren't carried through the compactor, so re-attach them. */
+/** The stored layout is never recompacted server-side, so gaps from deleted/hidden/moved
+    widgets are closed here on the way in. minW/minH aren't carried through the compactor,
+    so re-attach them. */
 function compactLayout(items: Layout, cols: number): Layout {
   const constraintsById = new Map(items.map((it) => [it.i, it]));
   return verticalCompactor.compact(items, cols).map((it) => {
@@ -131,8 +123,7 @@ interface BoardProps extends DashboardTileCallbacks {
 }
 
 // -- The narrow grid --------------------------------------------------------------------
-// A phone flattens containers away: every widget sits on one four-column grid in reading
-// order, so the turnkey component is enough. A container item itself draws nothing here.
+// A phone flattens containers away: every widget sits on one four-column grid in reading order.
 
 function FlatBoard({
   widgets,
@@ -145,8 +136,7 @@ function FlatBoard({
   const config = VARIANTS[LayoutVariants.Mobile];
   const cols = COLS[LayoutVariants.Mobile];
 
-  // Both container kinds are flattened away on the narrow grid (their children just join
-  // the single-column flow); a widget set Hidden on mobile is dropped from it entirely
+  // Containers are flattened away (children join the flow); Hidden widgets are dropped
   // (reachable from the board's hidden-widgets list instead).
   const shown = useMemo(
     () =>
@@ -159,10 +149,8 @@ function FlatBoard({
     [widgets],
   );
 
-  // Containers are flattened away here, but every widget still carries the mobileLayout.y
-  // it was seeded with, and that stack is never recompacted server-side when the wide
-  // grid's container tree changes -- a widget moved into a container on the desktop board
-  // leaves a screen-tall hole on the phone. compactLayout closes it.
+  // mobileLayout.y is never recompacted server-side when the wide grid's container tree
+  // changes, so a widget moved into a container there can leave a hole here. compactLayout closes it.
   const layout = useMemo(
     () =>
       compactLayout(
@@ -223,9 +211,8 @@ function FlatBoard({
 }
 
 // -- The wide grid ---------------------------------------------------------------------
-// Containers each hold their own sub-grid. Every grid on the board -- the root one and
-// one per container -- shares a single dnd-kit provider, which is what lets a widget be
-// dragged from one into another.
+// Every grid on the board (root + one per container) shares a single dnd-kit provider,
+// which lets a widget be dragged from one into another.
 
 function NestedBoard({
   widgets,
@@ -250,8 +237,7 @@ function NestedBoard({
   );
 
   const { topWidgets, childrenByContainer, parentById } = useMemo(() => {
-    // A widget belongs to a container only if that container still exists; a stale
-    // parent (its container was deleted out from under it) falls back to the board.
+    // A stale parent (container deleted out from under it) falls back to the board.
     const parentOf = (w: DashboardWidgetDto) =>
       w.parentItemId && containerIds.has(w.parentItemId)
         ? w.parentItemId
@@ -259,15 +245,12 @@ function NestedBoard({
 
     const top: DashboardWidgetDto[] = [];
     const byContainer = new Map<string, DashboardWidgetDto[]>();
-    // Where each widget currently lives (container id, or null for the board), read just
-    // before a drop so a widget that changed grids can be told apart from one that only
-    // moved within its own.
+    // Read just before a drop, to tell a widget that changed grids apart from one that
+    // only moved within its own.
     const byId = new Map<string, string | null>();
     for (const w of widgets) {
       byId.set(w.id, parentOf(w));
-      // A widget set Hidden on the wide grid is dropped from it entirely -- both from the
-      // board and from whatever container it belongs to -- and reached from the board's
-      // hidden-widgets list instead.
+      // Hidden widgets are dropped entirely; reached from the board's hidden-widgets list.
       if (w.layout.displayMode === DashboardItemDisplayMode.Hidden) continue;
 
       const parent = parentOf(w);
@@ -286,17 +269,14 @@ function NestedBoard({
     };
   }, [widgets, containerIds]);
 
-  // Each grid's measured inner width, so a widget crossing from one grid to another can
-  // be rescaled to keep its on-screen size. The board's width is known directly; each
-  // container reports its sub-grid's width once mounted.
+  // Each grid's measured inner width, so a widget crossing grids can be rescaled to keep
+  // its on-screen size. Board width is known directly; containers report on mount.
   const gridWidths = useRef(new Map<string, number>());
   const reportGridWidth = useCallback((id: string, w: number) => {
     gridWidths.current.set(id, w);
   }, []);
 
-  // The pixel span of one column-plus-gap on the given grid (null for the board). A
-  // widget keeps its size across a move when its width in columns scales by the ratio of
-  // these: same reasoning as CONTAINER_MARGIN matching the board's for height.
+  // Pixel span of one column-plus-gap on the given grid (null for the board).
   const colStepOf = (parentItemId: string | null): number | null => {
     const margin = VARIANTS[LayoutVariants.Desktop].margin[0];
     if (parentItemId === null) return (width + margin) / DASHBOARD_GRID_COLUMNS;
@@ -309,8 +289,6 @@ function NestedBoard({
 
   const clampCol = (v: number, max: number) => Math.max(0, Math.min(max, v));
 
-  // Rescale a just-dropped widget so its width in pixels survives the move between grids
-  // of different widths; leaves a widget that stayed in its own grid untouched.
   const keepSizeAcrossMove = (
     item: LayoutItem,
     from: string | null,
@@ -330,13 +308,9 @@ function NestedBoard({
     return { ...item, w, x };
   };
 
-  // A cross-grid drop reports the item leaving one grid and joining another as two
-  // separate layout changes, both fired synchronously. Rather than persist each on its
-  // own -- and race them -- each grid drops its latest layout here and one microtask
-  // later they are assembled into a single whole-board save.
-  // Keyed by grid: ROOT_KEY for the board, a container id for a plain container, and
-  // `${containerId}:${tabId}` for one tab of a tabs container. Each entry remembers which
-  // parent (and, for a tabs container, which tab) its rows belong to.
+  // A cross-grid drop fires two synchronous layout changes (leaving + joining); each grid
+  // queues its latest layout here and a microtask later assembles one whole-board save.
+  // Keyed by grid: ROOT_KEY, a container id, or `${containerId}:${tabId}` for a tab.
   const pending = useRef(
     new Map<
       string,
@@ -432,9 +406,8 @@ interface BoardSubGridProps {
   margin: [number, number];
   isConfiguring: boolean;
   onArranged: (layout: Layout) => void;
-  /** The tile body for a widget. `handleRef`, when attached to an element, restricts a
-      pointer drag of the tile to that element (used by a container's header so a drag
-      that starts inside its sub-grid doesn't move the whole panel). */
+  /** `handleRef`, when attached to an element, restricts a pointer drag of the tile to
+      that element. */
   renderContent: (
     widget: DashboardWidgetDto,
     handleRef: (element: Element | null) => void,
@@ -442,9 +415,8 @@ interface BoardSubGridProps {
   /** Floor on the surface's height, so an empty grid still offers an area a widget can
       be dragged onto. */
   minHeight?: number;
-  /** Inset between the grid's edge and its cells. Given as the grid's own padding rather
-      than CSS padding on the wrapper, so the measured width the grid is handed matches
-      the box it actually renders into. */
+  /** Grid's own padding, not CSS padding on the wrapper, so measured width matches the
+      box it renders into. */
   containerPadding?: [number, number];
 }
 

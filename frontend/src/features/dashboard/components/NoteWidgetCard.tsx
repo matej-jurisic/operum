@@ -21,15 +21,8 @@ interface Props {
     onEdit?: (itemId: string) => void;
 }
 
-/**
- * A board widget that draws no data at all: a free-form block of text for context that
- * isn't any tracker's own — a reminder, a link, a note to whoever else can see the board.
- *
- * The text is edited in place: clicking it while the board is just being read swaps in a
- * field that saves on blur (or ⌘/Ctrl+Enter, Escape to drop the change). Arrange mode
- * still routes edits through the same dialog a Header widget uses, since the body can't be
- * clicked while every pointer gesture there belongs to the grid.
- */
+/** Edited in place: saves on blur or Ctrl/Cmd+Enter, Escape drops the change. Arrange mode
+ *  routes to the same dialog a Header widget uses instead, since the body isn't clickable there. */
 export function NoteWidgetCard({
     widgetId,
     config,
@@ -107,9 +100,6 @@ export function NoteWidgetCard({
             onEdit={onEdit}
             title="Note"
             headerActions={
-                // Arrange mode has its own edit icon (and routes to the dialog,
-                // since the body can't be clicked there); this one is the
-                // in-place edit offered while the board is just being read.
                 !isConfiguring && !isEditing ? (
                     <ActionIcon
                         size="md"
@@ -127,9 +117,7 @@ export function NoteWidgetCard({
             <ScrollArea
                 style={{
                     ...cardBodyProps(true).style,
-                    // Not a control the board can drag by, but arranging the board
-                    // still takes over every pointer gesture inside it — same as the
-                    // Entries widget's table.
+                    // Not a drag control, but arrange mode still takes over pointer gestures inside it.
                     pointerEvents: isConfiguring ? "none" : "auto",
                 }}
             >

@@ -31,8 +31,8 @@ namespace Operum.Service.Services.Fields
                 .Where(c => c.TrackerId == trackerId)
                 .ToListAsync();
 
-            // Calculated fields may reference other calculated fields, so every field is
-            // resolvable by name. Manual fields win if the same name is used twice.
+            // Every field is resolvable by name since a calculated field may reference another
+            // calculated field. Manual fields win if the same name is used twice.
             var fieldsByName = new Dictionary<string, Field>(StringComparer.OrdinalIgnoreCase);
             foreach (var field in allFields.Where(f => !f.IsCalculated))
                 fieldsByName.TryAdd(field.Name, field);
@@ -53,14 +53,14 @@ namespace Operum.Service.Services.Fields
                 .Where(f => !f.IsCalculated)
                 .ToDictionary(f => f.Id, f => f);
 
-            // GetCurrentUserTimeZone falls back to UTC rather than throwing when there is no
-            // HTTP context, so a background caller that left this null would get silently
-            // wrong constant resolution instead of an error. Hence the explicit parameter.
+            // GetCurrentUserTimeZone falls back to UTC rather than throwing when there is no HTTP
+            // context, so a background caller that left timeZone null would get silently wrong
+            // constant resolution instead of an error. Hence the explicit parameter.
             var tz = timeZone ?? currentUserService.GetCurrentUserTimeZone();
             var newFieldValues = new List<FieldValue>();
 
-            // Build a lookup from the already-tracked currentFieldValues so we never
-            // issue a second query that could return a duplicate tracked instance.
+            // Built from the already-tracked currentFieldValues, not a fresh query, so we never
+            // get back a duplicate tracked instance of the same row.
             var existingByFieldId = currentFieldValues
                 .ToDictionary(fv => fv.FieldId, fv => fv);
 
@@ -70,8 +70,8 @@ namespace Operum.Service.Services.Fields
             {
                 existingByFieldId.TryGetValue(field.Id, out var existing);
 
-                // A field inside a dependency cycle can never resolve; drop any stale value so
-                // fields depending on it fail to resolve as well.
+                // A field inside a dependency cycle can never resolve; drop its stale value so
+                // dependents fail to resolve too.
                 if (cyclicFieldIds.Contains(field.Id))
                 {
                     logger.LogDebug("Skipping field {FieldId} because its formula is part of a dependency cycle", field.Id);

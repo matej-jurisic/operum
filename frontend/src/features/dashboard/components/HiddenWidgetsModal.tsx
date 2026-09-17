@@ -34,12 +34,8 @@ function hiddenWhere(widget: DashboardWidgetDto): string {
     return "Hidden on mobile";
 }
 
-/**
- * The board's Analytic/Entries widgets currently set to Hidden on at least one grid.
- * Those widgets are dropped from the grid entirely (see DashboardGrid), so this list is
- * the only way back to them: Edit opens the same dialog the widget's own controls would,
- * where the display mode is switched back.
- */
+/** Hidden widgets are dropped from the grid entirely (see DashboardGrid), so this is the
+ *  only way back to them. */
 export function HiddenWidgetsModal({ widgets, color, onEdit, onClose }: Props) {
     const hidden = widgets.filter(
         (w) =>

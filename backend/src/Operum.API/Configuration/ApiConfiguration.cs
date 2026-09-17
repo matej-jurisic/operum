@@ -55,8 +55,7 @@ namespace Operum.API.Configuration
             {
                 options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-                // One window per signed-in user, and per client address for anonymous calls
-                // (login, register, webhooks), so one busy client never throttles everyone else.
+                // One window per signed-in user, per client address for anonymous calls, so one busy client never throttles everyone else.
                 options.AddPolicy("fixed", httpContext =>
                 {
                     var userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -68,8 +67,7 @@ namespace Operum.API.Configuration
                     {
                         Window = TimeSpan.FromMinutes(windowMinutes ?? 1),
                         PermitLimit = permitLimit ?? 120,
-                        // Queued requests wait for the next window, which outlasts the client's
-                        // timeout, so rejecting straight away gives a clearer error.
+                        // Queued requests wait for the next window, which outlasts the client's timeout, so rejecting straight away gives a clearer error.
                         QueueLimit = queueLimit ?? 0,
                         QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                     });
@@ -82,9 +80,8 @@ namespace Operum.API.Configuration
             services.Configure<ForwardedHeadersOptions>(options =>
             {
                 options.ForwardedHeaders = ForwardedHeaders.XForwardedFor;
-                // The API port is bound to loopback and only reached through the host's reverse
-                // proxy, so its X-Forwarded-For is trusted. Without this every anonymous request
-                // would carry the proxy's address and share one rate limit window.
+                // The API is only reached through the host's reverse proxy, so its X-Forwarded-For is trusted.
+                // Without this every anonymous request would carry the proxy's address and share one rate limit window.
                 options.KnownNetworks.Clear();
                 options.KnownProxies.Clear();
             });

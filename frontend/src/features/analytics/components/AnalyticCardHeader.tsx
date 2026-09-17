@@ -4,29 +4,18 @@ import { MdDelete, MdEdit } from "react-icons/md";
 import { CardLayout, CARD_HEADER_CLASS } from "./cardSizing";
 
 interface Props {
-  /** What the card is called — its name, and nothing else. Also used as the hover
-        tooltip, for whenever the row truncates it with an ellipsis. */
   title: string;
   layout: CardLayout;
   color: string | undefined;
   isConfiguring: boolean;
   analyticId: string;
   onRemove?: (analyticId: string) => void;
-  /** Opens whatever editing the card's owner offers for it: renaming a tracker's own
-        analytic, or a dashboard widget's name and the view it reads through. */
   onEdit?: (analyticId: string) => void;
-  /** Sits next to the title, for anything that qualifies it. */
   titleAdornment?: ReactNode;
-  /** Sits with the remove button, for anything else the card can be acted on with. */
   actions?: ReactNode;
   compact?: boolean;
 }
 
-/**
- * The row every card leads with. It carries the class the dashboard grid indents to
- * clear its drag handle, and takes its type and spacing from the card's measured size:
- * on a widget dragged down to a few cells the header gives its room up to the chart.
- */
 export function AnalyticCardHeader({
   title,
   layout,
@@ -39,15 +28,7 @@ export function AnalyticCardHeader({
   actions,
   compact,
 }: Props) {
-  // On a full-size card the edit / remove controls used to sit in the header row, so
-  // turning arrange mode on grew that row and pushed the widget's content down -- the
-  // board you were arranging was never quite the board you had been looking at. While
-  // arranging, float them over the top of the card instead, on a solid chip so they stay
-  // legible over whatever they cover, and leave the widget's layout untouched. They sit
-  // horizontally centred: the drag grip runs down the left edge and the resize handle
-  // takes the bottom-right, so the top middle is the one spot on a short widget that
-  // clashes with neither. A compact card already centres its whole header, so this only
-  // kicks in for the rest.
+  // Float edit/remove over the card while arranging so they don't grow the header and shift content.
   const floatControls = isConfiguring && !compact;
 
   return (
@@ -65,10 +46,7 @@ export function AnalyticCardHeader({
       right={compact ? layout.padding : undefined}
       style={{
         zIndex: compact && isConfiguring ? 10 : "auto",
-        // Compact spans the whole card so its icons can float over the button
-        // rather than pushing it down. Empty of content outside edit mode, it
-        // would otherwise sit -- invisibly -- on top of that button and take
-        // every tap meant for it. Only the icons opt back in below.
+        // Disabled here so the empty compact header doesn't block taps to what's under it; icons opt back in below.
         pointerEvents: compact ? "none" : undefined,
       }}
       p={0}
@@ -85,9 +63,7 @@ export function AnalyticCardHeader({
             size="sm"
             truncate="end"
             mb={layout.isCompact ? 0 : "sm"}
-            // flex + minWidth: 0 is what lets the ellipsis kick in only once
-            // the title has actually claimed the row's full leftover width,
-            // rather than being cut at some narrower intrinsic size.
+            // minWidth: 0 is required for the ellipsis truncation to work with flex: 1.
             style={{ flex: 1, minWidth: 0 }}
             title={title}
           >

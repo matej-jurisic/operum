@@ -15,11 +15,10 @@ using System.Text.Json;
 
 namespace Operum.Tests.Tests.Notifications
 {
-    // End-to-end coverage of NotificationsService through the actual controller routes --
-    // nothing else exercised Create/Update/Toggle/Delete before this file (see
-    // ConditionAnalyticEvaluatorTests' header comment), so the manual EF child-replacement
-    // dance in UpdateNotification and the pre-population step in CreateNotification had never
-    // run outside of manual testing.
+    // End-to-end coverage of NotificationsService through the actual controller routes: before
+    // this file nothing exercised Create/Update/Toggle/Delete (see ConditionAnalyticEvaluatorTests),
+    // so the manual EF child-replacement in UpdateNotification and the pre-population step in
+    // CreateNotification had only ever run under manual testing.
     public class NotificationsApiTests(NotificationsEnabledFactory factory) : IClassFixture<NotificationsEnabledFactory>
     {
         private readonly NotificationsEnabledFactory _factory = factory;
@@ -163,8 +162,7 @@ namespace Operum.Tests.Tests.Notifications
                 await db.SaveChangesAsync();
             }
 
-            // First toggle disables it -- state must clear so a later re-enable can fire again
-            // instead of the edge tracker silently remembering the old true.
+            // Disabling must clear state, or a later re-enable inherits the stale triggered edge.
             var disabled = Notification(await Data(await client.PatchAsync($"trackers/{trackerId}/notifications/{created.Id}/toggle", null)));
             Assert.False(disabled.IsEnabled);
             Assert.False(disabled.IsTriggered);

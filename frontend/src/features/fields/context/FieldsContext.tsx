@@ -18,18 +18,14 @@ import { fieldsController } from "../api/fieldsController";
 type FieldsContextType = {
     fields: FieldDto[];
     fieldsDirty: boolean;
-    /**
-     * Columns the user has ticked on or off by hand for this session. What a column
-     * defaults to is decided by the active view (see useVisibleColumns), so a column
-     * missing from this record means "whatever the view says", not "hidden".
-     */
+    /** A column missing from this record means "whatever the active view says" (see useVisibleColumns), not "hidden". */
     columnOverrides: Record<string, boolean>;
     refreshFields: () => Promise<void>;
     refreshFieldsIfDirty: () => Promise<void>;
     setColumnVisible: (columnId: string, visible: boolean) => void;
     resetColumnOverrides: () => void;
     markFieldsDirty: () => void;
-    // API methods - internal use only
+    // Underscore-prefixed: internal use only.
     _createField: (values: CreateFieldDto) => Promise<void>;
     _updateField: (fieldId: string, values: UpdateFieldDto) => Promise<void>;
     _updateFieldOrder: (fieldIds: string[]) => Promise<void>;

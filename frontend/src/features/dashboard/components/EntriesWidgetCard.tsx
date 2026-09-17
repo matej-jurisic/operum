@@ -9,26 +9,15 @@ import { EntriesWidgetDto } from "../types/DashboardDto";
 
 interface Props {
     widgetId: string;
-    /** The tracker, columns and rows this table renders — all resolved by the board itself.
-        The card never fetches anything; a view selector change recomputes the whole board. */
+    /** Resolved by the board itself; the card never fetches anything on its own. */
     entriesWidget: EntriesWidgetDto | undefined;
     color: string | undefined;
     isConfiguring: boolean;
     onRemove?: (itemId: string) => void;
-    /** Opens the widget's own edit dialog — which columns it shows, and how it's drawn on
-        each grid. The rows it shows stay read-only regardless. */
     onEdit?: (itemId: string) => void;
 }
 
-/**
- * A read-only table of one tracker's entries. Everything the tracker page's own entries
- * table does — editing, selecting, deleting — is deliberately left out: this card is a
- * window onto the data, not another place to change it. onEdit is the widget's own
- * settings instead (its columns, its per-grid display mode) — see EditEntriesWidgetModal.
- *
- * Both the columns and the rows come from the board (entriesWidget), already filtered and
- * sorted by whatever view selectors this widget follows — the card renders them as-is.
- */
+/** Read-only: no editing, selecting or deleting rows here, unlike the tracker page's own table. */
 export function EntriesWidgetCard({
     widgetId,
     entriesWidget,
@@ -64,9 +53,7 @@ export function EntriesWidgetCard({
                 <ScrollArea
                     style={{
                         ...cardBodyProps(true).style,
-                        // Matches the View widget's dropdown: not a control the board
-                        // can drag by, but arranging the board still takes over every
-                        // pointer gesture inside it.
+                        // Not a drag control, but arrange mode still takes over pointer gestures inside it.
                         pointerEvents: isConfiguring ? "none" : "auto",
                     }}
                 >

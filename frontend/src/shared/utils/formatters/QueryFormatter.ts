@@ -17,10 +17,7 @@ interface Clause {
     descending?: boolean;
 }
 
-/**
- * A query has no name of its own, so everywhere one is listed or picked it is
- * shown by what it actually does: "Weight ≥ 80", "Logged on descending".
- */
+/** A query has no name of its own; it's shown by what it does, e.g. "Weight >= 80". */
 export const describeClause = (clause: Clause): string => {
     const fieldName = clause.field?.name ?? "Unknown field";
 
@@ -29,8 +26,7 @@ export const describeClause = (clause: Clause): string => {
 
     if (!clause.operator) return fieldName;
 
-    // A filter with no value is how "has no value" is written down, and only the two
-    // equality operators can express it.
+    // An empty value means "has no value", expressible only via the two equality operators.
     if (clause.value === undefined || clause.value === null || clause.value === "") {
         if (clause.operator === OperatorTypes.Equals) return `${fieldName} is empty`;
         if (clause.operator === OperatorTypes.NotEquals) return `${fieldName} has a value`;
@@ -55,10 +51,7 @@ interface AbstractClause {
     descending?: boolean;
 }
 
-/**
- * describeClause for a field-agnostic clause -- a DashboardView clause or a template row
- * that names only a data type, not a concrete field: "Date ≥ Start of this month".
- */
+/** describeClause for a field-agnostic clause (a DashboardView clause or template row naming only a data type). */
 export const describeAbstractClause = (c: AbstractClause): string => {
     const type = dataTypeLabel(c.dataType);
 

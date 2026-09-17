@@ -55,9 +55,7 @@ interface FilterRow {
     value?: string;
 }
 
-// One tracker's contribution to the exploration. The chart type and calculation are
-// picked once for the whole run, so a source only carries its tracker and its own
-// mapping, view, and inline filters.
+// Chart type and calculation are picked once for the whole run, not per source.
 interface SourceInput {
     trackerId: string | null;
     fieldByPurpose: Record<string, string>;
@@ -94,9 +92,8 @@ const EMPTY_STATE: ExploreState = {
     sources: [emptySource()],
 };
 
-// Result types that read from any number of trackers: line and bar merge onto a shared
-// axis, a calendar unions its dated events. A scatter Correlation also spans trackers but
-// pairs exactly two (isPairedCode), so it is handled on its own.
+// Result types that read from any number of trackers (Correlation also spans trackers but
+// pairs exactly two, so it's handled separately via isPairedCode).
 const COMBINABLE_TYPES: string[] = [
     AnalyticResultTypeEnum.LineChart,
     AnalyticResultTypeEnum.BarChart,
@@ -106,8 +103,7 @@ const COMBINABLE_TYPES: string[] = [
 // Mirrors DataLimits.MaxDashboardItemSourceCount on the backend.
 const MAX_TRACKERS = 5;
 
-// The purpose whose field lands on the shared x-axis of a combined chart, per chart type.
-// Only the types drawn on one shared axis have one.
+// Only chart types drawn on one shared axis have an entry here.
 const X_AXIS_PURPOSE: Record<string, string> = {
     [AnalyticResultTypeEnum.LineChart]: "X-axis",
     [AnalyticResultTypeEnum.BarChart]: "Name",
@@ -235,9 +231,7 @@ export default function ExplorePage() {
 
     const sources = form.values.sources;
 
-    // Resizes the source list to `count`, optionally clearing every source's field
-    // mapping (a new chart type or calculation needs a fresh one). One write so callers
-    // that both clear and resize don't fight a stale form value.
+    // One write so callers that both clear and resize don't fight a stale form value.
     const reshapeSources = (count: number, clearMappings: boolean) => {
         const next = form.values.sources.map((s) =>
             clearMappings ? { ...s, fieldByPurpose: {} } : s,
@@ -313,12 +307,9 @@ export default function ExplorePage() {
         setResult(undefined);
     };
 
-    // The purpose that lands on the shared x-axis of a combined line/bar chart. Only these
-    // types offer the "matched values only" option.
     const xAxisPurpose = resultType ? X_AXIS_PURPOSE[resultType] : undefined;
 
-    // The purpose whose field type the later sources are pinned to the first source's: the
-    // shared x-axis for a combined line/bar, or the join field for a Correlation.
+    // Shared x-axis for a combined line/bar, or the join field for a Correlation.
     const narrowPurpose = isPairedCode
         ? AnalyticPurposeEnum.Match
         : xAxisPurpose;

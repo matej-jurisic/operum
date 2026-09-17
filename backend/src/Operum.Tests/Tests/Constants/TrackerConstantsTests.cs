@@ -7,10 +7,7 @@ using System.Net.Http.Json;
 
 namespace Operum.Tests.Tests.Constants
 {
-    /// <summary>
-    /// Tracker constants are named values a formula can reference. A constant may carry
-    /// conditional values, each guarded by filters over the entry being calculated.
-    /// </summary>
+    /// <summary>Tracker constants are named values a formula can reference; a constant's conditional values are each guarded by filters over the entry being calculated.</summary>
     public class TrackerConstantsTests(CustomWebApplicationFactory factory) : IClassFixture<CustomWebApplicationFactory>
     {
         private readonly CustomWebApplicationFactory _factory = factory;
@@ -339,7 +336,6 @@ namespace Operum.Tests.Tests.Constants
 
             Assert.Equal(20, await TestApi.NumberValueOf(client, trackerId, gold, "Total"));
             Assert.Equal(10, await TestApi.NumberValueOf(client, trackerId, silver, "Total"));
-            // Nothing matched, so the constant falls back to its plain value.
             Assert.Equal(2, await TestApi.NumberValueOf(client, trackerId, bronze, "Total"));
         }
 
@@ -375,7 +371,6 @@ namespace Operum.Tests.Tests.Constants
 
             var entryId = await TestApi.CreateEntry(client, trackerId, new() { ["Tier"] = "gold", ["Amount"] = "2" });
 
-            // Both conditions hold; the smaller priority number decides.
             Assert.Equal(14, await TestApi.NumberValueOf(client, trackerId, entryId, "Total"));
         }
 

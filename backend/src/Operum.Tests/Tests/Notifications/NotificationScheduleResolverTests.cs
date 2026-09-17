@@ -4,12 +4,8 @@ using Operum.Service.Domain.Notifications;
 
 namespace Operum.Tests.Tests.Notifications
 {
-    // NotificationScheduleResolver is pure and unit-testable but had zero coverage before
-    // this file -- it is the one piece every Frequency notification depends on, so a bug
-    // here silently breaks (or over-fires) every Day/Week/Month notification. Dates are
-    // located relative to a fixed reference and walked to the desired weekday with .NET's
-    // own DayOfWeek rather than hardcoded, so the tests don't depend on memorized calendar
-    // trivia.
+    // Dates are located relative to a fixed reference and walked to the desired weekday with
+    // .NET's own DayOfWeek, so the tests don't depend on memorized calendar trivia.
     public class NotificationScheduleResolverTests
     {
         private static readonly TimeZoneInfo Utc = TimeZoneInfo.Utc;
@@ -97,9 +93,8 @@ namespace Operum.Tests.Tests.Notifications
                 .Select(x => x.offset)
                 .ToList();
 
-            // Anchored on 2000-01-01, so `start`'s own phase in the 3-day cycle is whatever
-            // it is -- what matters is every due offset shares that same phase (spaced
-            // exactly 3 days apart), never firing on an off day.
+            // Anchored on 2000-01-01, so what matters is every due offset shares the same
+            // phase, spaced exactly 3 days apart.
             Assert.NotEmpty(dueDays);
             Assert.All(dueDays, d => Assert.Equal(0, (d - dueDays[0]) % 3));
         }
@@ -107,8 +102,8 @@ namespace Operum.Tests.Tests.Notifications
         [Fact]
         public void IsDue_Day_CatchesUpAcrossMissedTicks()
         {
-            // Service was down for a week; the next run must still recognize the instant as due
-            // rather than requiring the tick to land inside a tiny polling window.
+            // The next run must recognize the instant as due rather than requiring the tick to
+            // land inside a tiny polling window.
             var ev = DayEvent(1, new TimeOnly(9, 0), skipWeekends: false);
             var lastEvaluated = new DateTime(2026, 1, 1, 9, 0, 0, DateTimeKind.Utc);
             var resumedAt = new DateTime(2026, 1, 8, 15, 0, 0, DateTimeKind.Utc);
@@ -133,8 +128,7 @@ namespace Operum.Tests.Tests.Notifications
 
             var week1Tuesday = NextWeekday(new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), DayOfWeek.Tuesday);
 
-            // Walk 6 consecutive weekly Tuesdays and Thursdays; exactly every other one should fire,
-            // and the two selected weekdays within a firing week must agree with each other.
+            // Exactly every other week should fire, and both selected weekdays in a firing week must agree.
             var tuesdayResults = new List<bool>();
             var thursdayResults = new List<bool>();
             for (var i = 0; i < 6; i++)
@@ -167,8 +161,7 @@ namespace Operum.Tests.Tests.Notifications
         {
             var ev = MonthEvent(null, lastDayOfMonth: true, new TimeOnly(23, 0), skipWeekends: false);
 
-            // Non-leap Feb has 28 days; leap Feb has 29. Both must resolve to that month's actual
-            // last day, not a fixed day-of-month.
+            // Both must resolve to that month's actual last day, not a fixed day-of-month.
             var feb2026 = new DateTime(2026, 2, 28, 23, 0, 0, DateTimeKind.Utc); // 2026 is not a leap year
             var feb2028 = new DateTime(2028, 2, 29, 23, 0, 0, DateTimeKind.Utc); // 2028 is a leap year
 
@@ -181,8 +174,8 @@ namespace Operum.Tests.Tests.Notifications
         [Fact]
         public void IsDue_Month_SkipWeekends_DropsOccurrenceEntirely()
         {
-            // Find a month whose target day-of-month lands on a weekend, and confirm that month
-            // is skipped outright rather than shifted to the nearest weekday.
+            // A month whose target day-of-month lands on a weekend should be skipped outright,
+            // not shifted to the nearest weekday.
             var ev = MonthEvent(15, lastDayOfMonth: false, new TimeOnly(9, 0), skipWeekends: true);
 
             DateTime? weekendTarget = null;
@@ -208,8 +201,7 @@ namespace Operum.Tests.Tests.Notifications
         [Fact]
         public void IsDue_Month_DayBeyondMonthLength_ClampsRatherThanOverflows()
         {
-            // DayOfMonth=31 in a 30-day (or 28/29-day) month must resolve within that month,
-            // not roll over into the next one.
+            // DayOfMonth=31 in a shorter month must resolve within that month, not roll over.
             var ev = MonthEvent(31, lastDayOfMonth: false, new TimeOnly(9, 0), skipWeekends: false);
 
             var aprilStart = new DateTime(2026, 4, 1, 0, 0, 0, DateTimeKind.Utc);

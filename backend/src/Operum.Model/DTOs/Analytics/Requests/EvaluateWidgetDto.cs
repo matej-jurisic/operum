@@ -4,10 +4,8 @@ using Operum.Model.Constants.Analytics;
 
 namespace Operum.Model.DTOs.Analytics.Requests
 {
-    // One inline, field-bound filter clause for an ad hoc evaluation. Shaped like a view's
-    // resolved filter (ViewQueryBuilder.ResolvedClause) minus the field type, which is read
-    // from the tracker server-side. A blank value only means "is empty" / "has a value" for
-    // the two equality operators; for anything else it means the clause is unset.
+    // A blank value means "is empty"/"has a value" for the two equality operators; otherwise
+    // the clause is unset.
     public class EvaluateFilterClauseDto
     {
         public string FieldId { get; set; } = string.Empty;
@@ -15,9 +13,6 @@ namespace Operum.Model.DTOs.Analytics.Requests
         public string? Value { get; set; }
     }
 
-    // One source of an ad hoc evaluation: a tracker, the purpose -> field mapping for the
-    // shared calculation, an optional saved view for the base filter/sort, and any number
-    // of inline clauses ANDed on top.
     public class EvaluateSourceDto
     {
         public string TrackerId { get; set; } = string.Empty;
@@ -26,22 +21,16 @@ namespace Operum.Model.DTOs.Analytics.Requests
         public List<EvaluateFilterClauseDto> Filters { get; set; } = [];
     }
 
-    // A chart definition evaluated once, against live data, without being saved anywhere --
-    // the Explore page's request. One or more sources: a single source renders on its own,
-    // line/bar sources merge into a Composed chart, calendar sources union their events, and
-    // a correlation scatter pairs exactly two.
     public class EvaluateWidgetDto
     {
         public string ResultType { get; set; } = string.Empty;
         public string Code { get; set; } = string.Empty;
 
-        // Line/Bar only: how the axis field is bucketed before Code aggregates it (see
-        // AnalyticGroupings). Null/empty for every other result type; a legacy fused code
-        // with no grouping is resolved server-side (LegacyLineBarCodes).
+        // Line/Bar only. A legacy fused code with no grouping is resolved server-side
+        // (LegacyLineBarCodes).
         public string? Grouping { get; set; }
 
-        // Combined charts only: keep just the x-axis values every source has a point for.
-        // Ignored for a single source or a paired correlation.
+        // Combined charts only; ignored for a single source or a paired correlation.
         public bool MatchedValuesOnly { get; set; }
 
         public List<EvaluateSourceDto> Sources { get; set; } = [];
@@ -63,16 +52,12 @@ namespace Operum.Model.DTOs.Analytics.Requests
     {
         public EvaluateWidgetDtoValidator()
         {
-            // Shape check only. Whether the code goes with the result type, how many sources
-            // it accepts, and whether the fields exist, belong to the tracker and carry
-            // compatible data types, is settled in AnalyticsService, which is the only place
-            // with database access.
+            // Shape check only; DB-dependent validation happens in AnalyticsService.
             RuleFor(x => x.ResultType)
                 .NotEmpty().WithMessage(x => Messages.Required("result type"))
                 .Must(AnalyticTypes.IsValid).WithMessage(x => Messages.Invalid("result type"));
 
-            // A legacy fused Line/Bar code (from a bookmarked Explore URL) passes the shape
-            // check here and is rewritten to (Grouping, Code) in AnalyticsService.
+            // A legacy fused code passes here and is rewritten to (Grouping, Code) in AnalyticsService.
             RuleFor(x => x.Code)
                 .NotEmpty().WithMessage(x => Messages.Required("code"))
                 .Must(c => AnalyticCodes.IsValid(c) || LegacyLineBarCodes.Map.ContainsKey(c))

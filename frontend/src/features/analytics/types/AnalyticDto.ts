@@ -9,6 +9,19 @@ export interface AnalyticDto {
     order?: number;
 }
 
+/** One bucket of a trend sparkline: x is the bucket's start date, y its calculated magnitude. */
+export interface TrendPointDto {
+    x: string;
+    y: number;
+}
+
+/** Set only when the placement follows a date-bounded filter clause and hasn't turned the trend off. */
+export interface TrendDto {
+    points: TrendPointDto[];
+    /** Same calculation over the immediately preceding, equal-length period; absent if nothing to calculate. */
+    previousValue?: string;
+}
+
 export interface SingleValueAnalyticDto extends AnalyticDto {
     value: string;
     valueField?: FieldDto;
@@ -16,17 +29,27 @@ export interface SingleValueAnalyticDto extends AnalyticDto {
     /** Min/Max with a Display field: the compared value, shown smaller under the label. */
     secondaryValue?: string;
     secondaryValueField?: FieldDto;
+    trend?: TrendDto;
 }
+
+export const GoalDirections = {
+    HigherIsBetter: "HigherIsBetter",
+    LowerIsBetter: "LowerIsBetter",
+} as const;
+
+export type GoalDirection = (typeof GoalDirections)[keyof typeof GoalDirections];
 
 export interface GoalAnalyticDto extends AnalyticDto {
     /** The calculated value, as a string in valueField's format. */
     value: string;
     /** The target, same format as value. */
     target: string;
-    /** value / target. Can exceed 1 once the target is met; null when there's nothing to
-        show (no data, or a target that isn't a positive number). */
+    /** value / target, or target / value under LowerIsBetter; can exceed 1, null when target isn't a positive number. */
     progress?: number;
     valueField?: FieldDto;
+    /** A cap/budget widget is LowerIsBetter. */
+    direction: GoalDirection;
+    trend?: TrendDto;
 }
 
 export interface LineChartAnalyticDto extends AnalyticDto {
@@ -35,8 +58,6 @@ export interface LineChartAnalyticDto extends AnalyticDto {
     /** Null when the configured axis field can no longer be resolved (e.g. it was deleted). */
     yField?: FieldDto;
     points: { x: string; y: number }[];
-    /** Whether the Y axis is anchored at zero (default) or fitted to the data's own range.
-        Set from the placement when the chart is drawn on a dashboard. */
     yAxisFromZero: boolean;
 }
 
@@ -52,8 +73,7 @@ export interface ScatterChartAnalyticDto extends AnalyticDto {
     /** Null when the configured axis field can no longer be resolved (e.g. it was deleted). */
     yField?: FieldDto;
     points: { x: number; y: number }[];
-    /** Set only by the two-tracker Correlation calculation, when the join has little or
-        nothing left to plot. Empty for an ordinary single-tracker scatter plot. */
+    /** Set only by the two-tracker Correlation calculation when the join has little left to plot. */
     warnings?: string[];
 }
 
@@ -71,8 +91,7 @@ export interface CalendarAnalyticDto extends AnalyticDto {
 }
 
 export interface BarChartAnalyticDto extends AnalyticDto {
-    /** Null when the configured category field can no longer be resolved (e.g. it was
-        deleted). Nothing can be plotted in that case. */
+    /** Undefined when the configured category field was deleted; nothing can be plotted in that case. */
     nameField?: FieldDto;
     valueField?: FieldDto;
     points: { name: string; value: number }[];
@@ -85,15 +104,13 @@ export interface ComposedChartSeriesDto {
     xField: FieldDto;
     valueField: FieldDto;
     points: { x: string; y: number }[];
-    /** The color of the tracker this series was calculated from. Undefined falls back to
-        the chart's own cycling palette. */
+    /** Undefined falls back to the chart's own cycling palette. */
     color?: string;
 }
 
 export interface ComposedChartAnalyticDto extends AnalyticDto {
     series: ComposedChartSeriesDto[];
     warnings: string[];
-    /** Whether the Y axis is anchored at zero (default) or fitted to the data's own range.
-        Set from the placement; only meaningful when at least one series draws as a line. */
+    /** Only meaningful when at least one series draws as a line. */
     yAxisFromZero: boolean;
 }

@@ -3,14 +3,9 @@ using Operum.Model.Constants;
 
 namespace Operum.Model.DTOs.Dashboard.Requests
 {
-    // Sets a DashboardWidgetTypes.TabsContainer widget's panel title and its full tab list
-    // in one call, the way SaveFilterItemDto stands for a whole filter widget.
-    //
-    // Tabs is the ordered set the container should end up with. A tab whose Id matches one
-    // the container already has is kept (rename in place); a tab with no Id, or an unknown
-    // one, is created. A tab the container had that is absent here is removed, and its
-    // children are repointed to the first tab that survives -- see DashboardService.
-    // SaveTabsContainer. There must be between one and DataLimits.MaxDashboardTabCount tabs.
+    // Replaces the whole tab list: a matching Id is renamed in place, a missing/unknown Id is
+    // created, and a tab absent here is removed with its children repointed to the first
+    // surviving tab (see DashboardService.SaveTabsContainer).
     public class SaveTabsContainerDto
     {
         public string? Title { get; set; }

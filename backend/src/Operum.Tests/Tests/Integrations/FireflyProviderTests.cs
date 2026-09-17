@@ -57,8 +57,6 @@ namespace Operum.Tests.Tests.Integrations
             provider.VerifyAndParse(
                 FireflyTransactionCatalog.ResourceType, Secret, body, headers ?? SignedHeaders(body));
 
-        // ---- signature ----
-
         [Fact]
         public void Signature_RoundTrips()
         {
@@ -124,8 +122,6 @@ namespace Operum.Tests.Tests.Integrations
             Assert.Equal(FireflySignature.Outcome.Valid,
                 FireflySignature.Verify($"t={timestamp},v1={hex},v2=whatever", body, Secret, DateTime.UtcNow));
         }
-
-        // ---- parsing ----
 
         [Fact]
         public void Parse_BadSignature_YieldsForbiddenAndNoRecords()

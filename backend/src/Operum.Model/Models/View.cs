@@ -19,6 +19,5 @@ namespace Operum.Model.Models
 
         // The fields this view shows, in the order it shows them. Empty means every field.
         public virtual List<ViewColumn> ViewColumns { get; set; } = [];
-        //public virtual List<ViewGroup> Groups { get; set; } = [];
     }
 }

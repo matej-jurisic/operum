@@ -4,27 +4,16 @@ using Operum.Model.DTOs.Integrations.Requests;
 
 namespace Operum.Service.Interfaces
 {
-    /// <summary>
-    /// User-facing integration management. Everything here is scoped to the signed-in user;
-    /// the sync loop uses <see cref="IIntegrationSyncExecutor"/> instead, which has no user.
-    /// </summary>
+    // Scoped to the signed-in user; the sync loop uses IIntegrationSyncExecutor instead, which has no user.
     public interface IIntegrationsService
     {
-        /// <summary>Installed providers and their source catalogs.</summary>
         Result<List<ProviderDto>> GetProviders();
 
         Task<Result<List<IntegrationDto>>> GetIntegrations();
 
-        /// <summary>
-        /// Verifies the credential with the provider before storing it, so a bad key is
-        /// refused where it was typed rather than at the first sync.
-        /// </summary>
         Task<Result<IntegrationDto>> Connect(ConnectIntegrationDto dto);
 
-        /// <summary>
-        /// Removes the connection and its targets. Entries already imported stay -- they are
-        /// the user's data, not the integration's.
-        /// </summary>
+        // Entries already imported stay: they are the user's data, not the integration's.
         Task<Result> Disconnect(string integrationId);
 
         Task<Result<IntegrationTargetDto>> CreateTarget(string integrationId, SaveIntegrationTargetDto dto);
@@ -33,29 +22,17 @@ namespace Operum.Service.Interfaces
 
         Task<Result> DeleteTarget(string integrationId, string targetId);
 
-        /// <summary>Runs a pull target now, through the same executor the scheduled tick uses.</summary>
         Task<Result<SyncResultDto>> SyncNow(string integrationId, string targetId);
 
-        /// <summary>
-        /// Re-imports a pull target's whole history: fetches every record from the backfill
-        /// date again and overwrites the mapped fields on entries already imported. Used to
-        /// populate a field mapping added after the first import; it discards any hand edits
-        /// to those fields, so the UI confirms first.
-        /// </summary>
+        // Re-fetches the whole history and overwrites mapped fields on entries already imported,
+        // discarding any hand edits to them.
         Task<Result<SyncResultDto>> ResyncTarget(string integrationId, string targetId);
 
-        /// <summary>
-        /// Runs every pull target on the connection now, fetching once per resource type
-        /// rather than once per target. Same executor the scheduled tick uses.
-        /// </summary>
+        // Fetches once per resource type rather than once per target.
         Task<Result<SyncResultDto>> SyncIntegrationNow(string integrationId);
 
-        /// <summary>
-        /// Sets the signing secret for a push target. For a provider that mints its own
-        /// (Firefly III) this stores the value the user pasted from the provider; for one
-        /// Operum generates the secret for, passing no secret issues a fresh one, returned in
-        /// the response and nowhere else afterwards.
-        /// </summary>
+        // For a provider that mints its own secret (Firefly III) this stores the pasted value;
+        // otherwise passing no secret issues a fresh one, returned only in this response.
         Task<Result<IntegrationTargetDto>> SetWebhookSecret(string integrationId, string targetId, SetWebhookSecretDto dto);
     }
 }

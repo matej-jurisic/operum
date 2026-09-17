@@ -13,9 +13,7 @@ import {
     WidgetDto,
 } from "../types/WidgetDto";
 
-// A Widget Library definition is created together with its first placement, from the board
-// (see DashboardContext.createAndPlaceWidget). This context only reads the library and
-// edits/deletes what's already in it.
+// A Widget Library definition is created with its first placement (see DashboardContext.createAndPlaceWidget); this context only reads/edits/deletes what's already in it.
 type WidgetsContextType = {
     widgets: WidgetDto[];
     entriesWidgets: EntriesWidgetDefinitionDto[];
@@ -29,13 +27,7 @@ type WidgetsContextType = {
 
 const WidgetsContext = createContext<WidgetsContextType | undefined>(undefined);
 
-/**
- * The Widget Library's state: every chart Widget and Entries EntriesWidget the current user
- * owns, app-scoped rather than nested under a tracker like AnalyticsContext used to be --
- * a widget can span several trackers, so it can't hang off one tracker's cache-invalidation
- * flag. Kept deliberately simple for now: refetch-on-mount plus a manual refresh after every
- * write, rather than the dirty-flag pattern the tracker-scoped contexts use.
- */
+// App-scoped, not per-tracker: a widget can span several trackers. Refetches on mount and after every write, unlike the tracker-scoped contexts' dirty-flag pattern.
 export const WidgetsProvider: React.FC<{ children: React.ReactNode }> = ({
     children,
 }) => {
@@ -59,8 +51,7 @@ export const WidgetsProvider: React.FC<{ children: React.ReactNode }> = ({
         await refresh();
     };
 
-    // Cascades on the server: every dashboard placing this widget loses that placement
-    // too. The caller is expected to have warned the user before getting here.
+    // Cascades on the server: every dashboard placing this widget loses that placement too.
     const deleteWidget = async (widgetId: string) => {
         await widgetsController.deleteWidget(widgetId);
         await refresh();

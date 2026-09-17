@@ -303,10 +303,8 @@ namespace Operum.Tests.Tests.Fields
             Assert.Equal(["First", "Third"], await FieldNames(client, trackerId));
         }
 
-        // A field's mapping into a Widget is the whole of what deleting the field can take
-        // down -- the widget itself survives (across every dashboard placing it) and falls
-        // back to a degraded render, unlike the old tracker Analytic this used to also
-        // hard-delete.
+        // Deleting a field only removes its mapping into a Widget; the widget itself survives
+        // and falls back to a degraded render.
         [Fact]
         public async Task DeleteField_UsedByAWidget_WidgetSurvivesWithADegradedFieldMapping()
         {
@@ -415,8 +413,7 @@ namespace Operum.Tests.Tests.Fields
             var trackerId = await TestApi.CreateTracker(owner, "Write guard");
             var fieldId = await TestApi.CreateField(owner, trackerId, "Amount", DataTypes.Number);
 
-            // Schema changes hide the tracker's existence instead of admitting it is off limits,
-            // which is why these answer 404 where reads answer 403.
+            // Schema changes answer NotFound rather than Forbidden, hiding the tracker's existence.
             var stranger = await _factory.NewUserClient("fieldwriter");
             Assert.Equal(HttpStatusCode.NotFound,
                 (await TestApi.PostField(stranger, trackerId, new CreateFieldDto { Name = "Sneak", Type = DataTypes.String })).StatusCode);

@@ -3,10 +3,7 @@ using Operum.Model.Constants;
 
 namespace Operum.Model.DTOs.Views.Requests
 {
-    // One entry in a View's ordered clause list: a filter or a sort, expressed against one
-    // of the tracker's fields. The clause itself is field-agnostic and pooled on save (see
-    // QueryPool); FieldId is the binding. The data type is taken from the field server-side,
-    // so it is not sent here.
+    // Field-agnostic, pooled on save (see QueryPool). Data type comes from the field server-side.
     public class ViewClauseDto
     {
         public string Kind { get; set; } = QueryKinds.Filter;

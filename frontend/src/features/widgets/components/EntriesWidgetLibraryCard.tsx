@@ -13,8 +13,7 @@ interface Props {
     onDelete: () => void;
 }
 
-/** One Entries table definition as a card in the Library grid. Clicking the card, or its
-    Add button, places it on the current board; edit and delete live in the corner menu. */
+/** Clicking the card or its Add button places it on the current board; edit/delete live in the corner menu. */
 export function EntriesWidgetLibraryCard({
     entriesWidget,
     color,

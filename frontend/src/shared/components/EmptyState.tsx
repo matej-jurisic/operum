@@ -10,12 +10,7 @@ interface Props {
     children?: ReactNode;
 }
 
-/**
- * The bordered "nothing here yet" card shown inside a list/tab once its data has
- * loaded and come back empty. Every list in the app uses this so the wording and
- * spacing stay consistent; page-level empty states (no trackers, no boards) are a
- * different, richer treatment with an icon and a Get Started button.
- */
+/** For in-list/tab empty results; page-level empty states (no trackers, no boards) use a richer treatment instead. */
 export default function EmptyState(props: Props) {
     return (
         <Paper withBorder p="xl" radius="md">

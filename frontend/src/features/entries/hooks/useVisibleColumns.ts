@@ -10,23 +10,14 @@ export const ExtraColumns = {
 } as const;
 
 /**
- * Which columns the entries table shows, and in which order.
- *
- * Columns are the last step of a view, applied here rather than on the server: the
- * entries endpoint keeps returning every value, so a filter or a sort over a column the
- * view hides goes on working. A view names the fields it shows, in the order it shows
- * them; a view naming none shows every field, which is what every view did before
- * columns existed.
- *
- * On top of that the eye menu can tick a column on or off for the session. Those picks
- * live in FieldsContext and are dropped when the view changes.
+ * Column visibility is applied client-side (not by the entries endpoint), so a filter or
+ * sort on a hidden column still works. An empty view column list means show every field.
  */
 export function useVisibleColumns() {
     const { fields, columnOverrides, setColumnVisible } = useFields();
     const { selectedView } = useViews();
 
-    // The fields the view asks for, in view order, skipping repeats and any field the
-    // tracker no longer has.
+    // Skips repeats and any field the tracker no longer has.
     const viewFields = useMemo(() => {
         if (!selectedView) return null;
 
@@ -58,8 +49,7 @@ export function useVisibleColumns() {
     const toggleColumn = (columnId: string) =>
         setColumnVisible(columnId, !isColumnVisible(columnId));
 
-    // Fields the view named come first in its own order; anything switched on by hand
-    // afterwards follows in field order.
+    // View-named fields come first in view order; manually-added ones follow in field order.
     const visibleFields = useMemo(() => {
         const ordered = viewFields ?? fields;
         const extras = viewFields

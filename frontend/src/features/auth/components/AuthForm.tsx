@@ -1,8 +1,7 @@
 import { Button, Group, Stack, Text, Title } from "@mantine/core";
 import { useForm } from "@mantine/form";
 
-// Mirrors @mantine/form's own `useForm<Values extends Record<string, any>>` constraint;
-// interface-typed DTOs (LoginRequestDto, RegisterDto) don't satisfy Record<string, unknown>.
+// Mirrors @mantine/form's own useForm<Values extends Record<string, any>> constraint.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface AuthFormProps<T extends Record<string, any>> {
     mode: "login" | "register";
@@ -41,7 +40,7 @@ export function AuthForm<T extends Record<string, any>>({
 
             <form onSubmit={form.onSubmit(onSubmit)}>
                 <Stack gap={5}>
-                    {children} {/* form fields */}
+                    {children}
                     <Group>
                         <Button type="submit" fullWidth mt={"sm"}>
                             {title}

@@ -14,7 +14,6 @@ namespace Operum.Tests.Tests.Fields
 
         private Task<HttpClient> OwnerClient() => _factory.NewUserClient("reference");
 
-        // A tracker of named things (an "exercise library"), plus a couple of entries.
         private static async Task<(string trackerId, string nameFieldId, string benchId, string squatId)> LibraryWithEntries(HttpClient client)
         {
             var trackerId = await TestApi.CreateTracker(client, "Library");

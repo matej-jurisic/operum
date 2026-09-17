@@ -25,7 +25,7 @@ export const GoogleButton = (props: Props) => {
         script.onload = () => {
             window.google?.accounts.id.initialize({
                 client_id: googleClientId,
-                ux_mode: "popup", // Use popup mode
+                ux_mode: "popup",
                 callback: async (response) => {
                     if (response.credential) {
                         const googleLoginRequest: GoogleLoginDto = {

@@ -46,7 +46,6 @@ export function CalendarCard({
     const [selectedDate, setSelectedDate] = useState<Date | undefined>();
     const [viewDate, setViewDate] = useState<Date>(new Date());
 
-    // Create a map of dates to events for quick lookup
     const events = useMemo(() => {
         const eventsByDate = new Map<string, typeof analytic.points>();
         analytic.points.forEach((event) => {
@@ -64,12 +63,10 @@ export function CalendarCard({
         return eventsByDate;
     }, [analytic.points]);
 
-    // Get events for selected date
     const selectedDateKey = selectedDate ? getDateKey(selectedDate) : "";
     const eventsForSelectedDate = events.get(selectedDateKey) || [];
 
-    // Distinct trackers behind the events, in first-seen order. Only populated when the
-    // calendar merges more than one tracker; drives the legend and per-event colouring.
+    // Populated only when the calendar merges more than one tracker; drives the legend and per-event coloring.
     const sources = useMemo(() => {
         const byName = new Map<string, string | undefined>();
         analytic.points.forEach((event) => {
@@ -82,8 +79,6 @@ export function CalendarCard({
 
     const isMultiSource = sources.length > 1;
 
-    // Up to three distinct dot colours for a day, so a day with events from several
-    // trackers shows each tracker's colour.
     const dayColors = (dayEvents: typeof analytic.points): string[] => {
         const seen: string[] = [];
         for (const event of dayEvents) {
@@ -140,8 +135,6 @@ export function CalendarCard({
                     <Calendar
                         date={viewDate}
                         onDateChange={(date) => setViewDate(new Date(date))}
-                        // A month grid cannot reflow, so on a widget with no room
-                        // for it at full size it is drawn at the smaller one.
                         size={layout.isCompact ? "xs" : "sm"}
                         getDayProps={(date) => {
                             const dateObj = new Date(date);

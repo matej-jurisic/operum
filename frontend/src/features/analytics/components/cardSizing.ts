@@ -1,10 +1,6 @@
 import { CSSProperties, RefObject, useLayoutEffect, useRef, useState } from "react";
 
-/**
- * A card renders at a fixed height inside the masonry on a tracker page, where an even
- * column is what matters, and stretches to fill its cell on a dashboard grid, where the
- * user has sized the widget themselves. `fillHeight` is what switches between the two.
- */
+// `fillHeight` switches between a fixed masonry height and stretching to fill a dashboard grid cell.
 
 export const CHART_HEIGHT = 300;
 export const MOBILE_CHART_HEIGHT = 210;
@@ -12,14 +8,11 @@ export const MOBILE_CHART_HEIGHT = 210;
 /** The card's header row, which the dashboard grid indents to clear its drag handle. */
 export const CARD_HEADER_CLASS = "analytic-card-header";
 
-// What a card has to be to draw each part of itself. Axis ticks are the first thing to
-// go: below these they are illegible rather than informative, and the plot is better off
-// with the space. A y-axis' labels cost width, an x-axis' cost height.
+// Below these thresholds, axis ticks are dropped as illegible rather than shrunk.
 const MIN_Y_AXIS_WIDTH = 300;
 const MIN_X_AXIS_HEIGHT = 200;
 
-// Below either of these a card drops to its tighter padding and type, so that a widget
-// dragged down to a few cells is not left as all chrome and no chart.
+// Below these thresholds, the card switches to tighter padding and type.
 const COMPACT_WIDTH = 300;
 const COMPACT_HEIGHT = 240;
 
@@ -37,19 +30,8 @@ export interface CardLayout {
     withYAxis: boolean;
 }
 
-/**
- * Measures the card so its contents can size themselves against the cell the user
- * dragged out rather than against the viewport: the same analytic is a full chart at six
- * columns of the dashboard grid and has room for little more than its plot at two.
- *
- * Only a card that fills its cell adapts. In the masonry every card is drawn at the same
- * fixed height, and shrinking one because its column happens to be narrow would cost the
- * even grid that the masonry is there to give.
- */
+/** Only a `fillHeight` card adapts to its measured size; masonry cards stay a fixed height. */
 export function useCardLayout(fillHeight?: boolean): CardLayout {
-    // Measured synchronously (see useSyncedElementSize): isCompact and padding feed the
-    // card's type and the box its value font is sized from, so a late first measurement
-    // shows up as the whole card's text snapping size a frame or two into every load.
     const { ref, width, height } = useSyncedElementSize<HTMLDivElement>(!!fillHeight);
 
     const measured = !!fillHeight && width > 0 && height > 0;
@@ -77,8 +59,6 @@ export const cardShellProps = (
               style: {
                   display: "flex",
                   flexDirection: "column",
-                  // The cell is the size the user chose, so anything that will not fit
-                  // it is clipped rather than left to spill over the widget below.
                   overflow: "hidden",
               },
           }
@@ -93,28 +73,13 @@ export const cardBodyProps = (
 export const chartHeight = (fillHeight?: boolean, isMobile?: boolean) =>
     fillHeight ? "100%" : isMobile ? MOBILE_CHART_HEIGHT : CHART_HEIGHT;
 
-/**
- * On a touchscreen, Recharts treats a scroll-past `touchmove` the same as a mouse hover
- * and pops the tooltip up mid-scroll — annoying on a dashboard where most charts are just
- * being scrolled past. Tapping a chart still fires a real `click` event, so switching the
- * trigger to "click" on mobile keeps that deliberate tap working while dropping the
- * incidental one from a scroll gesture. Desktop keeps the hover its mouse affords.
- */
+// On touch, Recharts fires the tooltip on scroll-past touchmove; "click" avoids that.
 export const chartTooltipTrigger = (isMobile?: boolean) =>
     isMobile ? "click" : "hover";
 
 /**
- * Like `useElementSize`, but takes its first measurement synchronously in a layout
- * effect instead of waiting on a `ResizeObserver` callback. A `ResizeObserver`'s first
- * notification lands after the browser has already painted the mount frame, so anything
- * sized off it — a value's font, say — visibly snaps from its unmeasured fallback to the
- * real size a frame or two into every load. Measuring in `useLayoutEffect` instead lets
- * React re-render with the real size before that first frame is ever painted.
- *
- * Reports the border box (`getBoundingClientRect`), not the content box Mantine's
- * `useElementSize` gives: a card's thresholds are about the cell the user dragged out,
- * and the border box tracks that cell directly instead of shrinking and growing with the
- * card's own padding.
+ * Like Mantine's `useElementSize`, but measures synchronously in `useLayoutEffect` (avoids
+ * a visible snap on first paint) and reports the border box, not the content box.
  */
 export function useSyncedElementSize<T extends HTMLElement = HTMLDivElement>(
     enabled = true,

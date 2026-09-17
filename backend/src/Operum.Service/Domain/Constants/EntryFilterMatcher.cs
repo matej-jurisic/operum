@@ -8,11 +8,6 @@ namespace Operum.Service.Domain.Constants
 {
     public static class EntryFilterMatcher
     {
-        /// <summary>
-        /// Returns true if all filters match the given field values.
-        /// fieldValues maps fieldId → FieldValue (with typed properties).
-        /// fields maps fieldId → Field (for type lookup).
-        /// </summary>
         public static bool Matches(
             IEnumerable<TrackerConstantValueFilter> filters,
             Dictionary<string, FieldValue> fieldValues,
@@ -24,10 +19,7 @@ namespace Operum.Service.Domain.Constants
                 if (!fieldsById.TryGetValue(filter.FieldId, out var field))
                     return false;
 
-                // A missing row (field added after this entry, its value cleared, an import
-                // that never mapped it) isn't a mismatch by itself: MatchesFilter treats it the
-                // same as a row holding null, so "not equals" can still match it, the same as
-                // ViewQueryBuilder's view filters do.
+                // A missing value row is treated the same as a row holding null, so "not equals" still matches it.
                 fieldValues.TryGetValue(filter.FieldId, out var fv);
                 if (!MatchesFilter(field.Type.ToLowerInvariant(), fv, filter.Operator, filter.Value, tz))
                     return false;
@@ -129,8 +121,7 @@ namespace Operum.Service.Domain.Constants
                     ? DateTime.SpecifyKind(fieldValue.Value, DateTimeKind.Utc)
                     : fieldValue.Value.ToUniversalTime();
 
-                // Equality on a date means "the same day the user sees on a calendar", which is a
-                // window in UTC terms rather than a single instant.
+                // Equality on a date means the same calendar day, a UTC window rather than a single instant.
                 var (dayStart, dayEnd) = TimeZoneResolver.LocalDayWindow(utcFilter, tz);
 
                 return operatorType switch
@@ -190,8 +181,6 @@ namespace Operum.Service.Domain.Constants
             var filterStr = filterValue ?? "false";
             if (!bool.TryParse(filterStr, out var filterBool))
                 return false;
-            // A missing/null value isn't filterBool either, so "not equals" matches it, the
-            // same as the other field types above.
             if (fieldValue == null)
                 return operatorType == OperatorTypes.NotEquals;
             return operatorType switch

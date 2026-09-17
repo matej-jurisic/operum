@@ -25,15 +25,13 @@ export const LoadingProvider: React.FC<{ children: React.ReactNode }> = ({
         }
 
         if (value) {
-            // delay before showing loader
             timeoutRef.current = window.setTimeout(() => {
                 setLoading(true);
-            }, 100); // show after 200ms
+            }, 100);
         } else {
-            // debounce before hiding loader
             timeoutRef.current = window.setTimeout(() => {
                 setLoading(false);
-            }, 150); // hide after 150ms
+            }, 150);
         }
     };
 

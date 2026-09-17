@@ -12,11 +12,9 @@ namespace Operum.Tests.Tests.Entries
     {
         private readonly CustomWebApplicationFactory _factory = factory;
 
-        // Every test owns its trackers outright: the class shares one database, and a single
-        // account would run into the 20-tracker limit part way through the file.
+        // Every test owns its trackers: a single shared account would hit the 20-tracker limit.
         private Task<HttpClient> OwnerClient() => _factory.NewUserClient("owner");
 
-        // A tracker with one optional field of every type.
         private static async Task<string> CreateTypedTracker(HttpClient client, string name)
         {
             var trackerId = await TestApi.CreateTracker(client, name);
@@ -71,8 +69,8 @@ namespace Operum.Tests.Tests.Entries
             await TestApi.CreateField(client, trackerId, "Note", DataTypes.String);
             await TestApi.CreateField(client, trackerId, "Amount", DataTypes.Number);
 
-            // Creating an entry demands a key for every manual field, required or not — only
-            // its value may be null. Batch create is more forgiving about the same thing.
+            // A key is required for every manual field, required or not; only its value may be
+            // null. Batch create is more forgiving about the same thing.
             var response = await TestApi.PostEntry(client, trackerId, new() { ["Note"] = "hi" });
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -138,8 +136,7 @@ namespace Operum.Tests.Tests.Entries
             var trackerId = await TestApi.CreateTracker(client, "Bad number");
             await TestApi.CreateField(client, trackerId, "Amount", DataTypes.Number);
 
-            // SetFieldValue swallows the conversion failure, so the entry is accepted with the
-            // value dropped rather than rejected.
+            // The conversion failure is swallowed: the entry is accepted with the value dropped.
             var response = await TestApi.PostEntry(client, trackerId, new() { ["Amount"] = "not a number" });
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -304,8 +301,7 @@ namespace Operum.Tests.Tests.Entries
             var trackerId = await TestApi.CreateTracker(client, "Update unknown");
             await TestApi.CreateField(client, trackerId, "Note", DataTypes.String);
 
-            // A missing entry is reported as Forbidden here, while GetEntry answers 404 for
-            // the same id.
+            // A missing entry is Forbidden here, while GetEntry answers NotFound for the same id.
             var response = await TestApi.PutEntry(client, trackerId, Guid.NewGuid().ToString(), new() { ["Note"] = "hi" });
 
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -411,8 +407,8 @@ namespace Operum.Tests.Tests.Entries
             };
             var response = await stranger.SendAsync(request);
 
-            // The bulk delete filters by ownership instead of refusing outright, so it reports
-            // success while leaving the other user's entry alone.
+            // Filters by ownership instead of refusing outright: reports success while leaving
+            // the other user's entry alone.
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Single(await TestApi.ListEntries(owner, trackerId));
         }

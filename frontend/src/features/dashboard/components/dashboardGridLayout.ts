@@ -7,11 +7,6 @@ import {
 } from "../types/DashboardDto";
 import type { Layout, LayoutItem } from "@snapgridjs/react";
 
-/** The shared geometry the board's grids are laid out with: column counts, the row and
-    margin units, the fallback placement for a widget never arranged, and the conversions
-    between a stored placement and a snapgrid layout item. Pulled out of DashboardGrid so
-    the container tile can lay out its own sub-grid the same way. */
-
 /** Kept in step with DashboardGrid.Columns on the backend: a stored x/w is in these. */
 export const DASHBOARD_GRID_COLUMNS = 24;
 
@@ -23,48 +18,33 @@ export const DASHBOARD_MOBILE_GRID_COLUMNS = 4;
     renders a 16px inset narrower, matching a real phone. */
 export const MOBILE_PREVIEW_WIDTH = 400;
 
-// 2px. A row unit is dwarfed by the 16px vertical margin baked into every widget's
-// height, so what a drag or resize actually snaps to is rowHeight + margin: 18px here,
-// half the 36px step it was at rowHeight 20. HalveDashboardGridRowHeight doubled every
-// stored y/h to match, so (row + margin) * 2y and rowHeight * 2h land on the same pixels
-// a board was already laid out on -- see that migration.
+// Effective snap step is rowHeight + margin (18px). See migration HalveDashboardGridRowHeight,
+// which doubled every stored y/h to keep existing boards on the same pixels.
 export const ROW_HEIGHT = 2;
 const MIN_WIDTH = 2;
-// Two rows: 2*2 + 16 == a 20px sliver, the same floor as before HalveDashboardGridRowHeight.
 const MIN_HEIGHT = 2;
 const FALLBACK_HEIGHT = 24;
 
-// Grabbed by the drag handle, and by snapgrid to tell that handle apart from the rest of
-// the card.
 export const DRAG_HANDLE_CLASS = "dashboard-drag-handle";
 
 // Everything a user can press inside a card stays pressable while the board is arranged.
 export const DRAG_CANCEL_SELECTOR =
   "button, a, input, .mantine-ActionIcon-root";
 
-// The gap between cells inside a container. It must match the board's own margin (see
-// VARIANTS[Desktop]), not just look reasonable on its own: with a 2px row height the
-// vertical gap is almost the entire row step, so a smaller one here would render every
-// widget dragged in from the board at a fraction of its height on the board.
+// Must match VARIANTS[Desktop].margin, not just look reasonable: with a 2px row height a
+// smaller gap here would render a dragged-in widget at a fraction of its board height.
 export const CONTAINER_MARGIN: [number, number] = [16, 16];
 
-// The inset between a container's frame and its sub-grid. Matches CONTAINER_MARGIN and the
-// board's own margin so the gap around a widget is the same whether its neighbour is
-// another widget, the container wall, or the board edge. Applied as the grid's own
-// padding, not CSS padding on the body, so the width the grid is measured at is the
-// width it renders into (a padded measured element leaves the grid overflowing it).
+// Matches CONTAINER_MARGIN and the board's margin so the gap is the same everywhere.
+// Applied as the grid's own padding, not CSS, so the measured width matches what renders.
 export const CONTAINER_PADDING: [number, number] = [16, 16];
 
 /** The key a grid's pending layout is stashed under while a save is being assembled: a
     container's id, or this for the board itself. */
 export const ROOT_KEY = "__root__";
 
-// Where the wide grid gives way to the narrow one. A twelfth of anything below this is
-// about eighty pixels, which is narrower than the axis labels of the chart inside it.
-//
-// The breakpoint names are the variants an arrangement is stored under, so the breakpoint
-// the grid reports is also the grid that gets saved: a placement can never be written back
-// to the grid it was not made on.
+// Breakpoint names double as the variant an arrangement is stored under, so the grid
+// reported here is also the grid a placement gets saved to.
 const BREAKPOINTS: Record<LayoutVariant, number> = {
   [LayoutVariants.Desktop]: 900,
   [LayoutVariants.Mobile]: 0,
@@ -79,12 +59,10 @@ export const COLS: Record<LayoutVariant, number> = {
 export interface VariantConfig {
   /** Gap between cells. A phone cannot spare 16px of it beside every widget. */
   margin: [number, number];
-  /** How wide a widget with no placement yet is, i.e. one added before the board had a
-        grid and never arranged since. The rest of the row is filled with the next ones. */
+  /** Width of a widget with no placement yet (added before the board was ever arranged). */
   fallbackWidth: number;
-  /** A selector for the only part of a widget a drag may start from, or nothing to drag
-      it from anywhere. The narrow grid needs one so a touch-drag doesn't swallow the
-      gesture that scrolls the board. */
+  /** Selector for the only part of a widget a drag may start from. The narrow grid needs
+      one so a touch-drag doesn't swallow the board's scroll gesture. */
   dragHandle?: string;
 }
 
@@ -100,8 +78,7 @@ export const VARIANTS: Record<LayoutVariant, VariantConfig> = {
   },
 };
 
-/** The grid variant a container this wide renders, i.e. which arrangement is both drawn
-    and written back. Picks the widest breakpoint whose floor the width clears. */
+/** Picks the widest breakpoint whose floor the width clears. */
 export const variantForWidth = (width: number): LayoutVariant => {
   const byWidest = (
     Object.entries(BREAKPOINTS) as [LayoutVariant, number][]
@@ -110,9 +87,7 @@ export const variantForWidth = (width: number): LayoutVariant => {
   return (match ?? byWidest[byWidest.length - 1])[0];
 };
 
-/** A widget's placement on one grid as a snapgrid layout item. `variant` decides which of
-    the two stored placements is read; `cols` is the column count of the grid it lands on
-    (the board's own, or a container's identical sub-grid). */
+/** `variant` decides which of the two stored placements is read. */
 export const toLayoutItem = (
   widget: DashboardWidgetDto,
   index: number,

@@ -5,14 +5,6 @@ interface Props {
     onChange: (value: boolean) => void;
 }
 
-/**
- * The line-chart-only display option offered by every Analytic widget's create/edit form:
- * whether the Y axis is pinned to zero (the default, good for "how much" comparisons) or
- * fitted to the data's own range (good for a series that only ever moves within a narrow
- * band well above zero, which would otherwise draw as a flat line at the top). Shared the
- * same way WidgetDisplayModeFields is, since CustomAnalyticForm, PlaceFromLibraryForm and
- * EditWidgetModal only agree on this part.
- */
 export function YAxisScaleOption({ yAxisFromZero, onChange }: Props) {
     return (
         <Stack gap="xs">

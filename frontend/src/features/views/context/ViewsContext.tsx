@@ -7,7 +7,6 @@ import { viewsController } from "../api/viewsController";
 
 type ViewsContextType = {
     views: ViewDto[];
-    /** The view the tracker is currently looking through, if any. */
     selectedView: ViewDto | null;
     refreshViews: () => Promise<void>;
     refreshViewsIfDirty: () => Promise<void>;

@@ -42,8 +42,7 @@ export function GoalConditionalTargetsEditor({ clauses, value, onChange }: Props
 
     const rows = form.values.rows;
 
-    // Push the normalized rows up whenever anything changes. A row contributes only the
-    // conditions actually filled in; one with none, or no target, is dropped.
+    // A row with no filled-in conditions, or no target, is dropped.
     useEffect(() => {
         const out: GoalConditionalTargetDto[] = rows
             .map((row) => {

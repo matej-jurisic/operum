@@ -30,6 +30,10 @@ namespace Operum.Model.Models
         // invariant number, or hh:mm:ss for a duration). Null for every other result type.
         public string? GoalTarget { get; set; }
 
+        // Goal widgets only: a Constants.Analytics.GoalDirections value. Null behaves as
+        // HigherIsBetter (the original behavior, before a goal could be a cap/budget).
+        public string? GoalDirection { get; set; }
+
         public string OwnerId { get; set; } = string.Empty;
         [ForeignKey(nameof(OwnerId))]
         public virtual User Owner { get; set; } = null!;

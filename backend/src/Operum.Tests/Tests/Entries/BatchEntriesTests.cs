@@ -6,10 +6,7 @@ using System.Net.Http.Json;
 
 namespace Operum.Tests.Tests.Entries
 {
-    /// <summary>
-    /// The batch endpoint applies creates, updates and deletes in one transaction, and is
-    /// deliberately more forgiving about missing fields than the single-entry endpoints.
-    /// </summary>
+    /// <summary>Applies creates, updates and deletes in one transaction; more forgiving about missing fields than the single-entry endpoints.</summary>
     public class BatchEntriesTests(CustomWebApplicationFactory factory) : IClassFixture<CustomWebApplicationFactory>
     {
         private readonly CustomWebApplicationFactory _factory = factory;

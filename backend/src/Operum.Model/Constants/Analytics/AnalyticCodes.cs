@@ -16,9 +16,7 @@ namespace Operum.Model.Constants.Analytics
         public const string FalseCount = "False Count";
         public const string TruePercentage = "True Percentage";
 
-        // Line/Bar aggregations. Sum/Average/Count/Min/Max above are shared with Single
-        // Value; these two are chart-only. The grouping a chart pairs one of these with is
-        // AnalyticGroupings.
+        // Chart-only aggregations, paired with a grouping from AnalyticGroupings.
         public const string RawValues = "Raw Values";
         public const string CumulativeSum = "Cumulative Sum";
 

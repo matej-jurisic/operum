@@ -8,14 +8,12 @@ import {
     Text,
     Textarea,
     TextInput,
-    UnstyledButton,
-    useMantineTheme,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useEffect, useMemo, useState } from "react";
-import { FaCircle } from "react-icons/fa";
 import { MdCheck } from "react-icons/md";
 import { PublicityEnum } from "../../../shared/enums/PublicityEnum";
+import { ColorSwatchPicker } from "../../../shared/components/ColorSwatchPicker";
 import { trackersController } from "../api/trackersController";
 import { CreateTrackerDto } from "../types/requests/CreateTrackerDto";
 import { UpdateTrackerDto } from "../types/requests/UpdateTrackerDto";
@@ -37,21 +35,6 @@ interface TemplateItem {
     label: string;
     description?: string;
 }
-
-const colorOptions = [
-    "indigo",
-    "blue",
-    "cyan",
-    "grape",
-    "green",
-    "lime",
-    "orange",
-    "pink",
-    "red",
-    "teal",
-    "yellow",
-    "violet",
-];
 
 const trackerTypeOptions = [
     { value: PublicityEnum.Draft.toString(), label: "Template Draft" },
@@ -79,10 +62,8 @@ const renderTemplateOption: SelectProps["renderOption"] = ({
 };
 
 export default function TrackerFormDialog(props: TrackerFormDialogProps) {
-    const theme = useMantineTheme();
     const [templateList, setTemplateList] = useState<TrackerDto[]>([]);
 
-    // pick the right labels based on template/tracker
     const entityName = props.asTemplate ? "Template" : "Tracker";
 
     const form = useForm<UpdateTrackerDto & CreateTrackerDto>({
@@ -189,35 +170,13 @@ export default function TrackerFormDialog(props: TrackerFormDialogProps) {
                         maxLength={500}
                         {...form.getInputProps("description")}
                     />
-                    <Stack gap="xs">
-                        <Text size="sm" fw={500}>
-                            {entityName} Color
-                        </Text>
-                        <Group gap="xs">
-                            {colorOptions.map((c) => (
-                                <UnstyledButton
-                                    key={c}
-                                    onClick={() =>
-                                        form.setFieldValue("color", c)
-                                    }
-                                    style={{
-                                        borderRadius: "50%",
-                                        padding: 2,
-                                        border:
-                                            form.values.color === c
-                                                ? `2px solid ${theme.colors[c]?.[6]}`
-                                                : "2px solid transparent",
-                                        lineHeight: 0,
-                                    }}
-                                >
-                                    <FaCircle
-                                        size={22}
-                                        color={theme.colors[c]?.[6]}
-                                    />
-                                </UnstyledButton>
-                            ))}
-                        </Group>
-                    </Stack>
+                    <ColorSwatchPicker
+                        label={`${entityName} Color`}
+                        value={form.values.color}
+                        onChange={(c) =>
+                            form.setFieldValue("color", c ?? "indigo")
+                        }
+                    />
                     {!props.asTemplate && (
                         <IconPicker
                             value={form.values.icon}

@@ -3,8 +3,6 @@ import { useState } from "react";
 
 interface Props {
     itemId: string;
-    /** Which text widget this is editing: a header and a container title get a single-line
-        input capped short, a note gets a multi-line one with room for a paragraph. */
     kind: "header" | "note" | "container" | "tabsContainer";
     initialText: string;
     color: string;
@@ -36,12 +34,7 @@ const COPY: Record<Props["kind"], { title: string; label: string; placeholder: s
     },
 };
 
-/**
- * Edits a Header or Note widget's text, or a Container's title, after it has been placed.
- * Unlike EditWidgetModal this needs no fetch first — the text is already sitting in the
- * widget's own Config, which the board already holds — so there's nothing to load before
- * the field can be shown.
- */
+/** Unlike EditWidgetModal, needs no fetch: the text is already in Config, which the board holds. */
 export function EditTextWidgetModal({ itemId, kind, initialText, color, onClose, onSave }: Props) {
     const [text, setText] = useState(initialText);
     const [isSubmitting, setIsSubmitting] = useState(false);

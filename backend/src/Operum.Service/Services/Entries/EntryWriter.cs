@@ -129,13 +129,10 @@ namespace Operum.Service.Services.Entries
                     entryCount++;
                 }
 
-                // This dictionary, not entry.FieldValues, is the entry's full set from here on.
-                // A new value is added to the DbSet and to this, never to the navigation
-                // collection: the entry is tracked, so EF fixup would put it there itself and
-                // the collection would hold the same row twice -- which
-                // EvaluateAndPersistCalculatedFields turns into a throw when it keys its
-                // values by field id. The FK is carried by EntryId, which Entry assigns at
-                // construction, so nothing needs the navigation to be right.
+                // This dictionary, not entry.FieldValues, is the entry's full set from here on. A
+                // new value is added to the DbSet and to this, never to the navigation collection:
+                // the entry is tracked, so EF fixup would duplicate it there too, which
+                // EvaluateAndPersistCalculatedFields turns into a throw when it keys by field id.
                 var valuesByFieldId = entry!.FieldValues.ToDictionary(fv => fv.FieldId, fv => fv);
 
                 foreach (var (fieldId, value) in record.ValuesByFieldId)

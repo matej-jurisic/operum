@@ -2,8 +2,7 @@ using FluentValidation;
 
 namespace Operum.Model.DTOs.Widgets.Requests
 {
-    // The tracker an Entries widget reads from is fixed at creation, the same way an
-    // Analytic widget's sources are -- only its name is editable afterwards.
+    // Tracker is fixed at creation; only the name is editable afterwards.
     public class UpdateEntriesWidgetDto
     {
         public string? Name { get; set; }

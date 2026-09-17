@@ -10,7 +10,7 @@ interface EntryFormDialogProps {
     entryId?: string;
     title?: string;
     initialValues?: Record<string, unknown>;
-    /** Reference fields: field name -> label of the preselected entry, keyed by field name. */
+    /** Reference fields: field name -> label of the preselected entry. */
     referenceLabels?: Record<string, string>;
     onClose: () => void;
 }

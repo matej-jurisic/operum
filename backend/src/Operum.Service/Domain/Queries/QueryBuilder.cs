@@ -7,9 +7,7 @@ using Operum.Service.Domain.Views;
 
 namespace Operum.Service.Domain.Queries
 {
-    // Validates a field-agnostic clause (one filter or one sort over a data type). Used by
-    // ViewsService and the DashboardView editor; the concrete-field checks that used to live
-    // here have moved to whoever binds the clause to a field.
+    // Validates a field-agnostic clause. Concrete-field checks live with whoever binds the clause to a field.
     public static class QueryBuilder
     {
         public static Result ValidateClause(string kind, string dataType, string? op, string? value, bool descending)
@@ -20,7 +18,6 @@ namespace Operum.Service.Domain.Queries
             if (!DataTypes.IsValid(dataType))
                 return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid($"data type '{dataType}'"));
 
-            // A sort is just a data type and a direction, so there is nothing else to check.
             if (kind != QueryKinds.Filter)
                 return Result.Success();
 

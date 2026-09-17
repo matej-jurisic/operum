@@ -89,8 +89,8 @@ namespace Operum.Service.Services.Views
             userView.Name = view.Name;
             userView.Description = view.Description;
 
-            // Only the join rows go away — the underlying pooled Queries are independent and
-            // may still be attached to other views, so they're never deleted here.
+            // Only the join rows go away; the pooled Queries are independent and may still be
+            // attached to other views, so they're never deleted here.
             await db.ViewQueries.Where(x => x.ViewId == viewId).ExecuteDeleteAsync();
             await AttachViewClauses(viewId, resolvedQueries.Data!);
 
@@ -119,8 +119,8 @@ namespace Operum.Service.Services.Views
                 return Result.Failure(ResultStatusCodes.NotFound);
             }
 
-            // Deleting a View only removes its ViewQuery links (DB cascade); the Queries
-            // it referenced are independent and keep existing.
+            // Deleting a View only removes its ViewQuery links (DB cascade); the Queries it
+            // referenced are independent and keep existing.
             await db.Views.Where(x => x.Id == viewId && x.TrackerId == trackerId).ExecuteDeleteAsync();
 
             return Result.Success();
@@ -261,9 +261,9 @@ namespace Operum.Service.Services.Views
             };
         }
 
-        // Resolves each ordered ViewClauseDto to a pooled Query (created unsaved if new) plus
-        // the tracker field it is bound to, validating the field, the operator/value against
-        // that field's type, and the per-view filter/sort caps along the way.
+        // Resolves each ordered ViewClauseDto to a pooled Query (created unsaved if new) plus the
+        // tracker field it is bound to, validating the field, the operator/value against that
+        // field's type, and the per-view filter/sort caps along the way.
         private async Task<Result<List<(Query Query, string FieldId)>>> ResolveViewClauses(string trackerId, string ownerId, List<ViewClauseDto> clauses)
         {
             var resolved = new List<(Query Query, string FieldId)>();
@@ -310,9 +310,9 @@ namespace Operum.Service.Services.Views
             return Result.Success(resolved);
         }
 
-        // A column is a field of the tracker and nothing else, so this only has to check
-        // that each id names one and drop repeats: naming the same field twice is a no-op
-        // rather than a conflict, and the first mention decides where the column sits.
+        // A column is a field of the tracker and nothing else, so this only has to check that
+        // each id names one and drop repeats: naming the same field twice is a no-op rather than
+        // a conflict, and the first mention decides where the column sits.
         private async Task<Result<List<string>>> ResolveViewColumns(string trackerId, List<string> columnFieldIds)
         {
             if (columnFieldIds.Count == 0)

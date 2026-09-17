@@ -4,18 +4,15 @@ namespace Operum.Model.Constants.Analytics.Definitions
 {
     public static class AnalyticDefinitionList
     {
-        // Number/duration value fields: every Line/Bar aggregation except Count reads one.
         private static readonly HashSet<string> Numeric = [DataTypes.Number, DataTypes.TimeSpan];
 
-        // The aggregations offered for a bucketed Line grouping (Exact / Daily / ...).
         private static readonly HashSet<string> LineBucketCodes =
         [
             AnalyticCodes.Sum, AnalyticCodes.Average, AnalyticCodes.Count,
             AnalyticCodes.Min, AnalyticCodes.Max, AnalyticCodes.CumulativeSum
         ];
 
-        // The aggregations offered for a bucketed Bar grouping (Exact / Daily / ...). No
-        // cumulative (a running total reads as a line); raw values are the None grouping only.
+        // No cumulative (reads as a line); no raw values (that's the None grouping).
         private static readonly HashSet<string> BarBucketCodes =
         [
             AnalyticCodes.Sum, AnalyticCodes.Average, AnalyticCodes.Count,
@@ -54,8 +51,6 @@ namespace Operum.Model.Constants.Analytics.Definitions
                                 [AnalyticPurposes.Value] = [.. DataTypes.All]
                             }
                         },
-                        // Value picks the entry; the optional Display field is what the
-                        // widget then shows for it (e.g. the longest run's route name).
                         [AnalyticCodes.Min] = new AnalyticPurposeDataTypes
                         {
                             Label = "Minimum",
@@ -151,10 +146,8 @@ namespace Operum.Model.Constants.Analytics.Definitions
                     }
                 },
 
-                // A Goal is a Single Value calculation drawn as progress toward a target.
-                // Same purpose and the same calculations, minus the ones whose result isn't a
-                // number to compare (Most/Least Common). The target is typed when the Widget
-                // is created and stored on it; see GoalAnalyticBuilder.
+                // Same calculations as Single Value minus Most/Least Common (no number to
+                // compare against a target). See GoalAnalyticBuilder.
                 [AnalyticTypes.Goal] = new AnalyticDefinition
                 {
                     WidgetOnly = true,
@@ -236,9 +229,6 @@ namespace Operum.Model.Constants.Analytics.Definitions
                     }
                 },
 
-                // Line and Bar: the calculation is a (Grouping, Code) pair. Grouping buckets
-                // the axis field (X-axis / Name); Code aggregates each bucket. See
-                // AnalyticGroupings and the *AnalyticBuilder processors.
                 [AnalyticTypes.LineChart] = new AnalyticDefinition
                 {
                     Purposes = [AnalyticPurposes.Xaxis, AnalyticPurposes.Yaxis],
@@ -316,10 +306,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                                 [AnalyticPurposes.Yaxis] = [DataTypes.Number, DataTypes.TimeSpan]
                             }
                         },
-                        // Two sources, one per axis: each tracker maps a Match field (the
-                        // join key, e.g. the day) and a Value field, and a point pairs the
-                        // first source's value (x) with the second's (y) for every match
-                        // key they share. See MultiSourceAnalyticMerger.MergeCorrelation.
+                        // See MultiSourceAnalyticMerger.MergeCorrelation.
                         [AnalyticCodes.CorrelationScatter] = new AnalyticPurposeDataTypes
                         {
                             Label = "Correlation",
@@ -368,9 +355,6 @@ namespace Operum.Model.Constants.Analytics.Definitions
             };
 
 
-        // Whether a calculation is valid for a result type. For Line/Bar this is the
-        // (grouping, code) pair; for everything else grouping must be absent and the code
-        // must be one the type defines.
         public static bool IsValidForType(string resultType, string code, string? grouping = null)
         {
             if (!ByResultType.TryGetValue(resultType, out var def))
@@ -387,9 +371,6 @@ namespace Operum.Model.Constants.Analytics.Definitions
         public static bool SupportsPurpose(string resultType, string purpose) =>
             ByResultType.TryGetValue(resultType, out var def) && def.Purposes.Contains(purpose);
 
-        // Whether a field of <paramref name="dataType"/> may fill <paramref name="purpose"/>
-        // for this calculation. The grouping purpose is constrained by the grouping; every
-        // other purpose by the code.
         public static bool IsValidDataType(string resultType, string code, string purpose, string dataType, string? grouping = null)
         {
             if (!ByResultType.TryGetValue(resultType, out var def))
@@ -405,15 +386,9 @@ namespace Operum.Model.Constants.Analytics.Definitions
                 allowed.Contains(dataType);
         }
 
-        // The purposes a given calculation needs mapped to a field. For a grouping type
-        // that's the grouping purpose plus whatever the aggregation reads (nothing, for
-        // Count); for everything else it's the keys of the code's AllowedDataTypes, minus
-        // the ones it marks optional.
         public static IReadOnlyCollection<string> GetRequiredPurposes(string resultType, string code, string? grouping = null) =>
             [.. GetAllowedPurposes(resultType, code, grouping).Where(p => !IsOptionalPurpose(resultType, code, p))];
 
-        // Every purpose the calculation accepts, required or optional. What a supplied
-        // mapping is checked against; GetRequiredPurposes is what it has to cover.
         public static IReadOnlyCollection<string> GetAllowedPurposes(string resultType, string code, string? grouping = null)
         {
             if (!ByResultType.TryGetValue(resultType, out var def) || !def.Codes.TryGetValue(code, out var codeDef))
@@ -425,19 +400,13 @@ namespace Operum.Model.Constants.Analytics.Definitions
             return [def.GroupingPurpose, .. codeDef.AllowedDataTypes.Keys];
         }
 
-        // Whether this calculation can be saved without a field for the purpose (Min/Max's
-        // Display field). The grouping purpose is never optional.
         public static bool IsOptionalPurpose(string resultType, string code, string purpose) =>
             ByResultType.TryGetValue(resultType, out var def) &&
             def.Codes.TryGetValue(code, out var codeDef) &&
             codeDef.OptionalPurposes.Contains(purpose);
 
-        // The human-readable name for an analytic, e.g. "Line Chart · Weekly average: Day,
-        // Amount". Leads with the chart type because a calculation label alone doesn't
-        // always identify the analytic. Skipped when it would just repeat the calculation
-        // (e.g. Calendar's only code is also called "Calendar"). Shared by widget summaries
-        // and dashboard sources so a saved and an ad hoc analytic with the same definition
-        // read identically.
+        // e.g. "Line Chart · Weekly average: Day, Amount". Type prefix is dropped when it
+        // would just repeat the calculation (e.g. Calendar's only code is "Calendar").
         public static string GetDisplayName(string resultType, string code, IEnumerable<string> fieldNames, string? grouping = null)
         {
             var label = GetLabel(resultType, code, grouping);
@@ -446,8 +415,6 @@ namespace Operum.Model.Constants.Analytics.Definitions
             return label == resultType ? calculation : $"{resultType} · {calculation}";
         }
 
-        // The bare aggregation label for a Line/Bar code, for the "Calculation" dropdown
-        // (the composed name with the grouping is built by the form).
         public static string GetAggregationLabel(string code) => code switch
         {
             AnalyticCodes.RawValues => "Raw values",
@@ -473,8 +440,6 @@ namespace Operum.Model.Constants.Analytics.Definitions
                 : code;
         }
 
-        // "Raw values", "Daily total", "Weekly average", "Count per category", "Cumulative
-        // total per value".
         private static string ComposeGroupedLabel(AnalyticDefinition def, string? grouping, string code)
         {
             if (code == AnalyticCodes.RawValues)

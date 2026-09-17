@@ -23,21 +23,10 @@ interface WebhookSetupPanelProps {
     onClose: () => void;
     provider: ProviderDto;
     target: IntegrationTargetDto;
-    /**
-     * Stores the secret for a provider that mints its own (Firefly III). Returns whether the
-     * save succeeded.
-     */
     onSaveSecret: (secret: string) => Promise<boolean>;
 }
 
-/**
- * Shown once a push target exists, to finish wiring it to the provider. Two shapes:
- *
- * - The provider mints the secret (Firefly III): Operum shows the URL, the user creates the
- *   webhook there, and pastes the secret the provider generates back into the field here.
- * - Operum mints the secret: it is shown once, here, and never again, so the panel says so
- *   and the user copies both values into the provider.
- */
+/** Layout differs by who mints the secret: the provider (Firefly III) or Operum. */
 export default function WebhookSetupPanel({
     opened,
     onClose,
@@ -225,8 +214,7 @@ function CopyableValue({ label, value }: { label: string; value: string }) {
                 {label}
             </Text>
             <Group gap="xs" wrap="nowrap" align="center">
-                {/* miw={0} lets the code block shrink instead of pushing the copy
-                    button off the edge on a long URL. */}
+                {/* minWidth: 0 lets a long URL shrink instead of pushing the copy button off-screen. */}
                 <Code
                     block
                     style={{

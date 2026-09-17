@@ -19,20 +19,13 @@ interface Props {
     fillHeight?: boolean;
 }
 
-// The ring is the one part of a card that has to be given a size in pixels, so a widget
-// that fills its cell works its own out from the box the ring is drawn in.
-//
-// Mantine centres the ring and leaves the rest of the box to the labels, which reach out
-// past it on every side: below a box that can seat a readable ring and its labels both,
-// the labels are dropped and the ring takes the whole box instead.
+// Below MIN_LABELLED_BOX the labels are dropped and the ring takes the whole box.
 const LABEL_GUTTER = 40;
 const MIN_LABELLED_BOX = 200;
 const MIN_DONUT_SIZE = 60;
 const MAX_DONUT_SIZE = 400;
 
-// Below this share, a segment's label and leader line are dropped: the text is too
-// cramped to read and the lines cross each other. The segment is still drawn, and
-// hovering it shows the full value in the tooltip.
+// Below this share, a segment's label and leader line are dropped (still shown in the tooltip).
 const MIN_LABEL_SHARE = 0.03;
 
 const clamp = (value: number, min: number, max: number) =>
@@ -93,11 +86,7 @@ export function DonutChartCard({
         const positive = analytic.points.filter((x) => (x.value ?? 0) > 0);
         const negative = analytic.points.filter((x) => (x.value ?? 0) < 0);
 
-        // Firefly-style data stores outflows as negative numbers, which would leave a
-        // "sum per category" ring with nothing to draw. When every category is
-        // non-positive and at least one is negative, show magnitudes instead. Mixed
-        // signs keep the plain split: a share-of-whole reading means nothing when some
-        // categories are inflows and others outflows.
+        // Firefly-style data stores outflows as negative; if every category is non-positive, show magnitudes instead.
         if (positive.length === 0 && negative.length > 0) {
             return {
                 positivePoints: negative.map((x) => ({
@@ -200,8 +189,6 @@ export function DonutChartCard({
                     ...(fillHeight ? { flex: 1, minHeight: 0 } : {}),
                 }}
             >
-                {/* The note is what a small widget can least afford, and the ring is
-                        what it is there for: on one the count alone has to carry it. */}
                 {excludedPoints.length > 0 && (
                     <Tooltip
                         label={excludedPoints

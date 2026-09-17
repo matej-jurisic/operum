@@ -9,16 +9,8 @@ using System.Text.Json;
 
 namespace Operum.Service.Integrations.Firefly
 {
-    /// <summary>
-    /// Firefly III transactions, delivered by webhook.
-    /// <para>
-    /// Push rather than pull, and that is the point: a Firefly instance is self-hosted and
-    /// usually behind NAT. A webhook is an outbound call from the user's own box, so the
-    /// integration works without them exposing their finance server to the internet -- and
-    /// there is no user-supplied address for this server to fetch, so no SSRF surface either.
-    /// The cost is no history before the day it was connected.
-    /// </para>
-    /// </summary>
+    // Firefly III transactions, delivered by webhook: push rather than pull since Firefly is
+    // usually self-hosted behind NAT. Cost is no history before the day it was connected.
     public class FireflyProvider(ILogger<FireflyProvider> logger) : IPushIntegrationProvider
     {
         public const string ProviderKey = "firefly-iii";
@@ -27,11 +19,9 @@ namespace Operum.Service.Integrations.Firefly
         public string DisplayName => "Firefly III";
         public IntegrationCapabilities Capabilities => IntegrationCapabilities.Push;
 
-        // Push-only, so nothing here ever calls the user's instance.
         public bool RequiresBaseUrl => false;
 
-        // Firefly mints the secret in its own webhook screen and has no field to paste one in,
-        // so it has to come from there rather than be generated here.
+        // Firefly mints the secret in its own webhook screen; there's no field to paste one in.
         public bool ProviderSuppliesSecret => true;
 
         public IReadOnlyList<string> ResourceTypes => [FireflyTransactionCatalog.ResourceType];
@@ -55,8 +45,7 @@ namespace Operum.Service.Integrations.Firefly
             var outcome = FireflySignature.Verify(signature, rawBody, secret, DateTime.UtcNow);
             if (outcome != FireflySignature.Outcome.Valid)
             {
-                // Deliberately one message for every failure: which part was wrong is not
-                // something an unauthenticated caller should learn.
+                // One message for every failure: an unauthenticated caller shouldn't learn which part was wrong.
                 logger.LogWarning("Rejected a Firefly III webhook delivery: {Outcome}", outcome);
                 return Result.Failure(ResultStatusCodes.Forbidden, "Signature verification failed.");
             }
@@ -91,8 +80,7 @@ namespace Operum.Service.Integrations.Firefly
                 var journalId = Text(split, "transaction_journal_id");
                 if (string.IsNullOrWhiteSpace(journalId))
                 {
-                    // Without the split's own id there is no idempotency key, and keying on the
-                    // group would merge the splits into one entry.
+                    // Keying on the group instead would merge the splits into one entry.
                     logger.LogWarning("Skipped a Firefly III split with no transaction_journal_id");
                     continue;
                 }
@@ -114,8 +102,6 @@ namespace Operum.Service.Integrations.Firefly
             {
                 values[field.Key] = field.Key switch
                 {
-                    // The two ids are read from where they actually live rather than from the
-                    // split's own properties.
                     FireflyTransactionCatalog.JournalIdKey => journalId,
                     FireflyTransactionCatalog.GroupIdKey => groupId,
 
@@ -131,18 +117,13 @@ namespace Operum.Service.Integrations.Firefly
             return values;
         }
 
-        /// <summary>
-        /// Firefly reports every amount positive and says what kind it is separately. A column
-        /// mixing withdrawals and deposits only sums to a meaningful number if the sign is
-        /// real, so it is applied here rather than left for the user to model.
-        /// </summary>
+        // Firefly reports every amount positive and states the kind separately; sign is applied here.
         private string? SignedAmount(JsonElement split, string key, string? type)
         {
             var raw = Text(split, key);
             if (string.IsNullOrWhiteSpace(raw))
                 return null;
 
-            // Amounts arrive as strings, so parse invariantly rather than by the server locale.
             if (!double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var amount))
             {
                 logger.LogWarning("Could not read a Firefly III {Key} value", key);
@@ -183,8 +164,7 @@ namespace Operum.Service.Integrations.Firefly
                     DataTypes.Number when element.ValueKind == JsonValueKind.Number =>
                         element.GetDouble().ToString(CultureInfo.InvariantCulture),
 
-                    // Firefly sends numbers as strings often enough that a number field has to
-                    // accept one.
+                    // Firefly sends numbers as strings often enough that a number field must accept one.
                     DataTypes.Number when element.ValueKind == JsonValueKind.String =>
                         double.TryParse(element.GetString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var n)
                             ? n.ToString(CultureInfo.InvariantCulture)

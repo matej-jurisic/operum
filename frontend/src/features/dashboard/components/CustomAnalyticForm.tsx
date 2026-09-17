@@ -5,6 +5,7 @@ import {
     Group,
     NumberInput,
     Paper,
+    SegmentedControl,
     Select,
     Stack,
     Text,
@@ -20,6 +21,10 @@ import {
     purposeHint,
 } from "../../analytics/enums/AnalyticPurposeEnum";
 import { AnalyticResultTypeEnum } from "../../analytics/enums/AnalyticResultTypeEnum";
+import {
+    GoalDirection,
+    GoalDirections,
+} from "../../analytics/types/AnalyticDto";
 import {
     AnalyticConfigDto,
     CodeDto,
@@ -63,25 +68,21 @@ interface Props {
     ) => Promise<void>;
 }
 
-// One tracker's contribution to the item. The chart type and calculation are picked once
-// for the whole item, so a row only carries the tracker and its own field mapping.
+// The chart type and calculation are picked once for the whole item, so a row only
+// carries the tracker and its own field mapping.
 interface TrackerRow {
     trackerId: string | null;
     fieldMappings: Record<string, string>;
     // The fixed tracker view this source reads through, if any.
     viewId: string | null;
-    // Loaded per tracker
     fields: FieldDto[];
     views: ViewDto[];
-    // Which of the board's existing filter widgets this source should follow, and which
-    // field of this tracker maps to each of that filter's clauses.
+    // filterItemId -> (that filter's clause id -> field of this tracker it maps to).
     filterLinks: Record<string, Record<string, string>>;
 }
 
-// Result types that can read from any number of trackers. Line/bar merge onto a shared
-// axis; a calendar just unions its dated events. A scatter chart's Correlation
-// calculation also spans trackers but is handled separately (isPairedCode): it pairs
-// exactly two, one per axis.
+// Line/bar merge onto a shared axis; a calendar just unions its dated events. A scatter
+// Correlation also spans trackers but is handled separately (isPairedCode).
 const COMBINABLE_TYPES: string[] = [
     AnalyticResultTypeEnum.LineChart,
     AnalyticResultTypeEnum.BarChart,
@@ -91,8 +92,7 @@ const COMBINABLE_TYPES: string[] = [
 // Mirrors DataLimits.MaxDashboardItemSourceCount on the backend.
 const MAX_TRACKERS = 5;
 
-// The purpose whose field ends up on the shared x-axis of a combined chart, per chart
-// type. Only the types drawn on one shared axis have one; a combined calendar does not.
+// The purpose on the shared x-axis of a combined chart, per chart type; a calendar has none.
 const X_AXIS_PURPOSE: Record<string, string> = {
     [AnalyticResultTypeEnum.LineChart]: "X-axis",
     [AnalyticResultTypeEnum.BarChart]: "Name",
@@ -107,12 +107,8 @@ const makeEmptyRow = (): TrackerRow => ({
     filterLinks: {},
 });
 
-/**
- * Builds a chart from scratch over one or more trackers and places it on this board in
- * one step. The definition it produces is a first-class Widget Library entry, not owned by
- * this dashboard item or any tracker -- it can be placed on other boards afterwards from
- * the Library, and editing it there updates every placement, this one included.
- */
+/** The definition this produces is a first-class Widget Library entry: placeable on other
+ *  boards afterwards, and editing it there updates every placement, this one included. */
 export function CustomAnalyticForm({ onBack, onAdd }: Props) {
     const { widgets } = useDashboard();
     const filterCandidates = useMemo(() => filterCandidatesFor(widgets), [widgets]);
@@ -127,8 +123,11 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
     const [yAxisFromZero, setYAxisFromZero] = useState(true);
     // Goal widgets only: the target the value is shown as progress toward.
     const [goalTarget, setGoalTarget] = useState("");
-    // Goal widgets only: per-row targets that override the default when a followed filter
-    // currently holds a given value.
+    // Goal widgets only: whether more or less is the goal -- a cap/budget is LowerIsBetter.
+    const [goalDirection, setGoalDirection] = useState<GoalDirection>(
+        GoalDirections.HigherIsBetter,
+    );
+    // Goal widgets only: per-row targets overriding the default for a followed filter value.
     const [conditionalTargets, setConditionalTargets] = useState<
         GoalConditionalTargetDto[]
     >([]);
@@ -169,8 +168,7 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
             ? resultTypesByName[resultType]?.codes.find((c) => c.code === code)
             : undefined;
 
-    // For a grouping type the "Calculation" options depend on the chosen grouping; the
-    // field mapping is the grouping purpose plus whatever the aggregation reads.
+    // For a grouping type the "Calculation" options depend on the chosen grouping.
     const availableCodes: CodeDto[] = !selectedResultType
         ? []
         : typeUsesGrouping
@@ -186,8 +184,8 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
     const calculationChosen =
         !!selectedCode && (!typeUsesGrouping || !!selectedGrouping);
 
-    // A scatter "Correlation": two trackers, each mapping the join field and a value, one
-    // becoming the x-axis and the other the y-axis of a single point cloud.
+    // A scatter "Correlation": two trackers, each mapping a join field and a value, become
+    // the x-axis and y-axis of a single point cloud.
     const isPairedCode = !!selectedCode && codeSpansTrackers(selectedCode);
     const isCombinable =
         isPairedCode ||
@@ -215,15 +213,15 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
         : goalTarget.trim() !== "" &&
           Number.isFinite(Number(goalTarget.trim()));
 
-    // The target's format follows the calculation and the value field, so a change to
-    // either invalidates whatever was typed.
+    // The target's format follows the calculation and the value field; either changing
+    // invalidates whatever was typed.
     useEffect(() => {
         setGoalTarget("");
+        setGoalDirection(GoalDirections.HigherIsBetter);
         setConditionalTargets([]);
     }, [resultType, code, goalValueField?.type]);
 
-    // A goal has exactly one tracker row (goals aren't combinable), so its conditional
-    // targets key off that row's followed filter clauses.
+    // Goals aren't combinable, so the one row's followed filter clauses are the source.
     const goalConnectedClauses = useMemo(
         () =>
             isGoal
@@ -244,8 +242,6 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
         );
     };
 
-    // A different definition needs a different field mapping, so switching either one
-    // clears what every row had mapped.
     const clearFieldMappings = () =>
         setRows((prev) => prev.map((row) => ({ ...row, fieldMappings: {} })));
 
@@ -254,16 +250,13 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
         setGrouping(null);
         setCode(null);
         clearFieldMappings();
-        // Extra trackers only exist to be merged into one chart, which the new type may
-        // not support.
+        // Extra trackers only exist to be merged, which the new type may not support.
         if (!value || !COMBINABLE_TYPES.includes(value)) {
             setRows((prev) => prev.slice(0, 1));
             setMatchedValuesOnly(false);
         }
     };
 
-    // Switching the grouping can invalidate the chosen aggregation, so clear it unless the
-    // new grouping still allows it.
     const handleGroupingChange = (value: string | null) => {
         setGrouping(value);
         const stillValid =
@@ -287,7 +280,6 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
         const paired = !!codeDef && codeSpansTrackers(codeDef);
 
         if (paired) {
-            // A Correlation pairs exactly two trackers, one per axis.
             setRows((prev) => [
                 prev[0] ?? makeEmptyRow(),
                 prev[1] ?? makeEmptyRow(),
@@ -330,29 +322,23 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
         calculationChosen &&
         purposes.every((p) => p.optional || !!row.fieldMappings[p.name]);
 
-    // The purpose that lands on the shared x-axis of a combined line/bar chart. Only these
-    // types offer the "matched values only" option.
+    // Only line/bar types offer the "matched values only" option.
     const xAxisPurpose = resultType ? X_AXIS_PURPOSE[resultType] : undefined;
 
-    // The purpose whose field type the later rows are pinned to the first row's: the shared
-    // x-axis for a combined line/bar, or the join field for a Correlation (two trackers
-    // only line up if they match on the same kind of value).
+    // The purpose later rows' field type is pinned to the first row's: the shared x-axis
+    // for combined line/bar, or the join field for a Correlation.
     const narrowPurpose = isPairedCode
         ? AnalyticPurposeEnum.Match
         : xAxisPurpose;
 
-    // Sharing one definition leaves that field's type as the last thing rows can disagree
-    // on, and the chart can't reconcile a mismatch. Rather than let it through and warn
-    // afterwards (the backend still does, defensively), the first row's choice narrows what
-    // the later rows are offered.
+    // The first row's field type narrows what later rows are offered, so a mismatch the
+    // chart can't reconcile is never picked (the backend still validates defensively).
     const narrowType = useMemo(() => {
         if (!narrowPurpose) return undefined;
         const first = rows[0];
         return first?.fields.find((f) => f.id === first.fieldMappings[narrowPurpose])?.type;
     }, [rows, narrowPurpose]);
 
-    // Fields of `row` that may fill `purpose`: the data types the analytic allows for it,
-    // narrowed to the first row's type once the shared/join field is being picked.
     const fieldOptionsFor = (row: TrackerRow, purpose: PurposeDto, index: number) =>
         row.fields
             .filter((f) => purpose.allowedDataTypes.includes(f.type))
@@ -377,6 +363,7 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
                 matchedValuesOnly:
                     rows.length > 1 && !!xAxisPurpose && matchedValuesOnly,
                 goalTarget: isGoal ? goalTarget.trim() : undefined,
+                goalDirection: isGoal ? goalDirection : undefined,
                 yAxisFromZero: isLineChart ? yAxisFromZero : undefined,
                 displayMode,
                 mobileDisplayMode,
@@ -562,6 +549,17 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
                         }
                     />
                 ))}
+
+            {isGoal && goalValueField && (
+                <SegmentedControl
+                    value={goalDirection}
+                    onChange={(value) => setGoalDirection(value as GoalDirection)}
+                    data={[
+                        { label: "Higher is better", value: GoalDirections.HigherIsBetter },
+                        { label: "Lower is better", value: GoalDirections.LowerIsBetter },
+                    ]}
+                />
+            )}
 
             {isGoal && goalValueField && goalConnectedClauses.length > 0 && (
                 <GoalConditionalTargetsEditor

@@ -34,7 +34,6 @@ namespace Operum.Tests.Tests.Views
         private static Task<HttpResponseMessage> PutView(HttpClient client, string trackerId, string viewId, UpdateViewDto view) =>
             client.PutAsJsonAsync($"trackers/{trackerId}/views/{viewId}", view);
 
-        /// <summary>A View made of the given clauses.</summary>
         private static CreateViewDto ViewOf(string name, params ViewClauseDto[] clauses) =>
             ViewOf(name, null, clauses);
 
@@ -211,8 +210,7 @@ namespace Operum.Tests.Tests.Views
             var client = await OwnerClient();
             var fixture = await CreateTracker(client, "Duplicate sort");
 
-            // Two sorts over one field are no longer a contradiction to reject: the view
-            // merges them first-query-wins, so the second one is simply never reached.
+            // Two sorts on the same field aren't rejected: queries merge first-wins, so the second is unreachable.
             var response = await TestApi.PostView(client, fixture.TrackerId, ViewOf("Twice",
                 TestApi.SortClause(fixture.AmountFieldId, descending: false),
                 TestApi.SortClause(fixture.AmountFieldId, descending: true)));
@@ -325,8 +323,7 @@ namespace Operum.Tests.Tests.Views
             var client = await OwnerClient();
             var fixture = await CreateTracker(client, "Delete unknown view");
 
-            // The delete only checks the caller's rights over the tracker, so a view that was
-            // never there reports success.
+            // Delete only checks rights on the tracker, so a nonexistent view still reports success.
             var response = await client.DeleteAsync($"trackers/{fixture.TrackerId}/views/{Guid.NewGuid()}");
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);

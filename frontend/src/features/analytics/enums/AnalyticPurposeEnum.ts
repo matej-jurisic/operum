@@ -13,8 +13,6 @@ export const purposeHint = (purpose: PurposeDto): string | undefined =>
         ? "Shows this field's value from the entry holding the minimum or maximum, instead of the number."
         : undefined;
 
-/** True for a calculation that pairs two trackers on a shared match field (the scatter
-    chart's Correlation): it reads from two sources, one per axis, rather than one. The
-    Match purpose is what distinguishes it from an ordinary single-tracker code. */
+/** True for a two-tracker calculation (e.g. the scatter chart's Correlation), identified by the Match purpose. */
 export const codeSpansTrackers = (code: CodeDto): boolean =>
     code.purposes.some((p) => p.name === AnalyticPurposeEnum.Match);

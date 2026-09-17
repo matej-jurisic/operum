@@ -42,9 +42,7 @@ interface Props {
 }
 
 /** Adds or edits a filter widget: an ordered set of filter clauses whose values are typed
-    on the board, re-filtering every Analytic/Entries widget wired to it. The clauses come
-    first; once they are complete the widget can offer matching-shape presets -- named value
-    sets picked on the board to fill those clauses in one go. */
+    on the board. */
 export function FilterForm({
     initial,
     submitLabel,
@@ -76,10 +74,8 @@ export function FilterForm({
 
     const candidates = useMemo(() => candidatesFor(items), [items]);
 
-    // Drop links to widgets that no longer exist on the board, or are no longer an
-    // Analytic/Entries widget the filter can narrow. The "Followed by" checklist only
-    // renders current candidates, so an orphaned link has no checkbox to clear it and
-    // would otherwise ride along on every save and get rejected by the backend.
+    // Orphaned links have no checkbox to clear them, so drop links to widgets no longer
+    // offered as candidates or they'd ride along on every save and get rejected server-side.
     useEffect(() => {
         if (!itemsLoaded) return;
         const offerable = new Set(candidates.map((c) => `${c.itemId}:${c.trackerId}`));

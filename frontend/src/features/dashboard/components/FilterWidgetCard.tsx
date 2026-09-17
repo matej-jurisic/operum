@@ -41,13 +41,7 @@ interface Props {
     ) => void;
 }
 
-/**
- * A compact board widget that reads as one filter: an icon and a one-line summary of the
- * values currently set. Clicking it opens a dialog to edit those values -- type them by
- * hand, or pick one of the widget's presets to fill them in -- which then re-filters every
- * widget wired to its clauses. A clause left blank is simply not applied. The card looks the
- * same however the values were set.
- */
+/** A clause left blank is simply not applied. */
 export function FilterWidgetCard({
     widgetId,
     filter,

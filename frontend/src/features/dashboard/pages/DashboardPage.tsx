@@ -93,9 +93,6 @@ function DashboardContent({
     // for the same widget each time one did.
     const closeEditing = useCallback(() => setEditingItemId(undefined), []);
 
-    // The board's name, the actions on it, the way out of arrange mode and the app's own
-    // controls all share one row. On a phone that row only fits if the buttons on it drop
-    // their labels and keep just their icons.
     const isMobile = useMediaQuery("(max-width: 48em)");
     // Only offered above the narrow breakpoint (900px), where "Desktop" actually shows the
     // nested board and the mobile frame is a genuine preview rather than the real layout.
@@ -123,7 +120,6 @@ function DashboardContent({
                 wrap="nowrap"
                 align="center"
             >
-                {/* Board name ellipsizes rather than pushing the actions off-screen. */}
                 <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
                     <SidebarBurger />
                     <ThemeIcon
@@ -143,8 +139,6 @@ function DashboardContent({
                 </Group>
 
                 <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
-                    {/* Hidden widgets are off the grid entirely, so this is the
-                        only way back to them. Shown only when there are any. */}
                     {hiddenCount > 0 && (
                         <Button
                             size="sm"
@@ -173,8 +167,6 @@ function DashboardContent({
                             )}
                         </Button>
                     )}
-                    {/* Switches the arrange surface between the two saved layouts.
-                        The mobile side boxes the board to a phone-width frame. */}
                     {isConfiguring && canPreviewMobile && (
                         <SegmentedControl
                             size="sm"
@@ -209,9 +201,6 @@ function DashboardContent({
                             style={{ flexShrink: 0 }}
                         />
                     )}
-                    {/* The only way out of arrange mode that does not cost a
-                        row of chrome while the board is just being read. On a
-                        phone the tick carries it on its own. */}
                     {isConfiguring && (
                         <Button
                             size="sm"
@@ -240,9 +229,7 @@ function DashboardContent({
                 </Group>
             </Group>
 
-            {/* While widgets are (re)loading, the global request loader already
-                covers the wait — rendering nothing here avoids stacking a
-                second, differently-styled spinner on top of it. */}
+            {/* Global request loader already covers the wait while (re)loading. */}
             {isLoading ? null : widgets.length === 0 ? (
                 <Stack align="center" gap="md" py={80}>
                     <ThemeIcon
@@ -278,11 +265,6 @@ function DashboardContent({
                 />
             )}
 
-            {/* A Header/Note widget's text, a Container's title and an Entries widget's own
-                settings all live in the widget the board already holds, so none of these
-                edit dialogs needs a fetch of its own; an Analytic widget's sources still go
-                through EditWidgetModal's own load, since those aren't part of the board's
-                widget list. */}
             {editingItemId && editingWidget && editingWidget.type === WidgetTypes.Header && (
                 <EditTextWidgetModal
                     itemId={editingItemId}
@@ -388,9 +370,7 @@ function DashboardContent({
                     color={color}
                     onClose={() => {
                         setIsWidgetsOpen(false);
-                        // Placing/creating a widget adds it to the board, and a widget
-                        // deleted in the Library cascades to its placements on the server,
-                        // so the board needs re-pulling either way.
+                        // A widget deleted in the Library cascades to its placements server-side.
                         refreshWidgets();
                     }}
                 />
@@ -404,10 +384,7 @@ const DashboardPage = observer(function DashboardPage() {
     const navigate = useNavigate();
     const theme = useMantineTheme();
 
-    // The board list lives on navigationStore -- the sidebar, the command palette
-    // and this page all read the same array, so a board created or renamed from
-    // anywhere is visible here without a fetch of its own. AppLayout kicks off the
-    // initial load; this just waits for it.
+    // AppLayout kicks off the initial load of navigationStore.dashboards; this just waits for it.
     const boards = navigationStore.dashboards;
     const isLoadingBoards = !navigationStore.loaded;
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -492,8 +469,7 @@ const DashboardPage = observer(function DashboardPage() {
         />
     );
 
-    // The global request loader already covers this fetch; rendering
-    // nothing here avoids a second, differently-styled spinner on top of it.
+    // Global request loader already covers this fetch.
     if (isLoadingBoards) {
         return null;
     }
@@ -529,15 +505,12 @@ const DashboardPage = observer(function DashboardPage() {
         if (dashboardId) {
             return <NotFound path={`/dashboard/${dashboardId}`} />;
         }
-        // The effect above is redirecting to a real board; this is a one-frame
-        // gap, not a fetch, so it gets no spinner of its own either.
+        // The effect above is redirecting to a real board; this is a one-frame gap, not a fetch.
         return null;
     }
 
     return (
         <>
-            {/* The Widget Library's saved definitions, so WidgetLibraryModal can list and
-                place them without a fetch of its own -- see PlaceFromLibraryForm. */}
             <WidgetsProvider>
                 <DashboardProvider
                     key={activeBoard.id}

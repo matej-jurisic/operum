@@ -3,10 +3,7 @@ using Operum.Model.DTOs.Analytics;
 
 namespace Operum.Service.Domain.Analytics.Processors
 {
-    // Buckets a line chart's points by the chosen grouping (exact X value, or a calendar
-    // period) and reduces each bucket to one point with the chosen aggregation. Replaces
-    // the old per-combination processors (AggregatedSum / Cumulative / Daily / Weekly /
-    // ...). Raw values (no grouping) stay on LineChartProcessor.
+    // Buckets a line chart's points by the chosen grouping and reduces each bucket to one point.
     public class GroupedLineChartProcessor(string grouping, string aggregation) : ILineChartProcessor
     {
         public List<LineChartPointDto> Process(List<LineChartPointDto> dataPoints)
@@ -27,9 +24,7 @@ namespace Operum.Service.Domain.Analytics.Processors
                 .OfType<Keyed>()
                 .ToList();
 
-            // Points arrive already ordered along the x-axis (LineChartAnalyticBuilder), so
-            // ordering the groups by their first member keeps that order for both the exact
-            // and the date-bucket cases without a type-aware re-sort here.
+            // Points arrive already ordered along the x-axis; ordering groups by first member preserves that.
             var groups = keyed
                 .GroupBy(k => k.Key)
                 .OrderBy(g => g.Min(k => k.Sort))

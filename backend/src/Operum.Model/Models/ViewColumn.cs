@@ -3,11 +3,9 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Operum.Model.Models
 {
-    // A field a view shows, and where in the view's column order it sits.
-    //
-    // Columns hang off the view rather than off a Query on purpose: unlike a filter or a
-    // sort there is no clause here, only a field, so there would be nothing to author once
-    // and reuse across views. A view holding no ViewColumn at all shows every field.
+    // Columns hang off the view directly rather than off a Query: unlike a filter or a
+    // sort there is no clause here, only a field, so there is nothing to author once and
+    // reuse across views. A view holding no ViewColumn at all shows every field.
     public class ViewColumn
     {
         [Key]

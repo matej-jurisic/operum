@@ -1,13 +1,8 @@
 /**
- * Mirrors Operum.Model.Constants.DynamicDateTokens on the backend. The backend is the authority --
- * it resolves these at query time -- but the UI needs the same grammar to label a token and to
- * preview what it currently points at.
- *
- * Grammar: `token` or `token:n`. Anchors snap to a period boundary and take an optional signed
- * offset counted in that anchor's own period (`start_of_month:-1` is last month). Lookbacks
- * (`last_n_*`) require their argument and measure backwards from now; they are still parsed for
- * filters saved before anchors covered the same ground, but the UI emits the equivalent anchor.
- * `now` is the current instant with no snapping, for datetime bounds like "due before now".
+ * Mirrors Operum.Model.Constants.DynamicDateTokens on the backend, which is the resolution authority.
+ * Grammar: `token` or `token:n`. Anchors snap to a period boundary with a signed offset in that
+ * period (`start_of_month:-1` is last month). `last_n_*` lookbacks are legacy, still parsed for
+ * old filters but no longer emitted. `now` is the unsnapped current instant.
  */
 
 export const NOW_TOKEN = "now";
@@ -60,11 +55,7 @@ export const anchorLabels: Record<DateAnchor, string> = {
     [DateAnchors.EndOfYear]: "End of year",
 };
 
-/**
- * Anchors offered for a field, and how they read. A pure `date` has no time of day, so
- * start/end of day collapse to a single "Day" and every "start of" boundary is just the
- * day that period begins on.
- */
+/** For a pure `date` field, start/end of day collapse into a single "Day" option. */
 export function anchorOptionsForField(dateOnly: boolean): { value: DateAnchor; label: string }[] {
     if (dateOnly) {
         return [
@@ -149,11 +140,7 @@ export function isDynamicDateToken(value: unknown): value is string {
     return isNowToken(value) || isAnchorToken(value) || isLookbackToken(value);
 }
 
-/**
- * The anchor token equivalent to a legacy lookback, so old filters open in the same editor as
- * everything else. `last_n_days` / `last_n_weeks` are exact day offsets from today; the rest have
- * no anchor equivalent and are left for the backend to resolve as-is.
- */
+/** Converts a legacy lookback to its anchor equivalent; only last_n_days/weeks have one. */
 export function lookbackToAnchorToken(value: unknown): string | null {
     const lookback = typeof value === "string" ? parseLookbackToken(value) : null;
     if (!lookback) return null;
@@ -209,8 +196,7 @@ export function formatDynamicDateToken(token: string): string {
             return anchor === DateAnchors.EndOfDay ? `End of ${day}` : capitalize(day);
         }
 
-        // "Start of this month" reads better than "Start of month (this month)". Only the
-        // near offsets fold together cleanly; a far one keeps the parenthesised form.
+        // Only near offsets fold into "Start of this month"; a far one keeps the parenthesised form.
         if (Math.abs(offset) <= 1) {
             const boundary = anchor.startsWith("start_of") ? "Start" : "End";
             return `${boundary} of ${describeOffset(anchor, offset)}`;
@@ -224,11 +210,7 @@ export function formatDynamicDateToken(token: string): string {
     return token;
 }
 
-/**
- * Resolves a token the way the backend would, for preview only. Kept deliberately close to
- * DynamicDateTokens.Resolve so the two stay comparable; the browser's zone stands in for the
- * user's stored zone, which is the one the picker is showing them anyway.
- */
+/** Preview-only; mirrors backend DynamicDateTokens.Resolve, using the browser's zone in place of the user's stored one. */
 export function resolveDynamicDateToken(token: string, now: Date = new Date()): Date | null {
     if (token === NOW_TOKEN) return now;
 
@@ -266,8 +248,7 @@ function resolveAnchor({ anchor, offset }: ParsedAnchorToken, now: Date): Date {
     // Weeks start on Monday, matching the backend.
     const startOfWeek = addDays(startOfDay, -((now.getDay() + 6) % 7));
 
-    // End anchors are the start of the next period minus a millisecond, so they cover the whole
-    // period instead of stopping short at 23:59:59.
+    // End anchors are the start of the next period minus a millisecond, to cover the full period.
     switch (anchor) {
         case DateAnchors.Today:
             return addDays(startOfDay, offset);

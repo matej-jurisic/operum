@@ -10,86 +10,68 @@ namespace Operum.Model.Models
         [Key]
         public string Id { get; set; } = Guid.NewGuid().ToString();
 
-        // Kept as the reading order of the board (top-left to bottom-right), derived from
-        // the grid placement below whenever the layout is saved.
+        // Reading order of the board (top-left to bottom-right), derived from the grid
+        // placement whenever the layout is saved.
         public int Order { get; set; }
 
-        // What this item renders: Analytic/Entries place a shared Widget/EntriesWidget (see
-        // below); every other type configures itself entirely through Config instead.
         public string Type { get; set; } = DashboardWidgetTypes.Analytic;
 
-        // Widget settings as JSON, for widget types whose configuration isn't a placed
-        // definition. Null for Analytic widgets; for Entries, just the placement-only
-        // column list (see EntriesWidgetConfigDto) since the tracker lives on EntriesWidget.
+        // Null for Analytic; for Entries, just the column list (EntriesWidgetConfigDto).
         public string? Config { get; set; }
 
-        // Where the item sits on the wide grid, in DashboardGrid.Columns columns.
-        // A zero width means the item predates layouts and the client places it itself.
+        // In DashboardGrid.Columns columns. A zero width means the item predates layouts and
+        // the client places it itself.
         public int X { get; set; }
         public int Y { get; set; }
         public int W { get; set; }
         public int H { get; set; }
 
-        // The same item's placement on the narrow grid a phone renders, in
-        // DashboardGrid.MobileColumns columns. Kept apart from the wide placement above so
-        // arranging the board on a phone cannot overwrite the desktop arrangement, and vice
-        // versa. Filled in whenever an item is created, so a zero width here means the same
-        // thing it does above.
+        // In DashboardGrid.MobileColumns columns; kept apart from the desktop placement so
+        // arranging on one doesn't overwrite the other.
         public int MobileX { get; set; }
         public int MobileY { get; set; }
         public int MobileW { get; set; }
         public int MobileH { get; set; }
 
-        // How this item renders on each of the board's two grids: inline, collapsed to a
-        // button that opens it in a modal, or dropped from that grid entirely. Analytic/
-        // Entries widgets only — kept apart per grid the same way every other layout
-        // property is, so a chart can be dropped on the phone but drawn in full on desktop.
+        // Analytic/Entries widgets only.
         public DashboardItemDisplayMode DisplayMode { get; set; }
         public DashboardItemDisplayMode MobileDisplayMode { get; set; }
 
-        // Line chart widgets only: whether the y-axis is anchored at zero (the default) or
-        // fitted to the data's own range. Fitting is what makes a series that only ever
-        // moves between, say, 1000 and 1100 readable instead of a flat line pinned to the
-        // top of a 0-based axis. Ignored by every other widget type.
+        // Line chart widgets only; ignored by every other widget type.
         public bool YAxisFromZero { get; set; } = true;
 
-        // Goal widgets only: an ordered JSON list of GoalConditionalTargetDto -- a target to
-        // use instead of the Widget's default when the board's currently-set values for the
-        // filter clauses this placement follows match the row's. Board-scoped (it names this
-        // board's pooled query ids), so it lives on the placement rather than the shared
-        // Widget. Null or "[]" means the default target always applies.
+        // Goal widgets only: ordered JSON list of GoalConditionalTargetDto. Board-scoped
+        // (names this board's pooled query ids). Null or "[]" means the default always applies.
         public string? GoalConditionalTargets { get; set; }
+
+        // Mantine color name; null means no override. Placement-scoped like YAxisFromZero.
+        // Ignored for a combined (multi-source) widget.
+        public string? Color { get; set; }
+
+        // Single-source SingleValue/Goal placements only.
+        public bool ShowTrend { get; set; } = true;
 
         public string DashboardId { get; set; } = string.Empty;
         [ForeignKey(nameof(DashboardId))]
         public virtual Dashboard Dashboard { get; set; } = null!;
 
-        // The Container item this one sits inside, or null when it sits on the board
-        // itself. Only ever set on non-Container items, and only one level deep. When a
-        // container is deleted its children are reparented to the board (ParentItemId
-        // nulled) rather than deleted -- see DashboardService.RemoveDashboardItem and the
-        // SetNull delete behavior in OperumContext.
+        // Only one level deep. On container delete, children are reparented to the board
+        // (ParentItemId nulled) rather than deleted -- see DashboardService.RemoveDashboardItem
+        // and the SetNull behavior in OperumContext.
         public string? ParentItemId { get; set; }
         [ForeignKey(nameof(ParentItemId))]
         public virtual DashboardItem? ParentItem { get; set; }
         public virtual List<DashboardItem> Children { get; set; } = [];
 
-        // Which tab of the parent this item sits in, when the parent is a TabsContainer.
-        // Null for a plain Container's child or a board-level item. It names a tab id in the
-        // parent's Config (TabsContainerConfigDto.Tabs), not a row, so there is no FK. When a
-        // tab is deleted its children are repointed to the first surviving tab rather than
-        // cleared; when the whole container is removed this is nulled alongside ParentItemId.
+        // Names a tab id in the parent's Config (TabsContainerConfigDto.Tabs), not a row, so
+        // there is no FK. Deleting a tab repoints its children to the first surviving tab.
         public string? ParentTabId { get; set; }
 
-        // The shared chart definition this Analytic-type item places on the board. Deleting
-        // the Widget takes every placement of it with it (see OperumContext) -- a placement
-        // can't render without a definition.
+        // Deleting the Widget takes every placement of it with it (see OperumContext).
         public string? WidgetId { get; set; }
         [ForeignKey(nameof(WidgetId))]
         public virtual Widget? Widget { get; set; }
 
-        // The shared Entries definition this Entries-type item places -- the Entries
-        // equivalent of WidgetId above.
         public string? EntriesWidgetId { get; set; }
         [ForeignKey(nameof(EntriesWidgetId))]
         public virtual EntriesWidget? EntriesWidget { get; set; }

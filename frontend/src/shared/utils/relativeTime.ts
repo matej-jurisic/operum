@@ -1,10 +1,6 @@
 import dayjs from "dayjs";
 
-/**
- * Short, compact "time ago" label: "just now", "5m ago", "3h ago", "2d ago", then
- * an absolute date past 30 days. Used wherever a timestamp is shown next to a row
- * rather than in a detail view.
- */
+/** Compact "time ago" label; falls back to an absolute date past 30 days. */
 export function relativeTime(value?: string | null): string {
     if (!value) return "";
     const then = dayjs(value);

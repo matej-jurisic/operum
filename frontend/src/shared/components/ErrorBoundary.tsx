@@ -11,10 +11,7 @@ interface State {
     error: Error | null;
 }
 
-/**
- * Catches a render crash below it and shows a reload screen in its place, instead of
- * React unmounting the whole app to a blank page.
- */
+/** Catches a render crash below it and shows a reload screen instead of an unmounted blank page. */
 export default class ErrorBoundary extends Component<Props, State> {
     state: State = { error: null };
 

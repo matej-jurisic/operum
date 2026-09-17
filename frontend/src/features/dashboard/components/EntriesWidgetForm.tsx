@@ -26,13 +26,7 @@ interface Props {
     ) => Promise<void>;
 }
 
-/**
- * Defines a new Widget Library Entries table and places it on this board in one step: the
- * tracker it reads from and which of that tracker's fields it shows as columns. It can also
- * be linked to any of the board's existing filter widgets right away, via the "Follow
- * filters" checklist -- otherwise that's done afterwards from the filter widget's own edit
- * dialog.
- */
+/** Defines a new Widget Library Entries table and places it on this board in one step. */
 export function EntriesWidgetForm({ onBack, onAdd }: Props) {
     const { widgets } = useDashboard();
     const filterCandidates = useMemo(() => filterCandidatesFor(widgets), [widgets]);

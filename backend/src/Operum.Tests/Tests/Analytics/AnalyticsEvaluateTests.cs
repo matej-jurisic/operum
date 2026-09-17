@@ -15,8 +15,7 @@ namespace Operum.Tests.Tests.Analytics
         private Task<HttpClient> OwnerClient() => _factory.NewUserClient("evaluate-owner");
         private Task<HttpClient> OtherClient() => _factory.NewUserClient("evaluate-other");
 
-        // A tracker with an "Amount" number field and a "Location" string field, plus three
-        // entries: two tagged "remote", one "office".
+        // Amount (number) + Location (string) fields, three entries: two "remote", one "office".
         private static async Task<(string trackerId, string amountId, string locationId)> SeedTracker(HttpClient client)
         {
             var trackerId = await TestApi.CreateTracker(client, "Hours");
@@ -30,8 +29,6 @@ namespace Operum.Tests.Tests.Analytics
             return (trackerId, amountId, locationId);
         }
 
-        // A tracker with a "Day" date field and an "Amount" number field, one entry per given
-        // (day, amount) pair -- the shape a line chart or a correlation source reads.
         private static async Task<(string trackerId, string dayId, string amountId)> SeedDatedTracker(
             HttpClient client, string name, params (string day, string amount)[] entries)
         {
@@ -117,7 +114,6 @@ namespace Operum.Tests.Tests.Analytics
             var (trackerId, amountId, _) = await SeedTracker(client);
 
             var dto = CountDto(trackerId, amountId);
-            // A donut chart code the single-value definition knows nothing about.
             dto.Code = AnalyticCodes.DonutChart;
 
             var response = await client.PostAsJsonAsync("analytics/evaluate", dto);
@@ -155,7 +151,6 @@ namespace Operum.Tests.Tests.Analytics
                 .OrderBy(p => p.X)
                 .ToList();
 
-            // Only 2026-01-01 (5, 5) and 2026-01-02 (6, 8) appear on both trackers.
             Assert.Equal(2, points.Count);
             Assert.Equal((5, 5), points[0]);
             Assert.Equal((6, 8), points[1]);
@@ -257,8 +252,6 @@ namespace Operum.Tests.Tests.Analytics
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         }
 
-        // Min/Max compare one field but may show another: the calculation picks the entry
-        // with the highest Amount, and the widget shows that entry's Location.
         [Fact]
         public async Task Evaluate_MaxWithDisplayField_ShowsThatFieldFromTheWinningEntry()
         {
@@ -282,9 +275,7 @@ namespace Operum.Tests.Tests.Analytics
 
             var result = await TestApi.Data(response);
             Assert.Equal("office", result.GetProperty("value").GetString());
-            // Formatted as the displayed field, not the compared one.
             Assert.Equal(DataTypes.String, result.GetProperty("valueField").GetProperty("type").GetString());
-            // The compared value rides along so the card can show it under the label.
             Assert.Equal("8.00", result.GetProperty("secondaryValue").GetString());
             Assert.Equal(DataTypes.Number, result.GetProperty("secondaryValueField").GetProperty("type").GetString());
         }

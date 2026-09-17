@@ -1,9 +1,7 @@
 namespace Operum.Model.Constants.Analytics
 {
-    // Before grouping and aggregation were separate fields, a Line or Bar chart's whole
-    // calculation was a single fused Code ("Daily", "Count Bar Chart", ...). This maps each
-    // retired code to the (Grouping, Code) pair that replaces it, for the data migration
-    // (AddWidgetGrouping) and for shared Explore URLs bookmarked under the old shape.
+    // Maps retired fused Line/Bar codes (e.g. "Daily") to their (Grouping, Code) replacement,
+    // for the AddWidgetGrouping migration and old bookmarked Explore URLs.
     public static class LegacyLineBarCodes
     {
         public static readonly Dictionary<string, (string Grouping, string Code)> Map = new()
@@ -27,9 +25,6 @@ namespace Operum.Model.Constants.Analytics
             ["Yearly Bar Chart"] = (AnalyticGroupings.Yearly, AnalyticCodes.Sum),
         };
 
-        // Resolves a possibly-legacy (grouping, code) request to the current shape. A request
-        // that already carries a grouping is returned untouched; a bare legacy code is
-        // rewritten; anything unrecognised is left alone for validation to reject.
         public static (string? Grouping, string Code) Resolve(string? grouping, string code)
         {
             if (!string.IsNullOrEmpty(grouping))

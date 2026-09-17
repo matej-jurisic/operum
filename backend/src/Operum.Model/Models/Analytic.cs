@@ -1,12 +1,8 @@
 namespace Operum.Model.Models
 {
-    // No longer an EF entity -- the Widget Library refactor replaced the tracker-owned
-    // Analytic this used to be with Widget/WidgetSource/WidgetSourceField. This class
-    // survives only as the transient carrier AnalyticResultBuilderRequest.Analytic expects:
-    // the calculation pipeline (AnalyticResultBuilder + builders/calculators/processors)
-    // reads nothing but Id/Name/Description/Code/ResultType off it, and is fed a `new
-    // Analytic { ... }` that is never persisted by every caller today (DashboardService,
-    // ConditionAnalyticEvaluator).
+    // No longer an EF entity: replaced by Widget/WidgetSource/WidgetSourceField. Survives only
+    // as the transient carrier AnalyticResultBuilderRequest.Analytic expects, always
+    // constructed with `new Analytic { ... }` and never persisted.
     public class Analytic
     {
         public string Id { get; set; } = Guid.NewGuid().ToString();
@@ -14,15 +10,15 @@ namespace Operum.Model.Models
         public string Description { get; set; } = string.Empty;
         public string Code { get; set; } = string.Empty;
 
-        // Line/Bar only: how the axis field is bucketed before Code aggregates each bucket
-        // (see AnalyticGroupings). Null for every other result type, whose calculation is
-        // the Code alone.
+        // Line/Bar only.
         public string? Grouping { get; set; }
 
         public string ResultType { get; set; } = string.Empty;
 
-        // Goal widgets only: the target GoalAnalyticBuilder shows the calculated value as
-        // progress toward, in the value field's own string format. Null for everything else.
+        // Goal widgets only, in the value field's own string format.
         public string? GoalTarget { get; set; }
+
+        // Goal widgets only. Null behaves as HigherIsBetter.
+        public string? GoalDirection { get; set; }
     }
 }

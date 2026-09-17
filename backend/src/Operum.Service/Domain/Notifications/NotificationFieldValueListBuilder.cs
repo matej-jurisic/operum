@@ -3,11 +3,7 @@ using Operum.Model.Models;
 
 namespace Operum.Service.Domain.Notifications
 {
-    /// <summary>
-    /// Renders the {fieldValueList} push-body token for an Entry-mode notification: one line per
-    /// entry, each field the user picked as "Display" rendered "Name: value", entries capped so a
-    /// large batch of newly-matching entries can't blow up the push body.
-    /// </summary>
+    // Renders the {fieldValueList} push-body token; entries capped so a large batch can't blow up the push body.
     public static class NotificationFieldValueListBuilder
     {
         private const int MaxEntries = 5;

@@ -1,8 +1,7 @@
 namespace Operum.Model.Constants.Notifications
 {
-    /// <summary>Purposes a NotificationConditionPurposeField can serve. Analytic mode uses AnalyticPurposes
-    /// (Value, X-axis, ...) instead -- Display is Entry mode's own: the fields whose values get
-    /// listed out for the entries a notification fires on, via the {fieldValueList} message token.</summary>
+    // Entry mode's own purpose; Analytic mode uses AnalyticPurposes instead. Display fields are
+    // listed via the {fieldValueList} message token.
     public static class NotificationPurposes
     {
         public const string Display = "Display";

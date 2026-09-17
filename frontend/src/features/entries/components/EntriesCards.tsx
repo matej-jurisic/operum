@@ -88,7 +88,6 @@ export function EntriesCards({
                                 />
                             )}
 
-                            {/* Field values in a responsive grid */}
                             <Grid gutter="xs">
                                 {displayFields.map((fieldValue) => (
                                     <Grid.Col
@@ -118,7 +117,6 @@ export function EntriesCards({
                                 ))}
                             </Grid>
 
-                            {/* Created at timestamp and actions */}
                             {(isColumnVisible(ExtraColumns.CreatedAt) ||
                                 isColumnVisible(ExtraColumns.Actions)) && (
                                 <Group justify="flex-end">

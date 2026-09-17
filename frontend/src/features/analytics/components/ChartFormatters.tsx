@@ -17,9 +17,7 @@ import {
 
 type AxisFormatter = (value: string | number | null | undefined) => string;
 
-// Recharts' tooltip `content` render prop. Its payload shape varies by chart type and is
-// awkward to model precisely; the individual tooltip builders below read only a handful of
-// fields off it, so it stays loose here rather than spreading casts through every builder.
+// Recharts' tooltip `content` payload shape varies by chart type; kept loose rather than cast per builder.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type TooltipRenderProps = any;
 
@@ -136,9 +134,7 @@ export const createComposedTooltipContent = (analytic: ComposedChartAnalyticDto)
     return ({ payload, label }: TooltipRenderProps) => {
         if (!payload?.length) return null;
 
-        // Sources may bucket by different x semantics (dates vs. category names), so this
-        // shared axis label is only formatted using the first series' field type — see the
-        // `warnings` surfaced on the card for when that's not accurate for every series.
+        // Formatted using only the first series' field type; series may use different x semantics (see `warnings`).
         const xField = analytic.series[0]?.xField;
 
         return (

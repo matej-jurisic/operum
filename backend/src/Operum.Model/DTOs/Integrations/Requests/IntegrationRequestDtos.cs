@@ -55,8 +55,6 @@ namespace Operum.Model.DTOs.Integrations.Requests
             RuleFor(x => x.ResourceType).NotEmpty();
             RuleFor(x => x.WebhookSecret).MaximumLength(500);
 
-            // A target with no mappings would sync nothing; the field cap bounds the top end,
-            // since a mapping has to name a field that exists.
             RuleFor(x => x.Mappings).NotEmpty();
 
             RuleForEach(x => x.Mappings).ChildRules(mapping =>

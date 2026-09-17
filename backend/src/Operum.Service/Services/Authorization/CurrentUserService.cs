@@ -46,8 +46,7 @@ namespace Operum.Service.Services.Authorization
             var user = GetCurrentUserOptional();
             if (user == null) return cachedTimeZone = TimeZoneInfo.Utc;
 
-            // Not carried on the token: the zone can be changed at any time and a stale claim
-            // would silently shift every dynamic date filter until the user signed in again.
+            // Not carried on the token, since a stale claim would silently shift date filters until re-login.
             var timeZoneId = db.Users
                 .Where(x => x.Id == user.Id)
                 .Select(x => x.TimeZone)

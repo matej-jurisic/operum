@@ -10,10 +10,7 @@ export interface Candidate {
     label: string;
 }
 
-// The Analytic/Entries widgets a filter widget's typed clauses or presets can narrow. An
-// Analytic widget reads from one tracker per source; an Entries widget from exactly one (on
-// item.trackerIds, since it has no sources). Every other kind reads no tracker and can't be
-// narrowed.
+// Only Analytic and Entries widgets read a tracker and can be narrowed by a filter.
 export function candidatesFor(items: DashboardItemDto[]): Candidate[] {
     const out: Candidate[] = [];
     const seen = new Map<string, number>();
@@ -48,10 +45,8 @@ export function candidatesFor(items: DashboardItemDto[]): Candidate[] {
     return out;
 }
 
-/** One clause a followed widget's link can be mapped to a field for -- kept deliberately
-    thin (just what the checklist below needs) so it fits both a filter widget's own typed
-    clauses (keyed by clause index until save) and a preset's clauses (keyed by their real
-    pooled query id). */
+/** Kept thin so it fits both a filter widget's own clauses (keyed by index until save) and
+    a preset's clauses (keyed by real pooled query id). */
 export interface FollowedWidgetQuery {
     key: string;
     dataType: string;
@@ -67,13 +62,8 @@ interface Props {
     onLinksChange: (links: WidgetLink[]) => void;
 }
 
-/**
- * The "which widgets follow this" checklist shared by a filter widget's two independent
- * link lists (its own typed clauses, and whichever preset is applied): one checkbox per
- * candidate Analytic/Entries widget + tracker, expanding into a per-clause field picker once
- * checked. A tracker offering exactly one field of the right type for a clause has it pinned
- * automatically, so a board of single-date widgets needs no mapping by hand.
- */
+/** Shared by a filter widget's two independent link lists: its own typed clauses, and
+ *  whichever preset is applied. */
 export function FollowedWidgetsSection({
     title,
     candidates,
@@ -87,11 +77,8 @@ export function FollowedWidgetsSection({
             fieldTypesCompatible(f.type, q.dataType),
         );
 
-    // When a tracker offers exactly one field of the right type there is no choice to make,
-    // so fill it in automatically. Runs on `links` too so a widget just checked gets its
-    // fields pinned right away, not only when the queries or fields next change -- otherwise
-    // its link stays incomplete and the submit button never enables. Safe against a loop: the
-    // updater returns `cur` unchanged once everything single-valued is filled.
+    // Runs on `links` too so a just-checked widget gets its single-valued fields pinned
+    // right away. Safe against a loop: bails once nothing changed.
     useEffect(() => {
         const next = links.map((l) => {
             let fieldByQuery = l.fieldByQuery;

@@ -1,12 +1,6 @@
 namespace Operum.Model.DTOs.Dashboard
 {
-    // The Config payload for a DashboardWidgetTypes.TabsContainer widget: the panel's
-    // optional title and its ordered set of tabs. Serialized camelCase like every other
-    // hand-serialized dashboard Config, since this one is written by hand rather than
-    // through the controller's JSON formatting.
-    //
-    // Each tab carries an opaque id its children reference through DashboardItem.ParentTabId;
-    // the list order is the tab order. There is always at least one tab.
+    // Each tab's id is referenced by children via DashboardItem.ParentTabId. Always at least one tab.
     public class TabsContainerConfigDto
     {
         public string? Title { get; set; }

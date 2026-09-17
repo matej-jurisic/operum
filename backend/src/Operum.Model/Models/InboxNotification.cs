@@ -3,11 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Operum.Model.Models
 {
-    /// <summary>
-    /// One delivered notification in a user's in-app inbox. Written per tracker member every
-    /// time a <see cref="TrackerNotification"/> fires, independently of web push. Survives the
-    /// notification being deleted (<see cref="NotificationId"/> is nulled, not cascaded).
-    /// </summary>
+    // Written per tracker member each time a TrackerNotification fires, independently of web
+    // push. Survives the notification being deleted (NotificationId nulled, not cascaded).
     public class InboxNotification
     {
         [Key]

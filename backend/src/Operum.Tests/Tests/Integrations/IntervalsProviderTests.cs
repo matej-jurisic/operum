@@ -209,8 +209,6 @@ namespace Operum.Tests.Tests.Integrations
             Assert.Empty(handler.Requests);
         }
 
-        // ---- activities ----
-
         private static async Task<List<SourceRecord>> FetchActivities(IntervalsProvider provider, ProviderConnection connection)
         {
             var window = new SyncWindow(new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31), null);

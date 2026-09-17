@@ -72,8 +72,7 @@ const IntegrationsPage = observer(function IntegrationsPage() {
 
     useEffect(() => {
         load();
-        // The mapping editor lists the user's trackers, which the sidebar has usually
-        // already loaded -- but this page can be opened directly by URL.
+        // Needed for the mapping editor's tracker list when this page is opened directly by URL.
         if (navigationStore.trackers.length === 0) {
             navigationStore.refreshTrackers();
         }
@@ -110,9 +109,7 @@ const IntegrationsPage = observer(function IntegrationsPage() {
 
         await refresh();
 
-        // A new push target still needs wiring to the provider: either its Operum-minted
-        // secret comes back on this one response and has to be shown now, or the provider
-        // mints the secret and the user needs the URL plus a field to paste it back into.
+        // A new push target still needs a webhook secret set up with the provider.
         const saved = response.data;
         const provider = providerFor(integration);
         if (!target && saved?.mode === "Push" && saved.webhookUrl && provider) {
@@ -147,8 +144,7 @@ const IntegrationsPage = observer(function IntegrationsPage() {
             await integrationsController.syncNow(integration.id, target.id);
         } finally {
             setSyncingTargetId(null);
-            // Refresh either way: a failed sync records its reason on the target, and that
-            // is the most useful thing to show.
+            // A failed sync's reason is recorded on the target, so refresh either way.
             await refresh();
         }
     };
@@ -180,8 +176,7 @@ const IntegrationsPage = observer(function IntegrationsPage() {
             await integrationsController.syncIntegration(integration.id);
         } finally {
             setSyncingIntegrationId(null);
-            // Refresh either way: a failed sync records its reason on each target, and
-            // that is the most useful thing to show.
+            // A failed sync's reason is recorded on each target, so refresh either way.
             await refresh();
         }
     };
@@ -193,8 +188,7 @@ const IntegrationsPage = observer(function IntegrationsPage() {
         const provider = providerFor(integration);
         if (!provider) return;
 
-        // Firefly mints the secret itself, so there is nothing to "issue": open the panel
-        // with the URL and a field to paste the provider's secret into.
+        // Provider mints its own secret; nothing to issue here.
         if (provider.providerSuppliesSecret) {
             setWebhookPanel({
                 provider,
@@ -270,8 +264,6 @@ const IntegrationsPage = observer(function IntegrationsPage() {
                             Integrations
                         </Title>
                     </Group>
-                    {/* While nothing is connected the empty state carries the call to
-                        action, so a second Connect button here would only crowd the row. */}
                     {integrations.length > 0 && (
                         <Button
                             variant="outline"
@@ -289,8 +281,7 @@ const IntegrationsPage = observer(function IntegrationsPage() {
                     )}
                 </Group>
 
-                {/* The global request loader already covers the first fetch; rendering
-                    nothing here avoids a second, differently-styled spinner on top of it. */}
+                {/* The global request loader already covers the first fetch. */}
                 <ScrollArea flex={1} mih={0}>
                     {!loaded ? null : providers.length === 0 ? (
                         <EmptyState
@@ -385,11 +376,6 @@ const IntegrationsPage = observer(function IntegrationsPage() {
     );
 });
 
-/**
- * The page-level "nothing here yet" treatment -- the same icon, headline and single
- * call to action a board with no widgets gets, rather than the bordered card used for
- * an empty list inside a tab.
- */
 function NothingConnected({
     providers,
     color,

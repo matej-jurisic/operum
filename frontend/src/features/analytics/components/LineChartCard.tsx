@@ -32,9 +32,7 @@ export function LineChartCard({
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
     const layout = useCardLayout(fillHeight);
 
-    // The backend returns the analytic with no axis fields when they can no longer be
-    // resolved (e.g. a field was deleted). Nothing can be plotted in that case. A Count
-    // calculation legitimately has no yField: every point is a row tally.
+    // xField/yField are undefined when their source fields were deleted; a Count calculation legitimately has no yField.
     const { xField, yField } = analytic;
 
     return (
@@ -58,8 +56,6 @@ export function LineChartCard({
                     {...cardBodyProps(fillHeight)}
                     withXAxis={layout.withXAxis}
                     withYAxis={layout.withYAxis}
-                    // A dot per point is a reading aid at full size and a solid smear of
-                    // them once the same series is drawn across a couple of cells.
                     withDots={!layout.isCompact}
                     series={[
                         {
@@ -75,9 +71,6 @@ export function LineChartCard({
                         tickFormatter: yField
                             ? getAxisFormatter(yField.type)
                             : undefined,
-                        // Anchored at zero by default; fitted to the data's own range
-                        // when the widget opts out, so a series that only ever moves
-                        // between e.g. 1000 and 1100 isn't a flat line pinned to the top.
                         domain: analytic.yAxisFromZero
                             ? [0, "auto"]
                             : ["auto", "auto"],

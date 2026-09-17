@@ -71,9 +71,7 @@ namespace Operum.Model.Extensions
                         }
                         break;
                     case DataTypes.Reference:
-                        // value is the target entry id. The display label in StringValue is
-                        // filled in afterwards by ReferenceLabelService; clearing the link
-                        // clears the cached label now.
+                        // Display label in StringValue is filled in afterwards by ReferenceLabelService.
                         if (!string.IsNullOrWhiteSpace(value))
                         {
                             fieldValue.ReferencedEntryId = value;
@@ -122,11 +120,7 @@ namespace Operum.Model.Extensions
             if (currentType != DataTypes.TimeSpan) fieldValue.TimeSpanValue = null;
             if (currentType != DataTypes.Bool) fieldValue.BooleanValue = null;
             if (currentType != DataTypes.Reference)
-            {
                 fieldValue.ReferencedEntryId = null;
-                // A reference label lives in StringValue; a non-reference type owns StringValue
-                // itself and the block above already cleared it where appropriate.
-            }
         }
     }
 }

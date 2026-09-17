@@ -4,9 +4,8 @@ using Operum.Service.Domain.Notifications;
 
 namespace Operum.Tests.Tests.Notifications
 {
-    // NotificationFieldValueListBuilder renders the {fieldValueList} push-body token for
-    // Entry-mode notifications: the "Display" fields the user picked, one line per newly-matched
-    // entry. Pure and unit-testable against hand-built Entry/FieldValue graphs, no DB needed.
+    // Renders the {fieldValueList} push-body token for Entry-mode notifications: the "Display"
+    // fields the user picked, one line per newly-matched entry.
     public class NotificationFieldValueListBuilderTests
     {
         private static Field MakeField(string id, string name, string type) =>

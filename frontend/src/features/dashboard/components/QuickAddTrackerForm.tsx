@@ -14,11 +14,7 @@ interface Props {
 // entirely of calculated fields has nothing for the entry dialog to ask for.
 const hasInputtableFields = (t: TrackerDto) => t.fields.some((f) => !f.isCalculated);
 
-/**
- * Picks the tracker a quick-add button on the board opens the entry dialog for. Unlike
- * the chart-building forms this has nothing to configure beyond that: the dialog itself
- * already exists (QuickAddEntryDialog) and asks for whatever the tracker needs.
- */
+/** Nothing to configure beyond the tracker: the dialog itself is QuickAddEntryDialog. */
 export function QuickAddTrackerForm({ onBack, onAdd }: Props) {
     const [trackers, setTrackers] = useState<TrackerDto[]>([]);
     const [trackerId, setTrackerId] = useState<string | null>(null);

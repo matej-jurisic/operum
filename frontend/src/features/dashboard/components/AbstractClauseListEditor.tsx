@@ -40,8 +40,7 @@ export interface AbstractClauseRow {
 
 const DATE_TYPES = ["date", "datetime"];
 
-// A synthetic field so the shared value input (which keys off a FieldDto) can render for a
-// clause that names only a data type.
+// Lets the shared FieldDto-keyed value input render for a data-type-only clause.
 const syntheticField = (path: string, index: number, type: string): FieldDto => ({
     id: `${path}.${index}`,
     name: "Value",
@@ -50,15 +49,13 @@ const syntheticField = (path: string, index: number, type: string): FieldDto => 
     isCalculated: false,
 });
 
-// Reference clauses need a tracker to pick from, which a data-type-only clause has no way
-// to name, so they are not offered in field-agnostic (dashboard) filter editing.
+// Reference clauses need a tracker to pick from, which a data-type-only clause can't name.
 const clauseFieldTypes = fieldTypes.filter((t) => t.value !== "reference");
 
 const dataTypeLabel = (value: string) =>
     fieldTypes.find((t) => t.value === value)?.label ?? value;
 
-/** A view filter template and a filter-widget clause template flattened to the shape this
-    editor needs: a list of field types plus one operator (and, for views, a value) per row. */
+/** Flattens a view filter template and a filter-widget clause template to one shared shape. */
 interface ClauseTemplateOption {
     id: string;
     name: string;
@@ -74,20 +71,13 @@ interface Props {
     path: string;
     color?: string;
     max?: number;
-    /** Only filter clauses — hide the filter/sort toggle and force every row to a filter.
-        Used by the filter widget, whose clauses are all values typed on the board. */
+    /** Filter clauses only: hides the filter/sort toggle and forces every row to a filter. */
     filterOnly?: boolean;
 }
 
 /**
- * Edits a list of field-agnostic clauses (kind + data type + operator/value or direction) —
- * what a DashboardView is made of. The concrete field each runs against is chosen per
- * followed widget on the view selector, not here.
- *
- * In `filterOnly` mode (a filter widget's own live clauses) a row collects only type +
- * operator — no value input, no summary badge. Those clauses sit inactive until a value
- * is typed on the board itself; a baked-in starting value belongs in a preset filter
- * instead.
+ * Edits field-agnostic clauses (kind + data type + operator/value or direction). The
+ * concrete field each runs against is chosen per followed widget on the view selector, not here.
  */
 export default function AbstractClauseListEditor({
     form,
@@ -112,13 +102,11 @@ export default function AbstractClauseListEditor({
             ...partial,
         });
 
-    // A filter widget's rows never hold a value, so a view's value-centric templates make
-    // no sense there -- it gets its own operator-shape templates instead.
+    // filterOnly rows never hold a value, so they use operator-shape templates instead of views'.
     const templates: ClauseTemplateOption[] = filterOnly
         ? filterWidgetClauseTemplates
         : filterTemplates.map((t) => ({ ...t, clauses: t.filters }));
 
-    // Data types at least one template targets — the modal's type picker offers only these.
     const templateTypeOptions = fieldTypes.filter((t) =>
         templates.some((tpl) => tpl.fieldTypes.includes(t.value)),
     );
@@ -150,8 +138,6 @@ export default function AbstractClauseListEditor({
                     kind: QueryKinds.Filter,
                     dataType: templateDataType,
                     operator: f.operator,
-                    // filterOnly rows never carry a value -- a template just seeds the
-                    // type + operator shortcut, same as picking them by hand.
                     value: filterOnly ? undefined : f.value,
                 }),
             );
@@ -209,9 +195,6 @@ export default function AbstractClauseListEditor({
                 rows.map((row, index) => {
                     const isDate = DATE_TYPES.includes(row.dataType);
                     if (filterOnly) {
-                        // No filter/sort toggle, value input or summary badge in this mode --
-                        // a row is just type + operator, so keep it to a single compact line
-                        // with the delete button inline rather than a tall card.
                         return (
                             <Paper key={index} p="xs" withBorder radius="md">
                                 <Group gap="sm" wrap="nowrap" align="flex-end">
@@ -407,9 +390,7 @@ export default function AbstractClauseListEditor({
                         data={templateTypeOptions}
                         value={templateDataType}
                         onChange={setTemplateDataType}
-                        // The modal sits at zIndex 400 (above the widget library / edit
-                        // modal it opens from); the dropdown must clear that too or it
-                        // renders behind the dialog.
+                        // Must clear the modal's own zIndex (400) or the dropdown renders behind it.
                         comboboxProps={{ zIndex: 500 }}
                     />
 

@@ -37,12 +37,10 @@ namespace Operum.API.Seed
 
         public async static Task SeedUsersAsync(UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration? configuration = null)
         {
-            // First, ensure roles exist
             await EnsureRoleExistsAsync(roleManager, RoleNames.User);
             await EnsureRoleExistsAsync(roleManager, RoleNames.Admin);
             await EnsureRoleExistsAsync(roleManager, RoleNames.Moderator);
 
-            // Seed Admin User
             User adminUser = new(DefaultUsers.AdminUserData.Email, DefaultUsers.AdminUserData.UserName);
             if (!userManager.Users.Any(x => x.NormalizedUserName == adminUser.NormalizedUserName || x.NormalizedEmail == adminUser.NormalizedEmail))
             {

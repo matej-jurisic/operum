@@ -30,15 +30,10 @@ const Header = observer((props: Props) => {
 
     const [isOpenAuth, setIsOpenAuth] = useState(false);
 
-    // These are icon buttons at every width, so on a phone they give up the padding a
-    // label would have needed. Without it the row they share with a page's own controls
-    // is wider than the screen.
     const isMobile = useMediaQuery("(max-width: 48em)");
     const iconButtonPadding = isMobile ? "xs" : undefined;
 
     return (
-        // Never wraps: the header is one row, and a second one would push the page's
-        // content down rather than admit the row is too full.
         <Group align="center" justify="flex-end" wrap="nowrap" flex="0 0 auto">
             <Group gap={isMobile ? "xs" : "md"} wrap="nowrap">
                 {globalStore.currentUser && <BackButton color={props.color} />}

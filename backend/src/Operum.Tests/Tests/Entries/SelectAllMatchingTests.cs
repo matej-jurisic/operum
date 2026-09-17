@@ -7,10 +7,7 @@ using System.Net.Http.Json;
 
 namespace Operum.Tests.Tests.Entries
 {
-    /// <summary>
-    /// Bulk delete and recalculate can act on "everything matching the selected views" instead of
-    /// an explicit id list, so the client is not limited to the entries on the current page.
-    /// </summary>
+    /// <summary>Bulk delete and recalculate can act on "everything matching the selected views" instead of an explicit id list.</summary>
     public class SelectAllMatchingTests(CustomWebApplicationFactory factory) : IClassFixture<CustomWebApplicationFactory>
     {
         private readonly CustomWebApplicationFactory _factory = factory;

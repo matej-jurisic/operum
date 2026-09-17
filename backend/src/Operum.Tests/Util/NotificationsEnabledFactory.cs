@@ -1,11 +1,9 @@
 namespace Operum.Tests.Util
 {
     /// <summary>
-    /// The app with the notification feature flag on -- see RequiresNotificationsAttribute --
-    /// so the controller endpoints answer instead of 404. The hosted evaluator is still not
-    /// registered here (that wiring lives in ServiceConfiguration, not the flag alone, and
-    /// tests drive NotificationEvaluatorService's pieces directly rather than waiting on a
-    /// timer), so this only unlocks the CRUD surface.
+    /// Turns on the notification feature flag (see RequiresNotificationsAttribute) so the CRUD
+    /// endpoints answer instead of 404. The hosted evaluator is separate wiring (ServiceConfiguration)
+    /// and isn't registered here; tests drive NotificationEvaluatorService's pieces directly.
     /// </summary>
     public class NotificationsEnabledFactory : CustomWebApplicationFactory
     {

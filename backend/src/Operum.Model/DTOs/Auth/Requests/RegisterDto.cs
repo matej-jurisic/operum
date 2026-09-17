@@ -14,19 +14,17 @@ namespace Operum.Model.DTOs.Auth.Requests
     {
         public RegisterRequestDtoValidator()
         {
-            // Email rules
             RuleFor(x => x.Email)
                 .NotEmpty().WithMessage((x) => Messages.Required("email"))
                 .MaximumLength(100).WithMessage("Email cannot exceed 100 characters.")
                 .EmailAddress().WithMessage("Invalid email format.");
 
-            // Username rules
             RuleFor(x => x.UserName)
                 .NotEmpty().WithMessage((x) => Messages.Required("username"))
                 .MinimumLength(3).WithMessage("Username must be at least 3 characters long.")
                 .MaximumLength(20).WithMessage("Username cannot exceed 20 characters.");
 
-            // Password rules (matches ASP.NET Identity defaults)
+            // Matches ASP.NET Identity defaults.
             RuleFor(x => x.Password)
                 .NotEmpty().WithMessage((x) => Messages.Required("password"))
                 .MinimumLength(6).WithMessage("Password must be at least 6 characters long.")

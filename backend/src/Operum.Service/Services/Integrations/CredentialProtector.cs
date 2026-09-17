@@ -6,8 +6,8 @@ namespace Operum.Service.Services.Integrations
 {
     public class CredentialProtector : ICredentialProtector
     {
-        // Namespacing the protector means a credential ciphertext cannot be decrypted by any
-        // other purpose in the app, even with the same key ring.
+        // Namespacing means a credential ciphertext can't be decrypted by any other purpose in
+        // the app, even with the same key ring.
         private const string Purpose = "Operum.Integrations.Credentials";
 
         private readonly IDataProtector _protector;
@@ -32,8 +32,8 @@ namespace Operum.Service.Services.Integrations
             }
             catch (Exception ex)
             {
-                // Nearly always a key ring that did not survive a restart. Logged without the
-                // ciphertext, and reported to the user as a connection to remake.
+                // Nearly always a key ring that did not survive a restart; reported to the user
+                // as a connection to remake.
                 _logger.LogError(ex, "Could not decrypt a stored integration credential");
                 return null;
             }

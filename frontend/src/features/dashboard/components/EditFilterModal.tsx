@@ -26,8 +26,7 @@ export function EditFilterModal({ itemId, color, onClose, onSave }: Props) {
     const config = isFilter ? parseFilterWidgetConfig(widget.config) : null;
     const clauseDtos = (isFilter && widget.filter?.clauses) || [];
 
-    // The form works in clause indices; the stored links are keyed by clause slot id, so
-    // translate them back through the clause order the widget reports.
+    // Links are keyed by clause slot id, but the form works in clause indices; translate through the widget's clause order.
     const indexBySlotId = new Map<string, string>(
         clauseDtos.map((c, i) => [c.slotId, String(i)]),
     );

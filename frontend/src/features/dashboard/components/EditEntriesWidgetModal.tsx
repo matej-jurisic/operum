@@ -21,10 +21,8 @@ interface EntriesWidgetConfig {
     columnFieldIds?: string[];
 }
 
-// The widget's own Config is already sitting in the board the context holds — same as a
-// QuickAdd or View widget's — so there's nothing to fetch before this can read it. Which
-// tracker the table reads from isn't part of Config at all -- it's fixed on the shared
-// EntriesWidget definition and comes from the rendered entriesWidget field instead.
+// The tracker isn't part of Config; it's fixed on the shared EntriesWidget definition
+// and comes from the rendered entriesWidget field instead.
 function parseEntriesConfig(config: string | undefined): EntriesWidgetConfig | null {
     if (!config) return null;
     try {
@@ -34,12 +32,7 @@ function parseEntriesConfig(config: string | undefined): EntriesWidgetConfig | n
     }
 }
 
-/**
- * Edits an Entries widget after it has been placed. Only what the board itself decides is
- * here: which of the tracker's fields it shows as columns, and how it's drawn on each
- * grid. The tracker it reads from is fixed at add time, and how it's filtered comes only
- * from the View Selector widgets it's linked to.
- */
+/** The tracker is fixed at add time; filtering comes only from linked View Selector widgets. */
 export function EditEntriesWidgetModal({ itemId, color, onClose, onSave }: Props) {
     const { widgets } = useDashboard();
     const widget = widgets.find((w) => w.id === itemId);
@@ -85,8 +78,7 @@ export function EditEntriesWidgetModal({ itemId, color, onClose, onSave }: Props
 
     return (
         <Modal opened onClose={onClose} title="Edit widget" size="md" centered>
-            {/* The global request loader already covers the fetch above, so this renders
-                nothing rather than stacking a second spinner on top of it. */}
+            {/* Global request loader already covers the fetch above. */}
             {fields && (
                 <Stack gap="md">
                     <MultiSelect

@@ -5,9 +5,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Operum.Model.DTOs.Dashboard.Requests
 {
-    // One WidgetSource's placement-only settings: how this board filters and labels it.
-    // Everything else about the source (which tracker, which fields) is the shared
-    // definition and comes from the Widget itself.
     public class PlaceWidgetSourceOverrideDto
     {
         [Required]
@@ -17,26 +14,20 @@ namespace Operum.Model.DTOs.Dashboard.Requests
         public string? ViewId { get; set; }
     }
 
-    // Places an existing Widget Library chart onto this dashboard by reference: unlike the
-    // old AddDashboardItemFromAnalytic, nothing is copied. Editing the widget afterwards --
-    // in the Library, or from any other dashboard placing it -- changes what this placement
-    // draws too. Only what's specific to this board (the filter and layout) lives here.
+    // Places by reference; nothing is copied, so editing the widget elsewhere changes what
+    // this placement draws too.
     public class PlaceWidgetDto
     {
         [Required]
         public string WidgetId { get; set; } = string.Empty;
 
-        // How the widget draws on each of the board's two grids — inline, as a button that
-        // opens the chart in a modal, or dropped from that grid entirely.
         public DashboardItemDisplayMode DisplayMode { get; set; }
         public DashboardItemDisplayMode MobileDisplayMode { get; set; }
 
-        // Line chart widgets only: whether the y-axis is anchored at zero (the default) or
-        // fitted to the data's own range. Ignored for every other chart type.
+        // Line chart widgets only; ignored for every other chart type.
         public bool YAxisFromZero { get; set; } = true;
 
-        // A WidgetSource not named here is placed with no label or view override: the
-        // widget's own display name, unfiltered.
+        // A WidgetSource not named here uses the widget's own display name, unfiltered.
         public List<PlaceWidgetSourceOverrideDto> SourceOverrides { get; set; } = [];
     }
 

@@ -99,10 +99,9 @@ namespace Operum.Service.Services.Notifications
         {
             var user = currentUserService.GetCurrentUser();
 
-            // AsTracking: the context is configured NoTracking by default, but this method
-            // relies on EF picking up in-place scalar edits to the notification, its event
-            // and its condition. Without tracking those assignments below would be silently
-            // dropped and only the explicitly Add/ExecuteDelete'd child rows would persist.
+            // AsTracking: the context is NoTracking by default, but this method relies on EF
+            // picking up in-place scalar edits to the notification, event, and condition below;
+            // without it only the explicitly Add/ExecuteDelete'd child rows would persist.
             var notification = await db.TrackerNotifications
                 .AsTracking()
                 .Include(n => n.Tracker)
@@ -139,8 +138,8 @@ namespace Operum.Service.Services.Notifications
 
             UpdateEvent(notification.Event, dto.Event);
 
-            // Bulk-delete the child rows first, then detach stale tracked entities
-            // so EF doesn't try to act on them a second time during SaveChanges.
+            // Bulk-delete the child rows first, then detach the stale tracked entities so EF
+            // doesn't try to act on them a second time during SaveChanges.
             await db.NotificationConditionFilters
                 .Where(f => f.ConditionId == notification.Condition.Id)
                 .ExecuteDeleteAsync();
@@ -168,8 +167,7 @@ namespace Operum.Service.Services.Notifications
                 pf.ConditionId = notification.Condition.Id;
             }
 
-            // Explicitly register new children as Added — do not call Update() here
-            // because it would mark the freshly-created entities as Modified instead.
+            // AddRange, not Update: Update would mark these freshly-created entities as Modified.
             db.NotificationConditionFilters.AddRange(notification.Condition.Filters);
             db.NotificationConditionPurposeFields.AddRange(notification.Condition.PurposeFields);
 

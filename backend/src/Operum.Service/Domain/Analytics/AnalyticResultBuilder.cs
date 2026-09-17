@@ -37,28 +37,15 @@ namespace Operum.Service.Domain.Analytics
 
             var result = builder.Build(request);
 
-            // A builder always names its result from the definition (e.g. "Sum"), since it
-            // has no idea whether the analytic was ever given a name of its own. Applying
-            // the override here, once, keeps every builder ignorant of naming and covers
-            // both places an Analytic is calculated: the tracker's own analytics page and a
-            // dashboard widget copied from one.
+            // Name override applied here once so builders don't need to know about it.
             if (result.IsSuccess && !string.IsNullOrWhiteSpace(request.Analytic.Name))
                 result.Data.Name = request.Analytic.Name;
 
             return result;
         }
 
-        // For the two places an analytic is rendered for a person to look at (a tracker's own
-        // analytics page and a dashboard widget) rather than evaluated for a notification: a
-        // failure here almost always means a field the analytic depends on is missing or
-        // broken — e.g. deleting a field doesn't clean up a *different* calculated field's
-        // formula that still refers to it by name, so that field quietly stops producing
-        // values. GetAnalyticResult already turns a bad request into an explanatory
-        // single-value card; this also catches a genuine calculation failure (no data,
-        // unsupported code) and an unexpected exception the same way, so a broken analytic
-        // still shows up — and can be edited or deleted — instead of silently vanishing from
-        // the page. Notification evaluation deliberately keeps using GetAnalyticResult
-        // directly: there, IsSuccess == false correctly means "don't fire".
+        // Notification evaluation must keep calling GetAnalyticResult directly instead of this
+        // method: there, IsSuccess == false correctly means "don't fire".
         public static AnalyticDto GetDisplayableAnalyticResult(AnalyticResultBuilderRequest request)
         {
             try
@@ -67,9 +54,7 @@ namespace Operum.Service.Domain.Analytics
                 if (result.IsSuccess)
                     return result.Data;
 
-                // "No data" is an expected empty state, not a broken analytic. Its message
-                // is a full sentence that overflows a small single-value card, so show a
-                // compact placeholder instead; genuine failures keep their explanation.
+                // NotFound is an expected empty state; show compact "N/A" instead of the full message.
                 if (result.StatusCode == ResultStatusCodes.NotFound)
                     return Fallback(request, "N/A");
 

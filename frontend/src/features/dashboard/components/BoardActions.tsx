@@ -11,16 +11,9 @@ interface Props {
     onEdit: () => void;
     onDelete: () => void;
     onToggleArrange: () => void;
-    /** Opens the Widgets modal -- the one surface for adding to or managing this board. */
     onOpenWidgets: () => void;
 }
 
-/**
- * Every action on the board itself, kept out of the board picker so switching boards and
- * acting on one are not the same control. It is an icon button at every width, styled
- * like the header's own, so the row of chrome above the grid never grows past the
- * viewport.
- */
 export default function BoardActions({
     color,
     isConfiguring,

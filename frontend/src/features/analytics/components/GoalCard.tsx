@@ -1,7 +1,8 @@
 import { Box, Group, Progress, Text } from "@mantine/core";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
-import { GoalAnalyticDto } from "../types/AnalyticDto";
+import { GoalAnalyticDto, GoalDirections } from "../types/AnalyticDto";
 import { useCardLayout } from "./cardSizing";
+import { TrendSparkline } from "./TrendSparkline";
 import { WidgetShell } from "./WidgetShell";
 
 interface Props {
@@ -28,7 +29,10 @@ export function GoalCard({
     const hasProgress =
         analytic.progress !== undefined && analytic.progress !== null;
     const percent = hasProgress ? Math.round(analytic.progress! * 100) : null;
+    // Backend already inverts the ratio for LowerIsBetter, so "goal met" is progress >= 1 either way.
     const achieved = hasProgress && analytic.progress! >= 1;
+    const isLowerIsBetter = analytic.direction === GoalDirections.LowerIsBetter;
+    const statusColor = hasProgress && isLowerIsBetter && !achieved ? "red" : color;
 
     return (
         <WidgetShell
@@ -60,7 +64,11 @@ export function GoalCard({
                         {renderValue(type, analytic.value)}
                     </Text>
                     {percent !== null && (
-                        <Text fw={600} size="sm" c={achieved ? color : "dimmed"}>
+                        <Text
+                            fw={600}
+                            size="sm"
+                            c={achieved || isLowerIsBetter ? statusColor : "dimmed"}
+                        >
                             {percent}%
                         </Text>
                     )}
@@ -68,7 +76,7 @@ export function GoalCard({
 
                 <Progress
                     value={hasProgress ? Math.min(100, Math.max(0, percent!)) : 0}
-                    color={color}
+                    color={statusColor}
                     size="lg"
                     radius="xl"
                     striped={achieved}
@@ -76,11 +84,27 @@ export function GoalCard({
 
                 <Text size="xs" c="dimmed">
                     {analytic.target
-                        ? achieved
-                            ? `Target reached: ${renderValue(type, analytic.target)}`
-                            : `Target: ${renderValue(type, analytic.target)}`
+                        ? isLowerIsBetter
+                            ? achieved
+                                ? `Under target: ${renderValue(type, analytic.target)}`
+                                : `Over target: ${renderValue(type, analytic.target)}`
+                            : achieved
+                              ? `Target reached: ${renderValue(type, analytic.target)}`
+                              : `Target: ${renderValue(type, analytic.target)}`
                         : "No target set"}
                 </Text>
+
+                {analytic.trend && (
+                    <TrendSparkline
+                        trend={analytic.trend}
+                        currentValue={analytic.value}
+                        valueFieldType={type}
+                        color={statusColor}
+                        direction={
+                            isLowerIsBetter ? "lowerIsBetter" : "higherIsBetter"
+                        }
+                    />
+                )}
             </Box>
         </WidgetShell>
     );

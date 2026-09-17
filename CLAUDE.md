@@ -6,6 +6,7 @@
   tests, and lint instead. If a visual check seems needed, ask first.
 - If we add/change a feature that is relevant to either README.md or the homepage, make sure to update them after
 - NEVER commit or push or create/change git branches 
+- Avoid code comments unless they bring really important domain knowledge that would surely help during any future work with the code. If you have to add a code comment keep it short and precise with only the necessary information.
 
 # UI rules
 

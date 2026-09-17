@@ -14,11 +14,7 @@ import NavCreateHost from "./NavCreateHost";
 
 const COLLAPSED_KEY = "operum.sidebarCollapsed";
 
-/**
- * The chrome around every signed-in page: a persistent sidebar (a drawer on
- * mobile) plus the command palette. Public pages (home, legal, confirm-email)
- * render outside this and keep their own bare layout.
- */
+/** Signed-in page chrome: sidebar (drawer on mobile) plus the command palette. */
 const AppLayout = observer(() => {
     const location = useLocation();
     const { colorScheme } = useMantineColorScheme();
@@ -32,8 +28,7 @@ const AppLayout = observer(() => {
         navigationStore.load();
     }, []);
 
-    // Poll the unread notification count while the app is open, and refresh it
-    // the moment the tab regains focus so a badge is never stale after a while away.
+    // Also refresh on focus, so the badge isn't stale after time away.
     useEffect(() => {
         if (!areNotificationsEnabled) return;
 
@@ -51,13 +46,11 @@ const AppLayout = observer(() => {
         };
     }, []);
 
-    // Close the mobile drawer whenever navigation lands somewhere new.
     useEffect(() => {
         navigationStore.closeMobileNav();
     }, [location.pathname]);
 
-    // AppShell's mobile navbar is just a sliding panel -- it locks nothing. Keep
-    // the page behind it from scrolling (and swallowing taps) while it is open.
+    // AppShell's mobile navbar doesn't lock scroll on its own; do it here.
     useEffect(() => {
         const locked = isMobile && mobileOpened;
         if (!locked) return;
@@ -95,12 +88,7 @@ const AppLayout = observer(() => {
                 collapsed: { mobile: !mobileOpened, desktop: false },
             }}
         >
-            {/*
-             * Sits above the header/main (z 100) but below the navbar (see its
-             * zIndex below). AppShell's own z-indexes are ~100, so the old value
-             * of 199 buried the drawer under the overlay -- it looked dimmed and
-             * swallowed every tap.
-             */}
+            {/* Must stay below the navbar's zIndex (102) or it buries the drawer. */}
             {isMobile && mobileOpened && (
                 <Overlay
                     zIndex={101}
@@ -126,7 +114,6 @@ const AppLayout = observer(() => {
                 h="100%"
                 style={{ backgroundImage: dotPattern, backgroundSize: "28px 28px" }}
             >
-                {/* Keyed on the path, so a crashed page recovers once the sidebar navigates away */}
                 <ErrorBoundary resetKey={location.pathname}>
                     <Outlet />
                 </ErrorBoundary>

@@ -1,8 +1,4 @@
-/**
- * Resolves a dot-notated path (e.g. "queries.0.sorts") against a nested
- * object/array, the same path format used by Mantine's useForm for nested
- * fields and list items.
- */
+/** Resolves a dot path (e.g. "queries.0.sorts"), matching Mantine useForm's nested-field path format. */
 export function getPathValue<T = unknown>(
     source: unknown,
     path: string,

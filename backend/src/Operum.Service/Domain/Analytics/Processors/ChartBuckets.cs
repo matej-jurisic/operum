@@ -3,12 +3,10 @@ using Operum.Model.Constants.Analytics;
 
 namespace Operum.Service.Domain.Analytics.Processors
 {
-    // Shared bucketing and reduction for the grouped Line and Bar processors: turning a
-    // mapped axis value into a bucket key, and reducing a bucket's values to one number.
+    // Shared bucketing and reduction for the grouped Line and Bar processors.
     public static class ChartBuckets
     {
-        // The bucket key and a sortable instant for a calendar-period grouping. Null for a
-        // non-date grouping or a value that doesn't parse as a round-trip date.
+        // Null for a non-date grouping or a value that doesn't parse as a round-trip date.
         public static (string Key, DateTime Instant)? DateKey(string? raw, string grouping)
         {
             if (raw == null || !AnalyticGroupings.DateBuckets.Contains(grouping))
@@ -30,9 +28,7 @@ namespace Operum.Service.Domain.Analytics.Processors
             return (key, dt);
         }
 
-        // Reduces one bucket's values to the single number a point plots. Cumulative Sum is
-        // a running fold across buckets, so its callers handle it themselves and never reach
-        // here.
+        // Cumulative Sum is a running fold across buckets; callers handle it themselves and never reach here.
         public static double Reduce(string aggregation, IReadOnlyCollection<double> values) => aggregation switch
         {
             AnalyticCodes.Count => values.Count,

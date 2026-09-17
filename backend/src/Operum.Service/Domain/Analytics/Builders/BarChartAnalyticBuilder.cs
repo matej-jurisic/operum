@@ -29,8 +29,7 @@ namespace Operum.Service.Domain.Analytics.Builders
             if (nameField == null)
                 return Result.Success<AnalyticDto>(result);
 
-            // Count is the only aggregation that reads no value field: each row in a bucket
-            // counts once. Every other one, raw values included, needs a value field.
+            // Count is the only aggregation that reads no value field.
             var countsRows = code == AnalyticCodes.Count;
             var valueField = request.FieldMap.GetValueOrDefault(AnalyticPurposes.Value);
             if (valueField == null && !countsRows)

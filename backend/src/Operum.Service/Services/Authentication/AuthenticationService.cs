@@ -100,8 +100,7 @@ namespace Operum.Service.Services.Authentication
                 return Result.Failure(ResultStatusCodes.Conflict, string.Format(Messages.EmailTaken, registerRequest.Email));
             }
 
-            // Without a configured mail sender there is no way to deliver a confirmation
-            // link, so the address is trusted as-is and the user can log in immediately.
+            // No mail sender configured means no way to deliver a confirmation link, so trust the address as-is.
             var confirmationRequired = mailSender.IsEnabled;
 
             var newUser = new User(registerRequest.Email, registerRequest.UserName)

@@ -11,9 +11,8 @@ import {
 } from "../types/DashboardDto";
 import { clauseLabel } from "./filterClauseInput";
 
-/** One of the board's existing filter widgets, offered as something a newly created widget
-    can follow -- its clauses, keyed by their stable slot id since (unlike the creation
-    forms) this widget's shape is already saved. */
+/** An existing filter widget offered as something a newly created widget can follow.
+    Clauses are keyed by their stable slot id, since this widget's shape is already saved. */
 export interface FilterCandidate {
     itemId: string;
     label: string;
@@ -25,9 +24,8 @@ export interface FilterCandidate {
     }[];
 }
 
-/** The board's filter widgets a new widget's tracker(s) could follow, one entry per Filter
-    item with complete clauses. Labeled by its own clause set so two filter widgets never
-    read the same. */
+/** One entry per Filter item with complete clauses, deduped by label so two filter widgets
+    with the same clause set never read the same. */
 export function filterCandidatesFor(widgets: DashboardWidgetDto[]): FilterCandidate[] {
     const filterWidgets = widgets.filter(
         (w) => w.type === WidgetTypes.Filter && (w.filter?.clauses.length ?? 0) > 0,
@@ -61,11 +59,8 @@ export interface ConnectedClause {
     fieldName?: string;
 }
 
-/** The connected-clause list GoalConditionalTargetsEditor needs, built from the "follow
-    filters" selection a creation form is still holding in memory rather than from saved
-    filter configs. Mirrors what EditWidgetModal derives once those links are persisted.
-    `linksByFilter` maps a board filter widget's id to that filter's clause slot id -> the
-    field id picked for it; `fieldNameById` names those fields. */
+/** Builds GoalConditionalTargetsEditor's clause list from an in-memory "follow filters"
+    selection, before it's saved. Mirrors what EditWidgetModal derives once persisted. */
 export function connectedClausesFromLinks(
     linksByFilter: Record<string, Record<string, string>>,
     filters: FilterCandidate[],
@@ -91,18 +86,14 @@ export function connectedClausesFromLinks(
     return out;
 }
 
-/** One new widget's tracker source and which of the board's filter widgets it should
-    follow, each mapped to the field on that tracker it filters by. Passed alongside a
-    widget's create/place dto to have it linked up in the same step. */
+/** Passed alongside a widget's create/place dto to link it to filters in the same step. */
 export interface FilterFollowLinks {
     trackerId: string;
     /** filterItemId -> (that filter's clause slot id -> field id on `trackerId`) */
     links: Record<string, Record<string, string>>;
 }
 
-/** Whether every filter checked in `links` has every one of its clauses mapped to a field
-    `fields` actually offers -- the same completeness check a filter widget's own edit
-    dialog runs, gating the "Add" button the same way. */
+/** Same completeness check a filter widget's own edit dialog runs, gating "Add" the same way. */
 export function followLinksComplete(
     links: Record<string, Record<string, string>>,
     filters: FilterCandidate[],
@@ -120,18 +111,15 @@ export function followLinksComplete(
     });
 }
 
-/** A filter widget's clause list, keyed by its slot id -> that clause's index in the
-    widget's own clause order -- the key SaveFilterItemDto's links expect, since the backend
-    rewrites those indices back to slot ids on save. */
+/** Slot id -> clause index, the key SaveFilterItemDto's links expect (the backend rewrites
+    indices back to slot ids on save). */
 export function filterWidgetIndexBySlotId(widget: DashboardWidgetDto): Map<string, string> {
     return new Map((widget.filter?.clauses ?? []).map((c, i) => [c.slotId, String(i)]));
 }
 
-/** Rebuilds the SaveFilterItemDto an existing filter widget would resubmit unchanged: same
-    clause shape (values omitted -- the backend carries the current ones across any save
-    whose clauses still pool to the same query), its links translated back to clause-index
-    keys, and its presets. Lets a follower link be appended without going through the
-    filter widget's own edit dialog. */
+/** Rebuilds the SaveFilterItemDto an existing filter widget would resubmit unchanged, so a
+    follower link can be appended without going through its own edit dialog. Values are
+    omitted; the backend carries current ones across when clauses still pool the same query. */
 export function filterWidgetToSaveDto(widget: DashboardWidgetDto): SaveFilterItemDto {
     const config = parseFilterWidgetConfig(widget.config);
     const clauseDtos = widget.filter?.clauses ?? [];

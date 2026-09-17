@@ -36,7 +36,6 @@ namespace Operum.Service.Services.Fields
             if (nameExists)
                 return Result.Failure(ResultStatusCodes.BadRequest, "A constant with this name already exists.");
 
-            // Prevent collision with existing field names
             var fieldNameExists = await db.Fields
                 .AnyAsync(f => f.TrackerId == trackerId && f.Name.ToLower() == dto.Name.ToLower());
             if (fieldNameExists)
@@ -129,7 +128,6 @@ namespace Operum.Service.Services.Fields
             if (nameExists)
                 return Result.Failure(ResultStatusCodes.BadRequest, "A constant with this name already exists.");
 
-            // Prevent collision with existing field names
             var fieldNameExists = await db.Fields
                 .AnyAsync(f => f.TrackerId == trackerId && f.Name.ToLower() == dto.Name.ToLower());
             if (fieldNameExists)
@@ -144,8 +142,8 @@ namespace Operum.Service.Services.Fields
 
             mapper.Map(dto, constant);
 
-            // Replace all conditional values: remove old, insert new separately so EF
-            // tracks new rows as Added (not Modified), avoiding a concurrency exception.
+            // Replace all conditional values by removing old and inserting new separately, so EF
+            // tracks the new rows as Added (not Modified) and avoids a concurrency exception.
             var oldValues = constant.Values.ToList();
             db.TrackerConstantValues.RemoveRange(oldValues);
 
@@ -158,7 +156,6 @@ namespace Operum.Service.Services.Fields
 
             await db.SaveChangesAsync();
 
-            // Reload new values with filters for mapping
             constant.Values = newValues;
             foreach (var v in newValues)
                 await db.Entry(v).Collection(x => x.Filters).LoadAsync();

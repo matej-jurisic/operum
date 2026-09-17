@@ -5,47 +5,32 @@ import { CardLayout, cardBodyProps, cardShellProps } from "./cardSizing";
 import "./WidgetShell.css";
 
 interface Props {
-    /** From `useCardLayout` — its ref is attached to the outer Paper, so every card
-        measures the same box it always did. */
     layout: CardLayout;
-    /** Dashboard grid cell (`true`) vs. the fixed-height masonry on a tracker page.
-        Also what switches on the borderless read mode: a widget being read on a board
-        has no border, only a shadow (or, in dark mode, a lifted surface). */
+    /** True for a dashboard grid cell, false for the fixed-height tracker masonry; also toggles the borderless read mode. */
     fillHeight?: boolean;
     isConfiguring: boolean;
     color: string | undefined;
-    /** The analytic or widget id, passed to the header's edit/remove controls. */
     itemId: string;
     onRemove?: (id: string) => void;
     onEdit?: (id: string) => void;
 
-    /** The header row's text. Omit to render no header at all (a Divider draws its own). */
+    /** Omit to render no header at all (a Divider draws its own). */
     title?: string;
-    /** Collapse the header to a centered arrange-mode overlay carrying only its icons,
-        for widgets whose body is the whole card (Header, Divider, Quick add, shortcuts). */
+    /** Collapses the header to a centered arrange-mode overlay carrying only its icons. */
     compactHeader?: boolean;
     headerActions?: ReactNode;
     titleAdornment?: ReactNode;
 
-    /** A layout accent (Divider, Header, shortcut) rather than data: no surface at all
-        while the board is read, a border only while it is arranged. */
+    /** For a layout accent (Divider, Header, shortcut) rather than data: no surface while read, a border only while arranged. */
     accent?: boolean;
-    /** Outer padding. Defaults to `layout.padding`; pass 0 for cards that pad their own
-        body instead. */
+    /** Defaults to `layout.padding`; pass 0 for cards that pad their own body instead. */
     padding?: PaperProps["p"];
-    /** Merged onto the inner content Stack (e.g. `justify`, `h`, a tighter `gap`). */
     bodyProps?: StackProps;
     children: ReactNode;
-    /** Rendered inside the Paper but outside the content Stack, for a card's own modals
-        and dialogs. */
+    /** Rendered inside the Paper but outside the content Stack, for a card's own modals. */
     after?: ReactNode;
 }
 
-/**
- * The shell every widget card is drawn in: the outer Paper, the content Stack, and the
- * shared header row. Pulled out of the ~13 cards that each repeated it so the board's
- * chrome, most of all whether a widget shows a border, is decided in one place.
- */
 export function WidgetShell({
     layout,
     fillHeight,
@@ -65,9 +50,7 @@ export function WidgetShell({
     after,
 }: Props) {
     const readMode = !!fillHeight && !isConfiguring;
-    // An accent (Header, Divider, shortcut) sheds its surface entirely while the board
-    // is read; a data widget keeps a lifted panel, drawn by WidgetShell.css off the
-    // data-read-mode flag rather than Mantine's plain border.
+    // A data widget keeps a lifted panel in read mode (drawn by WidgetShell.css via data-read-mode); an accent sheds its surface entirely.
     const softPanel = readMode && !accent;
 
     return (

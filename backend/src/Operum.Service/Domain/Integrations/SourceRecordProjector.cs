@@ -3,11 +3,7 @@ using Operum.Model.Integrations;
 
 namespace Operum.Service.Domain.Integrations
 {
-    /// <summary>
-    /// The middle stage of the ingest pipeline: turns what a provider said into what the
-    /// write path takes, by applying one target's mappings. Pure, and shared by both ingest
-    /// paths -- a pull tick and a webhook delivery differ only in how they got their records.
-    /// </summary>
+    // Shared by both ingest paths (pull tick and webhook delivery).
     public static class SourceRecordProjector
     {
         public static EntryWriteRecord Project(SourceRecord record, IReadOnlyList<FieldMapping> mappings)
@@ -25,14 +21,11 @@ namespace Operum.Service.Domain.Integrations
 
             foreach (var mapping in mappings)
             {
-                // The provider said nothing at all about this key, so neither do we. Distinct
-                // from it saying "no value" -- that arrives as a present null below.
+                // Key absent means the provider said nothing; distinct from an explicit null value.
                 if (!record.ValuesBySourceKey.TryGetValue(mapping.SourceKey, out var value))
                     continue;
 
-                // SkipWhenNull is resolved here and nowhere else. Omitting the key is how the
-                // writer is told to leave the field as it found it; including it with null is
-                // how it is told to clear it.
+                // Omitting the key tells the writer to leave the field as-is; including it with null clears it.
                 if (value == null && mapping.SkipWhenNull)
                     continue;
 

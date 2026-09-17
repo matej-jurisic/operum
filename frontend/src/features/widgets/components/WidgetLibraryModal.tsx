@@ -5,6 +5,7 @@ import {
     Modal,
     Paper,
     Select,
+    SegmentedControl,
     SimpleGrid,
     Stack,
     Tabs,
@@ -31,6 +32,10 @@ import {
     TbTable,
 } from "react-icons/tb";
 import EmptyState from "../../../shared/components/EmptyState";
+import {
+    GoalDirection,
+    GoalDirections,
+} from "../../analytics/types/AnalyticDto";
 import { CustomAnalyticForm } from "../../dashboard/components/CustomAnalyticForm";
 import { EntriesWidgetForm } from "../../dashboard/components/EntriesWidgetForm";
 import { HeaderWidgetForm } from "../../dashboard/components/HeaderWidgetForm";
@@ -56,12 +61,7 @@ interface Props {
     onClose: () => void;
 }
 
-// The one surface for putting anything on the current board. The Charts/Tables tabs list
-// reusable Widget Library definitions -- placed on this board by reference, edited or
-// deleted in place -- while Controls/Layout are instant widgets with no saved definition,
-// configured and added in one go. Replaces the old split of "Add widget" (a kind picker)
-// and "Widget Library" (management only) that sent the user through a nested, resizing
-// modal just to place a saved widget.
+// Charts/Tables list reusable Widget Library definitions placed by reference; Controls/Layout are instant widgets with no saved definition.
 type TabValue = "charts" | "tables" | "controls" | "layout";
 
 type Panel =
@@ -220,9 +220,7 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
 
     const backToList = () => setPanel({ kind: "list" });
 
-    // Every add/place form leaves the modal open on failure (the api layer already said what
-    // went wrong, and closing throws away what was filled in) and closes the whole modal on
-    // success.
+    // Leaves the modal open on failure so the filled-in form isn't lost; closes on success.
     const closeAfter =
         <A extends unknown[]>(handler: (...args: A) => Promise<unknown>) =>
         async (...args: A) => {
@@ -231,9 +229,7 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
         };
 
     const pickInstant = async (key: InstantOption["key"]) => {
-        // Divider and the container widgets carry no configuration to fill in first (a tabs
-        // container's tabs are managed on the board), so they are placed straight away
-        // rather than opening a config step.
+        // These carry no configuration to fill in first, so they're placed straight away.
         if (key === "divider" || key === "container" || key === "tabsContainer") {
             setAddingInstantKey(key);
             try {
@@ -265,16 +261,13 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
         }
     };
 
-    // The library modal stays a fixed-height canvas for the tabbed list. Add / edit /
-    // delete and the "New ..." forms open in a second modal stacked on top, so the list
-    // stays visible behind them instead of being replaced.
+    // Add/edit/delete forms open in a second modal stacked on top of the list.
     const isList = panel.kind === "list";
     const lastSubPanelRef = useRef<Panel>({ kind: "list" });
     if (!isList) {
         lastSubPanelRef.current = panel;
     }
-    // While the sub-modal plays its close transition `panel` is already back to "list";
-    // keep rendering the last panel's content so the box doesn't empty out mid-fade.
+    // Keeps rendering the last panel's content during the close transition so the box doesn't empty out mid-fade.
     const subPanel = isList ? lastSubPanelRef.current : panel;
     const isWideSub =
         subPanel.kind === "new-chart" ||
@@ -283,9 +276,6 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
         subPanel.kind === "place-table" ||
         (subPanel.kind === "config" && subPanel.widgetKind === "filter");
 
-    // Search + tracker filter share one row across the Charts and Tables tabs on desktop.
-    // On mobile the modal is too narrow for that: search gets its own row, and the tracker
-    // filter shares the next row with the tab's "New" button.
     const searchInput = (
         <TextInput
             placeholder="Search by name"
@@ -324,8 +314,6 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
             </Group>
         );
 
-    // The Charts and Tables tabs show their saved definitions as a grid of cards that
-    // reflows to the modal width.
     const cardGrid = (count: number, noun: string, cards: ReactNode) => (
         <Stack gap="xs">
             <Text size="xs" c="dimmed">
@@ -385,11 +373,7 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
                 centered
                 fullScreen={isMobile}
                 styles={{
-                    // Fixed height so the modal doesn't jump around as the search or
-                    // tracker filter changes how many rows are shown. The body itself
-                    // never scrolls -- the tab header and toolbar stay put while each
-                    // tab's list area scrolls on its own. Full-screen on mobile, where
-                    // the height is just whatever the viewport gives us.
+                    // Fixed height so the modal doesn't jump around as filtered results change row count.
                     content: {
                         height: isMobile ? "100%" : "min(92vh, 840px)",
                         display: "flex",
@@ -407,9 +391,7 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
                 <Tabs
                     value={tab}
                     onChange={(value) => setTab(value as TabValue)}
-                    // Unmount inactive panels so the per-panel flex styling below only ever
-                    // applies to the visible tab (a kept-but-hidden panel would ignore its
-                    // `hidden` state once we set an explicit `display`).
+                    // Must unmount inactive panels: a hidden panel with explicit `display` set ignores Mantine's `hidden` state.
                     keepMounted={false}
                     styles={{
                         root: {
@@ -421,9 +403,6 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
                         panel: { flex: 1, minHeight: 0 },
                     }}
                 >
-                    {/* On mobile the four labels don't fit on one line, so we show just the
-                        icon for every tab and the label only for the selected one -- the
-                        same treatment as the tracker page. */}
                     <Tabs.List mb="md">
                         {TAB_META.map(({ value, label, icon: Icon }) => (
                             <Tabs.Tab
@@ -564,8 +543,7 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
                 size={isWideSub ? "lg" : "md"}
                 centered
                 fullScreen={isMobile}
-                // Lighter overlay so the library stays legible behind the stacked dialog
-                // instead of stacking two full-strength scrims.
+                // Lighter overlay avoids stacking two full-strength scrims over the library.
                 overlayProps={{ backgroundOpacity: 0.35 }}
             >
                 {subPanel.kind === "new-chart" && (
@@ -675,6 +653,9 @@ function RenameChartStep({
     const [name, setName] = useState(widget.name);
     const [description, setDescription] = useState(widget.description ?? "");
     const [goalTarget, setGoalTarget] = useState(widget.goalTarget ?? "");
+    const [goalDirection, setGoalDirection] = useState<GoalDirection>(
+        (widget.goalDirection as GoalDirection) ?? GoalDirections.HigherIsBetter,
+    );
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const isGoal = widget.resultType === "Goal";
@@ -686,6 +667,7 @@ function RenameChartStep({
                 name: name.trim() || undefined,
                 description: description.trim() || undefined,
                 goalTarget: isGoal ? goalTarget.trim() : undefined,
+                goalDirection: isGoal ? goalDirection : undefined,
             });
         } finally {
             setIsSubmitting(false);
@@ -716,6 +698,16 @@ function RenameChartStep({
                     maxLength={20}
                     value={goalTarget}
                     onChange={(event) => setGoalTarget(event.currentTarget.value)}
+                />
+            )}
+            {isGoal && (
+                <SegmentedControl
+                    value={goalDirection}
+                    onChange={(value) => setGoalDirection(value as GoalDirection)}
+                    data={[
+                        { label: "Higher is better", value: GoalDirections.HigherIsBetter },
+                        { label: "Lower is better", value: GoalDirections.LowerIsBetter },
+                    ]}
                 />
             )}
             <Group justify="flex-end" mt="xs">

@@ -1,9 +1,4 @@
-/**
- * The page the app opens on after load. Persisted server-side (User.DefaultPage,
- * carried on the login / `me` response) and mirrored to localStorage so the
- * catch-all route can resolve it synchronously on a normal reload -- before any
- * request has come back.
- */
+/** Mirrors server-side User.DefaultPage so the catch-all route can resolve synchronously before login/`me` responds. */
 export const DEFAULT_PAGE_KEY = "operum.defaultPage";
 
 /** Where a bare "/" (or any unknown route) sends a signed-in user. */

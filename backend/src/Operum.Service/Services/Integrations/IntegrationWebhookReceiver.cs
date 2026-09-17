@@ -35,9 +35,9 @@ namespace Operum.Service.Services.Integrations
                     .ThenInclude(t => t.Owner)
                 .FirstOrDefaultAsync(t => t.WebhookToken == token, ct);
 
-            // Everything that could be wrong about the address answers the same way. A caller
-            // with a bad token learns nothing about which half was wrong, or whether the
-            // provider name even exists.
+            // Everything that could be wrong about the address answers the same way, so a caller
+            // with a bad token learns nothing about which half was wrong or whether the provider
+            // name even exists.
             if (target == null
                 || target.Integration.Provider != providerKey
                 || target.Mode != IntegrationMode.Push)
@@ -63,8 +63,8 @@ namespace Operum.Service.Services.Integrations
             var parsed = provider.VerifyAndParse(target.ResourceType, secret, rawBody, headers);
             if (parsed.IsFailure)
             {
-                // A failed signature is not the target's fault and must not be recorded as a
-                // sync error -- an attacker could otherwise fill a user's status with noise.
+                // A failed signature is not the target's fault and must not be recorded as a sync
+                // error -- an attacker could otherwise fill a user's status with noise.
                 return Result.Failure(parsed.StatusCode, parsed.Messages);
             }
 

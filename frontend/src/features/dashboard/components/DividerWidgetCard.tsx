@@ -9,12 +9,7 @@ interface Props {
     onRemove?: (itemId: string) => void;
 }
 
-/**
- * A board widget that draws nothing but a line. The grid already lets widgets leave
- * deliberate empty space; this is what turns a gap into something that reads as a
- * dividing line rather than unfinished layout. Carries no config and, unlike every other
- * widget, nothing to edit — only a remove button while the board is being arranged.
- */
+/** Carries no config and, unlike every other widget, nothing to edit. */
 export function DividerWidgetCard({
     widgetId,
     color,

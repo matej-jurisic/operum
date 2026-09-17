@@ -5,44 +5,38 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Operum.Model.DTOs.Dashboard.Requests
 {
-    // One source of an analytic widget as the board is allowed to change it afterwards:
-    // what the series is called, and which view narrows the entries it reads.
     public class UpdateDashboardItemSourceDto
     {
         [Required]
         public string SourceId { get; set; } = string.Empty;
 
-        // Cleared when left blank, so the widget falls back to the definition's own label
-        // the way an item added without a label does.
+        // Cleared when left blank.
         public string? Label { get; set; }
 
-        // The fixed tracker view this source reads through, if any. Cleared when left blank.
         public string? ViewId { get; set; }
     }
 
-    // Edits an analytic widget in place. Only the parts that belong to the board are
-    // editable: the item's result type, code and field mapping are the definition it was
-    // built from, and changing those would silently turn the widget into a different chart
-    // rather than the one the user put there — that is what adding a new widget is for.
+    // Only board-owned parts are editable; result type, code and field mapping are fixed
+    // (changing those means adding a new widget instead).
     public class UpdateDashboardItemDto
     {
-        // How the widget draws on each of the board's two grids — inline, as a button that
-        // opens the chart in a modal, or dropped from that grid entirely.
         public DashboardItemDisplayMode DisplayMode { get; set; }
         public DashboardItemDisplayMode MobileDisplayMode { get; set; }
 
-        // Line chart widgets only: whether the y-axis is anchored at zero or fitted to the
-        // data's own range. Ignored for every other chart type.
+        // Line chart widgets only; ignored for every other chart type.
         public bool YAxisFromZero { get; set; } = true;
 
-        // Goal widgets only: the placement's conditional targets, in order. The payload is
-        // the whole list, so an empty list clears them. Each Conditions key must be a filter
-        // clause this placement currently follows; DashboardService settles that.
+        // Goal widgets only. Whole-list replace: empty clears them. Each Conditions key must
+        // be a filter clause this placement currently follows; DashboardService checks that.
         public List<GoalConditionalTargetDto> GoalConditionalTargets { get; set; } = [];
 
-        // Every source of the item, named once each: the payload is the whole widget, so a
-        // label or a view left out means "cleared" rather than "unchanged", the same way an
-        // entry's payload is the whole entry.
+        // Null clears the override. Ignored (not rejected) for a combined/multi-source widget.
+        public string? Color { get; set; }
+
+        // Single-source SingleValue/Goal widgets only.
+        public bool ShowTrend { get; set; } = true;
+
+        // Whole-list replace: a source's Label/ViewId left out means "cleared", not "unchanged".
         [Required, MinLength(1)]
         public List<UpdateDashboardItemSourceDto> Sources { get; set; } = [];
     }
@@ -64,9 +58,7 @@ namespace Operum.Model.DTOs.Dashboard.Requests
     {
         public UpdateDashboardItemDtoValidator()
         {
-            // Shape only. Whether the ids name this item's own sources, and whether a view
-            // or a view widget actually goes with the source's tracker, is settled in
-            // DashboardService.
+            // Shape only; DB-dependent checks happen in DashboardService.
             RuleFor(x => x.Sources)
                 .NotEmpty().WithMessage(x => Messages.Required("sources"));
 
@@ -74,6 +66,10 @@ namespace Operum.Model.DTOs.Dashboard.Requests
                 .IsInEnum().WithMessage(x => Messages.Invalid("display mode"));
             RuleFor(x => x.MobileDisplayMode)
                 .IsInEnum().WithMessage(x => Messages.Invalid("display mode"));
+
+            RuleFor(x => x.Color)
+                .MaximumLength(50).WithMessage("Color cannot exceed 50 characters.")
+                .When(x => !string.IsNullOrEmpty(x.Color));
 
             RuleForEach(x => x.Sources)
                 .SetValidator(new UpdateDashboardItemSourceDtoValidator());

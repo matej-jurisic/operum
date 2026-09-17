@@ -41,22 +41,18 @@ namespace Operum.API.Configuration
 
         private static IServiceCollection RegisterBusinessServices(this IServiceCollection services, IConfiguration configuration)
         {
-            // Authentication & Authorization Services
             services.AddScoped<IAuthenticationService, AuthenticationService>();
             services.AddScoped<Service.Interfaces.IAuthorizationService, AuthorizationService>();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<ITokenService, TokenService>();
 
-            // Core Business Services
             services.AddScoped<IAdminService, AdminService>();
             services.AddScoped<IUsersService, UsersService>();
             services.AddScoped<IRolesService, RolesService>();
             services.AddScoped<ITrackersService, TrackersService>();
             services.AddScoped<IFieldsService, FieldsService>();
             services.AddScoped<IEntriesService, EntriesService>();
-            // The context-free write path. Registered alongside EntriesService because the
-            // integrations work will point that service at it too, once both agree on
-            // coercion behaviour.
+            // The context-free write path, registered alongside EntriesService because integrations will point at it too once both agree on coercion behaviour.
             services.AddScoped<IEntryWriter, EntryWriter>();
             services.AddScoped<IViewsService, ViewsService>();
             services.AddScoped<IGoogleAuthService, GoogleAuthService>();
@@ -70,8 +66,7 @@ namespace Operum.API.Configuration
             services.AddScoped<IInboxService, InboxService>();
             services.AddScoped<IWebPushService, WebPushService>();
 
-            // Notifications are opt-in while the feature is unfinished: without the flag the
-            // evaluator never runs and the endpoints answer 404 (see RequiresNotificationsAttribute).
+            // Notifications are opt-in while unfinished: without the flag the evaluator never runs and the endpoints answer 404 (see RequiresNotificationsAttribute).
             if (configuration.GetValue("Features:Notifications", false))
             {
                 services.AddHostedService<NotificationEvaluatorService>();
@@ -89,13 +84,8 @@ namespace Operum.API.Configuration
         /// </summary>
         private static IServiceCollection RegisterIntegrationProviders(this IServiceCollection services, IConfiguration configuration)
         {
-            // Providers hold no per-request state -- a catalog and the logic to read a payload
-            // -- so they are singletons. Anything a provider needs per call arrives as a
-            // ProviderConnection argument, credential included.
-            //
-            // A named client rather than a typed one: the provider is a singleton and takes
-            // the factory, so handlers still rotate instead of one being pinned for the life
-            // of the process.
+            // Providers are singletons (no per-request state; per-call data arrives via ProviderConnection). A named
+            // client, not a typed one, so handlers still rotate instead of one being pinned for the process lifetime.
             services.AddHttpClient(IntervalsProvider.ProviderKey, client =>
             {
                 client.BaseAddress = new Uri("https://intervals.icu/");
@@ -104,8 +94,7 @@ namespace Operum.API.Configuration
             });
             services.AddSingleton<IIntegrationProvider, IntervalsProvider>();
 
-            // Firefly III needs no HttpClient at all: it is push-only, so nothing here ever
-            // calls the user's instance.
+            // Firefly III is push-only, so nothing here ever calls the user's instance and it needs no HttpClient.
             services.AddSingleton<IIntegrationProvider, FireflyProvider>();
 
             services.AddSingleton<IIntegrationProviderRegistry, IntegrationProviderRegistry>();
@@ -115,8 +104,7 @@ namespace Operum.API.Configuration
             services.AddScoped<IIntegrationsService, IntegrationsService>();
             services.AddScoped<IIntegrationWebhookReceiver, IntegrationWebhookReceiver>();
 
-            // Integrations are opt-in while the feature is unfinished: without the flag the
-            // sync loop never runs and the endpoints answer 404 (see RequiresIntegrationsAttribute).
+            // Integrations are opt-in while unfinished: without the flag the sync loop never runs and the endpoints answer 404 (see RequiresIntegrationsAttribute).
             if (configuration.GetValue("Features:Integrations", false))
             {
                 services.AddHostedService<IntegrationSyncService>();
@@ -127,17 +115,12 @@ namespace Operum.API.Configuration
 
         private static IServiceCollection RegisterInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
         {
-            // Authorization result middleware
             services.AddSingleton<IAuthorizationMiddlewareResultHandler, AuthorizationResultHandlerMiddleware>();
 
-            // Feature switches
             services.Configure<FeatureSettings>(configuration.GetSection("Features"));
 
-            // Data Protection encrypts integration credentials at rest. Its key ring must
-            // outlive the container: without a persisted path the keys are regenerated on
-            // every restart and every stored credential becomes undecryptable. Left at the
-            // in-memory default only when no path is configured, which is right for tests and
-            // wrong for any deployment that stores a credential -- hence the warning.
+            // Data Protection encrypts integration credentials at rest; its key ring must outlive the container, or keys
+            // regenerate on every restart and stored credentials become undecryptable. In-memory default is fine for tests only.
             var keyPath = configuration.GetValue<string>("DataProtection:KeyPath");
             if (!string.IsNullOrWhiteSpace(keyPath))
             {
@@ -150,7 +133,6 @@ namespace Operum.API.Configuration
                 services.AddDataProtection().SetApplicationName("Operum");
             }
 
-            // Mail Service with MailGun Configuration
             services.Configure<VapidSettings>(configuration.GetSection("Vapid"));
             services.Configure<MailGunConfigurationModel>(configuration.GetSection("MailGun"));
             services.AddSingleton<IMailSender, MailSender>();

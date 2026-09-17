@@ -3,33 +3,14 @@ using Operum.Model.Models;
 
 namespace Operum.Service.Interfaces
 {
-    /// <summary>
-    /// Writes entries on behalf of a caller that has no HTTP context and no signed-in user --
-    /// a sync loop, a webhook. <c>EntriesService</c> cannot serve that: it opens by reading
-    /// the current user out of <c>IHttpContextAccessor</c>.
-    /// <para>
-    /// This type performs no authorization of its own. Callers establish the right to write to
-    /// the tracker first: the API layer from the request, the integrations layer from the
-    /// connection's owning user.
-    /// </para>
-    /// </summary>
+    // For callers with no HTTP context and no signed-in user (sync loop, webhook); EntriesService
+    // can't serve that since it reads the current user from IHttpContextAccessor. Performs no
+    // authorization of its own: callers must establish write access first.
     public interface IEntryWriter
     {
-        /// <summary>
-        /// Applies a batch of records to one tracker, keyed on (tracker, source, external id):
-        /// a record whose key is already present updates that entry, one whose key is new
-        /// creates an entry, and a delete removes it.
-        /// <para>
-        /// Not transactional. The key makes the batch idempotent instead, so a partially
-        /// applied batch is repaired by running it again rather than rolled back.
-        /// </para>
-        /// </summary>
-        /// <param name="source">The provider key stamped onto every entry this writes.</param>
-        /// <param name="fields">Every field on the tracker, calculated ones included.</param>
-        /// <param name="timeZone">
-        /// The tracker owner's zone, used when calculated fields resolve constants with
-        /// date-based conditions. Not optional here -- there is no ambient user to fall back to.
-        /// </param>
+        // Keyed on (tracker, source, external id): existing key updates, new key creates, delete removes.
+        // Not transactional; the key makes a batch idempotent so a partial failure is repaired by rerunning it.
+        // timeZone is required (not defaulted): there is no ambient user to fall back to here.
         Task<EntryWriteResult> ApplyAsync(
             string trackerId,
             string source,

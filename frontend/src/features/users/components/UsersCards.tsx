@@ -39,7 +39,6 @@ export function UsersCards({
             {users.map((user) => (
                 <Card key={user.id} withBorder radius="md" p="md">
                     <Stack gap="sm">
-                        {/* User Info */}
                         <Group justify="space-between" align="flex-start">
                             <Group gap="sm" wrap="nowrap" flex={1}>
                                 <Avatar size="md" radius="xl" color="indigo">
@@ -56,7 +55,6 @@ export function UsersCards({
                             </Group>
                         </Group>
 
-                        {/* Email */}
                         <Group gap="xs" wrap="nowrap">
                             <CiMail size={14} />
                             <Text size="sm" flex={1} truncate>
@@ -64,7 +62,6 @@ export function UsersCards({
                             </Text>
                         </Group>
 
-                        {/* Roles and Mail Status */}
                         <Group align="flex-start" justify="space-between">
                             <Group gap="xs" wrap="wrap">
                                 {user.roles.length > 0 ? (
@@ -97,7 +94,6 @@ export function UsersCards({
                                         : "Mail Pending"}
                                 </Badge>
                             </Group>
-                            {/* Actions */}
                             <Group gap="xs" wrap="nowrap">
                                 {currentUserId !== undefined &&
                                     user.id !== currentUserId && (

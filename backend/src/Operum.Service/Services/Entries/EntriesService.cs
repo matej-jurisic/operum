@@ -175,7 +175,6 @@ namespace Operum.Service.Services.Entries
                 ? null
                 : await db.Fields.AsNoTracking().FirstOrDefaultAsync(f => f.Id == displayFieldId && f.TrackerId == trackerId);
 
-            // No display field: fall back to newest entries labelled by creation date.
             if (displayField == null)
             {
                 var recent = await db.Entries
@@ -192,8 +191,8 @@ namespace Operum.Service.Services.Entries
                 return Result.Success(recent);
             }
 
-            // Entries that have a value for the display field. One with no value for it is not
-            // pickable here, which is acceptable: the display field is normally the entry's name.
+            // An entry with no value for the display field is not pickable here; acceptable
+            // since the display field is normally the entry's name.
             var valuesQuery = db.FieldValues
                 .AsNoTracking()
                 .Include(fv => fv.Field)
@@ -285,7 +284,7 @@ namespace Operum.Service.Services.Entries
             // Taken before saving: once the delete is committed the entity is detached, not
             // Deleted, and cleared values would still look present to the formula evaluator.
             var allCurrentValues = fieldValues
-            .Where(fv => db.Entry(fv).State != EntityState.Deleted) // Filter out items you just deleted
+            .Where(fv => db.Entry(fv).State != EntityState.Deleted)
             .Concat(newFieldValues)
             .ToList();
 
@@ -370,7 +369,6 @@ namespace Operum.Service.Services.Entries
                 return Result.Failure(ResultStatusCodes.Forbidden);
             }
 
-            // Check entry count limit upfront
             var currentEntryCount = await db.Entries.Where(x => x.TrackerId == trackerId).CountAsync();
 
             using var stream = file.OpenReadStream();
@@ -379,15 +377,14 @@ namespace Operum.Service.Services.Entries
             var fieldsByName = manualFields.ToDictionary(f => f.Name, f => f);
             var requiredFields = manualFields.Where(f => f.Required).ToList();
 
-            // Reference columns carry the target's display label, not its id. Resolve each
-            // referenced tracker to a label -> id map (best-effort, case-insensitive exact).
+            // Reference columns carry the target's display label, not its id, so each referenced
+            // tracker is resolved to a label -> id map (best-effort, case-insensitive exact).
             var referenceLabelToId = new Dictionary<string, Dictionary<string, string>>();
             foreach (var refField in manualFields.Where(f => f.Type == DataTypes.Reference && f.ReferencedTrackerId != null))
             {
                 referenceLabelToId[refField.Id] = await BuildReferenceLabelMap(refField.ReferencedTrackerId!, refField.ReferencedDisplayFieldId);
             }
 
-            // First pass: Parse and validate all records
             var parsedRecords = new List<Dictionary<string, string>>();
             var validationErrors = new List<string>();
 
@@ -421,7 +418,6 @@ namespace Operum.Service.Services.Entries
                     var dict = (IDictionary<string, object>)record;
                     var parsedRecord = new Dictionary<string, string>();
 
-                    // Validate required fields
                     var missingRequiredFields = requiredFields
                         .Where(f => !dict.ContainsKey(f.Name) || string.IsNullOrWhiteSpace(dict[f.Name]?.ToString()))
                         .Select(f => f.Name)
@@ -434,7 +430,6 @@ namespace Operum.Service.Services.Entries
                         continue;
                     }
 
-                    // Parse known fields only
                     foreach (var field in fields)
                     {
                         if (dict.ContainsKey(field.Name) && dict[field.Name] != null)
@@ -452,7 +447,6 @@ namespace Operum.Service.Services.Entries
                 }
             }
 
-            // Return validation errors if any
             if (validationErrors.Count > 0)
             {
                 return Result.Failure(ResultStatusCodes.BadRequest,
@@ -461,13 +455,11 @@ namespace Operum.Service.Services.Entries
 
             var isAdmin = await authorizationService.HasRole(RoleNames.Admin);
 
-            // Check if importing would exceed the limit for non admin users
             if (!isAdmin && (currentEntryCount + parsedRecords.Count > DataLimits.MaxEntryCount))
             {
                 return Result.Failure(ResultStatusCodes.BadRequest, Messages.CsvMaxNumberReached(currentEntryCount, parsedRecords.Count, DataLimits.MaxEntryCount));
             }
 
-            // Batch create entries and field values
             var newEntries = new List<Entry>();
             var allFieldValues = new List<FieldValue>();
             var createdAt = DateTime.UtcNow;
@@ -481,7 +473,6 @@ namespace Operum.Service.Services.Entries
                 };
                 newEntries.Add(newEntry);
 
-                // Create field values for manual fields only (calculated fields are derived)
                 foreach (var kvp in parsedRecord)
                 {
                     if (!fieldsByName.TryGetValue(kvp.Key, out var field))
@@ -490,8 +481,7 @@ namespace Operum.Service.Services.Entries
                     var rawValue = kvp.Value;
                     if (field.Type == DataTypes.Reference)
                     {
-                        // Translate the label in the cell to a target entry id; drop the value
-                        // entirely when nothing matches.
+                        // Translate the label in the cell to a target entry id; drop the value if nothing matches.
                         if (!referenceLabelToId.TryGetValue(field.Id, out var map)
                             || !map.TryGetValue(kvp.Value, out var targetId))
                             continue;
@@ -508,15 +498,12 @@ namespace Operum.Service.Services.Entries
                 }
             }
 
-            // Single database transaction for all operations
             using var transaction = await db.Database.BeginTransactionAsync();
             try
             {
-                // Add all entries in one batch
                 await db.Entries.AddRangeAsync(newEntries);
-                await db.SaveChangesAsync(); // This generates the Entry IDs
+                await db.SaveChangesAsync();
 
-                // Add all field values in one batch
                 await db.FieldValues.AddRangeAsync(allFieldValues);
                 await db.SaveChangesAsync();
 
@@ -528,7 +515,6 @@ namespace Operum.Service.Services.Entries
                 throw;
             }
 
-            // Evaluate calculated fields for each imported entry
             var fieldValuesByEntry = allFieldValues.GroupBy(fv => fv.EntryId)
                 .ToDictionary(g => g.Key, g => g.ToList());
 
@@ -792,8 +778,8 @@ namespace Operum.Service.Services.Entries
             }
         }
 
-        // After an entry write: resolve its own reference values to fresh labels, then update
-        // any reference value in another tracker that points back at this entry.
+        // Resolves this entry's own reference values to fresh labels, then updates any
+        // reference value elsewhere that points back at this entry.
         private async Task SyncEntryReferences(string entryId, List<FieldValue> currentFieldValues, List<Field> allFields)
         {
             await referenceLabelService.ResolveEntryReferences(entryId, currentFieldValues, allFields);
@@ -801,7 +787,7 @@ namespace Operum.Service.Services.Entries
         }
 
         // A referenced tracker's entries keyed by display label, for resolving CSV cells.
-        // First entry wins when two share a label.
+        // First entry wins on a shared label.
         private async Task<Dictionary<string, string>> BuildReferenceLabelMap(string referencedTrackerId, string? displayFieldId)
         {
             var entries = await db.Entries
@@ -824,8 +810,8 @@ namespace Operum.Service.Services.Entries
             return map;
         }
 
-        // Before entries are deleted: clear the link and cached label on every reference value
-        // pointing at them (the FK is SetNull, but that would leave the stale label behind).
+        // Clears the link and cached label on every reference value pointing at these entries
+        // before they're deleted: the FK is SetNull, but that would leave the stale label behind.
         private async Task ClearInboundReferences(IReadOnlyCollection<string> deletedEntryIds)
         {
             if (deletedEntryIds.Count == 0)

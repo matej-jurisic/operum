@@ -16,8 +16,7 @@ self.addEventListener("push", (event) => {
             body,
             icon: "/icon.svg",
             badge: "/icon.svg",
-            // Only the inner `data` object, not the whole payload -- notificationclick below
-            // reads `.data.url` off the notification, and title/body are already shown.
+            // notificationclick below reads `.data.url` off the notification.
             data: payload.data,
         }),
     );

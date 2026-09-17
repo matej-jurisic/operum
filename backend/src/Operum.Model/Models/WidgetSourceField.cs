@@ -3,8 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Operum.Model.Models
 {
-    // Purpose -> Field mapping for a widget source: the equivalent of the old
-    // AnalyticField/DashboardItemSourceField now that both have one shared home.
+    // Purpose -> Field mapping for a widget source; the equivalent of the old
+    // AnalyticField/DashboardItemSourceField now unified.
     public class WidgetSourceField
     {
         [Key]

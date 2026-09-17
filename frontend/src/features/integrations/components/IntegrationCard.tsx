@@ -58,8 +58,6 @@ export default function IntegrationCard({
     const theme = useMantineTheme();
     const name = provider?.displayName ?? integration.provider;
 
-    // One button that pulls every tracker fed by this connection, fetching each kind of
-    // data once rather than once per tracker. Only meaningful when something is pulled.
     const hasPullTarget = integration.targets.some((t) => t.mode === "Pull");
 
     const details =
@@ -200,8 +198,7 @@ function TargetRow({
 }) {
     const theme = useMantineTheme();
     const isPush = target.mode === "Push";
-    // A Firefly target is created before its secret exists: the user has to make the webhook
-    // in Firefly first, then paste the secret it generates. Until then nothing is received.
+    // A push target is created before its webhook secret exists.
     const needsSecret = isPush && target.hasWebhookSecret === false;
     const secretTooltip = provider?.providerSuppliesSecret
         ? needsSecret
@@ -290,8 +287,6 @@ function TargetRow({
                     align="flex-start"
                     style={{ flexShrink: 0 }}
                 >
-                    {/* A push target has nothing to poll, so the slot its sync button
-                        would take holds the one action only it has. */}
                     {isPush ? (
                         <Tooltip label={secretTooltip} withArrow>
                             <ActionIcon
@@ -318,9 +313,7 @@ function TargetRow({
                                     <FiRefreshCw size={16} />
                                 </ActionIcon>
                             </Tooltip>
-                            {/* A normal sync only re-reads the last few days and skips
-                                what has not changed upstream, so a mapping added later
-                                leaves older entries blank. This re-imports the lot. */}
+                            {/* Unlike sync, this re-imports records skipped by earlier syncs (e.g. a mapping added later). */}
                             <Tooltip label="Re-import all data" withArrow>
                                 <ActionIcon
                                     variant="outline"
@@ -363,12 +356,6 @@ function TargetRow({
     );
 }
 
-/**
- * What is imported and how it last went, as one dimmed line under the tracker name --
- * the same shape a notification's schedule and mode get. A pill is kept for state the
- * eye should catch on its own (paused, and the error message below), not for facts that
- * read perfectly well as a sentence.
- */
 function summarise(target: IntegrationTargetDto) {
     const count = target.mappings.length;
 

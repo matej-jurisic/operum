@@ -23,15 +23,12 @@ export interface GroupingDto {
 
 export interface ResultTypeDto {
     name: string;
-    /** True for result types only offered when building a saved widget (a Goal), not in
-        Explore or a notification condition. */
+    /** True for result types only offered when building a saved widget (a Goal), not in Explore or a notification condition. */
     widgetOnly: boolean;
     codes: CodeDto[];
-    /** Line/Bar only: the calculation is a (grouping, code) pair. Empty for every other
-        result type. */
+    /** Line/Bar only: the calculation is a (grouping, code) pair; empty for every other result type. */
     groupings: GroupingDto[];
-    /** Line/Bar only: the purpose the grouping constrains (its field types come from the
-        chosen grouping, not the code). "" for every other result type. */
+    /** Line/Bar only: the purpose the grouping constrains; "" for every other result type. */
     groupingPurpose: string;
 }
 
@@ -39,13 +36,11 @@ export interface AnalyticConfigDto {
     resultTypes: ResultTypeDto[];
 }
 
-/** Whether this result type's calculation is a (grouping, code) pair rather than a bare
-    code. */
+/** Whether this result type's calculation is a (grouping, code) pair rather than a bare code. */
 export const usesGrouping = (rt: ResultTypeDto | undefined): boolean =>
     !!rt && rt.groupings.length > 0;
 
-/** The field-mapping purposes for a chosen (grouping, code): the grouping purpose (with
-    the grouping's field types) followed by whatever the aggregation reads. */
+/** The field-mapping purposes for a chosen (grouping, code): grouping purpose first, then the aggregation's own. */
 export function effectivePurposes(
     rt: ResultTypeDto | undefined,
     grouping: GroupingDto | undefined,

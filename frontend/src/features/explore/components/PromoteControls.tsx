@@ -43,9 +43,7 @@ interface Props {
 
 type OpenModal = "dashboard" | "widget" | null;
 
-/** Turns the current exploration into something permanent: a Widget Library entry, or a
-    widget placed on a dashboard. Inline filters can't live on a widget definition, so the
-    dashboard path first saves each source's inline filters as a view on its tracker. */
+/** Inline filters can't live on a widget definition, so the dashboard path first saves each source's filters as a view. */
 export function PromoteControls({
     resultType,
     grouping,
@@ -91,9 +89,7 @@ export function PromoteControls({
         setViewNames({});
     };
 
-    // Persists each source's inline clauses as a new view on its tracker, returning the
-    // view id to place that source with (its pre-existing view when it has no inline
-    // clauses of its own).
+    // Falls back to the source's pre-existing viewId when it has no inline clauses.
     const ensureViewIds = async (): Promise<(string | null)[]> =>
         Promise.all(
             sources.map(async (source, i) => {

@@ -8,15 +8,11 @@ namespace Operum.Model.DTOs.Dashboard.Requests
     {
         [Required]
         public string ItemId { get; set; } = string.Empty;
-        // The Container item this placement is inside, or null for a spot on the board
-        // itself. Only honored on the wide grid: the narrow grid flattens containers, so a
-        // parent sent with a Mobile variant is ignored. A parent that would nest a
-        // container, or that isn't a container on this board, is dropped and the item lands
-        // on the board itself.
+        // Only honored on the wide grid (narrow grid flattens containers). An invalid parent
+        // (nesting, or not a container on this board) is dropped to board-level.
         public string? ParentItemId { get; set; }
-        // When ParentItemId names a TabsContainer, which of its tabs this placement sits in.
-        // Ignored for a plain Container or a board-level spot, and on the narrow grid. A tab
-        // id the container doesn't have is dropped and the item lands on the board itself.
+        // Only meaningful when ParentItemId names a TabsContainer. An unknown tab id is
+        // dropped to board-level.
         public string? ParentTabId { get; set; }
         public int X { get; set; }
         public int Y { get; set; }
@@ -24,13 +20,10 @@ namespace Operum.Model.DTOs.Dashboard.Requests
         public int H { get; set; }
     }
 
-    // The whole board's placement in one call: the grid hands back every item it holds
-    // after a drag or a resize, and ids that are not on the dashboard are ignored.
+    // Ids not on the dashboard are ignored.
     public class UpdateDashboardLayoutDto
     {
-        // Which of the board's two grids these placements were made on. Defaults to the
-        // wide one so a client that predates the narrow grid keeps saving what it always
-        // did rather than silently writing over the phone arrangement.
+        // Defaults to desktop so a client that predates the mobile grid doesn't overwrite it.
         public string Variant { get; set; } = DashboardLayoutVariants.Desktop;
 
         public List<DashboardLayoutItemDto> Items { get; set; } = [];
@@ -40,9 +33,7 @@ namespace Operum.Model.DTOs.Dashboard.Requests
     {
         public DashboardLayoutItemDtoValidator()
         {
-            // Only the shape is checked here. A placement that is merely awkward (off the
-            // right edge, taller than the board allows) is clamped in DashboardService
-            // rather than rejected, so a client with its own idea of the grid still saves.
+            // Out-of-range placements are clamped in DashboardService, not rejected here.
             RuleFor(x => x.ItemId)
                 .NotEmpty().WithMessage(x => Messages.Required("item id"));
 
@@ -57,9 +48,8 @@ namespace Operum.Model.DTOs.Dashboard.Requests
     {
         public UpdateDashboardLayoutDtoValidator()
         {
-            // Unlike a placement, an unknown variant cannot be clamped into something
-            // sensible: there is no way to tell which grid the numbers below belong to, so
-            // the whole call is refused rather than guessed at.
+            // An unknown variant can't be clamped (no way to tell which grid it belongs to),
+            // so the whole call is refused.
             RuleFor(x => x.Variant)
                 .Must(DashboardLayoutVariants.IsValid).WithMessage(x => Messages.Invalid("layout variant"));
 

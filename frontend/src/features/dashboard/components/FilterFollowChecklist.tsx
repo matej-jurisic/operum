@@ -15,12 +15,7 @@ interface Props {
     onLinksChange: (links: Record<string, Record<string, string>>) => void;
 }
 
-/**
- * A "Follow filters" checklist offered while adding a widget: one checkbox per existing
- * filter widget on the board, expanding into a per-clause field picker once checked. A
- * tracker offering exactly one field of the right type for a clause has it pinned
- * automatically, the same shortcut the filter widget's own "Followed by" editor takes.
- */
+/** One checkbox per existing filter widget, expanding into a per-clause field picker once checked. */
 export function FilterFollowChecklist({ fields, filters, links, onLinksChange }: Props) {
     const eligibleFields = (dataType: string) =>
         fields.filter((f) => fieldTypesCompatible(f.type, dataType));

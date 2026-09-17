@@ -42,8 +42,8 @@ namespace Operum.Service.Services.Notifications
                 notifications = await db.TrackerNotifications
                     // The context runs no-tracking, which also skips identity resolution: two
                     // notifications on one tracker, or two filters over one field, would each
-                    // materialise that row twice and conflict the moment the graph is attached.
-                    // Tracking resolves them to a single instance and picks up the state
+                    // materialise that row twice and conflict once the graph is attached.
+                    // AsTracking resolves them to a single instance and picks up the state
                     // changes below without an explicit Update.
                     .AsTracking()
                     .Where(n => n.IsEnabled)
@@ -168,7 +168,6 @@ namespace Operum.Service.Services.Notifications
             var newlyMatched = currentMatchSet.Except(existingTriggered).ToList();
             var dropped = existingTriggered.Except(currentMatchSet).ToList();
 
-            // Add triggered entries for newly matched
             foreach (var entryId in newlyMatched)
             {
                 db.NotificationTriggeredEntries.Add(new NotificationTriggeredEntry
@@ -179,7 +178,7 @@ namespace Operum.Service.Services.Notifications
                 });
             }
 
-            // Remove triggered entries that no longer match (re-fireable on next entry)
+            // Removed rather than kept as fired, so it can fire again if the entry matches later.
             if (dropped.Count > 0)
             {
                 await db.NotificationTriggeredEntries

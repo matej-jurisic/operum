@@ -11,7 +11,6 @@ namespace Operum.Model.Models
         public string Id { get; set; } = Guid.NewGuid().ToString();
         public NotificationValueMode ValueMode { get; set; }
 
-        // Analytic mode only
         public string? AnalyticCode { get; set; }
         public string? AnalyticResultType { get; set; }
 

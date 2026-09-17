@@ -73,11 +73,7 @@ export const integrationsController = {
             { timeout: LONG_REQUEST_TIMEOUT_MS },
         ),
 
-    /**
-     * Sets a push target's signing secret. For Firefly III, pass the secret copied from its
-     * webhook screen. For a provider Operum generates the secret for, pass nothing and a fresh
-     * one comes back on the response.
-     */
+    /** Pass a secret for Firefly III; omit it for providers where Operum generates one. */
     setWebhookSecret: async (
         integrationId: string,
         targetId: string,

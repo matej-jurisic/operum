@@ -2,9 +2,8 @@ using Operum.Service.Domain.Notifications;
 
 namespace Operum.Tests.Tests.Notifications
 {
-    // NotificationMessageBuilder is the one place a user-authored push body ("Amount is
-    // {value}") gets combined with the generic default ("Condition met") and the evaluator's
-    // tokens. Pure and unit-testable in isolation from the evaluator itself.
+    // Combines a user-authored push body ("Amount is {value}") with the generic default
+    // ("Condition met") and the evaluator's tokens.
     public class NotificationMessageBuilderTests
     {
         [Theory]

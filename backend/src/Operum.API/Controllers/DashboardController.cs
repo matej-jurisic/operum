@@ -59,9 +59,7 @@ namespace Operum.API.Controllers
             return GetApiResponse(await dashboardService.CreateAndPlaceWidget(dashboardId, dto));
         }
 
-        // Places an existing Widget Library chart by reference -- see PlaceWidgetDto. The
-        // widget keeps rendering here if it's edited or deleted from the Library, unlike the
-        // old copy-on-add "from-analytic" path this replaces.
+        // Places an existing Widget Library chart by reference (see PlaceWidgetDto); it keeps rendering here if edited or deleted from the Library, unlike the old copy-on-add path this replaces.
         [HttpPost("{dashboardId}/items/place-widget")]
         public async Task<IActionResult> PlaceWidget([FromRoute] string dashboardId, [FromBody] PlaceWidgetDto dto)
         {
@@ -116,8 +114,7 @@ namespace Operum.API.Controllers
             return GetApiResponse(await dashboardService.CreateAndPlaceEntriesWidget(dashboardId, dto));
         }
 
-        // Places an existing Widget Library Entries table by reference -- see
-        // PlaceEntriesWidgetDto.
+        // Places an existing Widget Library Entries table by reference, see PlaceEntriesWidgetDto.
         [HttpPost("{dashboardId}/items/place-entries-widget")]
         public async Task<IActionResult> PlaceEntriesWidget([FromRoute] string dashboardId, [FromBody] PlaceEntriesWidgetDto dto)
         {
@@ -154,39 +151,35 @@ namespace Operum.API.Controllers
             return GetApiResponse(await dashboardService.AddTabsContainerItem(dashboardId));
         }
 
-        // A tabs container's title and its whole tab list. Removing a tab moves its child
-        // widgets to the first remaining tab, so the whole board comes back recomputed.
+        // A tabs container's title and whole tab list; removing a tab moves its child widgets to the first remaining tab, so the whole board comes back recomputed.
         [HttpPut("{dashboardId}/items/{itemId}/tabs-container")]
         public async Task<IActionResult> SaveTabsContainer([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] SaveTabsContainerDto dto)
         {
             return GetApiResponse(await dashboardService.SaveTabsContainer(dashboardId, itemId, dto));
         }
 
-        // Only the widget's name and how each of its sources is filtered — the definition it
-        // was built from stays as it was placed.
+        // Only the widget's name and how each of its sources is filtered: the definition it was built from stays as placed.
         [HttpPut("{dashboardId}/items/{itemId}")]
         public async Task<IActionResult> UpdateDashboardItem([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] UpdateDashboardItemDto dto)
         {
             return GetApiResponse(await dashboardService.UpdateDashboardItem(dashboardId, itemId, dto));
         }
 
-        // A filter widget's current per-clause values alone -- the inputs on the board.
+        // A filter widget's current per-clause values alone: the inputs on the board.
         [HttpPut("{dashboardId}/items/{itemId}/filter-values")]
         public async Task<IActionResult> SetFilterValues([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] SetFilterValuesDto dto)
         {
             return GetApiResponse(await dashboardService.SetFilterValues(dashboardId, itemId, dto));
         }
 
-        // A filter widget's own clauses, presets and the full set of widgets that follow
-        // it (in either facet) with their per-clause field maps.
+        // A filter widget's own clauses, presets, and the full set of widgets that follow it (in either facet) with their per-clause field maps.
         [HttpPut("{dashboardId}/items/{itemId}/filter")]
         public async Task<IActionResult> UpdateFilterItem([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] SaveFilterItemDto dto)
         {
             return GetApiResponse(await dashboardService.UpdateFilterItem(dashboardId, itemId, dto));
         }
 
-        // Only how an Entries widget is filtered, and whether it collapses to a button — the
-        // tracker it reads from stays as it was placed.
+        // Only how an Entries widget is filtered and whether it collapses to a button: the tracker it reads from stays as placed.
         [HttpPut("{dashboardId}/items/{itemId}/entries")]
         public async Task<IActionResult> UpdateEntriesItem([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] UpdateDashboardEntriesItemDto dto)
         {

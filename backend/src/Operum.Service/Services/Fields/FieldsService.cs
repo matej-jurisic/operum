@@ -93,12 +93,10 @@ namespace Operum.Service.Services.Fields
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("field"));
             }
 
-            // Every dependent row (widget source field mappings, field values, view filters
-            // and sorts) cascades away at the database level. A widget survives losing one
-            // field mapping and falls back to a degraded render (see WidgetSourceField's FK
-            // config in OperumContext and AnalyticResultBuilder.GetDisplayableAnalyticResult)
-            // rather than disappearing, unlike the old tracker Analytic this used to also
-            // hard-delete.
+            // Every dependent row (widget source field mappings, field values, view filters and
+            // sorts) cascades away at the database level. A widget survives losing one field
+            // mapping and falls back to a degraded render instead of disappearing (see
+            // WidgetSourceField's FK config in OperumContext and AnalyticResultBuilder).
             await db.Fields.Where(x => x.Id == fieldId).ExecuteDeleteAsync();
 
             await ReorderFieldsAfterDeletion(trackerId, field.Order);
@@ -168,7 +166,6 @@ namespace Operum.Service.Services.Fields
             var requestedFieldIds = reorderFields.FieldIds.ToHashSet();
             var existingFieldIds = existingFields.ToHashSet();
 
-            // Check if all requested field IDs exist and belong to tracker
             if (!requestedFieldIds.SetEquals(existingFieldIds))
             {
                 return Result.Failure(ResultStatusCodes.BadRequest);
@@ -279,12 +276,11 @@ namespace Operum.Service.Services.Fields
             return Result.Success(updatedField.Data);
         }
 
-        // A field's value cannot be extracted if it is derived from other fields or already
-        // points somewhere else -- both would land in the new tracker meaning nothing.
+        // A calculated or reference field's value would land in the new tracker meaning nothing.
         private static readonly HashSet<string> NonExtractableTypes = [DataTypes.Reference];
 
-        // Separator for building the grouping key. A unit separator never appears in a
-        // formatted field value, so it cannot make two different combinations collide.
+        // Grouping-key separator. A unit separator never appears in a formatted field value,
+        // so it can't make two different combinations collide.
         private const char KeySeparator = (char)0x1F;
 
         public async Task<Result<ExtractFieldsResultDto>> ExtractFields(string trackerId, ExtractFieldsDto extract)
@@ -337,8 +333,8 @@ namespace Operum.Service.Services.Fields
                 return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("trackers", DataLimits.MaxTrackerCount));
             }
 
-            // Every value of every selected field, keyed by entry. A selected field only ever
-            // belongs to this tracker, so filtering on FieldId alone stays within it.
+            // Every value of every selected field, keyed by entry. Filtering on FieldId alone is
+            // enough since a selected field only ever belongs to this tracker.
             var selectedIdSet = selectedIds.ToHashSet();
             var valuesByEntry = (await db.FieldValues
                     .Where(fv => selectedIdSet.Contains(fv.FieldId))
@@ -476,8 +472,8 @@ namespace Operum.Service.Services.Fields
 
                 var referenceFieldId = referenceField.Id;
 
-                // Everything above is persisted; drop it from the tracker so the closing
-                // renumber can attach its own instances without an identity clash.
+                // Everything above is persisted; clear the tracker so the closing renumber can
+                // attach its own instances without an identity clash.
                 db.ChangeTracker.Clear();
 
                 await db.Fields.Where(f => selectedIdSet.Contains(f.Id)).ExecuteDeleteAsync();
@@ -564,8 +560,7 @@ namespace Operum.Service.Services.Fields
                 .Select(c => c.Name)
                 .ToListAsync();
 
-            // The field being saved is excluded: it is only referenceable through itself,
-            // which is a circular reference.
+            // The field being saved is excluded: referencing it would only be a circular reference.
             var validNames = new HashSet<string>(
                 fields.Where(f => f.Id != fieldId).Select(f => f.Name).Concat(constantNames),
                 StringComparer.OrdinalIgnoreCase);
@@ -581,8 +576,8 @@ namespace Operum.Service.Services.Fields
                     : $"Unknown token '{token}' in formula. Only fields and constants can be referenced.";
             }
 
-            // Walk the chain of calculated fields this formula pulls in, using the pending
-            // formula for the field being saved, and reject if it leads back to itself.
+            // Walk the chain of calculated fields this formula pulls in, using the pending formula
+            // for the field being saved, and reject if it leads back to itself.
             var formulasByName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var field in fields.Where(f => f.IsCalculated && !string.IsNullOrWhiteSpace(f.Formula) && f.Id != fieldId))
                 formulasByName[field.Name] = field.Formula!;

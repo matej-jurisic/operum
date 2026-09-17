@@ -1,7 +1,4 @@
-/** Mirrors LegacyLineBarCodes on the backend. Before grouping and aggregation were
-    separate fields, a Line or Bar chart's whole calculation was one fused code; a
-    bookmarked Explore URL can still carry that shape. Only apply when no grouping is
-    present (a current URL always carries one for Line/Bar). */
+/** Mirrors LegacyLineBarCodes on the backend: maps a pre-grouping fused Line/Bar code from an old bookmarked URL to (grouping, code). */
 export const LEGACY_LINE_BAR_CODES: Record<
     string,
     { grouping: string; code: string }

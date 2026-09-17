@@ -14,30 +14,16 @@ namespace Operum.Model.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        /// <summary>
-        /// Which integration produced this entry (a provider key, e.g. "intervals.icu"), or
-        /// null for anything a user created by hand or imported from CSV.
-        /// </summary>
+        // Provider key (e.g. "intervals.icu"), or null for hand-created/CSV-imported entries.
         public string? Source { get; set; }
 
-        /// <summary>
-        /// The provider's own stable id for the record behind this entry -- a wellness date,
-        /// a transaction journal id. Together with <see cref="Source"/> this is what makes a
-        /// re-sync update rather than duplicate; see the filtered unique index in
-        /// OperumContext and Domain/Entries/EntryWriter.
-        /// </summary>
+        // Paired with Source, forms the idempotency key a re-sync updates on; see the
+        // filtered unique index in OperumContext and Domain/Entries/EntryWriter.
         public string? ExternalId { get; set; }
 
-        /// <summary>
-        /// The provider's id for the parent record this entry came from, when the provider has
-        /// that shape -- a Firefly transaction group fans out into one entry per split, and
-        /// all of them carry the group's id here.
-        /// <para>
-        /// It exists so a parent that arrives with fewer children than last time can have the
-        /// missing ones removed: see EntryWriter's group reconciliation. Null for providers
-        /// whose records are flat, and for everything a user made by hand.
-        /// </para>
-        /// </summary>
+        // Parent record's id for providers whose records nest (e.g. a Firefly transaction
+        // group's splits). Lets EntryWriter remove children missing from a later sync. Null
+        // for flat records and hand-created entries.
         public string? ExternalGroupId { get; set; }
 
         public virtual List<FieldValue> FieldValues { get; set; } = [];

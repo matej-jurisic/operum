@@ -73,8 +73,6 @@ import HomeNavbar from "../components/HomeNavbar";
 import { readDefaultPage } from "../../../shared/constants/defaultPage";
 import globalStore from "../../../shared/stores/GlobalStore";
 
-// ─── Mock chart data ──────────────────────────────────────────────────────────
-
 const LINE_DATA = [
     { month: "Jan", value: 18 },
     { month: "Feb", value: 27 },
@@ -122,8 +120,6 @@ const SCATTER_DATA = [
         ],
     },
 ];
-
-// ─── Section data ─────────────────────────────────────────────────────────────
 
 const FEATURES = [
     {
@@ -324,7 +320,7 @@ const ANALYTICS_CARDS = {
     },
 };
 
-// Deterministic pseudo-random daily counts for the calendar heatmap sample.
+// Deterministic pseudo-random sample data.
 const CALENDAR_DATA: Record<string, number> = Object.fromEntries(
     Array.from({ length: 364 }, (_, i) => {
         const day = new Date(Date.UTC(2025, 0, 1 + i));
@@ -480,8 +476,6 @@ const COLLAB_ROLES = [
     },
 ];
 
-// ─── Reusable section header ──────────────────────────────────────────────────
-
 function SectionHeader({
     eyebrow,
     title,
@@ -516,8 +510,6 @@ function SectionHeader({
     );
 }
 
-// ─── CTA buttons ─────────────────────────────────────────────────────────────
-
 function CtaButtons({
     onAuthOpen,
 }: {
@@ -546,8 +538,6 @@ function CtaButtons({
         </Group>
     );
 }
-
-// ─── Home ─────────────────────────────────────────────────────────────────────
 
 const Home = observer(() => {
     const theme = useMantineTheme();
@@ -583,7 +573,6 @@ const Home = observer(() => {
             />
 
             <Box style={{ position: "relative", height: "100%", background: heroBg }}>
-                {/* Dot grid */}
                 <Box
                     style={{
                         position: "absolute",
@@ -604,7 +593,6 @@ const Home = observer(() => {
                     }}
                     onScrollPositionChange={({ y }) => setScrolled(y > 20)}
                 >
-                    {/* ── Hero ──────────────────────────────────────────── */}
                     <Box id="hero" style={{ scrollMarginTop: "60px" }}>
                         <Container size="lg" pt={140} pb={100}>
                             <Stack align="center" gap="xl">
@@ -700,7 +688,6 @@ const Home = observer(() => {
                         </Container>
                     </Box>
 
-                    {/* ── Features ──────────────────────────────────────── */}
                     <Box
                         id="features"
                         style={{ background: altBg, scrollMarginTop: "60px" }}
@@ -756,7 +743,6 @@ const Home = observer(() => {
                         </Container>
                     </Box>
 
-                    {/* ── Data Types ────────────────────────────────────── */}
                     <Box id="data-types" style={{ scrollMarginTop: "60px" }}>
                         <Container size="lg" py={80}>
                             <Grid gutter={60} align="center">
@@ -825,7 +811,6 @@ const Home = observer(() => {
                         </Container>
                     </Box>
 
-                    {/* ── Use Cases ─────────────────────────────────────── */}
                     <Box
                         id="use-cases"
                         style={{ background: altBg, scrollMarginTop: "60px" }}
@@ -878,7 +863,6 @@ const Home = observer(() => {
                         </Container>
                     </Box>
 
-                    {/* ── Getting started ──────────────────────────────── */}
                     <Box
                         id="getting-started"
                         style={{ scrollMarginTop: "60px" }}
@@ -934,7 +918,6 @@ const Home = observer(() => {
                         </Container>
                     </Box>
 
-                    {/* ── Dashboards ────────────────────────────────────── */}
                     <Box id="dashboards" style={{ scrollMarginTop: "60px" }}>
                         <Container size="lg" py={80}>
                             <Stack gap={48}>
@@ -980,7 +963,6 @@ const Home = observer(() => {
                         </Container>
                     </Box>
 
-                    {/* ── Analytics ─────────────────────────────────────── */}
                     <Box
                         id="analytics"
                         style={{ background: altBg, scrollMarginTop: "60px" }}
@@ -994,7 +976,6 @@ const Home = observer(() => {
                                     primaryColor={theme.primaryColor}
                                 />
                                 <Grid>
-                                    {/* Single Value */}
                                     <Grid.Col span={{ base: 12, sm: 6 }}>
                                         <Card withBorder radius="md" p="lg" h="100%">
                                             <Stack gap="xs" mb="md">
@@ -1034,7 +1015,6 @@ const Home = observer(() => {
                                         </Card>
                                     </Grid.Col>
 
-                                    {/* Goal */}
                                     <Grid.Col span={{ base: 12, sm: 6 }}>
                                         <Card withBorder radius="md" p="lg" h="100%">
                                             <Stack gap="xs" mb="md">
@@ -1080,7 +1060,6 @@ const Home = observer(() => {
                                         </Card>
                                     </Grid.Col>
 
-                                    {/* Line */}
                                     <Grid.Col span={{ base: 12, sm: 6 }}>
                                         <Card withBorder radius="md" p="lg" h="100%">
                                             <Stack gap="xs" mb="md">
@@ -1109,7 +1088,6 @@ const Home = observer(() => {
                                         </Card>
                                     </Grid.Col>
 
-                                    {/* Bar */}
                                     <Grid.Col span={{ base: 12, sm: 6 }}>
                                         <Card withBorder radius="md" p="lg" h="100%">
                                             <Stack gap="xs" mb="md">
@@ -1137,7 +1115,6 @@ const Home = observer(() => {
                                         </Card>
                                     </Grid.Col>
 
-                                    {/* Donut */}
                                     <Grid.Col span={{ base: 12, sm: 6 }}>
                                         <Card withBorder radius="md" p="lg" h="100%">
                                             <Stack gap="xs" mb="md">
@@ -1169,7 +1146,6 @@ const Home = observer(() => {
                                         </Card>
                                     </Grid.Col>
 
-                                    {/* Scatter */}
                                     <Grid.Col span={{ base: 12, sm: 6 }}>
                                         <Card withBorder radius="md" p="lg" h="100%">
                                             <Stack gap="xs" mb="md">
@@ -1193,7 +1169,6 @@ const Home = observer(() => {
                                         </Card>
                                     </Grid.Col>
 
-                                    {/* Calendar */}
                                     <Grid.Col span={12}>
                                         <Card withBorder radius="md" p="lg" h="100%">
                                             <Stack gap="xs" mb="md">
@@ -1231,7 +1206,6 @@ const Home = observer(() => {
                         </Container>
                     </Box>
 
-                    {/* ── Integrations ──────────────────────────────────── */}
                     <Box id="integrations" style={{ scrollMarginTop: "60px" }}>
                         <Container size="lg" py={80}>
                             <Grid gutter={60} align="center">
@@ -1323,7 +1297,6 @@ const Home = observer(() => {
                         </Container>
                     </Box>
 
-                    {/* ── Notifications ─────────────────────────────────── */}
                     <Box
                         id="notifications"
                         style={{ background: altBg, scrollMarginTop: "60px" }}
@@ -1405,7 +1378,6 @@ const Home = observer(() => {
                         </Container>
                     </Box>
 
-                    {/* ── Collaboration ─────────────────────────────────── */}
                     <Box
                         id="collaboration"
                         style={{ scrollMarginTop: "60px" }}
@@ -1500,7 +1472,6 @@ const Home = observer(() => {
                             </Card>
                         </Container>
                     )}
-                    {/* ── Footer ───────────────────────────────────────── */}
                     <Box
                         style={{
                             borderTop: "1px solid var(--mantine-color-default-border)",

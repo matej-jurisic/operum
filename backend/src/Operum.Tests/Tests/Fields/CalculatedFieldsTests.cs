@@ -86,8 +86,8 @@ namespace Operum.Tests.Tests.Fields
             var trackerId = await CreateTracker(client, "Out of order");
 
             await CreateField(client, trackerId, "Base", DataTypes.Number);
-            // "First" is created before "Second", then rewritten to depend on it, so the
-            // evaluation order can only come from the dependency graph.
+            // Rewritten to depend on "Second" after creation, so evaluation order can only
+            // come from the dependency graph.
             var first = await Data(await CreateCalculatedField(client, trackerId, "First", "{Base} * 2"));
             await CreateCalculatedField(client, trackerId, "Second", "{Base} + 5");
             Assert.Equal(HttpStatusCode.OK,
@@ -194,7 +194,6 @@ namespace Operum.Tests.Tests.Fields
             var trackerId = await CreateTracker(client, "Chained timespan");
 
             await CreateField(client, trackerId, "Duration", DataTypes.TimeSpan);
-            // Half the duration, then read it back in hours.
             await CreateCalculatedField(client, trackerId, "Half", "{Duration.seconds} / 2", DataTypes.TimeSpan);
             await CreateCalculatedField(client, trackerId, "HalfHours", "{Half.hours}");
 

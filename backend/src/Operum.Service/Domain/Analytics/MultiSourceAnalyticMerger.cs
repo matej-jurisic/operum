@@ -6,10 +6,7 @@ using Operum.Model.Models;
 
 namespace Operum.Service.Domain.Analytics
 {
-    // One source after its own single-tracker calculation has run, ready to be merged with
-    // its siblings into a combined chart. Decoupled from any persistence shape: a dashboard
-    // placement builds one of these per DashboardItemSource, the Explore page one per
-    // request source.
+    // One source after its own single-tracker calculation has run, ready to merge with its siblings.
     public sealed record MergeSource(
         string Key,
         string? Label,
@@ -17,17 +14,12 @@ namespace Operum.Service.Domain.Analytics
         string? TrackerColor,
         AnalyticDto Result);
 
-    // The merge paths for combining 2+ tracker sources into a single widget result. Each
-    // source is calculated independently by the ordinary single-tracker pipeline; these
-    // methods only stitch the per-source results together. Shared by DashboardService
-    // (saved widgets on a board) and AnalyticsService (the Explore page).
+    // Stitches independently-calculated per-source results into a single widget result.
+    // Shared by DashboardService and AnalyticsService.
     public static class MultiSourceAnalyticMerger
     {
-        // A correlation source's Match/Value fields, presented to the line-chart pipeline as
-        // its X/Y axes: the raw-values line chart it then produces is the (match key, value)
-        // list MergeCorrelation joins on. A mapping that lost its field (deleted) is
-        // dropped, leaving the line result without that axis and the merge with nothing to
-        // pair -- handled the same way as any other missing analytic field.
+        // Presents a correlation source's Match/Value fields as X/Y so the line-chart pipeline
+        // can produce the (match key, value) list MergeCorrelation joins on.
         public static Dictionary<string, Field> PairedAxisFieldMap(IReadOnlyDictionary<string, Field> byPurpose)
         {
             var map = new Dictionary<string, Field>();
@@ -38,11 +30,7 @@ namespace Operum.Service.Domain.Analytics
             return map;
         }
 
-        // Merges 2+ per-source results (each computed independently by the same
-        // single-tracker pipeline as always) into one multi-series chart. Every source shares
-        // the widget's result type and code, so the series are always produced the same way;
-        // what they can still differ in is the kind of value on the x-axis, which is surfaced
-        // as a warning rather than rejected.
+        // Sources can differ in the kind of value on the x-axis; that's surfaced as a warning rather than rejected.
         public static ComposedChartAnalyticDto BuildComposed(IReadOnlyList<MergeSource> sources, bool matchedValuesOnly)
         {
             var composed = new ComposedChartAnalyticDto();
@@ -51,8 +39,7 @@ namespace Operum.Service.Domain.Analytics
             {
                 ComposedChartSeriesDto? series = resolved.Result switch
                 {
-                    // YField is null for a Count line series (it reads no value field), same
-                    // as a Count bar series -- label and axis fall back to "Count".
+                    // YField is null for a Count series; label and axis fall back to "Count".
                     LineChartAnalyticDto line => new ComposedChartSeriesDto
                     {
                         Key = resolved.Key,
@@ -73,16 +60,13 @@ namespace Operum.Service.Domain.Analytics
                         Points = bar.Points.Select(p => new ComposedChartPointDto { X = p.Name, Y = p.Value }).ToList(),
                         Color = resolved.TrackerColor
                     },
-                    // Defensive only -- the caller already rejects any other result type once
-                    // there's more than one source.
+                    // Defensive only: the caller already rejects other result types once there's more than one source.
                     _ => null
                 };
 
                 if (series != null) composed.Series.Add(series);
             }
 
-            // No name of its own: the chart is titled from its series, in the same order
-            // they're plotted, so renaming a source's series also renames the widget.
             composed.Name = string.Join(" - ", composed.Series.Select(s => s.Label));
 
             var hasMismatchedXTypes = composed.Series.Select(s => s.XField.Type).Distinct().Count() > 1;
@@ -95,11 +79,7 @@ namespace Operum.Service.Domain.Analytics
             return composed;
         }
 
-        // Narrows every series to the x-axis values all of them have a point for, so the
-        // chart compares the sources over the same range instead of letting each one run on
-        // wherever the others have no data. Series whose x-axis buckets never line up (a
-        // different field type, or simply no overlapping period) end up empty, which is worth
-        // saying out loud rather than rendering as a blank chart.
+        // Narrows every series to the x-axis values all of them share.
         private static void KeepOnlyMatchedXValues(ComposedChartAnalyticDto composed)
         {
             var shared = composed.Series
@@ -113,12 +93,8 @@ namespace Operum.Service.Domain.Analytics
                 composed.Warnings.Add("No x-axis value appears in every source, so nothing is left to show with matched values only.");
         }
 
-        // A calendar has no shared axis to reconcile: merging trackers is just a union of
-        // their dated events. Each point keeps the colour of the tracker it came from and a
-        // source name (the placement's label override, else the tracker's own name) so the
-        // card can tell the sources apart. The when/what fields are taken from the first
-        // source purely to format event dates in the card (every calendar "When" field is a
-        // date or datetime).
+        // Merging calendars is just a union of dated events; when/what fields are taken from
+        // the first source to format dates (every calendar "When" field is a date/datetime).
         public static CalendarAnalyticDto MergeCalendars(IReadOnlyList<MergeSource> sources)
         {
             var calendars = sources
@@ -151,11 +127,8 @@ namespace Operum.Service.Domain.Analytics
             return merged;
         }
 
-        // Joins two sources into one scatter plot: source A's value is the x of each point,
-        // source B's the y, paired on every match key both sources have. Each side arrives
-        // as a raw-values line chart (see PairedAxisFieldMap) -- X is the match key, Y the
-        // value -- so the join is just an intersection of their keys. Repeat entries for a
-        // key are averaged into the one value that key contributes.
+        // Joins two sources into one scatter plot on their shared match key (see
+        // PairedAxisFieldMap); repeat entries for a key are averaged into one value.
         public static ScatterPlotAnalyticDto MergeCorrelation(IReadOnlyList<MergeSource> sources)
         {
             var result = new ScatterPlotAnalyticDto();
@@ -165,9 +138,7 @@ namespace Operum.Service.Domain.Analytics
             var xSource = sources[0];
             var ySource = sources[1];
 
-            // A non-line result, or a line result missing an axis, means a field the
-            // calculation needs was deleted: nothing can be paired, and the card shows its
-            // missing-fields state (XField/YField left null).
+            // A missing axis means a field the calculation needs was deleted; leave XField/YField null.
             if (xSource.Result is not LineChartAnalyticDto xLine || ySource.Result is not LineChartAnalyticDto yLine)
                 return result;
 
@@ -202,9 +173,6 @@ namespace Operum.Service.Domain.Analytics
                 .GroupBy(p => p.X!)
                 .ToDictionary(g => g.Key, g => g.Average(p => p.Y!.Value));
 
-        // The scatter axis for a correlation source: the value field's own type (so ticks
-        // and the tooltip format it right), named for the tracker it came from unless the
-        // source was given a label of its own.
         private static FieldDto AxisField(FieldDto valueField, MergeSource source) => new()
         {
             Id = valueField.Id,

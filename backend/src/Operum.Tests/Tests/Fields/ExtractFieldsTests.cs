@@ -39,8 +39,7 @@ namespace Operum.Tests.Tests.Fields
             return null;
         }
 
-        // An "Expenses" tracker with a vendor column that repeats across rows: the shape the
-        // extract operation exists to normalise.
+        // A vendor column that repeats across rows: the shape the extract operation normalises.
         private static async Task<(string trackerId, string vendorFieldId, List<string> entryIds)> Expenses(HttpClient client)
         {
             var trackerId = await TestApi.CreateTracker(client, "Expenses");
@@ -74,18 +73,15 @@ namespace Operum.Tests.Tests.Fields
             var newTrackerId = result.GetProperty("newTrackerId").GetString()!;
             Assert.Equal(2, result.GetProperty("extractedEntryCount").GetInt32());
 
-            // The source tracker keeps a "Vendor" column, now a reference field.
             Assert.Equal(["Amount", "Vendor"], await FieldNames(client, trackerId));
             Assert.Equal(DataTypes.Reference, (await Field(client, trackerId, "Vendor")).GetProperty("type").GetString());
 
-            // The new tracker holds one row per distinct vendor.
             Assert.Equal(["Vendor"], await FieldNames(client, newTrackerId));
             var vendorEntries = await TestApi.ListEntries(client, newTrackerId);
             Assert.Equal(
                 ["Acme", "Globex"],
                 vendorEntries.Select(e => TestApi.ValueOf(e, "Vendor")?.GetString()).OrderBy(x => x));
 
-            // Each expense links to its vendor, and the two Acme rows share one.
             var expenses = await TestApi.ListEntries(client, trackerId);
             var links = expenses.ToDictionary(
                 e => e.GetProperty("id").GetString()!,

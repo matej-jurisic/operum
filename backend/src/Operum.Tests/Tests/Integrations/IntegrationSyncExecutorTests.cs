@@ -20,10 +20,7 @@ using System.Text.Json;
 
 namespace Operum.Tests.Tests.Integrations
 {
-    /// <summary>
-    /// The sync executor against a fake provider: window and cursor arithmetic, and what a
-    /// failing target does to everything around it.
-    /// </summary>
+    /// <summary>The sync executor against a fake provider: window and cursor arithmetic, and what a failing target does to everything around it.</summary>
     public class IntegrationSyncExecutorTests(CustomWebApplicationFactory factory) : IClassFixture<CustomWebApplicationFactory>
     {
         private readonly CustomWebApplicationFactory _factory = factory;
@@ -45,10 +42,6 @@ namespace Operum.Tests.Tests.Integrations
             return client;
         }
 
-        /// <summary>
-        /// A tracker with two fields, plus a connection and a pull target wired onto it.
-        /// Returns the target id and the field ids by name.
-        /// </summary>
         private async Task<(string TargetId, string TrackerId, Dictionary<string, string> Fields)> Wire(
             string trackerName, IntegrationMode mode = IntegrationMode.Pull, string providerKey = "fake")
         {
@@ -76,8 +69,7 @@ namespace Operum.Tests.Tests.Integrations
             {
                 Provider = providerKey,
                 UserId = ownerId,
-                // Distinct per test: tests in a class share one database, and a user may hold
-                // only one connection per provider account.
+                // Distinct per test: a user may hold only one connection per provider account.
                 ExternalAccountId = $"acct-{trackerName}",
                 CredentialCiphertext = null,
             };
@@ -103,18 +95,13 @@ namespace Operum.Tests.Tests.Integrations
             return (target.Id, trackerId, fields);
         }
 
-        /// <summary>
-        /// One connection feeding <paramref name="trackerCount"/> trackers the same kind of
-        /// data, which is the shape the grouped sync exists for. Returns the integration id
-        /// and, per tracker, its target id and field ids by name.
-        /// </summary>
+        /// <summary>One connection feeding <paramref name="trackerCount"/> trackers the same kind of data, the shape the grouped sync exists for.</summary>
         private static int _groupCounter;
 
         private async Task<(string IntegrationId, List<(string TargetId, string TrackerId, Dictionary<string, string> Fields)> Targets)> WireGroup(
             string namePrefix, int trackerCount, string resourceType = FakeIntegrationProvider.ResourceType)
         {
-            // A fresh user per call: this fixture shares one database across the class, and a
-            // group of trackers on the shared account would run into the per-user tracker cap.
+            // A fresh user per call, or a group of trackers on a shared account would hit the per-user tracker cap.
             var suffix = Interlocked.Increment(ref _groupCounter);
             var client = await _factory.NewUserClient($"groupsync{suffix}");
 
@@ -175,10 +162,7 @@ namespace Operum.Tests.Tests.Integrations
             return (integration.Id, targets);
         }
 
-        /// <summary>
-        /// Built by hand so the fake provider can stand in for the registry's contents; the
-        /// rest of the dependencies come from the app's own container.
-        /// </summary>
+        /// <summary>Built by hand so the fake provider can stand in for the registry's contents.</summary>
         private IntegrationSyncExecutor Executor(IServiceScope scope, params IIntegrationProvider[] providers) =>
             new(scope.ServiceProvider.GetRequiredService<OperumContext>(),
                 new IntegrationProviderRegistry(providers),
@@ -325,7 +309,6 @@ namespace Operum.Tests.Tests.Integrations
                 Assert.Equal(0, result.Data.Updated);
             }
 
-            // A newer revision does come through.
             provider.Records.Clear();
             provider.Records.Add(Upsert("r1", "99", firstRevision.AddHours(1)));
             using (var scope = _factory.Services.CreateScope())
@@ -349,8 +332,7 @@ namespace Operum.Tests.Tests.Integrations
             using (var scope = _factory.Services.CreateScope())
                 await Executor(scope, provider).SyncTargetAsync(targetId, fullResync: true);
 
-            // A plain incremental run would only re-read the reconciliation window; a full
-            // resync goes all the way back to the backfill date.
+            // A plain incremental run would only re-read the reconciliation window.
             var last = provider.RequestedWindows.Last();
             Assert.Equal(new DateOnly(2026, 1, 1), last.From);
             Assert.Null(last.Cursor);
@@ -374,8 +356,7 @@ namespace Operum.Tests.Tests.Integrations
                 Assert.Equal(0, result.Data.Updated);
             }
 
-            // The upstream value has since changed, but the revision timestamp did not move --
-            // exactly the case a mapping added later needs to pick up. A full resync writes it.
+            // The upstream value changed but the revision timestamp did not; a full resync writes it anyway.
             provider.Records.Clear();
             provider.Records.Add(Upsert("r1", "42", revision));
 
@@ -485,8 +466,6 @@ namespace Operum.Tests.Tests.Integrations
         {
             var (targetId, _, _) = await Wire("Ownership");
 
-            // The connection's user no longer owns the tracker: the credential must not keep
-            // writing into it.
             using (var scope = _factory.Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<OperumContext>();
@@ -504,8 +483,6 @@ namespace Operum.Tests.Tests.Integrations
             Assert.Contains(result.Messages, m => m.Contains("owned"));
         }
 
-        // ---- grouped sync: one fetch for many trackers ----
-
         [Fact]
         public async Task SyncIntegration_FetchesOnce_ForEveryTargetSharingAResourceType()
         {
@@ -522,7 +499,6 @@ namespace Operum.Tests.Tests.Integrations
             // Three trackers, one call -- not one call per tracker.
             Assert.Single(provider.RequestedWindows);
 
-            // ...and every tracker still got the record.
             foreach (var (_, trackerId, _) in targets)
                 Assert.Single(await StoredEntries(trackerId));
         }
@@ -533,8 +509,7 @@ namespace Operum.Tests.Tests.Integrations
             var (integrationId, targets) = await WireGroup("Union window", trackerCount: 2);
             var provider = new FakeIntegrationProvider();
 
-            // One target has already synced and only wants the reconciliation window; the
-            // other is still on its first run and needs the full backfill.
+            // One target has already synced; the other is on its first run and needs the full backfill.
             using (var scope = _factory.Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<OperumContext>();
@@ -557,8 +532,7 @@ namespace Operum.Tests.Tests.Integrations
             var provider = new FakeIntegrationProvider();
             provider.Records.Add(Upsert("r1", "10"));
 
-            // The first target's tracker is now owned by someone else, so the connection may
-            // no longer write into it; the second target is untouched.
+            // The first target's tracker is now owned by someone else.
             using (var scope = _factory.Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<OperumContext>();
@@ -570,8 +544,7 @@ namespace Operum.Tests.Tests.Integrations
             using (var scope = _factory.Services.CreateScope())
             {
                 var result = await Executor(scope, provider).SyncIntegrationAsync(integrationId);
-                // The second target got its record, so the overall result is a success even
-                // though the first one was refused.
+                // The second target got its record, so the overall result is a success despite the first being refused.
                 Assert.True(result.IsSuccess);
             }
 

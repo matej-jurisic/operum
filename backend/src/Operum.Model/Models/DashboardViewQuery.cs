@@ -3,9 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Operum.Model.Models
 {
-    // Attaches a Query to a DashboardView. Unlike ViewQuery there is no field binding here:
-    // a DashboardView is tracker-agnostic, so each following widget's selector link says
-    // which of its tracker's fields the clause runs against. Order is display order.
+    // Unlike ViewQuery there is no field binding: a DashboardView is tracker-agnostic, so
+    // each following widget's link says which field the clause runs against.
     public class DashboardViewQuery
     {
         [Key]

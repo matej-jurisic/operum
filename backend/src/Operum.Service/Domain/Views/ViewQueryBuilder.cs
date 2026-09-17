@@ -7,10 +7,7 @@ using System.Globalization;
 
 namespace Operum.Service.Domain.Views
 {
-    // One clause resolved to the concrete field it runs against -- what a view's
-    // field-agnostic queries become once their ViewQuery binding is applied, and what a
-    // dashboard view selector produces from its per-widget field map. The one currency
-    // ApplyViewFilters / ApplyViewSorting speak.
+    // One clause resolved to the concrete field it runs against; the currency ApplyViewFilters / ApplyViewSorting speak.
     public readonly record struct ResolvedClause(
         string FieldId,
         string FieldType,
@@ -20,11 +17,7 @@ namespace Operum.Service.Domain.Views
 
     public static class ViewQueryBuilder
     {
-        /// <summary>
-        /// Picks a view's sort queries out, in view order, using first-query-wins: if two
-        /// of them sort the same field, the earlier one takes priority and the later one
-        /// is skipped.
-        /// </summary>
+        // First-query-wins: if two sorts target the same field, the earlier one wins and the later is skipped.
         public static List<ResolvedClause> ResolveSorts(View view)
         {
             var seenFieldIds = new HashSet<string>();
@@ -43,9 +36,7 @@ namespace Operum.Service.Domain.Views
             return merged;
         }
 
-        /// <summary>
-        /// Picks a view's filter queries out, ANDing them all together.
-        /// </summary>
+        // ANDs all of the view's filter queries together.
         public static List<ResolvedClause> ResolveFilters(View view)
         {
             return view.ViewQueries
@@ -55,11 +46,8 @@ namespace Operum.Service.Domain.Views
                 .ToList();
         }
 
-        // A view's columns have no resolver of their own: they are stored on the view
-        // already deduped and in order (ViewColumn), and are deliberately never applied to
-        // the entries query. Columns are the last step, decided by whatever renders the
-        // entries, so a filter or a sort over a hidden field keeps working exactly as it did.
-
+        // A view's columns (ViewColumn) are deliberately never applied to the entries query;
+        // a filter/sort over a hidden field must keep working.
         public static IQueryable<Entry> ApplyViewSorting(IQueryable<Entry> query, List<ResolvedClause> sorts)
         {
             if (sorts.Count == 0)
@@ -67,7 +55,6 @@ namespace Operum.Service.Domain.Views
 
             IOrderedQueryable<Entry>? orderedQuery = null;
 
-            // The list is already in the order the view puts its sorts in.
             foreach (var sort in sorts)
             {
                 var fieldId = sort.FieldId;
@@ -152,7 +139,7 @@ namespace Operum.Service.Domain.Views
                 query = fieldType switch
                 {
                     DataTypes.Number => ApplyNumberFilter(query, fieldId, operatorType, value),
-                    // Reference matches on the cached link label held in StringValue.
+                    // Reference matches on the cached link label in StringValue.
                     DataTypes.String or DataTypes.Reference => ApplyStringFilter(query, fieldId, operatorType, value),
                     DataTypes.Date or DataTypes.DateTime => ApplyDateTimeFilter(query, fieldId, operatorType, value, tz),
                     DataTypes.TimeSpan => ApplyTimeSpanFilter(query, fieldId, operatorType, value),
@@ -171,8 +158,7 @@ namespace Operum.Service.Domain.Views
                 return operatorType switch
                 {
                     OperatorTypes.EqualsOperator => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.StringValue == value)),
-                    // An entry with no row for the field isn't `value` either, so "not equals"
-                    // counts it as a match alongside rows that hold a different string.
+                    // A missing row also matches NotEquals.
                     OperatorTypes.NotEquals => query.Where(e => !e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.StringValue == value)),
                     OperatorTypes.Contains => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.StringValue != null && fv.StringValue.Contains(value))),
                     OperatorTypes.StartsWith => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.StringValue != null && fv.StringValue.StartsWith(value))),
@@ -182,9 +168,7 @@ namespace Operum.Service.Domain.Views
             }
             else
             {
-                // "is empty" has to catch the entry that has no row for this field at all --
-                // a field added after the entry, a cleared value (the row is deleted), an
-                // import that never mapped it -- not only a row whose value happens to be null.
+                // "is empty" must also catch entries with no row for this field at all, not just a null value.
                 return operatorType switch
                 {
                     OperatorTypes.EqualsOperator => query.Where(e => !e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.StringValue != null)),
@@ -204,8 +188,7 @@ namespace Operum.Service.Domain.Views
                 return operatorType switch
                 {
                     OperatorTypes.EqualsOperator => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.NumberValue == numericValue)),
-                    // An entry with no row for the field isn't numericValue either, so "not
-                    // equals" counts it as a match alongside rows that hold a different number.
+                    // A missing row also matches NotEquals.
                     OperatorTypes.NotEquals => query.Where(e => !e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.NumberValue == numericValue)),
                     OperatorTypes.GreaterThan => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.NumberValue > numericValue)),
                     OperatorTypes.GreaterThanOrEqual => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.NumberValue >= numericValue)),
@@ -229,7 +212,6 @@ namespace Operum.Service.Domain.Views
         {
             if (value != null)
             {
-                // Resolve dynamic tokens (e.g. "today", "start_of_month:-1") to concrete UTC DateTimes
                 var resolved = DynamicDateTokens.Resolve(value, tz);
                 DateTime utcDateValue;
                 if (resolved.HasValue)
@@ -245,15 +227,13 @@ namespace Operum.Service.Domain.Views
                         : dateValue.ToUniversalTime();
                 }
 
-                // Equality on a date means "the same day the user sees on a calendar", which is a
-                // window in UTC terms rather than a single instant.
+                // Equality on a date means the same calendar day, a UTC window rather than a single instant.
                 var (dayStart, dayEnd) = TimeZoneResolver.LocalDayWindow(utcDateValue, tz);
 
                 return operatorType switch
                 {
                     OperatorTypes.EqualsOperator => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue >= dayStart && fv.DateTimeValue < dayEnd)),
-                    // An entry with no row for the field isn't on that day either, so "not
-                    // equals" counts it as a match alongside rows on a different day.
+                    // A missing row also matches NotEquals.
                     OperatorTypes.NotEquals => query.Where(e => !e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue >= dayStart && fv.DateTimeValue < dayEnd)),
                     OperatorTypes.GreaterThan => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue > utcDateValue)),
                     OperatorTypes.GreaterThanOrEqual => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.DateTimeValue >= utcDateValue)),
@@ -283,8 +263,7 @@ namespace Operum.Service.Domain.Views
                 return operatorType switch
                 {
                     OperatorTypes.EqualsOperator => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.TimeSpanValue == timeSpanValue)),
-                    // An entry with no row for the field isn't timeSpanValue either, so "not
-                    // equals" counts it as a match alongside rows that hold a different duration.
+                    // A missing row also matches NotEquals.
                     OperatorTypes.NotEquals => query.Where(e => !e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.TimeSpanValue == timeSpanValue)),
                     OperatorTypes.GreaterThan => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.TimeSpanValue > timeSpanValue)),
                     OperatorTypes.GreaterThanOrEqual => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.TimeSpanValue >= timeSpanValue)),
@@ -313,8 +292,7 @@ namespace Operum.Service.Domain.Views
             return operatorType switch
             {
                 OperatorTypes.EqualsOperator => query.Where(e => e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.BooleanValue == boolValue)),
-                // An entry with no row for the field isn't boolValue either, so "not equals"
-                // counts it as a match alongside rows that hold the other boolean.
+                // A missing row also matches NotEquals.
                 OperatorTypes.NotEquals => query.Where(e => !e.FieldValues.Any(fv => fv.FieldId == fieldId && fv.BooleanValue == boolValue)),
                 _ => query
             };

@@ -5,8 +5,8 @@ import { FieldDto } from "../../fields/types/FieldDto";
 /** Data types the shared value input renders with a date/datetime picker. */
 export const DATE_TYPES = ["date", "datetime"];
 
-/** A synthetic field so the shared value input (which keys off a FieldDto) can render for a
-    filter clause that names only a data type. Mirrors AbstractClauseListEditor. */
+/** Lets the shared FieldDto-keyed value input render for a data-type-only clause. Mirrors
+    AbstractClauseListEditor. */
 export const syntheticField = (key: string, type: string): FieldDto => ({
     id: key,
     name: "Value",

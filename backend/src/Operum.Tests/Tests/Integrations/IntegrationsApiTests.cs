@@ -42,12 +42,7 @@ namespace Operum.Tests.Tests.Integrations
 
         private static int _userCounter;
 
-        /// <summary>
-        /// A brand new user per test. Tests in a class share one database, and one user may
-        /// hold only MaxIntegrationCount connections and MaxTrackerCount trackers -- with a
-        /// shared account the later tests in the class would fail on those caps rather than on
-        /// what they are actually testing.
-        /// </summary>
+        /// <summary>A brand new user per test, so a shared account doesn't hit MaxIntegrationCount/MaxTrackerCount.</summary>
         private Task<HttpClient> AuthenticatedClient() =>
             _factory.NewUserClient($"itest{Interlocked.Increment(ref _userCounter)}");
 
@@ -72,10 +67,7 @@ namespace Operum.Tests.Tests.Integrations
             return (trackerId, fields);
         }
 
-        /// <summary>
-        /// Connects with a fresh athlete id each time, since tests in a class share one
-        /// database and a user may hold only one connection per provider account.
-        /// </summary>
+        /// <summary>Connects with a fresh athlete id each time: a user may hold only one connection per provider account.</summary>
         private async Task<string> Connect(HttpClient client, string athleteId)
         {
             _factory.IntervalsResponse = (HttpStatusCode.OK, $$"""{ "id": "{{athleteId}}", "name": "Athlete" }""");
@@ -98,8 +90,6 @@ namespace Operum.Tests.Tests.Integrations
                 new FieldMappingDto { SourceKey = IntervalsWellnessCatalog.SleepSecondsKey, FieldId = fields["Sleep"] },
             ],
         };
-
-        // ---- providers ----
 
         [Fact]
         public async Task Providers_ListsIntervalsWithItsCatalog()
@@ -131,8 +121,6 @@ namespace Operum.Tests.Tests.Integrations
                 .Single(r => r.GetProperty("resourceType").GetString() == IntervalsActivitiesCatalog.ResourceType);
             Assert.NotEmpty(activities.GetProperty("fields").EnumerateArray());
         }
-
-        // ---- connecting ----
 
         [Fact]
         public async Task Connect_StoresTheAccountAndMasksTheCredential()
@@ -223,8 +211,6 @@ namespace Operum.Tests.Tests.Integrations
                 Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             }
         }
-
-        // ---- targets ----
 
         [Fact]
         public async Task CreateTarget_WithValidMappings_Succeeds()
@@ -424,8 +410,6 @@ namespace Operum.Tests.Tests.Integrations
             Assert.Equal(1, await db.Entries.CountAsync(e => e.TrackerId == trackerId));
         }
 
-        // ---- sync now ----
-
         [Fact]
         public async Task SyncNow_ImportsThroughTheWholePipeline()
         {
@@ -503,7 +487,6 @@ namespace Operum.Tests.Tests.Integrations
             var integrationId = await Connect(client, "athlete-resync-map");
             var (trackerId, fields) = await CreateTracker(client, "Resync mapping");
 
-            // First import covers only Day and Resting HR.
             var dto = TargetFor(trackerId, fields);
             dto.Mappings =
             [
@@ -536,7 +519,6 @@ namespace Operum.Tests.Tests.Integrations
             var entry = await db.Entries.Include(e => e.FieldValues)
                 .SingleAsync(e => e.TrackerId == trackerId);
 
-            // The day that was already imported now carries the newly mapped field.
             Assert.Equal(TimeSpan.FromHours(8),
                 entry.FieldValues.Single(fv => fv.FieldId == fields["Sleep"]).TimeSpanValue);
         }
@@ -640,8 +622,6 @@ namespace Operum.Tests.Tests.Integrations
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
-        // ---- disconnecting ----
-
         [Fact]
         public async Task Disconnect_RemovesTheConnectionButNotTheData()
         {
@@ -668,10 +648,7 @@ namespace Operum.Tests.Tests.Integrations
         }
     }
 
-    /// <summary>
-    /// The same API with the feature switched off, which is how it ships until a deployment
-    /// opts in.
-    /// </summary>
+    /// <summary>The same API with the feature switched off, which is how it ships until a deployment opts in.</summary>
     public class IntegrationsDisabledTests(CustomWebApplicationFactory factory) : IClassFixture<CustomWebApplicationFactory>
     {
         private readonly CustomWebApplicationFactory _factory = factory;

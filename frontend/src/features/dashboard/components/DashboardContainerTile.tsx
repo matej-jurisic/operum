@@ -18,24 +18,20 @@ import "./DashboardContainerTile.css";
 
 interface Props extends DashboardTileCallbacks {
   widget: DashboardWidgetDto;
-  /** From the container's own grid tile. Attached to the header so the panel is dragged
-      by its header alone, leaving pointer drags inside its sub-grid to move the widgets
-      in it rather than the whole panel. */
+  /** Attached to the header so only it drags the panel; pointer drags in the sub-grid move
+      the widgets inside instead. */
   handleRef: (element: Element | null) => void;
   childWidgets: DashboardWidgetDto[];
   color: string | undefined;
   isConfiguring: boolean;
   onChildrenArranged: (layout: Layout) => void;
-  /** The measured width of this container's sub-grid, so the board can rescale a widget
-      dragged in from a grid of a different width and keep its on-screen size. */
+  /** Measured sub-grid width, so a widget dragged in from a grid of a different width can
+      be rescaled to keep its on-screen size. */
   onBodyWidth?: (width: number) => void;
 }
 
-/**
- * A panel that holds a sub-grid of other widgets. It is itself a tile on the board's grid
- * (moved and resized like any other), and its body is a second grid sharing the board's
- * drag context, so a widget can be dragged straight from the board into it or back out.
- */
+/** A tile on the board's grid whose body is a second grid sharing the board's drag
+ *  context, so widgets can be dragged into or out of it. */
 export function DashboardContainerTile({
   widget,
   handleRef,
@@ -55,10 +51,8 @@ export function DashboardContainerTile({
   const isEmpty = childWidgets.length === 0;
   const name = parseTextWidgetConfig(widget.config)?.text.trim() || "";
   const hasName = name.length > 0;
-  // A named container keeps its header in the layout at all times. A nameless one has no
-  // header at rest and grows one only while arranging: that one floats as a compact bar in
-  // the corner rather than sitting in flow, so toggling arrange mode never resizes the
-  // sub-grid and reflows the widgets in it right when they are being arranged.
+  // A nameless container's header only appears while arranging, and floats over the
+  // corner instead of sitting in flow, so entering arrange mode never resizes the sub-grid.
   const showHeader = hasName || isConfiguring;
   const floatingHeader = isConfiguring && !hasName;
 

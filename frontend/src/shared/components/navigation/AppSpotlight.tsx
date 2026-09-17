@@ -12,11 +12,7 @@ import { observer } from "mobx-react";
 import { resolveTrackerIcon } from "../../constants/TrackerIcons";
 import navigationStore from "../../stores/NavigationStore";
 
-/**
- * The command palette (mod+K, or the sidebar's Search button). Jumps to any
- * accessible tracker or dashboard and offers a few quick actions. Navigation
- * only -- entry search is a separate, later piece of work.
- */
+/** Command palette (mod+K): navigation and quick actions only, not entry search. */
 const AppSpotlight = observer(() => {
     const navigate = useNavigate();
     const { toggleColorScheme } = useMantineColorScheme();

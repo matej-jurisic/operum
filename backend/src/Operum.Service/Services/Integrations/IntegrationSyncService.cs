@@ -47,8 +47,7 @@ namespace Operum.Service.Services.Integrations
                 try
                 {
                     // Ids only: each connection is then synced in its own scope, so one
-                    // connection's work -- and one connection's failure -- cannot touch
-                    // another's change tracker.
+                    // connection's work -- and failure -- cannot touch another's change tracker.
                     integrationIds = await db.Integrations
                         .Where(i => i.IsEnabled
                             && i.Targets.Any(t => t.IsEnabled && t.Mode == IntegrationMode.Pull))

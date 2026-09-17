@@ -12,9 +12,7 @@ using System.Text.Json;
 namespace Operum.Tests.Tests.Notifications
 {
     // The inbox is the persisted, per-recipient counterpart to web push: NotificationEvaluatorService
-    // writes one InboxNotification per tracker member every time a notification fires. These tests
-    // exercise the read/manage surface directly (rows seeded through the context, the way the toggle
-    // test seeds IsTriggered) plus the fan-out helper the evaluator calls.
+    // writes one InboxNotification per tracker member every time a notification fires.
     public class InboxApiTests(NotificationsEnabledFactory factory) : IClassFixture<NotificationsEnabledFactory>
     {
         private readonly NotificationsEnabledFactory _factory = factory;
@@ -155,7 +153,6 @@ namespace Operum.Tests.Tests.Notifications
             Assert.Equal(HttpStatusCode.NotFound, (await otherClient.PostAsync($"inbox/{itemId}/read", null)).StatusCode);
             Assert.Equal(HttpStatusCode.NotFound, (await otherClient.DeleteAsync($"inbox/{itemId}")).StatusCode);
 
-            // The owner's item is untouched.
             var ownerPage = (await Data(await ownerClient.GetAsync("inbox"))).Deserialize<InboxPageDto>(Json)!;
             Assert.Single(ownerPage.Items);
             Assert.Null(ownerPage.Items[0].ReadAt);

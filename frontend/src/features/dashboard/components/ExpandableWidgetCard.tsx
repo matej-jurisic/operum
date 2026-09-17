@@ -14,22 +14,10 @@ interface Props {
     onRemove?: (itemId: string) => void;
     /** Analytic widgets only: an Entries widget has nothing else to edit today. */
     onEdit?: (itemId: string) => void;
-    /** The widget's own full-size card. Called lazily, only once the modal is actually
-        opened, so a collapsed widget never mounts (and never fetches) the thing it stands
-        in for until someone actually asks to see it. */
+    /** Called lazily, only once the modal opens, so a collapsed widget never mounts or
+        fetches the thing it stands in for. */
     renderExpanded: () => ReactNode;
 }
-
-/**
- * Wraps an Analytic or Entries widget marked expandable on the grid it's currently being
- * drawn on: instead of the chart or table itself, the card is nothing but a button
- * carrying the widget's name, and pressing it opens the real thing at full size in a
- * modal with a plain close button.
- *
- * Set once from the widget's own create/edit form (see WidgetLibraryModal's forms and
- * EditWidgetModal) — never by arranging the board. The button never grows or resizes in
- * place, so opening it can never disturb anything else on the grid.
- */
 export function ExpandableWidgetCard({
     widgetId,
     title,
@@ -42,9 +30,6 @@ export function ExpandableWidgetCard({
 }: Props) {
     const layout = useCardLayout(true);
     const [opened, setOpened] = useState(false);
-    // Full screen is what actually gives the widget the room it has none of on the grid
-    // it was collapsed on; a normal centered modal is plenty on a screen wide enough to
-    // have made the widget expandable a deliberate choice rather than a necessity.
     const isMobile = useMediaQuery("(max-width: 48em)");
 
     return (

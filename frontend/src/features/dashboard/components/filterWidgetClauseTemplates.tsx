@@ -9,16 +9,8 @@ import {
 } from "react-icons/fi";
 import { FieldTypes, OperatorTypes } from "../../../shared/constants/DataTypes";
 
-/**
- * Clause templates for a *filter widget* — deliberately separate from a view's
- * {@link filterTemplates}. A filter widget's clauses only ever collect a data type and an
- * operator; their values are typed on the board, never baked in here. So a view template
- * like "Current Month" or "Positive Values" — which is mostly a canned *value* — carries
- * nothing useful once its value is stripped.
- *
- * A template here is purely a shortcut for a common operator shape: a two-ended range, a
- * single bound, a text search.
- */
+/** Separate from a view's {@link filterTemplates}: a filter widget's clauses only ever
+ *  collect a data type and operator, never a baked-in value. */
 export interface FilterWidgetClauseTemplate {
     id: string;
     name: string;

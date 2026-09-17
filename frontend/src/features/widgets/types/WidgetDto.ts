@@ -8,8 +8,7 @@ export interface WidgetSourceFieldDto {
 
 export interface WidgetSourceDto {
     id: string;
-    /** The widget's definition read through this source's fields, e.g. "Monthly Totals:
-        Day, Amount". */
+    /** The widget's definition read through this source's fields, e.g. "Monthly Totals: Day, Amount". */
     name: string;
     fields: WidgetSourceFieldDto[];
     trackerId: string;
@@ -17,9 +16,7 @@ export interface WidgetSourceDto {
     order: number;
 }
 
-/** A reusable chart definition, as the Widget Library reads and edits it. Not scoped to
-    any one dashboard -- see DashboardWidgetDto (dashboard feature) for how a placement of
-    this renders on a board. */
+/** Not scoped to any dashboard; see DashboardWidgetDto for how a placement of this renders on a board. */
 export interface WidgetDto {
     id: string;
     name: string;
@@ -28,17 +25,15 @@ export interface WidgetDto {
     code: string;
     /** Line/Bar only: how the axis field is bucketed before the code aggregates it. */
     grouping?: string;
-    /** Combined charts only: whether the chart is restricted to x-axis values shared by
-        every source. */
+    /** Combined charts only: restricts to x-axis values shared by every source. */
     matchedValuesOnly: boolean;
-    /** Goal widgets only: the target the value is shown as progress toward, in the value
-        field's format (a number, or hh:mm:ss for a duration). */
+    /** Goal widgets only: the target, in the value field's format (a number, or hh:mm:ss for a duration). */
     goalTarget?: string;
+    /** Goal widgets only: a GoalDirection value. Absent behaves as HigherIsBetter. */
+    goalDirection?: string;
     sources: WidgetSourceDto[];
 }
 
-/** The Widget Library's view of an Entries widget's definition -- just which tracker it
-    reads from. */
 export interface EntriesWidgetDefinitionDto {
     id: string;
     name: string;
@@ -61,17 +56,19 @@ export interface CreateWidgetDto {
     matchedValuesOnly?: boolean;
     /** Goal widgets only, and required for them: a number or an hh:mm:ss duration. */
     goalTarget?: string;
+    /** Goal widgets only: a GoalDirection value. Omitted behaves as HigherIsBetter. */
+    goalDirection?: string;
     sources: CreateWidgetSourceRequestDto[];
 }
 
-/** Edits a widget's name/description, plus a Goal's target -- the rest of the definition
-    (result type, code, sources, field mapping) is fixed at creation. Create a new widget
-    instead of changing it. */
+/** Result type, code, sources, and field mapping are fixed at creation; create a new widget to change them. */
 export interface UpdateWidgetDto {
     name?: string;
     description?: string;
     /** Goal widgets only. Omitted, the current target is kept. */
     goalTarget?: string;
+    /** Goal widgets only. Omitted, the current direction is kept. */
+    goalDirection?: string;
 }
 
 export interface CreateEntriesWidgetDto {

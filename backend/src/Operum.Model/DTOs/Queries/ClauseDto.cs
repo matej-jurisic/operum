@@ -4,10 +4,8 @@ using Operum.Model.Constants.Fields;
 
 namespace Operum.Model.DTOs.Queries
 {
-    // A field-agnostic clause as the client sends it: one filter or one sort over a data
-    // type. The concrete field is bound elsewhere (ViewClauseDto.FieldId for a tracker view,
-    // a view selector's per-widget map on a dashboard). Shared by the View editor and the
-    // DashboardView editor; deduplicated into a pooled Query on save (see QueryPool).
+    // Field-agnostic; the concrete field is bound elsewhere. Deduplicated into a pooled Query
+    // on save (see QueryPool).
     public class ClauseDto
     {
         public string Kind { get; set; } = QueryKinds.Filter;

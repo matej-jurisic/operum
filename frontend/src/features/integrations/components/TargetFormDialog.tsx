@@ -33,15 +33,10 @@ import {
 } from "../types/IntegrationDto";
 import { SaveIntegrationTargetDto } from "../types/requests/SaveIntegrationTargetDto";
 
-/**
- * Which tracker field types a source of a given type may fill. Mirrors MappingValidator on
- * the server so a bad pairing is greyed out here rather than rejected on save; the server
- * still enforces it, since this copy is only a convenience.
- */
+/** Mirrors server-side MappingValidator; client-side only, server still enforces it. */
 function acceptsField(source: SourceFieldDto, field: FieldDto): boolean {
     if (source.type === FieldTypes.TimeSpan) {
-        // A duration may also be tracked as raw seconds by anyone who would rather do
-        // arithmetic on a plain number.
+        // A duration may also be mapped to a plain Number field (raw seconds).
         return (
             field.type === FieldTypes.TimeSpan ||
             field.type === FieldTypes.Number
@@ -83,7 +78,6 @@ export default function TargetFormDialog({
     const [fields, setFields] = useState<FieldDto[]>([]);
     const [loadingFields, setLoadingFields] = useState(false);
     const [saving, setSaving] = useState(false);
-    // The source row a "create matching field" click is currently working on.
     const [creatingKey, setCreatingKey] = useState<string | null>(null);
 
     useEffect(() => {
@@ -125,7 +119,6 @@ export default function TargetFormDialog({
         [provider, resourceType],
     );
 
-    // An integration can only fill a field it is allowed to write to.
     const writableFields = useMemo(
         () => fields.filter((f) => !f.isCalculated),
         [fields],
@@ -141,8 +134,7 @@ export default function TargetFormDialog({
     const addMapping = (source: SourceFieldDto, fieldId: string) =>
         setMappings((current) => [
             ...current.filter((m) => m.sourceKey !== source.key),
-            // Required fields cannot skip: the server refuses that pairing, because a record
-            // missing the value could then never be imported at all.
+            // Required fields can't skip nulls; the server rejects that pairing.
             {
                 sourceKey: source.key,
                 fieldId,
@@ -156,15 +148,11 @@ export default function TargetFormDialog({
             current.filter((m) => m.sourceKey !== sourceKey),
         );
 
-    /**
-     * Create a tracker field that matches the source, then map the row to it. Saves the
-     * round trip of opening the tracker's own field editor to add each one by hand.
-     */
     const createFieldForSource = async (source: SourceFieldDto) => {
         setCreatingKey(source.key);
         try {
             const response = await fieldsController.createField(trackerId, {
-                // The field editor caps names at 30 characters; a longer source label is trimmed.
+                // The field editor caps names at 30 characters.
                 name: source.label.trim().slice(0, 30),
                 type: source.type,
                 required: false,
@@ -178,16 +166,13 @@ export default function TargetFormDialog({
                 { sourceKey: source.key, fieldId: created.id, skipWhenNull: true },
             ]);
         } catch {
-            // The API layer already surfaces the reason; nothing useful to add here.
+            // API layer already surfaces the error.
         } finally {
             setCreatingKey(null);
         }
     };
 
-    /**
-     * Everything a source row needs, worked out once so the phone and desktop layouts
-     * below stay two renderings of one list rather than two copies of the same logic.
-     */
+    // Shared between the mobile and desktop layouts below.
     const rows = useMemo(() => {
         const mappedFieldIds = new Set(mappings.map((m) => m.fieldId));
 
@@ -233,18 +218,14 @@ export default function TargetFormDialog({
         if (ok) onClose();
     };
 
-    /**
-     * What a later sync does when the provider re-sends this record with no value for the
-     * field: leave the current value in place, or wipe it. Only bites on re-sync -- the
-     * first import has nothing to keep.
-     */
+    /** Whether a re-sync with no value for this field keeps or clears the current value. */
     const reSyncControl = (
         mapping: FieldMappingDto,
         field: FieldDto | undefined,
         size: "xs" | "sm",
         withLabel = false,
     ) => {
-        // The server refuses "keep" for a required field, so there is no choice to offer.
+        // The server refuses "keep" for a required field.
         if (field?.required) {
             return (
                 <Text size={size} c="dimmed">
@@ -316,10 +297,6 @@ export default function TargetFormDialog({
         />
     );
 
-    /**
-     * Shown on a row that is not yet linked to a field: makes a tracker field matching the
-     * source and maps this row to it in one click.
-     */
     const createButton = (source: SourceFieldDto) => (
         <Tooltip label="Create a matching field" withArrow>
             <ActionIcon
@@ -357,8 +334,7 @@ export default function TargetFormDialog({
                                 // Field ids belong to the tracker they came from.
                                 setMappings([]);
                             }}
-                            // Moving a target would orphan whatever it already imported, so the
-                            // server refuses it; the control is locked rather than failing on save.
+                            // The server refuses to move a target to a different tracker.
                             disabled={isEdit}
                             searchable
                         />
@@ -428,7 +404,6 @@ export default function TargetFormDialog({
                             record with no value for a field.
                         </Text>
 
-                        {/* The table becomes stacked cards on a phone rather than a sideways scroll. */}
                         {isMobile ? (
                             <Stack gap="xs">
                                 {rows.map(

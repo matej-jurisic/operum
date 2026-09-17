@@ -9,8 +9,7 @@ namespace Operum.Model.DTOs.Views
         // Ordered: precedence for sort-merge (first-field-wins) and display order.
         public List<ViewQueryDto> Queries { get; set; } = [];
 
-        // The fields this view shows, in the order it shows them. Empty means every field.
-        // Ids alone: the client already has the tracker's fields.
+        // Empty means every field.
         public List<string> ColumnFieldIds { get; set; } = [];
     }
 }

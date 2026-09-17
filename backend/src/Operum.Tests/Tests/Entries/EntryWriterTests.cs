@@ -16,12 +16,7 @@ using System.Text.Json;
 
 namespace Operum.Tests.Tests.Entries
 {
-    /// <summary>
-    /// EntryWriter is the write path an integration uses, so unlike every other suite here it
-    /// is exercised through the service rather than through HTTP -- the whole point of the
-    /// type is that it works with no request and no signed-in user behind it. Trackers and
-    /// fields are still set up over the API, because that is how they are really made.
-    /// </summary>
+    /// <summary>EntryWriter is the write path an integration uses, so it's exercised through the service rather than HTTP; trackers and fields are still set up over the API.</summary>
     public class EntryWriterTests(CustomWebApplicationFactory factory) : IClassFixture<CustomWebApplicationFactory>
     {
         private const string Source = "test-provider";
@@ -152,7 +147,7 @@ namespace Operum.Tests.Tests.Entries
             }
 
             // The unique index is per source, so the same id from a second provider is a
-            // different record, not a collision.
+            // different record.
             Assert.Equal(2, (await StoredEntries(trackerId)).Count);
         }
 
@@ -225,8 +220,6 @@ namespace Operum.Tests.Tests.Entries
             await CreateCalculatedField(client, trackerId, "SleepHours", "{Sleep.hours}");
             var fields = await FieldIds(client, trackerId);
 
-            // A provider converts its own units before handing over: intervals.icu sends
-            // sleepSecs as 28800, the provider emits the timespan string.
             await Apply(trackerId, Upsert("day-1", new() { [fields["Sleep"]] = "08:00:00" }));
 
             Assert.Equal(TimeSpan.FromHours(8).ToString(), await ValueOf(trackerId, "day-1", fields["Sleep"]));
@@ -277,8 +270,7 @@ namespace Operum.Tests.Tests.Entries
 
             await Apply(trackerId, Upsert("day-1", new() { [fields["Weight"]] = "80" }));
 
-            // An update inherits what the entry already holds, so the required check that
-            // guards a create must not fire here.
+            // An update inherits what the entry already holds, so the create-only required check must not fire here.
             var result = await Apply(trackerId, Upsert("day-1", new() { [fields["Note"]] = "later revision" }));
 
             Assert.Equal(1, result.Updated);
@@ -370,7 +362,6 @@ namespace Operum.Tests.Tests.Entries
                 InGroup("b1", "g2", "20"),
                 InGroup("flat", null, "30"));
 
-            // Reconciling g1 must not reach into g2, nor touch a record with no parent at all.
             await Apply(trackerId, InGroup("a1", "g1", "11"));
 
             var entries = await StoredEntries(trackerId);
@@ -388,8 +379,8 @@ namespace Operum.Tests.Tests.Entries
 
             var result = await Apply(trackerId);
 
-            // Compared field by field: the record holds a List, so its generated equality is
-            // reference equality on that member and two empty results never match.
+            // Compared field by field: the record's List member makes its generated equality
+            // reference-based, so two empty results never Assert.Equal() directly.
             Assert.Equal(0, result.Created);
             Assert.Equal(0, result.Updated);
             Assert.Equal(0, result.Deleted);

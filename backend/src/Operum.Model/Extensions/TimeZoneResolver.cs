@@ -2,10 +2,7 @@ namespace Operum.Model.Extensions
 {
     public static class TimeZoneResolver
     {
-        /// <summary>
-        /// Resolves a stored IANA/Windows time zone id, falling back to UTC when it is missing or
-        /// unknown to the host. Filtering must never fail because a user has a stale zone id.
-        /// </summary>
+        // Falls back to UTC when missing or unknown; filtering must never fail on a stale zone id.
         public static TimeZoneInfo FromId(string? timeZoneId)
         {
             if (string.IsNullOrWhiteSpace(timeZoneId))
@@ -21,17 +18,12 @@ namespace Operum.Model.Extensions
             }
         }
 
-        /// <summary>
-        /// Whether the host can resolve this id. Validation and <see cref="FromId"/> must agree on
-        /// what is storable, or an unsupported id gets saved and silently degrades to UTC.
-        /// </summary>
+        // Must agree with FromId on what is storable, or an unsupported id silently degrades to UTC.
         public static bool IsValid(string? timeZoneId) =>
             !string.IsNullOrWhiteSpace(timeZoneId) && TimeZoneInfo.TryFindSystemTimeZoneById(timeZoneId, out _);
 
-        /// <summary>
-        /// Converts a local wall-clock boundary to a UTC instant, tolerating the two ways DST breaks
-        /// one: a time that does not exist (spring forward) and a time that happens twice (fall back).
-        /// </summary>
+        // Tolerates both DST edge cases: a time that doesn't exist (spring forward) and one
+        // that happens twice (fall back).
         public static DateTime ToUtc(DateTime local, TimeZoneInfo tz)
         {
             var unspecified = DateTime.SpecifyKind(local, DateTimeKind.Unspecified);
@@ -54,11 +46,6 @@ namespace Operum.Model.Extensions
             return TimeZoneInfo.ConvertTimeToUtc(unspecified, tz);
         }
 
-        /// <summary>
-        /// The UTC half-open range covering the local calendar day that <paramref name="utcInstant"/>
-        /// falls on. Equality on a date field means "same day the user would see on a calendar",
-        /// which is a window rather than a single instant once time zones are involved.
-        /// </summary>
         public static (DateTime Start, DateTime EndExclusive) LocalDayWindow(DateTime utcInstant, TimeZoneInfo tz)
         {
             var localDay = TimeZoneInfo.ConvertTimeFromUtc(utcInstant, tz).Date;

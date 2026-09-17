@@ -22,12 +22,8 @@ namespace Operum.Model.Models
         public TimeSpan? TimeSpanValue { get; set; }
         public bool? BooleanValue { get; set; }
 
-        /// <summary>
-        /// For a <c>reference</c> field: the entry in another tracker this value links to.
-        /// Nulled when that entry is deleted (see EntriesService delete paths, which also
-        /// clear the cached label in <see cref="StringValue"/>). The display label is cached
-        /// in <see cref="StringValue"/> so filters, sorts and analytics treat it as a string.
-        /// </summary>
+        // Reference fields only. Nulled when the target entry is deleted (see EntriesService).
+        // Display label is cached in StringValue so filters/sorts/analytics treat it as a string.
         public string? ReferencedEntryId { get; set; }
         [ForeignKey(nameof(ReferencedEntryId))]
         public virtual Entry? ReferencedEntry { get; set; }

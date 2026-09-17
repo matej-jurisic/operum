@@ -11,7 +11,6 @@ export const downloadBlob = (
             filename = match[1].replace(/['"]/g, "");
         }
     }
-    // Create download
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;

@@ -41,11 +41,9 @@ export default function Tracker() {
 
     const urlParts = (splat ?? "").split("/").filter(Boolean);
     const rawTab = urlParts[0] || "entries";
-    // Queries no longer have a tab of their own, so a bookmarked /queries url lands on the
-    // Views tab with the Queries sub-tab open.
+    // Queries no longer have their own tab; redirect to the Views tab's Queries sub-tab.
     const requestedTab = rawTab === "queries" ? "views" : rawTab;
-    // A bookmarked /notifications or /analytics url must not land on a tab that no longer
-    // exists -- the latter moved to the Widget Library.
+    // Analytics moved to the Widget Library; notifications may be disabled by feature flag.
     const activeTab =
         (requestedTab === "notifications" && !areNotificationsEnabled) ||
         requestedTab === "analytics"
@@ -59,8 +57,7 @@ export default function Tracker() {
                 const response = await trackersController.getTracker(trackerId);
                 setTracker(response.data);
             } catch (error) {
-                // The api layer rejects with the response body, or with nothing when no
-                // response came back at all (offline, timeout). Only the former means gone.
+                // A response body means the tracker is gone; no response means offline/timeout.
                 if (error) setMissingTrackerId(trackerId);
             }
         }
@@ -83,9 +80,7 @@ export default function Tracker() {
 
     const isMobile = useMediaQuery("(max-width: 48em)");
 
-    // Until the freshly fetched tracker matches the id in the URL, the providers below
-    // would be seeded with the previous tracker -- they only read initialTracker once.
-    // Holding the render (and keying on the id) forces a clean remount per tracker.
+    // Providers below only read initialTracker once, so hold render until it matches the URL.
     if (trackerId && missingTrackerId === trackerId) {
         return <NotFound path={`/trackers/${trackerId}`} />;
     }

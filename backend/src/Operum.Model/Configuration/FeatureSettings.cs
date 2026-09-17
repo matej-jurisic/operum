@@ -1,21 +1,12 @@
 namespace Operum.Model.Configuration
 {
-    /// <summary>
-    /// Switches for features that are not ready to be exposed in every deployment yet.
-    /// Bound from the "Features" section (env: Features__Notifications).
-    /// </summary>
+    /// <summary>Feature flags bound from the "Features" config section.</summary>
     public class FeatureSettings
     {
-        /// <summary>
-        /// Tracker notifications: the notification and web push endpoints plus the
-        /// background evaluator. Off unless a deployment explicitly opts in.
-        /// </summary>
+        /// <summary>Gates the notification/web-push endpoints and the background evaluator.</summary>
         public bool Notifications { get; set; }
 
-        /// <summary>
-        /// Integrations: the integration endpoints, the webhook receiver and the background
-        /// sync loop. Off unless a deployment explicitly opts in (env: Features__Integrations).
-        /// </summary>
+        /// <summary>Gates the integration endpoints, webhook receiver, and background sync loop.</summary>
         public bool Integrations { get; set; }
     }
 }

@@ -42,12 +42,8 @@ interface Props extends DashboardTileCallbacks {
   onBodyWidth?: (width: number) => void;
 }
 
-/**
- * A container whose body is split into named tabs. Only the active tab's widgets render;
- * in arrange mode the tab strip gains controls to add, rename, reorder and delete tabs,
- * and each tab's sub-grid shares the board's drag context so a widget can be dragged
- * straight in from the board or another tab.
- */
+/** Only the active tab's widgets render; each tab's sub-grid shares the board's drag
+ *  context so a widget can be dragged in from the board or another tab. */
 export function TabsContainerTile({
   widget,
   handleRef,
@@ -128,10 +124,8 @@ export function TabsContainerTile({
       (isFirstTab && !knownTabIds.has(w.parentTabId ?? "")),
   );
   const isEmpty = activeChildren.length === 0;
-  // A titled container keeps its header in the layout at all times. An untitled one has no
-  // header at rest and grows one only while arranging: that one floats as a compact bar in
-  // the corner rather than sitting in flow, so toggling arrange mode never pushes the tab
-  // strip and the sub-grid down right as they are being arranged.
+  // An untitled container's header only appears while arranging, and floats over the
+  // corner instead of sitting in flow, so entering arrange mode never pushes the tab strip down.
   const showHeader = hasTitle || isConfiguring;
   const floatingHeader = isConfiguring && !hasTitle;
 

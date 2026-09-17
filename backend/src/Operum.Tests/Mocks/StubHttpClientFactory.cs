@@ -3,10 +3,7 @@ using System.Text;
 
 namespace Operum.Tests.Mocks
 {
-    /// <summary>
-    /// Answers every request from a canned response, and records what was asked, so a provider
-    /// can be tested against a payload without a network or a real API key.
-    /// </summary>
+    /// <summary>Answers every request with a canned response and records what was asked.</summary>
     public class StubHttpMessageHandler : HttpMessageHandler
     {
         private readonly Func<HttpRequestMessage, (HttpStatusCode Status, string Body)> _respond;
@@ -36,8 +33,6 @@ namespace Operum.Tests.Mocks
     public class StubHttpClientFactory(HttpMessageHandler handler, string baseAddress) : IHttpClientFactory
     {
         public HttpClient CreateClient(string name) =>
-            // DisposeHandler false so the handler survives being read after the call, the way
-            // a pooled one would.
             new(handler, disposeHandler: false) { BaseAddress = new Uri(baseAddress) };
     }
 }

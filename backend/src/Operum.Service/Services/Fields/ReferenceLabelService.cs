@@ -35,8 +35,8 @@ namespace Operum.Service.Services.Fields
 
         public async Task RefreshReferencesToEntry(string changedEntryId)
         {
-            // AsTracking: the context runs no-tracking by default, so without this the label
-            // writes below would be silently dropped on SaveChanges.
+            // AsTracking: the context runs no-tracking by default, so without it the label writes
+            // below would be silently dropped on SaveChanges.
             var referencing = await db.FieldValues
                 .AsTracking()
                 .Include(fv => fv.Field)

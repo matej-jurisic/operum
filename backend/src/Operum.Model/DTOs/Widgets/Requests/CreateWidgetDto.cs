@@ -11,41 +11,34 @@ namespace Operum.Model.DTOs.Widgets.Requests
         [Required]
         public string TrackerId { get; set; } = string.Empty;
 
-        // Which of the tracker's fields fill the purposes required by the widget's
-        // ResultType + Code. Fixed at creation -- see CreateWidgetDto.
+        // Fixed at creation -- see CreateWidgetDto.
         public List<CreateAnalyticFieldDto> Fields { get; set; } = [];
     }
 
-    // Defines a new, reusable Widget Library chart. Unlike the old per-tracker Analytic,
-    // sources can span more than one tracker -- see MatchedValuesOnly.
+    // Unlike the old per-tracker Analytic, sources can span more than one tracker; see MatchedValuesOnly.
     public class CreateWidgetDto
     {
-        // Optional: left unset, the widget falls back to its definition's own label
-        // (e.g. "Sum") the way a tracker analytic used to.
         public string? Name { get; set; }
         public string? Description { get; set; }
 
-        // One definition for the whole widget: every source is calculated the same way, so
-        // the series of a multi-tracker chart always share an axis semantics. Fixed at
-        // creation -- create a new widget instead of changing this one.
+        // Fixed at creation; create a new widget instead of changing this.
         [Required]
         public string ResultType { get; set; } = string.Empty;
 
         [Required]
         public string Code { get; set; } = string.Empty;
 
-        // Line/Bar only: how the axis field is bucketed before Code aggregates it (see
-        // AnalyticGroupings). Null/empty for every other result type. WidgetsService settles
-        // whether the (ResultType, Grouping, Code) triple is coherent.
+        // Line/Bar only.
         public string? Grouping { get; set; }
 
-        // Combined charts only: keep just the x-axis values every source has a point for,
-        // so the series line up over the same range. A single-source widget ignores it.
+        // Combined charts only.
         public bool MatchedValuesOnly { get; set; }
 
-        // Goal widgets only (ResultType == "Goal"): required, and a number or hh:mm:ss
-        // duration matching the value field's type. WidgetsService settles the details.
+        // Goal widgets only: required, a number or hh:mm:ss duration matching the value field's type.
         public string? GoalTarget { get; set; }
+
+        // Goal widgets only. Null/empty behaves as HigherIsBetter.
+        public string? GoalDirection { get; set; }
 
         [Required, MinLength(1)]
         public List<CreateWidgetSourceRequestDto> Sources { get; set; } = [];
@@ -75,9 +68,7 @@ namespace Operum.Model.DTOs.Widgets.Requests
                 .MaximumLength(500).WithMessage("Description cannot exceed 500 characters.")
                 .When(x => !string.IsNullOrEmpty(x.Description));
 
-            // Shape check only. Whether the code goes with the result type, and whether the
-            // fields exist, belong to their tracker and carry compatible data types, is
-            // settled in WidgetsService, which is the only place with database access.
+            // Shape check only; DB-dependent validation happens in WidgetsService.
             RuleFor(x => x.ResultType)
                 .NotEmpty().WithMessage(x => Messages.Required("result type"))
                 .Must(AnalyticTypes.IsValid).WithMessage(x => Messages.Invalid("result type"));
@@ -89,6 +80,10 @@ namespace Operum.Model.DTOs.Widgets.Requests
             RuleFor(x => x.Grouping)
                 .Must(g => string.IsNullOrEmpty(g) || AnalyticGroupings.IsValid(g))
                 .WithMessage(x => Messages.Invalid("grouping"));
+
+            RuleFor(x => x.GoalDirection)
+                .Must(d => string.IsNullOrEmpty(d) || GoalDirections.IsValid(d))
+                .WithMessage(x => Messages.Invalid("goal direction"));
 
             RuleFor(x => x.Sources)
                 .NotEmpty().WithMessage(x => Messages.Required("sources"));

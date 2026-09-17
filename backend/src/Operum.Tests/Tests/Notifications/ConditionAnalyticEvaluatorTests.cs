@@ -15,14 +15,9 @@ using System.Text.Json;
 
 namespace Operum.Tests.Tests.Notifications
 {
-    // Regression coverage for the Widget Library refactor: Analytic went from an EF entity
-    // to a plain, unmapped POCO (Operum.Model.Models.Analytic), and ConditionAnalyticEvaluator
-    // is the one production call site that constructs it independently of Widgets/Dashboard
-    // -- it builds a transient Analytic straight from a NotificationCondition's own
-    // AnalyticCode/AnalyticResultType, with no Widget or WidgetSource in the picture at all.
-    // Nothing else in this codebase tests the notifications feature (it's opt-in behind a
-    // feature flag -- see ServiceConfiguration), so this exercises the evaluator directly
-    // rather than through the (disabled-by-default) hosted evaluator service.
+    // Notifications is opt-in behind a feature flag (see ServiceConfiguration) and otherwise
+    // untested, so this exercises ConditionAnalyticEvaluator directly rather than through the
+    // disabled-by-default hosted evaluator service.
     public class ConditionAnalyticEvaluatorTests(CustomWebApplicationFactory factory) : IClassFixture<CustomWebApplicationFactory>
     {
         private readonly CustomWebApplicationFactory _factory = factory;
@@ -36,9 +31,7 @@ namespace Operum.Tests.Tests.Notifications
             return data;
         }
 
-        // Loaded the same way NotificationEvaluatorService loads every notification it
-        // evaluates, so this exercises the exact shape ConditionAnalyticEvaluator receives
-        // in production.
+        // Loaded the same way NotificationEvaluatorService loads every notification it evaluates.
         private async Task<TrackerNotification> LoadForEvaluation(string notificationId)
         {
             using var scope = _factory.Services.CreateScope();

@@ -9,10 +9,8 @@ using Operum.Model.Models;
 
 namespace Operum.Service.Domain.Analytics.Builders
 {
-    // A Goal is a Single Value calculation drawn as progress toward a target. It delegates
-    // the calculation itself to SingleValueAnalyticBuilder -- same codes, same field, same
-    // result -- then attaches the target (carried on the transient Analytic, sourced from
-    // Widget.GoalTarget) and the ratio between them.
+    // Delegates the calculation to SingleValueAnalyticBuilder, then attaches the target
+    // (sourced from Widget.GoalTarget) and the progress ratio.
     public class GoalAnalyticBuilder : AnalyticResultBuilderBase
     {
         private readonly SingleValueAnalyticBuilder _singleValue = new();
@@ -42,6 +40,9 @@ namespace Operum.Service.Domain.Analytics.Builders
                 return Result.Failure(ResultStatusCodes.BadRequest, "Goal calculation did not produce a single value.");
 
             var target = request.Analytic.GoalTarget;
+            var direction = GoalDirections.IsValid(request.Analytic.GoalDirection ?? string.Empty)
+                ? request.Analytic.GoalDirection!
+                : GoalDirections.HigherIsBetter;
 
             return Result.Success<AnalyticDto>(new GoalAnalyticDto
             {
@@ -51,18 +52,21 @@ namespace Operum.Service.Domain.Analytics.Builders
                 Value = single.Value,
                 Target = target ?? string.Empty,
                 ValueField = single.ValueField,
-                Progress = ComputeProgress(single.ValueField?.Type, single.Value, target)
+                Direction = direction,
+                Progress = ComputeProgress(single.ValueField?.Type, single.Value, target, direction)
             });
         }
 
-        // The value / target ratio, or null when there's nothing to show: no calculated
-        // value, or a target that isn't a positive magnitude.
-        private static double? ComputeProgress(string? type, string? value, string? target)
+        // LowerIsBetter inverts the ratio to target/value so 100% still means "at the line".
+        private static double? ComputeProgress(string? type, string? value, string? target, string direction)
         {
             if (!TryParseMagnitude(type, value, out var current) ||
                 !TryParseMagnitude(type, target, out var goal) ||
                 goal <= 0)
                 return null;
+
+            if (direction == GoalDirections.LowerIsBetter)
+                return current <= 0 ? 1 : goal / current;
 
             return current / goal;
         }

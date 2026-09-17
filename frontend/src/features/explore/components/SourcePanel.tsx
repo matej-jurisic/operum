@@ -27,8 +27,7 @@ interface Props {
     fields: FieldDto[];
     views: ViewDto[];
     purposes: PurposeDto[];
-    /** "X axis" / "Y axis" for a paired correlation, a numbered label for a merge, none
-        for a single source. */
+    /** "X axis" / "Y axis" for a paired correlation, a numbered label for a merge, none for a single source. */
     heading?: string;
     canRemove: boolean;
     onRemove: () => void;
@@ -49,8 +48,7 @@ interface Props {
     filtersPath: string;
 }
 
-/** One tracker's row in the Explore form: its tracker, the field for each purpose the
-    calculation needs, an optional starting view, and inline filters. */
+/** One tracker's row in the Explore form: its tracker, the field for each purpose the calculation needs, an optional starting view, and inline filters. */
 export function SourcePanel({
     index,
     source,

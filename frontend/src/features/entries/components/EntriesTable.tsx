@@ -50,7 +50,6 @@ export function EntriesTable({
     const { tracker, canEditData } = useTracker();
     const { visibleFields, isColumnVisible } = useVisibleColumns();
 
-    // Create table headers from visible fields
     const tableHeaders = useMemo(() => {
         const headers = [];
 
@@ -117,7 +116,6 @@ export function EntriesTable({
         toggleSelectAll,
     ]);
 
-    // Create table rows from entries
     const tableRows = useMemo(() => {
         return entries.map((entry) => {
             const fieldCells = visibleFields.map((field) => {
@@ -129,7 +127,6 @@ export function EntriesTable({
 
             return (
                 <Table.Tr key={entry.id} h={53}>
-                    {/* Selection checkbox */}
                     {isSelectMode && (
                         <Table.Td>
                             <Checkbox

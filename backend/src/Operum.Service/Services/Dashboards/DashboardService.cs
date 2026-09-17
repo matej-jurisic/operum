@@ -26,8 +26,6 @@ namespace Operum.Service.Services.Dashboards
 {
     public class DashboardService(ICurrentUserService currentUserService, OperumContext db, IMapper mapper, IWidgetsService widgetsService) : IDashboardService
     {
-        // One source after it has been calculated, ready to be returned as-is or merged
-        // with its siblings into a composed chart.
         private sealed record ResolvedSource(
             DashboardItemSource Source,
             string TrackerName,
@@ -37,8 +35,7 @@ namespace Operum.Service.Services.Dashboards
         private static MergeSource ToMergeSource(ResolvedSource r) =>
             new(r.Source.Id, r.Source.Label, r.TrackerName, r.TrackerColor, r.Result);
 
-        // Config is written by hand rather than through the controller's own JSON
-        // formatting, so it has to pick the same camelCase convention itself.
+        // Must match the controller's own camelCase JSON convention since Config is written by hand.
         private static readonly JsonSerializerOptions ConfigJsonOptions = new(JsonSerializerDefaults.Web);
 
         public async Task<Result<List<DashboardDto>>> GetDashboards()
@@ -53,8 +50,7 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(dashboards.Select(MapToDto).ToList());
         }
 
-        // All-or-nothing, like reordering a tracker's fields: the payload must name exactly
-        // the user's own dashboards, and Order is reassigned from its position in the list.
+        // All-or-nothing: the payload must name exactly the user's own dashboards.
         public async Task<Result> ReorderDashboards(ReorderDashboardsDto dto)
         {
             var user = currentUserService.GetCurrentUser();
@@ -103,18 +99,13 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(await BuildWidgets(dashboard));
         }
 
-        // Shared by the plain read (GetDashboardWidgets) and anything that just wrote to the
-        // board and needs it recomputed from the same in-memory graph (SetFilterValues)
-        // — every source is recalculated on every call today regardless of what changed, so
-        // there is nothing to reconcile between the two.
+        // Every source is recalculated on every call, regardless of what changed.
         private async Task<List<DashboardWidgetDto>> BuildWidgets(Dashboard dashboard)
         {
             var items = dashboard.Items.OrderBy(i => i.Order).ToList();
             var results = new List<DashboardWidgetDto>();
 
-            // QuickAdd widgets only carry a trackerId in Config; resolve every one of them
-            // up front in a single query so the client gets the button's name/color/icon
-            // inline instead of each card fetching its own tracker after mounting.
+            // Resolved up front in one query so the client gets name/color/icon inline.
             var quickAddTrackerIds = items
                 .Where(i => i.Type == DashboardWidgetTypes.QuickAdd)
                 .Select(i => TryParseQuickAddConfig(i.Config)?.TrackerId)
@@ -135,27 +126,18 @@ namespace Operum.Service.Services.Dashboards
                     })
                 : new Dictionary<string, QuickAddTrackerDto>();
 
-            // Entries widgets keyed by their own item id, resolved into everything their
-            // table needs below — see BuildEntriesWidget.
             var entriesConfigsByItemId = items
                 .Where(i => i.Type == DashboardWidgetTypes.Entries)
                 .Select(i => (ItemId: i.Id, Config: TryParseEntriesConfig(i.Config)))
                 .Where(x => x.Config != null)
                 .ToDictionary(x => x.ItemId, x => x.Config!);
 
-            // Filter widgets parsed once, plus every DashboardView on this board and the
-            // pooled clause behind each of its queries, so the analytic loop can layer a
-            // filter widget's typed clauses on top of whatever fixed view a source reads
-            // through, resolved against the field each link maps a clause to, and the read
-            // below can expose each widget's matching-shape presets with their values.
             var filterConfigsByItemId = items
                 .Where(i => i.Type == DashboardWidgetTypes.Filter)
                 .Select(i => (ItemId: i.Id, Config: TryParseFilterConfig(i.Config)))
                 .Where(x => x.Config != null)
                 .ToDictionary(x => x.ItemId, x => x.Config!);
 
-            // The pooled clause behind every filter widget's clause slots, so the loop below
-            // can render its inputs and layer it onto the widgets it follows.
             var filterQueryIds = filterConfigsByItemId.Values
                 .SelectMany(c => c.Slots.Select(s => s.QueryId))
                 .Distinct()
@@ -165,9 +147,8 @@ namespace Operum.Service.Services.Dashboards
                 ? await db.Queries.Where(q => filterQueryIds.Contains(q.Id)).ToDictionaryAsync(q => q.Id)
                 : new Dictionary<string, Query>();
 
-            // Clause data type keyed by slot id -- and, so a conditional target saved before
-            // the slot model still resolves, by the underlying pooled query id too. Lets a
-            // goal's conditional target compare a date token against a date clause.
+            // Keyed by slot id, and also by pooled query id so a target saved before the slot
+            // model still resolves. Lets a goal's conditional target compare against a date clause.
             var filterClauseDataTypes = new Dictionary<string, string>();
             foreach (var cfg in filterConfigsByItemId.Values)
                 foreach (var slot in cfg.Slots)
@@ -184,8 +165,7 @@ namespace Operum.Service.Services.Dashboards
                     .ToListAsync())
                 .ToDictionary(dv => dv.Id);
 
-            // Every tracker field a filter widget's clause link maps to, loaded up front —
-            // ApplyViewFilters needs the field's Type to know how to filter on it.
+            // Loaded up front: ApplyViewFilters needs the field's Type.
             var selectorFieldIds = filterConfigsByItemId.Values
                 .SelectMany(c => c.Links)
                 .SelectMany(l => l.FieldByQuery.Values)
@@ -198,8 +178,6 @@ namespace Operum.Service.Services.Dashboards
 
             foreach (var item in items)
             {
-                // A widget that isn't an analytic renders from its own Config alone, so it
-                // never reaches the calculation below.
                 if (item.Type != DashboardWidgetTypes.Analytic)
                 {
                     QuickAddTrackerDto? quickAddTracker = null;
@@ -232,9 +210,7 @@ namespace Operum.Service.Services.Dashboards
                                     Value = filterConfig.ValueBySlot.GetValueOrDefault(x.Slot.SlotId)
                                 })
                                 .ToList(),
-                            // Only presets whose clause shape still matches the widget's are
-                            // offered; each carries its value per clause in the widget's own
-                            // clause order, so the card just fills those inputs.
+                            // Only presets whose clause shape still matches the widget's are offered.
                             Presets = filterConfig.PresetIds
                                 .Distinct()
                                 .Where(dashboardViewsById.ContainsKey)
@@ -267,12 +243,11 @@ namespace Operum.Service.Services.Dashboards
                     continue;
                 }
 
-                // No shared definition to render -- an orphaned or not-yet-migrated row.
+                // An orphaned or not-yet-migrated row has no shared definition to render.
                 if (item.Widget == null) continue;
 
-                // Goal widgets: the target is the Widget's default unless a conditional row
-                // matches the board's currently-set values for the filters this placement
-                // follows. Computed once here since a goal is always single-source.
+                // A goal's target is the Widget's default unless a conditional row matches
+                // the board's currently-set filter values. A goal is always single-source.
                 var goalTarget = item.Widget.ResultType != AnalyticTypes.Goal
                     ? item.Widget.GoalTarget
                     : ResolveGoalTarget(
@@ -310,9 +285,7 @@ namespace Operum.Service.Services.Dashboards
                         entriesQuery = ViewQueryBuilder.ApplyViewSorting(entriesQuery, ViewQueryBuilder.ResolveSorts(view));
                     }
 
-                    // Every filter widget this widget follows narrows it further, ANDed on
-                    // top of the fixed view above, using the values typed on the board -- a
-                    // clause left blank is skipped rather than filtering on nothing.
+                    // A clause left blank is skipped rather than filtering on nothing.
                     var (followFilters, followSorts) = ResolveFilterClauses(
                         item.Id, widgetSource.TrackerId, filterConfigsByItemId.Values,
                         filterQueriesById, selectorFieldsById);
@@ -324,17 +297,14 @@ namespace Operum.Service.Services.Dashboards
 
                     var entries = await entriesQuery.ToListAsync();
 
-                    // A correlation scatter has no per-source calculation of its own: each
-                    // source is just a list of (match key -> value) pairs, which is exactly
-                    // what a raw-values line chart produces. Compute it as one here and let
-                    // MultiSourceAnalyticMerger.MergeCorrelation join the two sides.
+                    // A correlation scatter has no per-source calculation: each source is a
+                    // raw-values line chart's (match key -> value) pairs, joined by MergeCorrelation.
                     var isPaired = AnalyticTypes.RequiresPairedSources(item.Widget.ResultType, item.Widget.Code);
+                    var fieldMap = BuildFieldMap(widgetSource);
 
                     var request = new AnalyticResultBuilderRequest
                     {
-                        // A placement has no Analytic row of its own, so the pipeline is fed
-                        // a transient one built from the shared widget's definition. The
-                        // builders only read ResultType/Code/Id/Description.
+                        // A placement has no Analytic row of its own; the pipeline is fed a transient one.
                         Analytic = new Analytic
                         {
                             Id = source.Id,
@@ -342,28 +312,50 @@ namespace Operum.Service.Services.Dashboards
                             Grouping = isPaired ? AnalyticGroupings.None : item.Widget.Grouping,
                             ResultType = isPaired ? AnalyticTypes.LineChart : item.Widget.ResultType,
                             // Goal widgets only; ignored by every other builder.
-                            GoalTarget = goalTarget
+                            GoalTarget = goalTarget,
+                            GoalDirection = item.Widget.GoalDirection
                         },
                         Entries = entries,
                         FieldMap = isPaired
-                            ? MultiSourceAnalyticMerger.PairedAxisFieldMap(BuildFieldMap(widgetSource))
-                            : BuildFieldMap(widgetSource)
+                            ? MultiSourceAnalyticMerger.PairedAxisFieldMap(fieldMap)
+                            : fieldMap
                     };
 
-                    // Always displayable, even when the source's field(s) are missing or a
-                    // calculated field's formula is broken: an explanatory card beats the
-                    // widget silently disappearing, which left no way to find and remove it.
                     var data = AnalyticResultBuilder.GetDisplayableAnalyticResult(request);
+
+                    if (item.ShowTrend && !isPaired &&
+                        (item.Widget.ResultType == AnalyticTypes.SingleValue || item.Widget.ResultType == AnalyticTypes.Goal) &&
+                        fieldMap.TryGetValue(AnalyticPurposes.Value, out var valueField))
+                    {
+                        var dateRange = TrendCalculator.TryResolveDateRange(followFilters, tz);
+                        if (dateRange != null)
+                        {
+                            var (dateFieldId, dateFieldType, start, end) = dateRange.Value;
+                            var points = TrendCalculator.BuildSparkline(entries, dateFieldId, start, end, item.Widget.Code, valueField);
+
+                            var previousFilters = TrendCalculator.WithPreviousRange(followFilters, dateFieldId, dateFieldType, start, end);
+                            var previousQuery = db.Entries
+                                .Include(e => e.FieldValues).ThenInclude(fv => fv.Field)
+                                .Where(e => e.TrackerId == widgetSource.TrackerId);
+                            if (view != null)
+                                previousQuery = ViewQueryBuilder.ApplyViewFilters(previousQuery, ViewQueryBuilder.ResolveFilters(view), tz);
+                            previousQuery = ViewQueryBuilder.ApplyViewFilters(previousQuery, previousFilters, tz);
+                            var previousEntries = await previousQuery.ToListAsync();
+                            var previousValue = TrendCalculator.CalculatePreviousValue(previousEntries, item.Widget.Code, valueField);
+
+                            var trend = new TrendResultDto { Points = points, PreviousValue = previousValue };
+                            if (data is SingleValueAnalyticDto singleValueData)
+                                singleValueData.Trend = trend;
+                            else if (data is GoalAnalyticDto goalData)
+                                goalData.Trend = trend;
+                        }
+                    }
+
                     resolvedSources.Add(new ResolvedSource(source, widgetSource.Tracker.Name, widgetSource.Tracker.Color, data));
                 }
 
-                // Only possible if every source's WidgetSource has gone missing somehow —
-                // every source's own calculation now always resolves to something
-                // displayable otherwise.
                 if (resolvedSources.Count == 0) continue;
 
-                // A single source renders exactly as it always has; combining only kicks in
-                // once there's more than one source to merge into a shared chart.
                 var mergeSources = resolvedSources.Select(ToMergeSource).ToList();
                 var itemResult = resolvedSources.Count == 1
                     ? resolvedSources[0].Result
@@ -373,36 +365,27 @@ namespace Operum.Service.Services.Dashboards
                             ? MultiSourceAnalyticMerger.MergeCalendars(mergeSources)
                             : MultiSourceAnalyticMerger.BuildComposed(mergeSources, item.Widget.MatchedValuesOnly);
 
-                // A single source placed with a label override reads on the board under that
-                // name; otherwise the widget's own name -- editable from the Library, shared
-                // by every placement -- wins over the calculation's own default label. A
-                // widget that was never named falls all the way through to that default,
-                // same as before.
+                // Label precedence: single-source label override, then the widget's own name, then the calculation's default.
                 var singleSourceLabel = resolvedSources.Count == 1 ? resolvedSources[0].Source.Label : null;
                 if (!string.IsNullOrWhiteSpace(singleSourceLabel))
                     itemResult.Name = singleSourceLabel;
                 else if (!string.IsNullOrWhiteSpace(item.Widget.Name))
                     itemResult.Name = item.Widget.Name;
 
-                // Use dashboard item ID so frontend can reference it for layout/remove
                 itemResult.Id = item.Id;
                 itemResult.Order = item.Order;
 
-                // The y-axis anchoring is a placement choice, not part of the calculation,
-                // so it is stamped onto the result here rather than threaded through the
-                // analytic pipeline (which also serves tracker-level saved analytics).
+                // Y-axis anchoring is a placement choice, stamped on here rather than threaded through the analytic pipeline.
                 if (itemResult is LineChartAnalyticDto lineResult)
                     lineResult.YAxisFromZero = item.YAxisFromZero;
                 else if (itemResult is ComposedChartAnalyticDto composedResult)
                     composedResult.YAxisFromZero = item.YAxisFromZero;
 
-                // A widget owned by exactly one tracker is colored like that tracker; one
-                // combining more than one falls back to the dashboard's own color, applied
-                // client-side (see TrackerColor on DashboardWidgetDto).
+                // A widget combining more than one tracker falls back to the dashboard's own color client-side.
                 var distinctTrackerIds = resolvedSources.Select(r => r.Source.WidgetSource!.TrackerId).Distinct().ToList();
                 var trackerColor = distinctTrackerIds.Count == 1 ? resolvedSources[0].TrackerColor : null;
 
-                results.Add(MapToWidgetDto(item, itemResult, trackerColor: trackerColor));
+                results.Add(MapToWidgetDto(item, itemResult, trackerColor: trackerColor, honorColorOverride: distinctTrackerIds.Count == 1));
             }
 
             return results;
@@ -462,11 +445,8 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success();
         }
 
-        // Defines a new Widget Library chart (via WidgetsService, so it gets exactly the
-        // same validation and reuse-ability as one built from the Library directly) and
-        // places it on this board in the same call. The board's own capacity is checked
-        // first, so a request that was never going to fit here doesn't spend a widget-count
-        // slot in the Library on the way to failing.
+        // Defines a new Widget Library chart via WidgetsService and places it in the same call.
+        // Board capacity is checked first so a request that won't fit doesn't spend a Library slot.
         public async Task<Result<DashboardItemDto>> CreateAndPlaceWidget(string dashboardId, CreateAndPlaceWidgetDto dto)
         {
             var dashboard = await GetUserDashboard(dashboardId);
@@ -485,6 +465,7 @@ namespace Operum.Service.Services.Dashboards
                 Grouping = dto.Grouping,
                 MatchedValuesOnly = dto.MatchedValuesOnly,
                 GoalTarget = dto.GoalTarget,
+                GoalDirection = dto.GoalDirection,
                 Sources = dto.Sources.Select(s => new CreateWidgetSourceRequestDto
                 {
                     TrackerId = s.TrackerId,
@@ -500,9 +481,7 @@ namespace Operum.Service.Services.Dashboards
                 .Include(w => w.Sources).ThenInclude(s => s.Fields).ThenInclude(f => f.Field)
                 .FirstAsync(w => w.Id == createResult.Data.Id);
 
-            // The two lists share the order they were built in (WidgetsService assigns
-            // WidgetSource.Order from the same enumeration), so a source's placement
-            // overrides line up with the definition it was submitted alongside.
+            // The two lists share the order they were built in (WidgetsService assigns WidgetSource.Order from the same enumeration).
             var overrides = dto.Sources.Zip(widget.Sources.OrderBy(s => s.Order), (input, saved) => new PlaceWidgetSourceOverrideDto
             {
                 WidgetSourceId = saved.Id,
@@ -520,9 +499,7 @@ namespace Operum.Service.Services.Dashboards
             });
         }
 
-        // Places an existing Widget Library chart onto this board by reference: no copy is
-        // made, so editing the widget afterwards -- from the Library, or from any other
-        // dashboard placing it -- changes what this placement draws too.
+        // Places an existing Widget Library chart by reference; editing the widget afterwards changes this placement too.
         public async Task<Result<DashboardItemDto>> PlaceWidget(string dashboardId, PlaceWidgetDto dto)
         {
             var dashboard = await GetUserDashboard(dashboardId);
@@ -544,18 +521,13 @@ namespace Operum.Service.Services.Dashboards
             return await PlaceWidgetOnDashboard(dashboard, widget, dto);
         }
 
-        // Shared by CreateAndPlaceWidget and PlaceWidget once each has settled on which
-        // Widget is being placed: validates the placement-only overrides and inserts one
-        // DashboardItem + one DashboardItemSource per WidgetSource, carrying nothing but a
-        // reference back to the shared definition.
+        // Shared by CreateAndPlaceWidget and PlaceWidget: inserts one DashboardItem +
+        // one DashboardItemSource per WidgetSource, referencing the shared definition.
         private async Task<Result<DashboardItemDto>> PlaceWidgetOnDashboard(Dashboard dashboard, Widget widget, PlaceWidgetDto dto)
         {
             var widgetSourceIds = widget.Sources.Select(s => s.Id).ToHashSet();
             var overridesBySourceId = dto.SourceOverrides.ToDictionary(o => o.WidgetSourceId);
 
-            // Every override must actually name one of this widget's sources — otherwise
-            // the caller has stale data (the widget changed since it was picked) or the
-            // wrong widget id entirely.
             if (!overridesBySourceId.Keys.All(widgetSourceIds.Contains))
                 return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("source id for this widget"));
 
@@ -573,15 +545,10 @@ namespace Operum.Service.Services.Dashboards
 
             var nextOrder = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.Order) + 1 : 0;
 
-            // A new widget starts on its own row under everything already on the board, at
-            // the size its chart type reads well at. The user moves it from there.
             var (width, height) = DashboardGrid.DefaultSizeFor(widget.ResultType);
             var nextRow = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.Y + i.H) : 0;
 
-            // Both grids are placed at once, so neither arrangement has a hole in it the
-            // first time the board is opened on the other kind of screen. On a phone there
-            // is no room to put anything beside anything else, so a new widget takes the
-            // full width of the narrow grid and keeps the height its chart type wants.
+            // Both grids are placed at once so neither has a hole the first time the board opens on the other screen size.
             var nextMobileRow = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.MobileY + i.MobileH) : 0;
 
             var sources = widget.Sources.OrderBy(s => s.Order).Select(widgetSource =>
@@ -654,9 +621,6 @@ namespace Operum.Service.Services.Dashboards
             });
         }
 
-        // A button that opens a tracker's quick-add entry dialog from the board. Unlike a
-        // chart widget this carries no analytic definition — access to the tracker is the
-        // only thing worth checking before it is placed.
         public async Task<Result<DashboardItemDto>> AddQuickAddItem(string dashboardId, AddDashboardQuickAddItemDto dto)
         {
             var dashboard = await GetUserDashboard(dashboardId);
@@ -686,9 +650,7 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(MapToItemDto(item));
         }
 
-        // The placement a follower link names, if it is still on the board and is one of the
-        // kinds a filter can narrow. Analytic and Entries widgets read a tracker; nothing
-        // else on the board does, so nothing else can follow a filter.
+        // Only Analytic and Entries widgets read a tracker, so only they can follow a filter.
         private static DashboardItem? FollowerTarget(Dashboard dashboard, string itemId)
         {
             var item = dashboard.Items.FirstOrDefault(i => i.Id == itemId);
@@ -699,19 +661,12 @@ namespace Operum.Service.Services.Dashboards
                     : null;
         }
 
-        // Whether a follower link still points at something it can narrow: a placement on
-        // this board, reading the tracker the link maps its clauses onto. What each failure
-        // means is ValidateFollowerLinks' business -- this is only "does it still resolve".
         private static bool LinkResolves(Dashboard dashboard, WidgetLinkDto link)
         {
             var target = FollowerTarget(dashboard, link.ItemId);
             return target != null && ResolveItemTrackerIds(target).Contains(link.TrackerId);
         }
 
-        // Checks a Filter widget's follower links: every link names an Analytic/Entries
-        // widget on this board, a tracker it reads from, and — for every clause it maps — a
-        // real field of that tracker whose data type the clause allows. `label` is folded
-        // into the error messages so the failures read naturally.
         private async Task<Result> ValidateFollowerLinks(
             Dashboard dashboard,
             List<WidgetLinkDto> links,
@@ -753,10 +708,6 @@ namespace Operum.Service.Services.Dashboards
 
         // ----- Filter widget (clause set typed on the board, with matching-shape presets) -----
 
-        // The widget owns a set of filter clauses outright (pooled into Query rows here),
-        // each carrying the value it starts out filtering on, and offers the board's
-        // DashboardViews whose clause shape matches as presets. Everything worth checking is
-        // in BuildFilterConfig.
         public async Task<Result<DashboardItemDto>> AddFilterItem(string dashboardId, SaveFilterItemDto dto)
         {
             var user = currentUserService.GetCurrentUser();
@@ -781,10 +732,7 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(MapToItemDto(item));
         }
 
-        // Edits a filter widget in place: its clauses, its presets and the full set of
-        // widgets that follow it. Values the clauses are currently set to are preserved
-        // across the edit (see below). The whole board comes back recomputed, since a
-        // changed clause changes what every follower draws.
+        // Returns the whole board recomputed, since a changed clause changes what every follower draws.
         public async Task<Result<List<DashboardWidgetDto>>> UpdateFilterItem(string dashboardId, string itemId, SaveFilterItemDto dto)
         {
             var user = currentUserService.GetCurrentUser();
@@ -798,12 +746,8 @@ namespace Operum.Service.Services.Dashboards
 
             var previous = TryParseFilterConfig(item.Config);
 
-            // A link this widget already had can go stale without anything editing it: its
-            // follower leaves the board with the Widget it placed (deleted from the Library,
-            // or with its tracker), or stops reading the tracker the link names. The edit
-            // form resubmits the stored link list as-is, so one stale entry would otherwise
-            // fail the whole save -- drop those, and only those. A link that is new here and
-            // doesn't resolve is a real mistake and still fails below.
+            // A previously-valid link can go stale (its follower or tracker left the board);
+            // drop only those, since a genuinely new invalid link should still fail below.
             if (previous != null)
             {
                 var carried = previous.Links.Select(l => $"{l.ItemId}|{l.TrackerId}").ToHashSet();
@@ -816,11 +760,8 @@ namespace Operum.Service.Services.Dashboards
             if (!built.IsSuccess)
                 return Result.Failure(built.StatusCode, built.Messages);
 
-            // The edit form only carries clause shape, never the values the clauses are
-            // currently set to -- those are typed on the board (SetFilterValues) and live
-            // only in ValueBySlot. Carry them across for every slot that survived the edit:
-            // BuildFilterConfig keeps a slot's id when its clause shape is unchanged, so a
-            // value whose slot id still appears in the rebuilt config is still valid.
+            // The edit form only carries clause shape; carry ValueBySlot across for every slot
+            // that survived (BuildFilterConfig keeps a slot's id when its shape is unchanged).
             if (previous != null)
             {
                 var surviving = built.Data!.Slots.Select(s => s.SlotId).ToHashSet();
@@ -835,9 +776,6 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(await BuildWidgets(dashboard));
         }
 
-        // Changes the values a filter widget's clauses are currently set to and persists
-        // them onto the item's Config, so they're what every future load starts from. Returns
-        // the whole board recomputed, since every widget the filter links re-filters by it.
         public async Task<Result<List<DashboardWidgetDto>>> SetFilterValues(string dashboardId, string itemId, SetFilterValuesDto dto)
         {
             var dashboard = await GetUserDashboard(dashboardId);
@@ -865,17 +803,7 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(await BuildWidgets(dashboard));
         }
 
-        // Resolves a SaveFilterItemDto into the Config the widget stores.
-        //
-        // Clauses: the sent clauses pooled into Query rows (ResolveDashboardViewClauses
-        // validates them and enforces the filter/query limits), each assigned a slot id
-        // (kept from `existingSlots` when the clause shape is unchanged, minted fresh
-        // otherwise), each link's index-keyed FieldByQuery rewritten to those slot ids and
-        // checked against its follower, and the starting value per clause.
-        //
-        // Presets: every id must be a DashboardView on this board whose filter clauses, in
-        // order, are the same (data type, operator) list as the widget's clauses -- a preset
-        // is just a named set of values for this exact clause set.
+        // A preset's clauses (data type, operator, in order) must match the widget's clauses exactly.
         private async Task<Result<FilterWidgetConfigDto>> BuildFilterConfig(
             Dashboard dashboard, string ownerId, SaveFilterItemDto dto,
             IReadOnlyList<FilterClauseSlotDto>? existingSlots = null)
@@ -886,10 +814,8 @@ namespace Operum.Service.Services.Dashboards
 
             var queries = resolved.Data!;
 
-            // A slot id per clause position. A surviving clause -- same pooled query, matched
-            // greedily by shape against the slots the widget already had -- keeps its slot
-            // id, so its typed value, its follower field maps and any goal conditional target
-            // keyed off it ride through the edit; a new or reshaped clause gets a fresh id.
+            // A surviving clause (matched by pooled query) keeps its slot id, so values and
+            // follower field maps keyed off it ride through the edit; a reshaped clause gets a fresh id.
             var reusable = (existingSlots ?? [])
                 .GroupBy(s => s.QueryId)
                 .ToDictionary(g => g.Key, g => new Queue<string>(g.Select(s => s.SlotId)));
@@ -907,9 +833,7 @@ namespace Operum.Service.Services.Dashboards
                 .Select((slot, i) => (slot.SlotId, Query: queries[i]))
                 .ToDictionary(x => x.SlotId, x => x.Query);
 
-            // A link's FieldByQuery arrives keyed by clause index; rewrite each to that
-            // clause's slot id. Two clauses of the same shape now stay distinct here rather
-            // than the second overwriting the first.
+            // FieldByQuery arrives keyed by clause index; rewrite to slot id so two clauses of the same shape stay distinct.
             var mappedLinks = new List<WidgetLinkDto>();
             foreach (var link in dto.Links)
             {
@@ -951,8 +875,6 @@ namespace Operum.Service.Services.Dashboards
                 if (presetViews.Count != presetIds.Count)
                     return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("preset"));
 
-                // A preset may only be offered if its clause shape still matches this
-                // widget's exactly -- it is a value set for this clause set, nothing else.
                 if (presetViews.Any(v => PresetValuesForShape(v, queries) == null))
                     return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("preset for this filter widget's clauses"));
             }
@@ -966,8 +888,6 @@ namespace Operum.Service.Services.Dashboards
             });
         }
 
-        // Every key names a filter clause slot the widget holds; every non-empty value parses
-        // for that clause's operator and data type (the same check the clause editor runs).
         private static Result ValidateFilterValues(
             IReadOnlyList<FilterClauseSlotDto> slots,
             IReadOnlyDictionary<string, Query> queriesById,
@@ -993,8 +913,6 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success();
         }
 
-        // Drops blank entries so an unset clause is simply absent from Config rather than
-        // stored as an empty string.
         private static Dictionary<string, string?> NormalizeValues(Dictionary<string, string?> values) =>
             values
                 .Where(kv => !string.IsNullOrEmpty(kv.Value))
@@ -1108,7 +1026,6 @@ namespace Operum.Service.Services.Dashboards
                 : Result.Success(MapDashboardViewToDto(view));
         }
 
-        // Validates every clause and resolves it to a pooled Query (created unsaved if new).
         private async Task<Result<List<Query>>> ResolveDashboardViewClauses(string ownerId, List<ClauseDto> clauses)
         {
             var resolved = new List<Query>();
@@ -1163,8 +1080,7 @@ namespace Operum.Service.Services.Dashboards
             return await db.Dashboards.AnyAsync(d => d.Id == dashboardId && d.UserId == user.Id);
         }
 
-        // Defines a new Widget Library Entries table and places it on this board in the
-        // same call, the Entries equivalent of CreateAndPlaceWidget.
+        // The Entries equivalent of CreateAndPlaceWidget.
         public async Task<Result<DashboardItemDto>> CreateAndPlaceEntriesWidget(string dashboardId, CreateAndPlaceEntriesWidgetDto dto)
         {
             var dashboard = await GetUserDashboard(dashboardId);
@@ -1189,8 +1105,7 @@ namespace Operum.Service.Services.Dashboards
             });
         }
 
-        // Places an existing Widget Library Entries table onto this board by reference —
-        // the Entries equivalent of PlaceWidget.
+        // The Entries equivalent of PlaceWidget.
         public async Task<Result<DashboardItemDto>> PlaceEntriesWidget(string dashboardId, PlaceEntriesWidgetDto dto)
         {
             var dashboard = await GetUserDashboard(dashboardId);
@@ -1247,23 +1162,16 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(MapToItemDto(item));
         }
 
-        // A short line of text read as a section title. Unlike every other Add*Item this
-        // carries no tracker at all — there is nothing to check but the board's own item
-        // limit before it is placed.
         public async Task<Result<DashboardItemDto>> AddHeaderItem(string dashboardId, AddDashboardHeaderItemDto dto)
         {
             return await AddTextItem(dashboardId, DashboardWidgetTypes.Header, DashboardGrid.HeaderSize, dto.Text);
         }
 
-        // A free-form block of text. Same shape as AddHeaderItem, just a different type and
-        // a card-sized footprint instead of a full row.
         public async Task<Result<DashboardItemDto>> AddNoteItem(string dashboardId, AddDashboardNoteItemDto dto)
         {
             return await AddTextItem(dashboardId, DashboardWidgetTypes.Note, DashboardGrid.NoteSize, dto.Text);
         }
 
-        // A bare visual rule. Carries no Config at all — there is nothing about it to
-        // configure — so it needs even less than AddTextItem checks for.
         public async Task<Result<DashboardItemDto>> AddDividerItem(string dashboardId)
         {
             var dashboard = await GetUserDashboard(dashboardId);
@@ -1281,10 +1189,6 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(MapToItemDto(item));
         }
 
-        // An empty panel to arrange other widgets inside. Starts with no Config -- its
-        // content is whichever items are later dropped into it, and its title is set later
-        // through SetTextWidgetContent -- so it needs nothing but the board's own item limit
-        // checked before it is placed.
         public async Task<Result<DashboardItemDto>> AddContainerItem(string dashboardId)
         {
             var dashboard = await GetUserDashboard(dashboardId);
@@ -1302,9 +1206,6 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(MapToItemDto(item));
         }
 
-        // A container whose body is split into tabs. Starts with a single tab and no title;
-        // more tabs, renames and reorders all go through SaveTabsContainer once it's on the
-        // board, so like a plain container it needs nothing but the board's own item limit.
         public async Task<Result<DashboardItemDto>> AddTabsContainerItem(string dashboardId)
         {
             var dashboard = await GetUserDashboard(dashboardId);
@@ -1327,11 +1228,7 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(MapToItemDto(item));
         }
 
-        // Sets a tabs container's title and its whole tab list at once. A tab kept by id is
-        // renamed in place; a tab with no id (or an unknown one) is created; a tab dropped
-        // from the list is removed and its children repointed to the first tab that
-        // survives. Returns the whole board recomputed, since a removed tab moves child
-        // widgets between tabs.
+        // A tab dropped from the list has its children repointed to the first surviving tab.
         public async Task<Result<List<DashboardWidgetDto>>> SaveTabsContainer(string dashboardId, string itemId, SaveTabsContainerDto dto)
         {
             var dashboard = await GetUserDashboard(dashboardId);
@@ -1347,9 +1244,7 @@ namespace Operum.Service.Services.Dashboards
 
             var existingIds = (TryParseTabsContainerConfig(item.Config)?.Tabs ?? []).Select(t => t.Id).ToHashSet();
 
-            // Reconcile the sent tabs against what the container already has: a matching id
-            // is a rename in place, anything else (missing, unknown, or a duplicate of one
-            // already claimed in this list) is a new tab that gets a fresh id.
+            // A matching id is a rename in place; anything else gets a fresh id.
             var claimed = new HashSet<string>();
             var tabs = dto.Tabs.Select(t =>
             {
@@ -1364,8 +1259,6 @@ namespace Operum.Service.Services.Dashboards
             if (tabs.Any(t => string.IsNullOrEmpty(t.Name) || t.Name.Length > DataLimits.MaxTabNameLength))
                 return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("tab name"));
 
-            // Children of a tab that no longer exists move to the first surviving tab rather
-            // than off the board -- there is always at least one tab left.
             var survivingIds = tabs.Select(t => t.Id).ToHashSet();
             var fallbackTabId = tabs[0].Id;
             foreach (var child in dashboard.Items.Where(i => i.ParentItemId == item.Id))
@@ -1384,10 +1277,6 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(await BuildWidgets(dashboard));
         }
 
-        // Shared by AddHeaderItem and AddNoteItem: both are nothing but a tracker-less
-        // widget holding one string of Config, placed the same way a QuickAdd or View
-        // widget is — its own row under everything already on the board, on both grids at
-        // once.
         private async Task<Result<DashboardItemDto>> AddTextItem(string dashboardId, string type, (int Width, int Height) size, string text)
         {
             var dashboard = await GetUserDashboard(dashboardId);
@@ -1406,9 +1295,6 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(MapToItemDto(item));
         }
 
-        // The placement rules every non-analytic widget shares: its own row under
-        // everything already on the board, at the size its kind reads well at, on both
-        // grids at once.
         private static DashboardItem BuildLayoutItem(Dashboard dashboard, string dashboardId, string type, (int Width, int Height) size, string? config)
         {
             var nextOrder = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.Order) + 1 : 0;
@@ -1433,12 +1319,7 @@ namespace Operum.Service.Services.Dashboards
             };
         }
 
-        // Edits an analytic widget's placement in place, but only where editing is the
-        // board's business: what this placement is called, and which view it reads
-        // through. The shared definition (result type, code, field mapping) lives on the
-        // Widget instead and isn't editable here — changing that is what the Widget
-        // Library is for. Returns the whole board recomputed, the same as
-        // SetFilterValues, since a changed view changes what the chart draws.
+        // Only edits placement-level fields (label, view); the shared definition lives on the Widget and is edited via the Widget Library.
         public async Task<Result<List<DashboardWidgetDto>>> UpdateDashboardItem(string dashboardId, string itemId, UpdateDashboardItemDto dto)
         {
             var dashboard = await GetUserDashboard(dashboardId);
@@ -1449,16 +1330,13 @@ namespace Operum.Service.Services.Dashboards
             if (item == null)
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("analytic widget"));
 
-            // All-or-nothing, the way reordering a tracker's fields is: the payload stands
-            // for the whole widget, so it has to name every source exactly once before a
-            // label or a view left out of it can mean "cleared" rather than "left alone".
+            // All-or-nothing: the payload must name every source exactly once, or an omitted
+            // one could mean "cleared" rather than "left alone".
             var suppliedIds = dto.Sources.Select(s => s.SourceId).ToList();
             if (suppliedIds.Count != suppliedIds.Distinct().Count() ||
                 !item.Sources.Select(s => s.Id).ToHashSet().SetEquals(suppliedIds))
                 return Result.Failure(ResultStatusCodes.BadRequest, Messages.Required("every source of this widget, exactly once"));
 
-            // Validated in full before anything is written, so a rejected edit never leaves
-            // the widget half changed.
             foreach (var sourceDto in dto.Sources)
             {
                 var source = item.Sources.First(s => s.Id == sourceDto.SourceId);
@@ -1476,17 +1354,10 @@ namespace Operum.Service.Services.Dashboards
             {
                 var source = item.Sources.First(s => s.Id == sourceDto.SourceId);
 
-                // A name of nothing but whitespace is no name: stored as none at all, so the
-                // widget falls back to the definition's own label rather than showing a blank
-                // title.
                 source.Label = string.IsNullOrWhiteSpace(sourceDto.Label) ? null : sourceDto.Label.Trim();
                 source.ViewId = string.IsNullOrEmpty(sourceDto.ViewId) ? null : sourceDto.ViewId;
             }
 
-            // Conditional targets are a goal-only concept. For a goal, each row has to name
-            // at least one condition, every condition has to be a filter clause this
-            // placement currently follows, and the target has to read as the same kind of
-            // magnitude the goal's calculation produces.
             string? conditionalTargetsJson = null;
             if (item.Widget?.ResultType == AnalyticTypes.Goal && dto.GoalConditionalTargets.Count > 0)
             {
@@ -1497,8 +1368,6 @@ namespace Operum.Service.Services.Dashboards
                     .Select(c => c!)
                     .ToList();
 
-                // Slot ids this placement follows, plus -- for a conditional target saved
-                // before the slot model -- the underlying pooled query ids.
                 var connectedKeys = ConnectedFilterValues(item.Id, filterConfigs).Keys.ToHashSet();
 
                 var valueFieldType = item.Sources
@@ -1527,18 +1396,14 @@ namespace Operum.Service.Services.Dashboards
             item.MobileDisplayMode = dto.MobileDisplayMode;
             item.YAxisFromZero = dto.YAxisFromZero;
             item.GoalConditionalTargets = conditionalTargetsJson;
+            item.Color = string.IsNullOrEmpty(dto.Color) ? null : dto.Color;
+            item.ShowTrend = dto.ShowTrend;
 
             await db.SaveChangesAsync();
 
             return Result.Success(await BuildWidgets(dashboard));
         }
 
-        // Edits an Entries widget's placement in place: only which columns it shows and
-        // whether it collapses to a button on each grid — the tracker it reads from lives on
-        // the EntriesWidget and is fixed the same way an Analytic widget's definition is (see
-        // UpdateDashboardItem), and how it's filtered comes only from the filter widgets
-        // it follows. Returns the whole board recomputed, the same as SetFilterValues,
-        // since a changed column set changes what the table shows.
         public async Task<Result<List<DashboardWidgetDto>>> UpdateEntriesItem(string dashboardId, string itemId, UpdateDashboardEntriesItemDto dto)
         {
             var dashboard = await GetUserDashboard(dashboardId);
@@ -1565,10 +1430,7 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(await BuildWidgets(dashboard));
         }
 
-        // Changes what a Header or Note widget's text reads, or a Container's title,
-        // persisted the same way a View widget's selection is. Unlike that one, nothing else
-        // on the board ever depends on this widget's Config, so there's no need to recompute
-        // the whole board back — the one item that changed is all the caller needs.
+        // Nothing else on the board depends on this widget's Config, so only the changed item is returned.
         public async Task<Result<DashboardItemDto>> SetTextWidgetContent(string dashboardId, string itemId, SetTextWidgetContentDto dto)
         {
             var dashboard = await GetUserDashboard(dashboardId);
@@ -1582,8 +1444,6 @@ namespace Operum.Service.Services.Dashboards
             if (item == null)
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("text widget"));
 
-            // These widgets share this endpoint but not their length cap — a note gets a
-            // paragraph's worth of room; a header and a container title both stay short.
             var maxLength = item.Type == DashboardWidgetTypes.Note
                 ? DataLimits.MaxNoteTextLength
                 : DataLimits.MaxHeaderTextLength;
@@ -1608,10 +1468,6 @@ namespace Operum.Service.Services.Dashboards
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard item"));
 
             // A container's children move onto the board rather than being deleted with it.
-            // Their placement was relative to the container's own sub-grid (same column
-            // count as the board), so offsetting the row by where the container sat drops
-            // them roughly where they were; the client's compactor tidies the rest on the
-            // next arrange.
             if (DashboardWidgetTypes.IsContainer(item.Type))
             {
                 foreach (var child in dashboard.Items.Where(i => i.ParentItemId == item.Id).ToList())
@@ -1623,11 +1479,8 @@ namespace Operum.Service.Services.Dashboards
                 }
             }
 
-            // A filter widget names the placements that follow it by id, inside its own
-            // Config, where no foreign key can clean up after a delete. Nothing renders a
-            // link to a placement that is gone, but the next save of that filter widget
-            // resubmits its whole link list and gets rejected over the dangling one, so
-            // drop them here instead.
+            // A filter widget names followers by id inside its own Config, where no foreign
+            // key can clean up after a delete; drop dangling links here instead.
             foreach (var filterItem in dashboard.Items.Where(i => i.Type == DashboardWidgetTypes.Filter))
             {
                 var filterConfig = TryParseFilterConfig(filterItem.Config);
@@ -1637,9 +1490,7 @@ namespace Operum.Service.Services.Dashboards
                 filterItem.Config = JsonSerializer.Serialize(filterConfig, ConfigJsonOptions);
             }
 
-            // Removes only this placement. The shared Widget/EntriesWidget it referenced --
-            // if any -- is untouched and keeps rendering on every other dashboard it's
-            // placed on; deleting the definition itself is the Widget Library's job.
+            // The shared Widget/EntriesWidget, if any, is untouched and keeps rendering elsewhere.
             db.DashboardItems.Remove(item);
             await db.SaveChangesAsync();
             return Result.Success();
@@ -1651,15 +1502,12 @@ namespace Operum.Service.Services.Dashboards
             if (dashboard == null)
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
 
-            // Which items are containers others may be dropped into. A container can never
-            // itself be nested, so it is not a candidate parent for one.
+            // A container can never itself be nested, so it is not a candidate parent for one.
             var containerIds = dashboard.Items
                 .Where(i => DashboardWidgetTypes.IsContainer(i.Type))
                 .Select(i => i.Id)
                 .ToHashSet();
 
-            // The tab ids each tabs container holds, in order, so a placement dropped into
-            // one can be pinned to a real tab.
             var tabOrderByContainer = dashboard.Items
                 .Where(i => i.Type == DashboardWidgetTypes.TabsContainer)
                 .ToDictionary(
@@ -1671,8 +1519,7 @@ namespace Operum.Service.Services.Dashboards
                 var item = dashboard.Items.FirstOrDefault(x => x.Id == placement.ItemId);
                 if (item == null) continue;
 
-                // The narrow grid flattens containers away, so a placement made there never
-                // changes what an item's parent is on the wide grid.
+                // The narrow grid flattens containers away; parent is only set from the wide grid.
                 if (dto.Variant == DashboardLayoutVariants.Desktop)
                 {
                     var wantsParent = placement.ParentItemId;
@@ -1684,12 +1531,9 @@ namespace Operum.Service.Services.Dashboards
 
                     item.ParentItemId = parentOk ? wantsParent : null;
 
-                    // A tabs container child is pinned to one of its tabs: the one the client
-                    // named if it's real, otherwise the first tab so the widget stays in the
-                    // panel rather than vanishing to the board. A plain container's child
-                    // carries no tab.
+                    // Falls back to the first tab so the widget stays in the panel rather than vanishing to the board.
                     if (parentOk && tabOrderByContainer.TryGetValue(wantsParent!, out var tabIds) && tabIds.Count > 0)
-                        item.ParentTabId = tabIds.Contains(placement.ParentTabId) ? placement.ParentTabId : tabIds[0];
+                        item.ParentTabId = placement.ParentTabId != null && tabIds.Contains(placement.ParentTabId) ? placement.ParentTabId : tabIds[0];
                     else
                         item.ParentTabId = null;
                 }
@@ -1697,20 +1541,10 @@ namespace Operum.Service.Services.Dashboards
                 ApplyPlacement(item, dto.Variant, placement.X, placement.Y, placement.W, placement.H);
             }
 
-            // Order no longer decides where an item sits, but it still decides which widget
-            // a client without the grid reads first, so keep it as the board's reading
-            // order instead of letting it drift away from what the user arranged.
-            //
-            // Only the wide grid gets a say in it. The two arrangements can disagree about
-            // what comes first, and letting whichever screen was used last rewrite the order
-            // would make it flip back and forth; the desktop board is the one that has the
-            // room to express an order in the first place. A container's children follow it
-            // in reading order, each block sorted top-left to bottom-right.
+            // Order still decides reading order for a client without the grid. Only the
+            // desktop layout gets a say, to avoid the two grids fighting over it.
             if (dto.Variant == DashboardLayoutVariants.Desktop)
             {
-                // A tabs container's children read tab by tab, then top-left to bottom-right
-                // within each; a plain container's children are just sorted top-left to
-                // bottom-right.
                 int TabRank(DashboardItem c) =>
                     c.ParentItemId != null
                     && tabOrderByContainer.TryGetValue(c.ParentItemId, out var tabIds)
@@ -1741,9 +1575,7 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success();
         }
 
-        // Clamps a placement to the grid the client is told to render. Out-of-bounds values
-        // are pulled back in rather than rejected: refusing would throw away the rest of
-        // the board's arrangement over one widget the client placed badly.
+        // Out-of-bounds values are clamped rather than rejected, so one bad placement doesn't fail the whole board save.
         private static void ApplyPlacement(DashboardItem item, string variant, int x, int y, int w, int h)
         {
             var columns = DashboardGrid.ColumnsFor(variant);
@@ -1765,11 +1597,7 @@ namespace Operum.Service.Services.Dashboards
             item.Y = Math.Max(y, 0);
         }
 
-        // Whether a preset (DashboardView) still fits a filter widget's clause set: its
-        // filter clauses, in order, must be the same (data type, operator) list as the
-        // widget's. Returns the preset's value per clause in the widget's clause order when
-        // it fits, so the card can drop those straight into its value inputs -- or null
-        // when the shapes have drifted apart and the preset should no longer be offered.
+        // Returns the preset's value per clause in the widget's clause order, or null if the shapes no longer match.
         private static List<string?>? PresetValuesForShape(DashboardView view, IReadOnlyList<Query> widgetClauses)
         {
             var presetClauses = view.DashboardViewQueries
@@ -1793,11 +1621,7 @@ namespace Operum.Service.Services.Dashboards
             return values;
         }
 
-        // The clauses every filter widget contributes to one widget's (item, tracker) pair.
-        // The widget owns its clause set (Config.Slots) and the filter value is the one typed
-        // on the board (Config.ValueBySlot). A filter whose value is blank is dropped
-        // entirely -- the filter just hasn't been set yet -- unless its operator is one that
-        // reads a blank as "is empty" / "has a value" on its own.
+        // A blank filter value is dropped unless its operator reads a blank as "is empty" / "has a value" on its own.
         private static (List<ResolvedClause> Filters, List<ResolvedClause> Sorts) ResolveFilterClauses(
             string itemId,
             string trackerId,
@@ -1831,9 +1655,6 @@ namespace Operum.Service.Services.Dashboards
 
                     var value = config.ValueBySlot.GetValueOrDefault(slot.SlotId);
 
-                    // A blank value only means something for the two equality operators
-                    // ("is empty" / "has a value"); for anything else it means the filter
-                    // is unset, so leave the clause off rather than filter on nothing.
                     if (string.IsNullOrEmpty(value) &&
                         query.Operator != OperatorTypes.EqualsOperator &&
                         query.Operator != OperatorTypes.NotEquals)
@@ -1846,10 +1667,7 @@ namespace Operum.Service.Services.Dashboards
             return (filters, sorts);
         }
 
-        // Validates a placement's chosen columns against its tracker: every id must be one of
-        // the tracker's fields, duplicates collapse keeping first-seen order, and the list is
-        // capped like a view's own columns. Empty in, empty out -- which the renderer reads
-        // as "every field".
+        // Empty in, empty out; the renderer reads an empty list as "every field".
         private async Task<Result<List<string>>> ResolveEntriesColumns(string trackerId, List<string> columnFieldIds)
         {
             if (columnFieldIds.Count == 0)
@@ -1876,10 +1694,7 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(resolved);
         }
 
-        // Purpose -> Field for the mappings that still resolve. Deleting a field cascades its
-        // mapping away, so an incomplete map is possible here; the builder renders whatever
-        // it can from what's left and GetDisplayableAnalyticResult falls back to an
-        // explanatory placeholder otherwise, rather than the source disappearing.
+        // Deleting a field cascades its mapping away, so an incomplete map is possible here.
         private static Dictionary<string, Field> BuildFieldMap(WidgetSource source) =>
             source.Fields
                 .Where(f => f.Field != null)
@@ -1887,8 +1702,6 @@ namespace Operum.Service.Services.Dashboards
 
         private static IQueryable<Dashboard> WithSourceGraph(IQueryable<Dashboard> query) => query
             .Include(d => d.Items).ThenInclude(i => i.Widget)
-            // Include's lambda receives the navigation's own (nullable) CLR type -- it never
-            // actually dereferences a null instance, Include just walks the expression tree.
             .Include(d => d.Items).ThenInclude(i => i.EntriesWidget).ThenInclude(w => w!.Tracker)
             .Include(d => d.Items).ThenInclude(i => i.Sources).ThenInclude(s => s.WidgetSource).ThenInclude(ws => ws!.Tracker)
             .Include(d => d.Items).ThenInclude(i => i.Sources).ThenInclude(s => s.WidgetSource).ThenInclude(ws => ws!.Fields).ThenInclude(f => f.Field);
@@ -1897,13 +1710,8 @@ namespace Operum.Service.Services.Dashboards
         {
             var user = currentUserService.GetCurrentUser();
             return await WithSourceGraph(db.Dashboards)
-                // The DbContext defaults to QueryTrackingBehavior.NoTracking (see
-                // DatabaseConfiguration), which also skips identity resolution: if the same
-                // Tracker is referenced by more than one source in this graph, each reference
-                // materializes as a separate CLR instance. Every caller here either mutates
-                // and calls SaveChanges (Update/Reorder), or hands the graph to Remove()
-                // (Delete), both of which need this tracked and identity-resolved, the latter
-                // otherwise throws when it tries to attach two same-key instances.
+                // Must be tracked and identity-resolved: Remove() throws if the same Tracker,
+                // referenced by more than one source, materializes as separate CLR instances.
                 .AsTracking()
                 .FirstOrDefaultAsync(d => d.Id == dashboardId && d.UserId == user.Id);
         }
@@ -1935,13 +1743,12 @@ namespace Operum.Service.Services.Dashboards
             MatchedValuesOnly = item.Widget?.MatchedValuesOnly ?? false,
             YAxisFromZero = item.YAxisFromZero,
             GoalConditionalTargets = ParseGoalConditionalTargets(item.GoalConditionalTargets),
+            Color = item.Color,
+            ShowTrend = item.ShowTrend,
+            GoalDirection = item.Widget?.GoalDirection,
             Sources = item.Sources.OrderBy(s => s.Order).Select(s => MapSourceToDto(item, s)).ToList()
         };
 
-        // What a form elsewhere labels this item by. An Entries widget carries its own name;
-        // an Analytic widget's placement name wins over its calculation's default label, and
-        // an unnamed one falls through to that label the same way the board itself renders
-        // it (see BuildWidgets). Everything else has no name to show.
         private static string ResolveItemName(DashboardItem item)
         {
             if (item.Type == DashboardWidgetTypes.Entries)
@@ -1961,8 +1768,6 @@ namespace Operum.Service.Services.Dashboards
             return AnalyticDefinitionList.GetDisplayName(item.Widget.ResultType, item.Widget.Code, fieldNames, item.Widget.Grouping);
         }
 
-        // Every tracker this item reads from — one for an Entries widget, the distinct set
-        // across its sources for an Analytic widget, none for the kinds that read no tracker.
         private static List<string> ResolveItemTrackerIds(DashboardItem item)
         {
             if (item.Type == DashboardWidgetTypes.Entries)
@@ -1999,7 +1804,8 @@ namespace Operum.Service.Services.Dashboards
             QuickAddTrackerDto? quickAddTracker = null,
             string? trackerColor = null,
             EntriesWidgetDto? entriesWidget = null,
-            FilterWidgetDto? filter = null) => new()
+            FilterWidgetDto? filter = null,
+            bool honorColorOverride = true) => new()
         {
             Id = item.Id,
             Type = item.Type,
@@ -2012,7 +1818,8 @@ namespace Operum.Service.Services.Dashboards
             QuickAddTracker = quickAddTracker,
             Filter = filter,
             EntriesWidget = entriesWidget,
-            TrackerColor = trackerColor
+            TrackerColor = trackerColor,
+            Color = honorColorOverride ? item.Color : null
         };
 
         private static QuickAddWidgetConfigDto? TryParseQuickAddConfig(string? config)
@@ -2043,8 +1850,7 @@ namespace Operum.Service.Services.Dashboards
                 if (parsed.Slots.Count > 0)
                     return parsed;
 
-                // Pre-slot config: fold the parallel QueryIds list + query-id-keyed maps
-                // into slots. Anything without a QueryIds list is just an empty widget.
+                // Pre-slot config: fold the parallel QueryIds list into slots.
                 var legacy = JsonSerializer.Deserialize<LegacyFilterConfig>(config, ConfigJsonOptions);
                 return legacy?.QueryIds is { Count: > 0 }
                     ? FromLegacyFilterConfig(legacy)
@@ -2056,7 +1862,6 @@ namespace Operum.Service.Services.Dashboards
             }
         }
 
-        // The pre-slot filter Config shape, read only to fold it forward (see below).
         private sealed class LegacyFilterConfig
         {
             public List<string>? QueryIds { get; set; }
@@ -2065,11 +1870,8 @@ namespace Operum.Service.Services.Dashboards
             public List<string>? PresetIds { get; set; }
         }
 
-        // A clause whose (kind/type/operator) shape is unique in the widget keeps its pooled
-        // query id as its slot id, so a value or a goal conditional target already keyed off
-        // that id still resolves after the fold. Only genuinely duplicated clauses -- the
-        // ones the slot model exists to tell apart -- get a suffixed id, and the single
-        // field/value the old config could hold for them lands on the first.
+        // A unique clause keeps its pooled query id as slot id so existing references still
+        // resolve; only genuinely duplicated clauses get a suffixed id.
         private static FilterWidgetConfigDto FromLegacyFilterConfig(LegacyFilterConfig legacy)
         {
             var queryIds = legacy.QueryIds!;
@@ -2123,8 +1925,6 @@ namespace Operum.Service.Services.Dashboards
             }
         }
 
-        // A goal placement's conditional targets (DashboardItem.GoalConditionalTargets).
-        // Empty for a goal that has none and for every non-goal item.
         private static List<GoalConditionalTargetDto> ParseGoalConditionalTargets(string? json)
         {
             if (string.IsNullOrEmpty(json))
@@ -2140,11 +1940,8 @@ namespace Operum.Service.Services.Dashboards
             }
         }
 
-        // The value each filter clause this goal placement follows is currently set to on the
-        // board, keyed by slot id (and by the underlying pooled query id too, so a
-        // conditional target saved before the slot model still resolves). A clause the
-        // placement doesn't follow isn't in here at all, which is what keeps a conditional
-        // target from matching on a filter it was never connected to.
+        // A clause the placement doesn't follow isn't in here at all, so a conditional target
+        // can never match on a filter it was never connected to.
         private static Dictionary<string, string?> ConnectedFilterValues(
             string itemId, IEnumerable<FilterWidgetConfigDto> filterConfigs)
         {
@@ -2167,9 +1964,7 @@ namespace Operum.Service.Services.Dashboards
             return values;
         }
 
-        // The goal's default target, or the first conditional row whose every condition
-        // matches a currently-connected clause's value. A row with no conditions, or one
-        // naming a clause this placement no longer follows, never matches.
+        // A row with no conditions, or one naming a clause this placement no longer follows, never matches.
         private static string? ResolveGoalTarget(
             string? defaultTarget,
             List<GoalConditionalTargetDto> conditionalTargets,
@@ -2194,11 +1989,8 @@ namespace Operum.Service.Services.Dashboards
             return defaultTarget;
         }
 
-        // A condition matches the clause's current value on an exact string match, or -- for a
-        // date or datetime clause -- when both sides resolve to the same instant. That lets a
-        // row keyed on "start of month" match a filter a user set to the literal first-of-month
-        // date, and the reverse. A date clause compares by calendar day, matching how a date
-        // filter itself treats equality.
+        // For a date/datetime clause, matches when both sides resolve to the same instant (or
+        // same calendar day for a date), so "start of month" matches a literal first-of-month value.
         private static bool ConditionValueMatches(string? current, string? expected, string? dataType, TimeZoneInfo tz)
         {
             current ??= string.Empty;
@@ -2229,9 +2021,8 @@ namespace Operum.Service.Services.Dashboards
 
             try
             {
-                // Legacy placements stored { "viewId": "..." } here; that key is gone now and
-                // deserializes away, leaving an empty column list -- which renders as "every
-                // field", exactly the fallback those widgets had before.
+                // Legacy placements stored { "viewId": "..." }; that key deserializes away,
+                // leaving an empty column list, which renders as "every field".
                 return JsonSerializer.Deserialize<EntriesWidgetConfigDto>(config, ConfigJsonOptions)
                     ?? new EntriesWidgetConfigDto();
             }
@@ -2241,16 +2032,8 @@ namespace Operum.Service.Services.Dashboards
             }
         }
 
-        // A board widget is a window onto a tracker's recent activity, not its own paginated
-        // table -- this many rows is plenty without the card growing pagination of its own.
         private const int EntriesWidgetRowLimit = 25;
 
-        // Resolves everything an Entries widget's table needs to render: the columns to show
-        // in order (Config's ColumnFieldIds, or every field when it names none), and the rows
-        // themselves -- filtered and sorted by whatever view selectors this placement follows,
-        // then capped. Unlike the analytic pipeline this returns the entries directly rather
-        // than an aggregate, so the card renders them without a fetch of its own. Which
-        // tracker to read from is the EntriesWidget's own -- fixed at creation.
         private async Task<EntriesWidgetDto> BuildEntriesWidget(
             string itemId,
             EntriesWidget entriesWidget,
@@ -2265,9 +2048,7 @@ namespace Operum.Service.Services.Dashboards
                 .OrderBy(f => f.Order)
                 .ToListAsync();
 
-            // The chosen columns in the order Config stores them, skipping any the tracker
-            // has since lost so a deleted field never breaks the table. Falls back to every
-            // field when Config names none, or when none of the ones it names still resolve.
+            // Skips any field the tracker has since lost; falls back to every field when none resolve.
             var fieldsById = trackerFields.ToDictionary(f => f.Id);
             var columnFields = config.ColumnFieldIds
                 .Where(fieldsById.ContainsKey)

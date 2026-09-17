@@ -33,9 +33,8 @@ namespace Operum.Model
                 .HasForeignKey(v => v.TrackerId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // A Query is a field-agnostic, user-owned clause pooled across every view and
-            // dashboard view that reads the same way. It outlives any one of them; only
-            // deleting the user takes it down.
+            // Queries are pooled and user-owned, outliving any one view; only deleting the
+            // user cascades to them.
             builder.Entity<Query>()
                 .HasOne(q => q.Owner)
                 .WithMany()
@@ -56,9 +55,8 @@ namespace Operum.Model
                 .HasForeignKey(vq => vq.QueryId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // A ViewQuery binds its clause to one concrete field; deleting the field drops
-            // the binding (and so the clause) from whichever views used it -- the same edge
-            // the old field-bound Query had.
+            // Deleting the field drops the ViewQuery binding (and so the clause) -- the
+            // same edge the old field-bound Query had.
             builder.Entity<ViewQuery>()
                 .HasOne(vq => vq.Field)
                 .WithMany()
@@ -133,10 +131,8 @@ namespace Operum.Model
                 .Property(i => i.YAxisFromZero)
                 .HasDefaultValue(true);
 
-            // A Container's children point back at it. Deleting the container leaves the
-            // children on the board (FK nulled) rather than taking them with it; the
-            // service also gives them a fresh placement so they don't all pile up where the
-            // container was.
+            // Deleting a Container SetNulls its children's FK rather than taking them down
+            // too; the service then gives them a fresh placement so they don't pile up.
             builder.Entity<DashboardItem>()
                 .HasOne(i => i.ParentItem)
                 .WithMany(i => i.Children)
@@ -167,9 +163,9 @@ namespace Operum.Model
                 .HasForeignKey(f => f.WidgetSourceId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // A widget's field mapping is the whole of what a Field deletion should be
-            // able to take down -- the widget itself survives on every dashboard it's
-            // placed on and falls back to a degraded render (see AnalyticResultBuilder).
+            // Field deletion should only take down the mapping -- the widget survives on
+            // every dashboard it's placed on and falls back to a degraded render (see
+            // AnalyticResultBuilder).
             builder.Entity<WidgetSourceField>()
                 .HasOne(f => f.Field)
                 .WithMany()
@@ -183,9 +179,8 @@ namespace Operum.Model
                 .OnDelete(DeleteBehavior.Cascade);
 
             // A placement can't render without its shared definition, so deleting the
-            // Widget/EntriesWidget takes every placement of it down too -- the sharpest
-            // edge of the reuse model, surfaced to the user before deleting from the
-            // library.
+            // Widget/EntriesWidget takes every placement down too -- the sharpest edge of
+            // the reuse model, surfaced to the user before deleting from the library.
             builder.Entity<DashboardItem>()
                 .HasOne(i => i.Widget)
                 .WithMany()
@@ -292,10 +287,9 @@ namespace Operum.Model
                 .HasForeignKey(i => i.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // One connection per provider account per user. ExternalAccountId is null for a
+            // One connection per resolved account per user. ExternalAccountId is null for a
             // push-only connection, and Postgres treats nulls as distinct in a unique index,
-            // so this constrains resolved accounts and lets a user hold several push
-            // connections to the same provider -- one per tracker they wire up.
+            // so a user can still hold several push connections to the same provider.
             builder.Entity<Integration>()
                 .HasIndex(i => new { i.UserId, i.Provider, i.ExternalAccountId })
                 .IsUnique();
@@ -345,10 +339,9 @@ namespace Operum.Model
                 .HasIndex(m => new { m.TargetId, m.FieldId })
                 .IsUnique();
 
-            // An integration's idempotency key: re-ingesting a record it has already written
-            // must update that entry, not add a second one. Filtered so it constrains only
-            // integration-authored rows -- every hand-created and CSV-imported entry leaves
-            // both columns null, and many nulls must stay legal.
+            // An integration's idempotency key: re-ingesting an already-written record
+            // updates it instead of duplicating. Filtered to integration-authored rows,
+            // since hand-created and CSV-imported entries leave both columns null.
             builder.Entity<Entry>()
                 .HasIndex(e => new { e.TrackerId, e.Source, e.ExternalId })
                 .IsUnique()
@@ -359,28 +352,20 @@ namespace Operum.Model
                 .HasIndex(e => new { e.TrackerId, e.Source, e.ExternalGroupId })
                 .HasFilter(@"""ExternalGroupId"" IS NOT NULL");
 
-            // Declared explicitly because the filtered index above would otherwise suppress
-            // it: convention sees an index leading with TrackerId and skips the FK one. A
-            // partial index cannot serve "every entry in this tracker" -- that predicate does
-            // not imply Source IS NOT NULL -- so losing this would leave the single hottest
-            // entry query (EntriesService.GetEntries) with no index at all.
+            // Declared explicitly: EF convention would otherwise skip this FK index since
+            // the filtered index above also leads with TrackerId, but that partial index
+            // can't serve "every entry in this tracker". Losing this would leave the
+            // hottest entry query (EntriesService.GetEntries) with no index at all.
             builder.Entity<Entry>()
                 .HasIndex(e => e.TrackerId);
 
-            // Entries are EAV, so reading them is all correlated subqueries over FieldValues:
-            // every view filter is an EXISTS (ViewQueryBuilder.ApplyViewFilters) and every
-            // view sort is a scalar FirstOrDefault (ApplyViewSorting), up to MaxFilters +
-            // MaxSorts of them on one page load. Until DataLimits was raised for integrations
-            // the table was small enough that the FK indexes EF generates covered it; at the
-            // new MaxEntryCount it is not.
-            //
-            // These two shapes are what those queries actually ask for. Both lead with the
-            // column the subquery correlates on, so they also stand in for the single-column
-            // FK indexes convention would otherwise add.
-            //
-            // (Postgres could make the sort lookup index-only with an INCLUDE of the value
-            // columns. Left off deliberately -- it is a provider-specific annotation and the
-            // plain composite is the thing to measure first.)
+            // Entries are EAV: every view filter is a correlated EXISTS over FieldValues
+            // (ViewQueryBuilder.ApplyViewFilters) and every sort a scalar lookup
+            // (ApplyViewSorting). The FK indexes EF generates stopped covering this once
+            // MaxEntryCount was raised for integrations; these composite indexes, leading
+            // with the correlation column, replace them. Postgres could make the sort
+            // lookup index-only via INCLUDE, but that's left until the plain composite has
+            // been measured.
             builder.Entity<FieldValue>()
                 .HasIndex(fv => new { fv.EntryId, fv.FieldId });
 
@@ -405,16 +390,16 @@ namespace Operum.Model
             builder.Entity<FieldValue>()
                 .HasIndex(fv => new { fv.FieldId, fv.StringValue });
 
-            // A "reference" field caches its link label in StringValue (so the indexes above
-            // cover filtering/sorting), and keeps the actual link here. This composite serves
-            // "which values point at this entry" -- the fan-out the delete cleanup and the
-            // label-refresh service both run.
+            // A reference field caches its link label in StringValue (covered by the
+            // indexes above) and keeps the actual link here. This composite serves "which
+            // values point at this entry", used by delete cleanup and the label-refresh
+            // service.
             builder.Entity<FieldValue>()
                 .HasIndex(fv => new { fv.FieldId, fv.ReferencedEntryId });
 
-            // A reference field's configured target. SetNull rather than cascade: deleting the
-            // target tracker/field degrades the reference field (read-only, values keep their
-            // last label) instead of destroying the schema around it.
+            // SetNull rather than cascade: deleting the target tracker/field degrades the
+            // reference field (read-only, keeps its last label) instead of destroying the
+            // schema around it.
             builder.Entity<Field>()
                 .HasOne(f => f.ReferencedTracker)
                 .WithMany()

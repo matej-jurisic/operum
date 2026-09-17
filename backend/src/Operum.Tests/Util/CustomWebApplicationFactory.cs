@@ -21,9 +21,9 @@ namespace Operum.Tests.Util
 {
     public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
-        // SQLite rather than the in-memory provider: the services lean on relational features
-        // the in-memory one refuses, ExecuteDelete above all. The database lives for as long as
-        // this connection stays open, so the factory owns it and each factory gets its own.
+        // SQLite, not the in-memory provider: services rely on relational features the in-memory
+        // provider refuses (ExecuteDelete above all). The database lives only while this connection
+        // stays open, so the factory owns it and each factory gets its own.
         private readonly SqliteConnection _connection = new("DataSource=:memory:");
 
         public CustomWebApplicationFactory()
@@ -105,10 +105,7 @@ namespace Operum.Tests.Util
             await DataSeeder.SeedUsersAsync(userManager, roleManager);
         }
 
-        /// <summary>
-        /// A client already logged in as one of the seeded users, which is how nearly every
-        /// test starts.
-        /// </summary>
+        /// <summary>A client already logged in as one of the seeded users.</summary>
         public async Task<HttpClient> AuthenticatedClient(RegisterDto userData)
         {
             await SeedDatabaseAsync();
@@ -118,10 +115,9 @@ namespace Operum.Tests.Util
         }
 
         /// <summary>
-        /// Adds one more confirmed user and returns a client logged in as them, for the tests
-        /// that need a second account. Registering through the API would leave the account
-        /// unconfirmed and unable to log in — the mock mail sender reports itself as
-        /// configured — so the user is created directly.
+        /// Adds a second confirmed user and returns a client logged in as them. Registering through
+        /// the API would leave the account unconfirmed and unable to log in, since the mock mail
+        /// sender reports itself as configured, so the user is created directly instead.
         /// </summary>
         public async Task<(HttpClient Client, string UserName)> AuthenticatedClientForNewUser(string userNamePrefix)
         {
@@ -145,10 +141,7 @@ namespace Operum.Tests.Util
             return (client, credentials.UserName);
         }
 
-        /// <summary>
-        /// A client logged in as a brand new user. Tests in a class share one database, so a
-        /// test that would otherwise run into a per-user limit starts from its own account.
-        /// </summary>
+        /// <summary>A client logged in as a brand new user, so a test doesn't run into another test's per-user limits on the shared database.</summary>
         public async Task<HttpClient> NewUserClient(string userNamePrefix) =>
             (await AuthenticatedClientForNewUser(userNamePrefix)).Client;
     }

@@ -9,17 +9,13 @@ using System.Net.Http.Json;
 
 namespace Operum.Tests.Tests.Trackers
 {
-    /// <summary>
-    /// Sharing a tracker and what each level of collaborator may then do with it. Read access
-    /// comes with the invitation; editing data and editing the schema are granted separately.
-    /// </summary>
+    /// <summary>Read access comes with the invitation; editing data and editing the schema are separate grants.</summary>
     public class TrackerSharingTests(CustomWebApplicationFactory factory) : IClassFixture<CustomWebApplicationFactory>
     {
         private readonly CustomWebApplicationFactory _factory = factory;
 
         private sealed record Shared(HttpClient Owner, HttpClient Collaborator, string CollaboratorName, string TrackerId, string EntryId);
 
-        /// <summary>A tracker with one field and one entry, shared with a second user.</summary>
         private async Task<Shared> ShareTracker(string name, bool canEditData = false, bool canEditSchema = false)
         {
             var owner = await _factory.NewUserClient("owner");

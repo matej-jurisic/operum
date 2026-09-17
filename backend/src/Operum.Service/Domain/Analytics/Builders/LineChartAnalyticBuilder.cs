@@ -30,8 +30,7 @@ namespace Operum.Service.Domain.Analytics.Builders
             var xField = request.FieldMap.GetValueOrDefault(AnalyticPurposes.Xaxis);
             var yField = request.FieldMap.GetValueOrDefault(AnalyticPurposes.Yaxis);
 
-            // Count is the only aggregation that reads no value field; every other one needs
-            // one, and raw values needs the x too.
+            // Count is the only aggregation that reads no value field.
             var countsRows = code == AnalyticCodes.Count;
             if (xField == null || (yField == null && !countsRows))
                 return Result.Success<AnalyticDto>(result);
@@ -47,14 +46,8 @@ namespace Operum.Service.Domain.Analytics.Builders
                 .Where(p => p.X != null && (countsRows || p.Y != null))
                 .ToList();
 
-            // A line chart is read left-to-right along its x-axis, so the points are ordered
-            // by x here rather than left in entry order. Entries arrive in whatever order the
-            // query produced them: a linked view can sort on any field, or on none, and
-            // connecting the line in that order draws a meaningless zig-zag. The analytic
-            // query has no row limit, so a view's sort only ever changed the draw order, not
-            // which entries are plotted, and its filters still apply as before. The grouped
-            // processor keeps this order for its buckets; for the cumulative variant it also
-            // makes the running total correct instead of dependent on insertion order.
+            // Points must be sorted by x here: entries arrive in whatever order the source
+            // query produced, and connecting them unsorted draws a meaningless zig-zag.
             dataPoints = OrderByX(dataPoints, xField.Type);
 
             ILineChartProcessor processor = code == AnalyticCodes.RawValues
@@ -85,10 +78,8 @@ namespace Operum.Service.Domain.Analytics.Builders
             return Result.Success<AnalyticDto>(result);
         }
 
-        // X reaches us as the field value's display string. Dates and datetimes are
-        // round-trip ("o") formatted so they already sort chronologically as text, but
-        // numbers ("9.00" vs "100.00") and timespans do not, so the ordering is type-aware.
-        // A value that fails to parse sorts first; null X is already filtered out upstream.
+        // Dates/datetimes are round-trip ("o") formatted so they already sort as text;
+        // numbers and timespans don't, so ordering is type-aware.
         private static List<LineChartPointDto> OrderByX(List<LineChartPointDto> points, string xFieldType) =>
             xFieldType.ToLowerInvariant() switch
             {

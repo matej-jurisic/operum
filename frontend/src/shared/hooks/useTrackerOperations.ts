@@ -34,9 +34,6 @@ export const useTrackerOperations = () => {
 
     const { _setSelectedViewId } = useTracker();
 
-    // ========================================
-    // Field Operations
-    // ========================================
     const createField = async (values: CreateFieldDto) => {
         await _createField(values);
         markEntriesDirty();
@@ -55,24 +52,19 @@ export const useTrackerOperations = () => {
     const deleteField = async (fieldId: string) => {
         await _deleteField(fieldId);
         markEntriesDirty();
-        // Deleting a field drops the clauses bound to it, so the views built on them read
-        // differently afterwards.
+        // Deleting a field drops clauses bound to it, so views built on them change too.
         await refreshViews();
     };
 
     const extractFields = async (values: ExtractFieldsDto) => {
         const result = await _extractFields(values);
         markEntriesDirty();
-        // The extracted fields are gone, so the clauses bound to them are too, and a new
-        // tracker now exists in the sidebar.
+        // Extracted fields' clauses are gone, and a new tracker now exists in the sidebar.
         await refreshViews();
         await navigationStore.refreshTrackers();
         return result;
     };
 
-    // ========================================
-    // Entry Operations
-    // ========================================
     const createEntry = async (fieldValues: Record<string, string>) => {
         await _createEntry(fieldValues);
     };
@@ -100,9 +92,6 @@ export const useTrackerOperations = () => {
         await _recalculateEntries(selection);
     };
 
-    // ========================================
-    // View Operations
-    // ========================================
     const createView = async (view: CreateViewDto) => {
         await _createView(view);
     };
@@ -121,24 +110,18 @@ export const useTrackerOperations = () => {
         await _updateViewOrder(viewIds);
     };
 
-    // ========================================
-    // Tracker Operations
-    // ========================================
-
     const setSelectedView = async (viewId: string | null) => {
         _setSelectedViewId(viewId);
         markEntriesDirty();
     };
 
     return {
-        // Field operations
         createField,
         updateField,
         updateFieldOrder,
         deleteField,
         extractFields,
 
-        // Entry operations
         createEntry,
         updateEntry,
         deleteEntry,
@@ -146,13 +129,11 @@ export const useTrackerOperations = () => {
         importEntries,
         recalculateEntries,
 
-        // View operations
         createView,
         updateView,
         deleteView,
         updateViewOrder,
 
-        // Tracker operations
         setSelectedView,
     };
 };

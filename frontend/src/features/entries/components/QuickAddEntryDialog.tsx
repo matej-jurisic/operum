@@ -8,8 +8,7 @@ import { GetStringValue } from "./EntryFormDialog";
 interface Props {
     tracker: TrackerDto;
     onClose: () => void;
-    /** Fired after the entry is actually created, separately from onClose so callers can
-        tell a successful add apart from the dialog just being dismissed. */
+    /** Fired only on a successful create, separately from onClose (dismiss). */
     onCreated?: () => void;
 }
 

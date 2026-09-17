@@ -13,12 +13,10 @@ namespace Operum.Model.DTOs.Auth.Requests
     {
         public LoginRequestDtoValidator()
         {
-            // Credentials rules
             RuleFor(x => x.Credentials)
                 .NotEmpty().WithMessage(Messages.Required("credentials"))
                 .MaximumLength(100).WithMessage("Credentials cannot exceed 100 characters.");
 
-            // Password rules
             RuleFor(x => x.Password)
             .NotEmpty().WithMessage((x) => Messages.Required("password"));
             //.MinimumLength(6).WithMessage("Password must be at least 6 characters long.")

@@ -13,10 +13,8 @@ namespace Operum.Model.DTOs.Fields.Requests
     {
         public required List<string> FieldIds { get; set; } = [];
 
-        /// <summary>Name for the tracker the fields move into.</summary>
         public required string NewTrackerName { get; set; } = string.Empty;
 
-        /// <summary>Name for the reference field left behind in the source tracker.</summary>
         public required string ReferenceFieldName { get; set; } = string.Empty;
 
         /// <summary>

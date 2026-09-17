@@ -188,6 +188,9 @@ namespace Operum.Model.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("text");
 
+                    b.Property<string>("Color")
+                        .HasColumnType("text");
+
                     b.Property<string>("Config")
                         .HasColumnType("text");
 
@@ -230,6 +233,9 @@ namespace Operum.Model.Migrations
 
                     b.Property<string>("ParentTabId")
                         .HasColumnType("text");
+
+                    b.Property<bool>("ShowTrend")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Type")
                         .IsRequired()
@@ -1317,6 +1323,9 @@ namespace Operum.Model.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("GoalDirection")
                         .HasColumnType("text");
 
                     b.Property<string>("GoalTarget")

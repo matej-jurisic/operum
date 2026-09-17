@@ -23,8 +23,7 @@ interface Props {
     onDelete: () => void;
 }
 
-/** Maps a chart's result type to the icon for its shape, so the grid can be skimmed by
-    chart kind. Falls back to the generic histogram glyph for anything unrecognised. */
+/** Falls back to the generic histogram glyph for an unrecognized result type. */
 function resultTypeIcon(resultType: string): IconType {
     switch (resultType) {
         case "Single Value":
@@ -46,10 +45,7 @@ function resultTypeIcon(resultType: string): IconType {
     }
 }
 
-/** One chart Widget as a card in the Library grid. There's no calculated preview here (the
-    Library manages definitions, not renders) -- see DashboardWidget for the actual chart,
-    drawn once a widget is placed on a board. Clicking the card, or its Add button, places
-    the widget on the current board; edit and delete live in the corner menu. */
+/** No calculated preview here; see DashboardWidget for the actual chart once placed on a board. */
 export function WidgetCard({ widget, color, isMobile, onAdd, onEdit, onDelete }: Props) {
     const { hovered, ref } = useHover<HTMLDivElement>();
     const trackerNames = [...new Set(widget.sources.map((s) => s.trackerName))];

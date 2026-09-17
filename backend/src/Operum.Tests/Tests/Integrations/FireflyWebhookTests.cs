@@ -18,19 +18,12 @@ using System.Text.Json;
 
 namespace Operum.Tests.Tests.Integrations
 {
-    /// <summary>
-    /// The push path end to end: a signed delivery arriving at the anonymous webhook route and
-    /// landing as entries. This is what proves the provider abstraction holds -- Firefly shares
-    /// none of intervals.icu's shape, and everything downstream of the provider is the same code.
-    /// </summary>
+    /// <summary>The push path end to end: a signed delivery arriving at the anonymous webhook route and landing as entries.</summary>
     public class FireflyWebhookTests(IntegrationsEnabledFactory factory) : IClassFixture<IntegrationsEnabledFactory>
     {
         private static int _userCounter;
 
-        /// <summary>
-        /// Firefly mints the webhook secret in its own screen; the user pastes it into Operum.
-        /// The tests stand in for that with a fixed value they set through the secret endpoint.
-        /// </summary>
+        /// <summary>Firefly mints the webhook secret in its own screen; the user pastes it into Operum.</summary>
         private const string PushSecret = "firefly-test-secret-value";
 
         private readonly IntegrationsEnabledFactory _factory = factory;
@@ -44,10 +37,7 @@ namespace Operum.Tests.Tests.Integrations
             return data;
         }
 
-        /// <summary>
-        /// A tracker, a Firefly connection, and a push target wired onto it, with the secret
-        /// already set the way a user would after making the webhook in Firefly.
-        /// </summary>
+        /// <summary>A tracker, a Firefly connection, and a push target wired onto it, secret already set.</summary>
         private async Task<(string TrackerId, string TargetId, string IntegrationId, string Token, string Secret, HttpClient Client, Dictionary<string, string> Fields)>
             Wire(string trackerName)
         {
@@ -89,8 +79,7 @@ namespace Operum.Tests.Tests.Integrations
             var webhookUrl = target.GetProperty("webhookUrl").GetString()!;
             var targetId = target.GetProperty("id").GetString()!;
 
-            // Firefly does not accept a chosen secret, so Operum stores none at creation: it
-            // comes back afterward once the user has made the webhook in Firefly.
+            // Firefly does not accept a chosen secret, so Operum stores none at creation.
             Assert.True(target.TryGetProperty("webhookSecret", out var createdSecret) is false
                 || createdSecret.ValueKind == JsonValueKind.Null);
             Assert.False(target.GetProperty("hasWebhookSecret").GetBoolean());
@@ -265,8 +254,7 @@ namespace Operum.Tests.Tests.Integrations
                 secret);
             Assert.Equal(2, (await StoredEntries(trackerId)).Count);
 
-            // The user edited the transaction down to a single split. Without group
-            // reconciliation the second entry -- and its money -- would linger forever.
+            // Without group reconciliation the second entry would linger forever.
             var response = await Deliver(token,
                 Payload("UPDATE_TRANSACTION", "g1", Split("j1", "15.00", "Merged")),
                 secret);
@@ -302,7 +290,6 @@ namespace Operum.Tests.Tests.Integrations
             await Deliver(token, Payload("STORE_TRANSACTION", "g1", Split("j1", "10.00", "One")), secret);
             await Deliver(token, Payload("STORE_TRANSACTION", "g2", Split("j2", "20.00", "Two")), secret);
 
-            // Reconciling g1 must leave g2 alone.
             await Deliver(token, Payload("UPDATE_TRANSACTION", "g1", Split("j1", "11.00", "One revised")), secret);
 
             var entries = await StoredEntries(trackerId);
@@ -339,8 +326,7 @@ namespace Operum.Tests.Tests.Integrations
             var db = scope.ServiceProvider.GetRequiredService<OperumContext>();
             var target = await db.IntegrationTargets.SingleAsync(t => t.Id == targetId);
 
-            // A forged delivery is not the user's problem; letting it write to the target's
-            // status would let anyone with the URL fill it with noise.
+            // Letting a forged delivery write to the target's status would let anyone with the URL fill it with noise.
             Assert.Equal(SyncStatus.Ok, target.LastSyncStatus);
             Assert.Null(target.LastSyncError);
         }
@@ -369,8 +355,7 @@ namespace Operum.Tests.Tests.Integrations
         {
             var (_, _, _, _, secret, client, _) = await Wire("Firefly secrecy");
 
-            // Once set from Firefly it is stored encrypted and never returned -- the raw value
-            // must not appear in any response.
+            // Stored encrypted and never returned; the raw value must not appear in any response.
             var listed = await (await client.GetAsync("integrations")).Content.ReadAsStringAsync();
             Assert.DoesNotContain(secret, listed);
         }
@@ -421,7 +406,6 @@ namespace Operum.Tests.Tests.Integrations
             var body = Payload("STORE_TRANSACTION", "g1", Split("j1", "1.00", "x"));
             Assert.Equal(HttpStatusCode.OK, (await Deliver(token, body, oldSecret)).StatusCode);
 
-            // The user reset the secret in Firefly and pasted the new value in.
             const string newSecret = "firefly-rotated-secret-value";
             await client.PostAsJsonAsync($"integrations/{integrationId}/targets/{targetId}/secret",
                 new SetWebhookSecretDto { Secret = newSecret });

@@ -45,8 +45,7 @@ export default function ConnectProviderDialog({
 
     const provider = providers.find((p) => p.key === providerKey);
 
-    // A push-only provider has nothing to call, so there is no credential to verify: the
-    // first signed delivery is what proves the connection.
+    // Push-only providers have no connection to verify with a credential.
     const needsCredential = !!provider?.supportsPull;
 
     const canConnect =

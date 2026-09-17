@@ -11,7 +11,6 @@ namespace Operum.Service.Domain.Notifications
         {
             if (actualStr is null) return false;
 
-            // Numeric comparison
             if (double.TryParse(actualStr, NumberStyles.Any, CultureInfo.InvariantCulture, out var actual) &&
                 double.TryParse(thresholdStr, NumberStyles.Any, CultureInfo.InvariantCulture, out var threshold))
             {
@@ -27,7 +26,7 @@ namespace Operum.Service.Domain.Notifications
                 };
             }
 
-            // Date comparison (threshold may be a dynamic token)
+            // threshold may be a dynamic token, e.g. "start_of_month"
             var thresholdDate = DynamicDateTokens.IsValid(thresholdStr)
                 ? DynamicDateTokens.Resolve(thresholdStr, tz)
                 : DataFormatters.StringToDateTime(thresholdStr);
@@ -47,7 +46,6 @@ namespace Operum.Service.Domain.Notifications
                 };
             }
 
-            // String comparison
             return op switch
             {
                 OperatorTypes.EqualsOperator => string.Equals(actualStr, thresholdStr, StringComparison.OrdinalIgnoreCase),

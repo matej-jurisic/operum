@@ -3,10 +3,9 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Operum.Model.Models
 {
-    // One tracker's contribution to a Widget: which tracker to read entries from and
-    // which of its fields fill the purposes the widget's ResultType/Code require. Fixed
-    // at creation -- the widget's definition is immutable, the same way an Analytic's
-    // used to be -- so nothing here changes without creating a new widget.
+    // One tracker's contribution to a Widget: which tracker to read from and which of its
+    // fields fill the purposes ResultType/Code require. Fixed at creation, like the old
+    // Analytic -- nothing here changes without creating a new widget.
     public class WidgetSource
     {
         [Key]

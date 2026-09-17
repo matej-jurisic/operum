@@ -9,16 +9,13 @@
         public const string Donut = "Donut Chart";
         public const string BarChart = "Bar Chart";
 
-        // A single value calculation shown as progress toward a target. Reuses the whole
-        // Single Value pipeline (same purpose, same codes); the target lives on the Widget.
-        // Widget Library only -- never offered in Explore or as a notification condition --
-        // so it carries AnalyticDefinition.WidgetOnly.
+        // Single Value shown as progress toward a target (stored on the Widget). Widget
+        // Library only, hence AnalyticDefinition.WidgetOnly.
         public const string Goal = "Goal";
 
-        // Synthetic result type for dashboard widgets that combine multiple sources into
-        // one chart (see DashboardService.GetDashboardAnalytics). Never a persisted
-        // Analytic.ResultType, so it's intentionally excluded from `All`/`IsValid`, which
-        // gate real per-tracker Analytic creation.
+        // Synthetic result type for multi-source dashboard widgets (see
+        // DashboardService.GetDashboardAnalytics). Never a persisted Analytic.ResultType,
+        // so intentionally excluded from `All`/`IsValid`.
         public const string Composed = "Composed Chart";
 
         public static readonly HashSet<string> All =
@@ -28,16 +25,12 @@
 
         public static bool IsValid(string op) => All.Contains(op);
 
-        // Result types that have a merge path for combining any number of tracker sources
-        // into a single widget. Line and bar merge into a Composed chart; a calendar just
-        // unions its dated events.
         private static readonly HashSet<string> MultiSourceTypes = [LineChart, BarChart, Calendar];
 
         public static bool SupportsMultipleSources(string resultType) => MultiSourceTypes.Contains(resultType);
 
-        // A calculation whose two sources each contribute one axis of a scatter plot, joined
-        // on a shared match field. Unlike the merge types above it needs exactly two sources,
-        // not "one or more", so it's gated separately (see WidgetsService.CreateWidget).
+        // Needs exactly two sources (not "one or more" like MultiSourceTypes); see
+        // WidgetsService.CreateWidget.
         public static bool RequiresPairedSources(string resultType, string code) =>
             resultType == ScatterChart && code == AnalyticCodes.CorrelationScatter;
     }

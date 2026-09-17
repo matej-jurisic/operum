@@ -3,10 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Operum.Model.Models
 {
-    // A named, dashboard-scoped collection of field-agnostic clauses -- "Current Month",
-    // "This Quarter", "All Time". A view selector widget offers a set of these as its
-    // dropdown; picking one re-filters every widget wired to that selector, resolving each
-    // clause against the field the selector maps it to on that widget's tracker.
+    // A named, dashboard-scoped set of field-agnostic clauses (e.g. "Current Month") a filter
+    // widget can offer as a preset.
     public class DashboardView
     {
         [Key]

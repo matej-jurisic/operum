@@ -10,8 +10,7 @@ namespace Operum.Model.DTOs.Views.Requests
 
         public List<ViewClauseDto> Queries { get; set; } = [];
 
-        // The fields this view shows, in the order it shows them. Empty means every field,
-        // which is what every view did before columns existed.
+        // Empty means every field.
         public List<string> ColumnFieldIds { get; set; } = [];
     }
 

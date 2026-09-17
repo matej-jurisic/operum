@@ -5,28 +5,21 @@ import { trackersController } from "../../features/trackers/api/trackersControll
 import { TrackerDto } from "../../features/trackers/types/TrackerDto";
 import { TrackerFilters } from "../constants/TrackerFilters";
 
-/**
- * Backs the persistent sidebar and the command palette: the full set of trackers
- * and dashboards the current user can reach. Loaded once when the app shell mounts
- * and refreshed piecemeal after the mutations that create, rename, or delete either.
- */
 /** Which tracker-creation dialog the sidebar / command palette has asked for. */
 export type TrackerCreateMode = "wizard" | "blank" | "template";
 
+/** Loaded once at shell mount, refreshed piecemeal after create/rename/delete mutations. */
 class NavigationStore {
     trackers: TrackerDto[] = [];
     dashboards: DashboardDto[] = [];
     loaded = false;
     loading = false;
 
-    // Creation is triggered from the sidebar "+" buttons and the command palette;
-    // the actual dialogs are hosted once, near the shell, and watch these flags.
+    // Set by the sidebar "+" buttons / command palette; dialogs are hosted once near the shell and watch these flags.
     trackerCreate: TrackerCreateMode | null = null;
     dashboardCreateOpen = false;
 
-    // The sidebar is a sliding drawer on mobile. Its open state lives here rather
-    // than in AppLayout so the burger that toggles it can sit inside each page's
-    // own header row -- the app then needs no top bar of its own.
+    // Lives here (not AppLayout) so the burger toggling it can sit in each page's own header row.
     mobileNavOpen = false;
 
     constructor() {

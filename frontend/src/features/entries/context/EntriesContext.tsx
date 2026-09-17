@@ -59,8 +59,7 @@ export const EntriesProvider: React.FC<{ children: React.ReactNode }> = ({
     const { tracker, selectedViewId } = useTracker();
     const [entries, setEntries] = useState<EntryDto[]>([]);
     const [entriesDirty, setEntriesDirty] = useState(true);
-    // In "select all matching" mode these hold the exclusions instead of the picks: the
-    // selection is then everything the current views match, minus whatever was ticked off.
+    // In "select all matching" mode, this holds exclusions instead of picks.
     const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(
         new Set()
     );
@@ -135,8 +134,6 @@ export const EntriesProvider: React.FC<{ children: React.ReactNode }> = ({
         const allPageSelected = entries.every((e) => isEntrySelected(e.id));
         setSelectedEntryIds((prev) => {
             const newSet = new Set(prev);
-            // Ticking every entry on the page means adding them in normal mode and dropping
-            // them from the exclusions in "select all matching" mode.
             const select = selectAllMatching
                 ? (id: string) => newSet.delete(id)
                 : (id: string) => newSet.add(id);
@@ -154,7 +151,7 @@ export const EntriesProvider: React.FC<{ children: React.ReactNode }> = ({
         setSelectedEntryIds(new Set());
     }, []);
 
-    // Empties the selection but stays in select mode, so the user can start picking again.
+    // Unlike clearSelection, stays in select mode.
     const deselectAll = useCallback(() => {
         setSelectedEntryIds(new Set());
         setSelectAllMatching(false);
@@ -165,8 +162,7 @@ export const EntriesProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsSelectMode(false);
     }, [deselectAll]);
 
-    // A selection stated as "everything matching" means something different once the view
-    // changes, and explicit picks can drop out of the result set, so start over either way.
+    // Selection semantics depend on the view, so reset it when the view changes.
     useEffect(() => {
         setSelectedEntryIds(new Set());
         setSelectAllMatching(false);

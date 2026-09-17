@@ -4,24 +4,10 @@ using Operum.Model.Extensions;
 namespace Operum.Model.Constants
 {
     /// <summary>
-    /// Date filter values that resolve at query time instead of being frozen when the filter is saved.
-    ///
-    /// Grammar: <c>token</c> or <c>token:n</c>.
-    ///
-    /// Anchors (<see cref="Anchors"/>) snap to the boundary of a period and accept an optional
-    /// signed offset counted in that anchor's own period, so <c>start_of_month:-1</c> is the first
-    /// instant of last month and <c>end_of_month:-1</c> is its last. A bare anchor means offset 0,
-    /// which is what every previously stored value means, so old filters keep working untouched.
-    ///
-    /// Lookbacks (<c>last_n_*</c>) require their argument and measure backwards from now rather
-    /// than snapping to a boundary. They are still resolved for filters saved before anchors
-    /// covered the same ground; the UI now emits the equivalent anchor instead.
-    ///
-    /// <c>now</c> is the current instant with no snapping, for datetime fields that need a
-    /// sub-day bound ("due before now").
-    ///
-    /// All boundaries are built in the user's time zone and returned as UTC instants, because a
-    /// month starts at local midnight, not at 00:00Z.
+    /// Date filter tokens resolved at query time: <c>token</c> or <c>token:n</c>. Anchors snap to
+    /// a period boundary with a signed offset in that period (bare anchor = offset 0, e.g.
+    /// <c>start_of_month:-1</c> = last month); lookbacks (<c>last_n_*</c>) measure backwards from
+    /// now with no snapping. All boundaries are computed in the user's time zone and returned as UTC.
     /// </summary>
     public static class DynamicDateTokens
     {
@@ -49,11 +35,7 @@ namespace Operum.Model.Constants
         public static bool IsValid(string token) =>
             token == Now || TryParseAnchor(token, out _, out _) || TryParseLookback(token, out _, out _);
 
-        /// <summary>
-        /// Resolves a stored date filter value to a UTC instant, whether it is a dynamic token
-        /// (<c>start_of_month</c>) or a literal ISO date/datetime. Returns null when it is neither.
-        /// Lets a token and the concrete date it currently points at be compared as equals.
-        /// </summary>
+        /// <summary>Resolves a token or a literal ISO date/datetime to a UTC instant; null if neither.</summary>
         public static DateTime? ResolveValue(string? value, TimeZoneInfo tz)
         {
             if (string.IsNullOrEmpty(value))
@@ -103,11 +85,7 @@ namespace Operum.Model.Constants
             return null;
         }
 
-        /// <summary>
-        /// End-of-period anchors are the start of the next period minus one tick, so they include
-        /// every instant of the period rather than stopping at 23:59:59 and silently dropping the
-        /// final second.
-        /// </summary>
+        // End-of-period = start of next period minus one tick, to include the whole final second.
         private static DateTime? ResolveAnchorLocal(string anchor, int offset, DateTime nowLocal)
         {
             var startOfDay = nowLocal.Date;

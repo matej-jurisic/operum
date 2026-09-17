@@ -99,7 +99,6 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
 
     const [isLoadingData, setIsLoadingData] = useState(false);
 
-    // Check if mobile
     const isMobile = useMediaQuery("(max-width: 768px)");
 
     const totalPages = Math.ceil(totalCount / pageSize);
@@ -192,8 +191,6 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                             )}
                         </Group>
                         <Group justify="flex-end" wrap="nowrap">
-                            {/* Bulk actions */}
-
                             {canEditData &&
                                 isSelectMode &&
                                 !isMobile &&
@@ -345,8 +342,7 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                             </Group>
                         )}
 
-                        {/* Selecting every checkbox only reaches the current page, so offer
-                            the rest of the matching entries once the page is fully ticked. */}
+                        {/* Offers selecting the rest once every checkbox on the current page is ticked. */}
                         {isSelectMode &&
                             (selectAllMatching ||
                                 (allEntriesSelected &&
@@ -467,7 +463,6 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                 </Stack>
             </Skeleton>
 
-            {/* Dialogs */}
             {selectedEntry && openDialogType === OpenDialogType.DeleteEntry && (
                 <ConfirmationDialog
                     isOpen={selectedEntry !== undefined}

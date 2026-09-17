@@ -59,8 +59,8 @@ namespace Operum.Service.Services.Integrations
 
             var (provider, connection) = prepared.Data;
 
-            // One target only, so the fetch stays a stream: a paginated backfill is consumed
-            // page by page rather than materialised whole.
+            // One target only, so the fetch stays a stream: a paginated backfill is consumed page
+            // by page rather than materialised whole.
             var window = WindowFor(target, fullResync);
             return await ApplyAsync(target, provider.FetchAsync(connection, target.ResourceType, window, ct), fullResync, ct);
         }
@@ -79,8 +79,8 @@ namespace Operum.Service.Services.Integrations
             if (integration == null)
                 return Result.Failure(ResultStatusCodes.NotFound, "Integration not found.");
 
-            // Filtered in memory rather than in the query: an integration holds only a handful
-            // of targets, and a partial Include here would leave the rest unloaded on a tracked
+            // Filtered in memory rather than in the query: an integration holds only a handful of
+            // targets, and a partial Include here would leave the rest unloaded on a tracked
             // entity, which SaveChanges could then misread.
             var targets = integration.Targets
                 .Where(t => t.IsEnabled && t.Mode == IntegrationMode.Pull)
@@ -93,9 +93,9 @@ namespace Operum.Service.Services.Integrations
             var succeeded = 0;
             var failed = 0;
 
-            // One fetch per resource type, not per target: several trackers fed the same kind
-            // of data from one connection are the whole reason this method exists. Different
-            // resource types still cost a call each -- they are genuinely different requests.
+            // One fetch per resource type, not per target: several trackers fed the same kind of
+            // data from one connection are the whole reason this method exists. Different
+            // resource types still cost a call each since they are genuinely different requests.
             foreach (var group in targets.GroupBy(t => t.ResourceType))
             {
                 ct.ThrowIfCancellationRequested();
@@ -113,11 +113,11 @@ namespace Operum.Service.Services.Integrations
 
                 var (provider, connection) = prepared.Data;
 
-                // The union of the group's windows: the earliest start any target needs,
-                // through today. A target mid-backfill widens the shared window for this tick
-                // only -- the rest just re-read a few days they already have, which the write
-                // path absorbs as idempotent upserts. The cursor is left null because each
-                // target filters the shared records against its own below.
+                // The union of the group's windows: the earliest start any target needs, through
+                // today. A target mid-backfill widens the shared window for this tick only -- the
+                // rest just re-read a few days they already have, which the write path absorbs as
+                // idempotent upserts. The cursor is left null since each target filters the shared
+                // records against its own below.
                 var today = DateOnly.FromDateTime(DateTime.UtcNow);
                 var from = groupTargets.Min(t => WindowStartOn(t, today));
                 var window = new SyncWindow(from, today, null);
@@ -159,8 +159,8 @@ namespace Operum.Service.Services.Integrations
                 }
             }
 
-            // A partial failure still returns what did get written -- every target carries its
-            // own status and error for the UI to show. Only a total washout is a failed Result.
+            // A partial failure still returns what did get written; every target carries its own
+            // status and error for the UI to show. Only a total washout is a failed Result.
             if (succeeded == 0 && failed > 0)
                 return Result.Failure(ResultStatusCodes.BadRequest,
                     "No import for this integration could be synced. Check each one for the reason.");
@@ -180,8 +180,8 @@ namespace Operum.Service.Services.Integrations
             bool fullResync,
             CancellationToken ct)
         {
-            // A connection may only write to a tracker its own user owns. Enforced when a
-            // target is created too; repeated here because ownership can change afterwards.
+            // A connection may only write to a tracker its own user owns. Enforced when a target
+            // is created too; repeated here since ownership can change afterwards.
             if (target.Integration.UserId != target.Tracker.OwnerId)
                 return await Fail(target, "The tracker is no longer owned by the user who made this connection.", ct);
 
@@ -200,9 +200,9 @@ namespace Operum.Service.Services.Integrations
             {
                 await foreach (var record in records.WithCancellation(ct))
                 {
-                    // Nothing has changed upstream since we last looked at this record, so
-                    // there is no reason to write it again. A full resync re-applies every
-                    // record regardless -- that is the point of it.
+                    // Nothing has changed upstream since we last looked at this record, so there
+                    // is no reason to write it again. A full resync re-applies every record
+                    // regardless -- that is the point of it.
                     if (!fullResync && record.UpdatedAt != null && target.LastCursor != null && record.UpdatedAt <= target.LastCursor)
                         continue;
 
@@ -223,8 +223,8 @@ namespace Operum.Service.Services.Integrations
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
-                // Shutting down, not a target failure -- leave the status alone so the next
-                // tick picks up where this one stopped.
+                // Shutting down, not a target failure -- leave the status alone so the next tick
+                // picks up where this one stopped.
                 throw;
             }
             catch (Exception ex)
@@ -267,8 +267,8 @@ namespace Operum.Service.Services.Integrations
         {
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
-            // A full resync reaches back to the backfill date and drops the cursor, so the
-            // provider is asked for -- and the write path re-applies -- the whole history.
+            // A full resync reaches back to the backfill date and drops the cursor, so the provider
+            // is asked for -- and the write path re-applies -- the whole history.
             if (fullResync)
                 return new SyncWindow(target.BackfillFrom, today, null);
 

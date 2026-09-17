@@ -62,6 +62,10 @@ namespace Operum.Service.Services.Widgets
             if (dto.ResultType == AnalyticTypes.Goal && !GoalTargets.IsParseable(goalTarget))
                 return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("goal target, which must be a number or an hh:mm:ss duration"));
 
+            var goalDirection = dto.ResultType == AnalyticTypes.Goal && !string.IsNullOrEmpty(dto.GoalDirection)
+                ? dto.GoalDirection
+                : null;
+
             // Only some calculations combine more than one tracker: line/bar merge into a
             // Composed chart, a calendar unions its dated events, and a correlation scatter
             // pairs exactly two trackers on a shared match field.
@@ -123,6 +127,7 @@ namespace Operum.Service.Services.Widgets
                 Grouping = string.IsNullOrEmpty(dto.Grouping) ? null : dto.Grouping,
                 MatchedValuesOnly = dto.MatchedValuesOnly,
                 GoalTarget = goalTarget,
+                GoalDirection = goalDirection,
                 OwnerId = user.Id,
                 Sources = sources
             };
@@ -160,6 +165,9 @@ namespace Operum.Service.Services.Widgets
 
                 widget.GoalTarget = target;
             }
+
+            if (widget.ResultType == AnalyticTypes.Goal && !string.IsNullOrEmpty(dto.GoalDirection))
+                widget.GoalDirection = dto.GoalDirection;
 
             // The DbContext defaults to QueryTrackingBehavior.NoTracking (see
             // DatabaseConfiguration), so the mutation above is invisible to SaveChangesAsync
@@ -339,6 +347,7 @@ namespace Operum.Service.Services.Widgets
             Grouping = w.Grouping,
             MatchedValuesOnly = w.MatchedValuesOnly,
             GoalTarget = w.GoalTarget,
+            GoalDirection = w.GoalDirection,
             Sources = w.Sources.OrderBy(s => s.Order).Select(s => MapSourceToDto(w, s)).ToList()
         };
 
