@@ -20,6 +20,7 @@ interface Props {
 
 const MIN_VALUE_FONT = 18;
 const MAX_VALUE_FONT = 60;
+const MAX_VALUE_FONT_COMPACT = 32;
 // Average glyph width for the bold value text, as a fraction of its font size; bounds the
 // font so long values (e.g. "08:00:00") can't grow past the box and overflow.
 const CHAR_WIDTH_RATIO = 0.62;
@@ -41,17 +42,18 @@ export function SingleValueCard({
     const renderedValue = renderValue(analytic.valueField?.type, analytic.value);
     const valueLength = String(renderedValue).length;
 
+    const maxValueFont = compact ? MAX_VALUE_FONT_COMPACT : MAX_VALUE_FONT;
     const valueFontSize =
         fillHeight && valueBox.width > 0 && valueBox.height > 0
             ? Math.max(
                   MIN_VALUE_FONT,
                   Math.min(
-                      MAX_VALUE_FONT,
-                      valueBox.height * 0.55,
-                      valueBox.width * 0.22,
+                      maxValueFont,
+                      valueBox.height * (compact ? 0.4 : 0.55),
+                      valueBox.width * (compact ? 0.16 : 0.22),
                       valueLength > 0
                           ? valueBox.width / (valueLength * CHAR_WIDTH_RATIO)
-                          : MAX_VALUE_FONT,
+                          : maxValueFont,
                   ),
               )
             : undefined;

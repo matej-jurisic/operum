@@ -1,4 +1,5 @@
 import {
+    ActionIcon,
     Button,
     Group,
     Modal,
@@ -10,8 +11,10 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useState } from "react";
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { TbFilter } from "react-icons/tb";
 import DynamicDateValueInput from "../../../shared/components/DynamicDateValueInput";
+import { OperatorTypes } from "../../../shared/constants/DataTypes";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 import { useCardLayout } from "../../analytics/components/cardSizing";
 import { WidgetShell } from "../../analytics/components/WidgetShell";
@@ -19,7 +22,10 @@ import { FilterWidgetDto } from "../types/DashboardDto";
 import {
     clauseLabel,
     DATE_TYPES,
+    groupClauseRows,
     normalizeClauseValue,
+    shiftByDays,
+    shiftDateRange,
     syntheticField,
 } from "./filterClauseInput";
 
@@ -157,42 +163,254 @@ export function FilterWidgetCard({
                         )}
                         <ScrollArea.Autosize mah="60vh">
                             <Stack gap="sm">
-                                {clauses.map((c) => (
-                                    <Stack key={c.slotId} gap={2}>
-                                        <Text size="xs" fw={500} c="dimmed">
-                                            {clauseLabel(
-                                                c.dataType,
-                                                c.operator,
-                                            )}
-                                        </Text>
-                                        <DynamicDateValueInput
-                                            isDateType={DATE_TYPES.includes(
-                                                c.dataType,
-                                            )}
-                                            value={
-                                                form.values.values[
-                                                    c.slotId
-                                                ] as
-                                                    | string
-                                                    | number
-                                                    | Date
-                                                    | undefined
-                                            }
-                                            onChange={(v) =>
-                                                form.setFieldValue(
-                                                    `values.${c.slotId}`,
-                                                    v,
-                                                )
-                                            }
-                                            field={syntheticField(
-                                                c.slotId,
-                                                c.dataType,
-                                            )}
-                                            form={form}
-                                            fieldPath={`values.${c.slotId}`}
-                                        />
-                                    </Stack>
-                                ))}
+                                {groupClauseRows(clauses).map((row) => {
+                                    if (row.type === "range") {
+                                        const { start, end } = row;
+                                        const startValue =
+                                            form.values.values[start.slotId];
+                                        const endValue =
+                                            form.values.values[end.slotId];
+                                        const shift = (
+                                            direction: 1 | -1,
+                                        ) => {
+                                            const shifted = shiftDateRange(
+                                                startValue,
+                                                endValue,
+                                                direction,
+                                            );
+                                            if (!shifted) return;
+                                            form.setFieldValue(
+                                                `values.${start.slotId}`,
+                                                shifted.start,
+                                            );
+                                            form.setFieldValue(
+                                                `values.${end.slotId}`,
+                                                shifted.end,
+                                            );
+                                        };
+                                        const canShift =
+                                            shiftDateRange(
+                                                startValue,
+                                                endValue,
+                                                1,
+                                            ) !== null;
+
+                                        return (
+                                            <Stack
+                                                key={`${start.slotId}-${end.slotId}`}
+                                                gap={2}
+                                            >
+                                                <Group
+                                                    justify="space-between"
+                                                    align="center"
+                                                >
+                                                    <Text
+                                                        size="xs"
+                                                        fw={500}
+                                                        c="dimmed"
+                                                    >
+                                                        {clauseLabel(
+                                                            start.dataType,
+                                                        )}{" "}
+                                                        range
+                                                    </Text>
+                                                    {canShift && (
+                                                        <Group gap={4}>
+                                                            <ActionIcon
+                                                                variant="subtle"
+                                                                color="gray"
+                                                                size="sm"
+                                                                onClick={() =>
+                                                                    shift(-1)
+                                                                }
+                                                                aria-label="Previous range"
+                                                            >
+                                                                <FiChevronLeft
+                                                                    size={14}
+                                                                />
+                                                            </ActionIcon>
+                                                            <ActionIcon
+                                                                variant="subtle"
+                                                                color="gray"
+                                                                size="sm"
+                                                                onClick={() =>
+                                                                    shift(1)
+                                                                }
+                                                                aria-label="Next range"
+                                                            >
+                                                                <FiChevronRight
+                                                                    size={14}
+                                                                />
+                                                            </ActionIcon>
+                                                        </Group>
+                                                    )}
+                                                </Group>
+                                                <Stack gap={2}>
+                                                    <Text
+                                                        size="xs"
+                                                        fw={500}
+                                                        c="dimmed"
+                                                    >
+                                                        {clauseLabel(
+                                                            start.dataType,
+                                                            start.operator,
+                                                        )}
+                                                    </Text>
+                                                    <DynamicDateValueInput
+                                                        isDateType
+                                                        value={
+                                                            startValue as
+                                                                | string
+                                                                | number
+                                                                | Date
+                                                                | undefined
+                                                        }
+                                                        onChange={(v) =>
+                                                            form.setFieldValue(
+                                                                `values.${start.slotId}`,
+                                                                v,
+                                                            )
+                                                        }
+                                                        field={syntheticField(
+                                                            start.slotId,
+                                                            start.dataType,
+                                                        )}
+                                                        form={form}
+                                                        fieldPath={`values.${start.slotId}`}
+                                                    />
+                                                </Stack>
+                                                <Stack gap={2}>
+                                                    <Text
+                                                        size="xs"
+                                                        fw={500}
+                                                        c="dimmed"
+                                                    >
+                                                        {clauseLabel(
+                                                            end.dataType,
+                                                            end.operator,
+                                                        )}
+                                                    </Text>
+                                                    <DynamicDateValueInput
+                                                        isDateType
+                                                        value={
+                                                            endValue as
+                                                                | string
+                                                                | number
+                                                                | Date
+                                                                | undefined
+                                                        }
+                                                        onChange={(v) =>
+                                                            form.setFieldValue(
+                                                                `values.${end.slotId}`,
+                                                                v,
+                                                            )
+                                                        }
+                                                        field={syntheticField(
+                                                            end.slotId,
+                                                            end.dataType,
+                                                        )}
+                                                        form={form}
+                                                        fieldPath={`values.${end.slotId}`}
+                                                    />
+                                                </Stack>
+                                            </Stack>
+                                        );
+                                    }
+
+                                    const c = row.clause;
+                                    const value =
+                                        form.values.values[c.slotId];
+                                    const canShiftDay =
+                                        DATE_TYPES.includes(c.dataType) &&
+                                        c.operator === OperatorTypes.Equals &&
+                                        shiftByDays(value, 1) !== null;
+
+                                    return (
+                                        <Stack key={c.slotId} gap={2}>
+                                            <Group
+                                                justify="space-between"
+                                                align="center"
+                                            >
+                                                <Text
+                                                    size="xs"
+                                                    fw={500}
+                                                    c="dimmed"
+                                                >
+                                                    {clauseLabel(
+                                                        c.dataType,
+                                                        c.operator,
+                                                    )}
+                                                </Text>
+                                                {canShiftDay && (
+                                                    <Group gap={4}>
+                                                        <ActionIcon
+                                                            variant="subtle"
+                                                            color="gray"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                form.setFieldValue(
+                                                                    `values.${c.slotId}`,
+                                                                    shiftByDays(
+                                                                        value,
+                                                                        -1,
+                                                                    ),
+                                                                )
+                                                            }
+                                                            aria-label="Previous day"
+                                                        >
+                                                            <FiChevronLeft
+                                                                size={14}
+                                                            />
+                                                        </ActionIcon>
+                                                        <ActionIcon
+                                                            variant="subtle"
+                                                            color="gray"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                form.setFieldValue(
+                                                                    `values.${c.slotId}`,
+                                                                    shiftByDays(
+                                                                        value,
+                                                                        1,
+                                                                    ),
+                                                                )
+                                                            }
+                                                            aria-label="Next day"
+                                                        >
+                                                            <FiChevronRight
+                                                                size={14}
+                                                            />
+                                                        </ActionIcon>
+                                                    </Group>
+                                                )}
+                                            </Group>
+                                            <DynamicDateValueInput
+                                                isDateType={DATE_TYPES.includes(
+                                                    c.dataType,
+                                                )}
+                                                value={
+                                                    value as
+                                                        | string
+                                                        | number
+                                                        | Date
+                                                        | undefined
+                                                }
+                                                onChange={(v) =>
+                                                    form.setFieldValue(
+                                                        `values.${c.slotId}`,
+                                                        v,
+                                                    )
+                                                }
+                                                field={syntheticField(
+                                                    c.slotId,
+                                                    c.dataType,
+                                                )}
+                                                form={form}
+                                                fieldPath={`values.${c.slotId}`}
+                                            />
+                                        </Stack>
+                                    );
+                                })}
                             </Stack>
                         </ScrollArea.Autosize>
                         <Group justify="space-between">

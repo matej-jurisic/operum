@@ -56,7 +56,6 @@ export function GoalCard({
                               minHeight: 0,
                               display: "flex",
                               flexDirection: "column",
-                              justifyContent: "center",
                               gap: compact ? 6 : 10,
                           }
                         : {
@@ -102,16 +101,30 @@ export function GoalCard({
                 </Text>
 
                 {analytic.trend && (
-                    <TrendSparkline
-                        trend={analytic.trend}
-                        currentValue={analytic.value}
-                        valueFieldType={type}
-                        color={statusColor}
-                        direction={
-                            isLowerIsBetter ? "lowerIsBetter" : "higherIsBetter"
+                    <Box
+                        style={
+                            fillHeight
+                                ? {
+                                      flex: 1,
+                                      minHeight: 0,
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                  }
+                                : undefined
                         }
-                        compact={compact}
-                    />
+                    >
+                        <TrendSparkline
+                            trend={analytic.trend}
+                            currentValue={analytic.value}
+                            valueFieldType={type}
+                            color={statusColor}
+                            direction={
+                                isLowerIsBetter ? "lowerIsBetter" : "higherIsBetter"
+                            }
+                            compact={compact}
+                        />
+                    </Box>
                 )}
             </Box>
         </WidgetShell>
