@@ -1,4 +1,4 @@
-import { Text } from "@mantine/core";
+import { Text, useComputedColorScheme } from "@mantine/core";
 import { TrendDto } from "../types/AnalyticDto";
 
 interface Props {
@@ -49,6 +49,8 @@ export function TrendSparkline({
     previousPeriodLabel = "previous period",
     compact,
 }: Props) {
+    const isDark = useComputedColorScheme("light") === "dark";
+
     if (!trend) return null;
 
     const width = compact ? COMPACT_WIDTH : WIDTH;
@@ -59,9 +61,12 @@ export function TrendSparkline({
     const current = parseMagnitude(valueFieldType, currentValue);
     const previous = parseMagnitude(valueFieldType, trend.previousValue);
 
+    // Abs(previous) only when sign flips, else it inverts same-sign deltas (e.g. negative expenses).
     const delta =
         current !== undefined && previous !== undefined && previous !== 0
-            ? ((current - previous) / Math.abs(previous)) * 100
+            ? ((current - previous) /
+                  ((previous < 0) === (current < 0) ? previous : Math.abs(previous))) *
+              100
             : undefined;
 
     const deltaTone: "neutral" | "good" | "bad" =
@@ -146,7 +151,9 @@ export function TrendSparkline({
                         deltaTone === "neutral"
                             ? "dimmed"
                             : deltaTone === "good"
-                              ? "teal"
+                              ? isDark
+                                  ? "green.4"
+                                  : "green.8"
                               : "red"
                     }
                 >

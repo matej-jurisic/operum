@@ -34,6 +34,7 @@ import {
     effectivePurposes,
     usesGrouping,
 } from "../../analytics/types/AnalyticConfigDto";
+import { ColorSwatchPicker } from "../../../shared/components/ColorSwatchPicker";
 import { fieldsController } from "../../fields/api/fieldsController";
 import { FieldDto } from "../../fields/types/FieldDto";
 import { trackersController } from "../../trackers/api/trackersController";
@@ -46,6 +47,7 @@ import {
     DashboardItemDisplayMode,
     GoalConditionalTargetDto,
 } from "../types/DashboardDto";
+import { DATE_TYPES } from "./filterClauseInput";
 import { FilterFollowChecklist } from "./FilterFollowChecklist";
 import { GoalConditionalTargetsEditor } from "./GoalConditionalTargetsEditor";
 import {
@@ -131,6 +133,8 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
     const [conditionalTargets, setConditionalTargets] = useState<
         GoalConditionalTargetDto[]
     >([]);
+    const [showTrend, setShowTrend] = useState(true);
+    const [colorOverride, setColorOverride] = useState<string | null>(null);
     const [displayMode, setDisplayMode] = useState(DashboardItemDisplayMode.Full);
     const [mobileDisplayMode, setMobileDisplayMode] = useState(
         DashboardItemDisplayMode.Full,
@@ -192,6 +196,8 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
         (!!resultType && COMBINABLE_TYPES.includes(resultType));
     const isLineChart = resultType === AnalyticResultTypeEnum.LineChart;
     const isGoal = resultType === AnalyticResultTypeEnum.Goal;
+    const isSingleValue = resultType === AnalyticResultTypeEnum.SingleValue;
+    const isCombined = rows.length > 1;
 
     // Goal calculations that always come out as a plain number, whatever the field type.
     const GOAL_COUNTING_CODES = [
@@ -204,6 +210,14 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
     const goalValueField = isGoal
         ? rows[0]?.fields.find((f) => f.id === rows[0]?.fieldMappings["Value"])
         : undefined;
+    // Min/Max are the only SingleValue codes whose Value field may be Date/DateTime, and a
+    // trend can't plot a date, so the checkbox is hidden rather than shown but inert.
+    const trendValueFieldType = isGoal
+        ? goalValueField?.type
+        : rows[0]?.fields.find((f) => f.id === rows[0]?.fieldMappings["Value"])?.type;
+    const canShowTrend =
+        (isGoal || isSingleValue) &&
+        (!trendValueFieldType || !DATE_TYPES.includes(trendValueFieldType));
     const goalTargetIsDuration =
         !!goalValueField &&
         goalValueField.type === "timespan" &&
@@ -365,6 +379,8 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
                 goalTarget: isGoal ? goalTarget.trim() : undefined,
                 goalDirection: isGoal ? goalDirection : undefined,
                 yAxisFromZero: isLineChart ? yAxisFromZero : undefined,
+                color: !isCombined && colorOverride ? colorOverride : undefined,
+                showTrend: canShowTrend ? showTrend : undefined,
                 displayMode,
                 mobileDisplayMode,
                 sources: rows.map((row) => ({
@@ -569,6 +585,14 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
                 />
             )}
 
+            {canShowTrend && (
+                <Checkbox
+                    label="Show trend"
+                    checked={showTrend}
+                    onChange={(event) => setShowTrend(event.currentTarget.checked)}
+                />
+            )}
+
             {rows.length > 1 && xAxisPurpose && (
                 <Checkbox
                     label="Show only matched values"
@@ -594,6 +618,15 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
                 <YAxisScaleOption
                     yAxisFromZero={yAxisFromZero}
                     onChange={setYAxisFromZero}
+                />
+            )}
+
+            {!isCombined && (
+                <ColorSwatchPicker
+                    label="Color"
+                    value={colorOverride}
+                    onChange={setColorOverride}
+                    allowClear
                 />
             )}
 

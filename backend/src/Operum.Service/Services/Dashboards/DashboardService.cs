@@ -495,6 +495,8 @@ namespace Operum.Service.Services.Dashboards
                 DisplayMode = dto.DisplayMode,
                 MobileDisplayMode = dto.MobileDisplayMode,
                 YAxisFromZero = dto.YAxisFromZero,
+                Color = dto.Color,
+                ShowTrend = dto.ShowTrend,
                 SourceOverrides = overrides
             });
         }
@@ -580,6 +582,8 @@ namespace Operum.Service.Services.Dashboards
                 DisplayMode = dto.DisplayMode,
                 MobileDisplayMode = dto.MobileDisplayMode,
                 YAxisFromZero = dto.YAxisFromZero,
+                Color = string.IsNullOrEmpty(dto.Color) ? null : dto.Color,
+                ShowTrend = dto.ShowTrend,
                 Sources = sources
             };
 
@@ -617,6 +621,8 @@ namespace Operum.Service.Services.Dashboards
                 Grouping = widget.Grouping,
                 MatchedValuesOnly = widget.MatchedValuesOnly,
                 YAxisFromZero = item.YAxisFromZero,
+                Color = item.Color,
+                ShowTrend = item.ShowTrend,
                 Sources = sourceDtos
             });
         }

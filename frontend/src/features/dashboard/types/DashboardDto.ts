@@ -444,6 +444,10 @@ export interface CreateAndPlaceWidgetDto {
     mobileDisplayMode?: DashboardItemDisplayMode;
     /** Line charts only; defaults to true (0-anchored) server-side when omitted. */
     yAxisFromZero?: boolean;
+    /** Left unset behaves as "Auto". Ignored server-side for a combined (multi-source) widget. */
+    color?: string;
+    /** SingleValue/Goal widgets only; defaults to true server-side when omitted. */
+    showTrend?: boolean;
     sources: CreateAndPlaceWidgetSourceDto[];
 }
 
@@ -459,6 +463,10 @@ export interface PlaceWidgetDto {
     mobileDisplayMode?: DashboardItemDisplayMode;
     /** Line charts only; defaults to true (0-anchored) server-side when omitted. */
     yAxisFromZero?: boolean;
+    /** Left unset behaves as "Auto". Ignored server-side for a combined (multi-source) widget. */
+    color?: string;
+    /** SingleValue/Goal widgets only; defaults to true server-side when omitted. */
+    showTrend?: boolean;
     sourceOverrides: PlaceWidgetSourceOverrideDto[];
 }
 

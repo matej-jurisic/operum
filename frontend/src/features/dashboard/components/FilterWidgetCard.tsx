@@ -14,7 +14,7 @@ import { useState } from "react";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { TbFilter } from "react-icons/tb";
 import DynamicDateValueInput from "../../../shared/components/DynamicDateValueInput";
-import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
+import { renderResolvedDateValue } from "../../../shared/utils/formatters/ValueRenderer";
 import { useCardLayout } from "../../analytics/components/cardSizing";
 import { WidgetShell } from "../../analytics/components/WidgetShell";
 import { FilterWidgetDto } from "../types/DashboardDto";
@@ -123,7 +123,7 @@ export function FilterWidgetCard({
             return [
                 {
                     key: c.slotId,
-                    text: `${clauseLabel(c.dataType, c.operator)} ${renderValue(c.dataType, c.value)}`,
+                    text: `${clauseLabel(c.dataType, c.operator)} ${renderResolvedDateValue(c.dataType, c.value)}`,
                     shift: canShift
                         ? (direction: 1 | -1) => {
                               const shifted = shiftDateValue(
@@ -144,7 +144,7 @@ export function FilterWidgetCard({
         if (!hasValue(start) || !hasValue(end)) {
             return [start, end].filter(hasValue).map((c) => ({
                 key: c.slotId,
-                text: `${clauseLabel(c.dataType, c.operator)} ${renderValue(c.dataType, c.value)}`,
+                text: `${clauseLabel(c.dataType, c.operator)} ${renderResolvedDateValue(c.dataType, c.value)}`,
                 shift: undefined,
             }));
         }
@@ -154,10 +154,10 @@ export function FilterWidgetCard({
         return [
             {
                 key: `${start.slotId}-${end.slotId}`,
-                text: `${clauseLabel(start.dataType)} ${renderValue(
+                text: `${clauseLabel(start.dataType)} ${renderResolvedDateValue(
                     start.dataType,
                     start.value,
-                )} – ${renderValue(end.dataType, end.value)}`,
+                )} – ${renderResolvedDateValue(end.dataType, end.value)}`,
                 shift: canShift
                     ? (direction: 1 | -1) => {
                           const shifted = shiftDateRangeValue(
@@ -532,9 +532,10 @@ export function FilterWidgetCard({
                             {liveRows.map((row) => (
                                 <Group
                                     key={row.key}
-                                    gap={2}
+                                    gap={4}
                                     wrap="nowrap"
-                                    style={{ flexShrink: 0 }}
+                                    justify="space-between"
+                                    style={{ flex: 1, minWidth: 0 }}
                                 >
                                     {row.shift && (
                                         <ActionIcon
@@ -547,6 +548,7 @@ export function FilterWidgetCard({
                                                 row.shift?.(-1);
                                             }}
                                             aria-label="Previous"
+                                            style={{ flexShrink: 0 }}
                                         >
                                             <FiChevronLeft size={14} />
                                         </ActionIcon>
@@ -554,8 +556,9 @@ export function FilterWidgetCard({
                                     <UnstyledButton
                                         onClick={openEditor}
                                         disabled={isConfiguring}
+                                        style={{ flex: 1, minWidth: 0 }}
                                     >
-                                        <Text size="sm" truncate>
+                                        <Text size="sm" truncate ta="center">
                                             {row.text}
                                         </Text>
                                     </UnstyledButton>
@@ -570,6 +573,7 @@ export function FilterWidgetCard({
                                                 row.shift?.(1);
                                             }}
                                             aria-label="Next"
+                                            style={{ flexShrink: 0 }}
                                         >
                                             <FiChevronRight size={14} />
                                         </ActionIcon>

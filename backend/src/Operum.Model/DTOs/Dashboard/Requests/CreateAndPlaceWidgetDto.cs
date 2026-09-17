@@ -50,6 +50,12 @@ namespace Operum.Model.DTOs.Dashboard.Requests
         // Line chart widgets only; ignored for every other chart type.
         public bool YAxisFromZero { get; set; } = true;
 
+        // Null/omitted means "Auto". Ignored (not rejected) for a combined/multi-source widget.
+        public string? Color { get; set; }
+
+        // Single-source SingleValue/Goal widgets only.
+        public bool ShowTrend { get; set; } = true;
+
         [Required, MinLength(1)]
         public List<CreateAndPlaceWidgetSourceDto> Sources { get; set; } = [];
     }
@@ -98,6 +104,10 @@ namespace Operum.Model.DTOs.Dashboard.Requests
                 .IsInEnum().WithMessage(x => Messages.Invalid("display mode"));
             RuleFor(x => x.MobileDisplayMode)
                 .IsInEnum().WithMessage(x => Messages.Invalid("display mode"));
+
+            RuleFor(x => x.Color)
+                .MaximumLength(50).WithMessage("Color cannot exceed 50 characters.")
+                .When(x => !string.IsNullOrEmpty(x.Color));
 
             RuleForEach(x => x.Sources)
                 .SetValidator(new CreateAndPlaceWidgetSourceDtoValidator());

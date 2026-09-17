@@ -49,9 +49,6 @@ export function WidgetDisplayModeFields({
             <Text size="sm" fw={500}>
                 Display
             </Text>
-            <Text size="xs" c="dimmed">
-                Button shows a tile that opens the widget in a popup.
-            </Text>
             <ModeRow
                 label="Desktop"
                 value={displayMode}

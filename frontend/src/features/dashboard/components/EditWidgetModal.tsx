@@ -8,6 +8,7 @@ import {
   Text,
   TextInput,
 } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { useEffect, useMemo, useState } from "react";
 import { fieldsController } from "../../fields/api/fieldsController";
 import { viewsController } from "../../views/api/viewsController";
@@ -26,6 +27,7 @@ import {
 import { WidgetDisplayModeFields } from "./WidgetDisplayModeFields";
 import { SourceViewSelect } from "./SourceViewSelect";
 import { YAxisScaleOption } from "./YAxisScaleOption";
+import { DATE_TYPES } from "./filterClauseInput";
 import { ConnectedClause } from "./filterLinkUtils";
 import { GoalConditionalTargetsEditor } from "./GoalConditionalTargetsEditor";
 import { AnalyticResultTypeEnum } from "../../analytics/enums/AnalyticResultTypeEnum";
@@ -48,6 +50,7 @@ interface SourceRow {
 /** The chart drawn is the definition it was added with; changing it means adding a new widget. */
 export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
   const { dashboardId, widgets } = useDashboard();
+  const isMobile = useMediaQuery("(max-width: 48em)");
   const [rows, setRows] = useState<SourceRow[] | null>(null);
   const [displayMode, setDisplayMode] = useState(DashboardItemDisplayMode.Full);
   const [mobileDisplayMode, setMobileDisplayMode] = useState(
@@ -63,6 +66,9 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
   >([]);
   const [colorOverride, setColorOverride] = useState<string | null>(null);
   const [showTrend, setShowTrend] = useState(true);
+  const [trendValueFieldType, setTrendValueFieldType] = useState<string | undefined>(
+    undefined,
+  );
   const [fieldNameById, setFieldNameById] = useState<Record<string, string>>(
     {},
   );
@@ -110,6 +116,7 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
       const viewsByTracker = new Map<string, ViewDto[]>();
 
       const fieldNames: Record<string, string> = {};
+      const fieldTypes: Record<string, string> = {};
 
       await Promise.all(
         [...new Set(sources.map((s) => s.trackerId))].map(async (trackerId) => {
@@ -118,11 +125,19 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
             fieldsController.getFields(trackerId),
           ]);
           viewsByTracker.set(trackerId, views.data ?? []);
-          for (const f of fields.data ?? []) fieldNames[f.id] = f.name;
+          for (const f of fields.data ?? []) {
+            fieldNames[f.id] = f.name;
+            fieldTypes[f.id] = f.type;
+          }
         }),
       );
 
       setFieldNameById(fieldNames);
+
+      // Min/Max are the only SingleValue codes whose Value field may be Date/DateTime, and a
+      // trend can't plot a date, so the checkbox is hidden rather than shown but inert.
+      const valueFieldId = sources[0]?.fields.find((f) => f.purpose === "Value")?.fieldId;
+      setTrendValueFieldType(valueFieldId ? fieldTypes[valueFieldId] : undefined);
 
       setRows(
         sources.map((source) => ({
@@ -181,9 +196,20 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
   };
 
   const isCombined = (rows?.length ?? 0) > 1;
+  const canShowTrend =
+    (isGoal || isSingleValue) &&
+    (!trendValueFieldType || !DATE_TYPES.includes(trendValueFieldType));
 
   return (
-    <Modal opened onClose={onClose} title="Edit widget" size="md" centered>
+    <Modal
+      opened
+      onClose={onClose}
+      title="Edit widget"
+      size="lg"
+      centered
+      fullScreen={isMobile}
+      overlayProps={{ backgroundOpacity: 0.35 }}
+    >
       {/* Global request loader already covers the fetch above. */}
       {rows && (
         <Stack gap="md">
@@ -223,35 +249,25 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
               />
             );
 
-            return isCombined ? (
+            return (
               <Paper key={row.source.id} withBorder p="sm" radius="md">
                 <Stack gap="sm">
-                  <Stack gap={0}>
-                    <Text size="sm" fw={600}>
-                      {row.source.trackerName}
-                    </Text>
-                    <Text size="xs" c="dimmed">
-                      {row.source.name}
-                    </Text>
-                  </Stack>
+                  {isCombined && (
+                    <Stack gap={0}>
+                      <Text size="sm" fw={600}>
+                        {row.source.trackerName}
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        {row.source.name}
+                      </Text>
+                    </Stack>
+                  )}
                   {nameInput}
                   {viewSelect}
                 </Stack>
               </Paper>
-            ) : (
-              <Stack key={row.source.id} gap="md">
-                {nameInput}
-                {viewSelect}
-              </Stack>
             );
           })}
-
-          {isLineChart && (
-            <YAxisScaleOption
-              yAxisFromZero={yAxisFromZero}
-              onChange={setYAxisFromZero}
-            />
-          )}
 
           {isGoal && connectedClauses.length > 0 && (
             <GoalConditionalTargetsEditor
@@ -261,11 +277,18 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
             />
           )}
 
-          {(isGoal || isSingleValue) && (
+          {canShowTrend && (
             <Checkbox
               label="Show trend"
               checked={showTrend}
               onChange={(event) => setShowTrend(event.currentTarget.checked)}
+            />
+          )}
+
+          {isLineChart && (
+            <YAxisScaleOption
+              yAxisFromZero={yAxisFromZero}
+              onChange={setYAxisFromZero}
             />
           )}
 
