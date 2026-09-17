@@ -14,7 +14,6 @@ import { useState } from "react";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { TbFilter } from "react-icons/tb";
 import DynamicDateValueInput from "../../../shared/components/DynamicDateValueInput";
-import { OperatorTypes } from "../../../shared/constants/DataTypes";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 import { useCardLayout } from "../../analytics/components/cardSizing";
 import { WidgetShell } from "../../analytics/components/WidgetShell";
@@ -24,8 +23,8 @@ import {
     DATE_TYPES,
     groupClauseRows,
     normalizeClauseValue,
-    shiftByDays,
-    shiftDateRange,
+    shiftDateRangeValue,
+    shiftDateValue,
     syntheticField,
 } from "./filterClauseInput";
 
@@ -108,18 +107,76 @@ export function FilterWidgetCard({
         });
     };
 
-    // What each set clause reads as — "Date & time ≥ Jan 1", "Amount ≥ 10".
-    const summaryParts = clauses
-        .filter(
-            (c) => c.value !== undefined && c.value !== null && c.value !== "",
-        )
-        .map(
-            (c) =>
-                `${clauseLabel(c.dataType, c.operator)} ${renderValue(
-                    c.dataType,
-                    c.value,
-                )}`,
-        );
+    const hasValue = (c: { value?: string | null }) =>
+        c.value !== undefined && c.value !== null && c.value !== "";
+
+    // What each set clause reads as on the live tile -- "Date & time ≥ Jan 1", "Amount ≥ 10" --
+    // plus prev/next handlers for the ones with a shiftable date value, so the tile itself can
+    // step through without opening the editor.
+    const liveRows = groupClauseRows(clauses).flatMap((row) => {
+        if (row.type === "single") {
+            const c = row.clause;
+            if (!hasValue(c)) return [];
+            const canShift =
+                DATE_TYPES.includes(c.dataType) &&
+                shiftDateValue(c.value, 1) !== null;
+            return [
+                {
+                    key: c.slotId,
+                    text: `${clauseLabel(c.dataType, c.operator)} ${renderValue(c.dataType, c.value)}`,
+                    shift: canShift
+                        ? (direction: 1 | -1) => {
+                              const shifted = shiftDateValue(
+                                  c.value,
+                                  direction,
+                              );
+                              if (shifted === null) return;
+                              onSetValues(widgetId, {
+                                  [c.slotId]: normalizeClauseValue(shifted),
+                              });
+                          }
+                        : undefined,
+                },
+            ];
+        }
+
+        const { start, end } = row;
+        if (!hasValue(start) || !hasValue(end)) {
+            return [start, end].filter(hasValue).map((c) => ({
+                key: c.slotId,
+                text: `${clauseLabel(c.dataType, c.operator)} ${renderValue(c.dataType, c.value)}`,
+                shift: undefined,
+            }));
+        }
+
+        const canShift =
+            shiftDateRangeValue(start.value, end.value, 1) !== null;
+        return [
+            {
+                key: `${start.slotId}-${end.slotId}`,
+                text: `${clauseLabel(start.dataType)} ${renderValue(
+                    start.dataType,
+                    start.value,
+                )} – ${renderValue(end.dataType, end.value)}`,
+                shift: canShift
+                    ? (direction: 1 | -1) => {
+                          const shifted = shiftDateRangeValue(
+                              start.value,
+                              end.value,
+                              direction,
+                          );
+                          if (!shifted) return;
+                          onSetValues(widgetId, {
+                              [start.slotId]: normalizeClauseValue(
+                                  shifted.start,
+                              ),
+                              [end.slotId]: normalizeClauseValue(shifted.end),
+                          });
+                      }
+                    : undefined,
+            },
+        ];
+    });
 
     return (
         <WidgetShell
@@ -173,7 +230,7 @@ export function FilterWidgetCard({
                                         const shift = (
                                             direction: 1 | -1,
                                         ) => {
-                                            const shifted = shiftDateRange(
+                                            const shifted = shiftDateRangeValue(
                                                 startValue,
                                                 endValue,
                                                 direction,
@@ -189,7 +246,7 @@ export function FilterWidgetCard({
                                             );
                                         };
                                         const canShift =
-                                            shiftDateRange(
+                                            shiftDateRangeValue(
                                                 startValue,
                                                 endValue,
                                                 1,
@@ -322,8 +379,7 @@ export function FilterWidgetCard({
                                         form.values.values[c.slotId];
                                     const canShiftDay =
                                         DATE_TYPES.includes(c.dataType) &&
-                                        c.operator === OperatorTypes.Equals &&
-                                        shiftByDays(value, 1) !== null;
+                                        shiftDateValue(value, 1) !== null;
 
                                     return (
                                         <Stack key={c.slotId} gap={2}>
@@ -350,13 +406,13 @@ export function FilterWidgetCard({
                                                             onClick={() =>
                                                                 form.setFieldValue(
                                                                     `values.${c.slotId}`,
-                                                                    shiftByDays(
+                                                                    shiftDateValue(
                                                                         value,
                                                                         -1,
                                                                     ),
                                                                 )
                                                             }
-                                                            aria-label="Previous day"
+                                                            aria-label="Previous"
                                                         >
                                                             <FiChevronLeft
                                                                 size={14}
@@ -369,13 +425,13 @@ export function FilterWidgetCard({
                                                             onClick={() =>
                                                                 form.setFieldValue(
                                                                     `values.${c.slotId}`,
-                                                                    shiftByDays(
+                                                                    shiftDateValue(
                                                                         value,
                                                                         1,
                                                                     ),
                                                                 )
                                                             }
-                                                            aria-label="Next day"
+                                                            aria-label="Next"
                                                         >
                                                             <FiChevronRight
                                                                 size={14}
@@ -438,16 +494,14 @@ export function FilterWidgetCard({
             }
         >
             {clauses.length > 0 ? (
-                <UnstyledButton
-                    onClick={openEditor}
-                    disabled={isConfiguring}
+                <Group
+                    wrap="nowrap"
+                    gap={8}
                     style={{
                         flex: 1,
                         minHeight: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
                         padding: "0 12px",
+                        overflow: "hidden",
                         pointerEvents: isConfiguring ? "none" : "auto",
                     }}
                 >
@@ -455,16 +509,76 @@ export function FilterWidgetCard({
                         size={16}
                         style={{ flexShrink: 0, opacity: 0.7 }}
                     />
-                    {summaryParts.length === 0 ? (
-                        <Text size="sm" c="dimmed">
-                            Set filters…
-                        </Text>
+                    {liveRows.length === 0 ? (
+                        <UnstyledButton
+                            onClick={openEditor}
+                            disabled={isConfiguring}
+                            style={{ flex: 1, textAlign: "left" }}
+                        >
+                            <Text size="sm" c="dimmed">
+                                Set filters…
+                            </Text>
+                        </UnstyledButton>
                     ) : (
-                        <Text size="sm" truncate>
-                            {summaryParts.join("  ·  ")}
-                        </Text>
+                        <Group
+                            wrap="nowrap"
+                            gap="md"
+                            style={{
+                                flex: 1,
+                                minWidth: 0,
+                                overflowX: "auto",
+                            }}
+                        >
+                            {liveRows.map((row) => (
+                                <Group
+                                    key={row.key}
+                                    gap={2}
+                                    wrap="nowrap"
+                                    style={{ flexShrink: 0 }}
+                                >
+                                    {row.shift && (
+                                        <ActionIcon
+                                            variant="subtle"
+                                            color="gray"
+                                            size="sm"
+                                            disabled={isConfiguring}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                row.shift?.(-1);
+                                            }}
+                                            aria-label="Previous"
+                                        >
+                                            <FiChevronLeft size={14} />
+                                        </ActionIcon>
+                                    )}
+                                    <UnstyledButton
+                                        onClick={openEditor}
+                                        disabled={isConfiguring}
+                                    >
+                                        <Text size="sm" truncate>
+                                            {row.text}
+                                        </Text>
+                                    </UnstyledButton>
+                                    {row.shift && (
+                                        <ActionIcon
+                                            variant="subtle"
+                                            color="gray"
+                                            size="sm"
+                                            disabled={isConfiguring}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                row.shift?.(1);
+                                            }}
+                                            aria-label="Next"
+                                        >
+                                            <FiChevronRight size={14} />
+                                        </ActionIcon>
+                                    )}
+                                </Group>
+                            ))}
+                        </Group>
                     )}
-                </UnstyledButton>
+                </Group>
             ) : (
                 <Text size="sm" c="dimmed" px="xs">
                     This filter widget is misconfigured.

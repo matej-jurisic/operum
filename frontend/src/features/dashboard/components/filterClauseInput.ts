@@ -1,8 +1,11 @@
 import { fieldTypes } from "../../../shared/constants/DataTypesForSelect";
 import { OperatorTypes } from "../../../shared/constants/DataTypes";
 import {
+    isAnchorToken,
     isDynamicDateToken,
     lookbackToAnchorToken,
+    parseAnchorToken,
+    serializeAnchorToken,
 } from "../../../shared/constants/dynamicDateTokens";
 import { formatOperator } from "../../../shared/utils/formatters/OperatorFormatter";
 import { FieldDto } from "../../fields/types/FieldDto";
@@ -88,20 +91,43 @@ function addDays(date: Date, days: number): Date {
     return shifted;
 }
 
-/** Moves a literal date value by whole calendar days, preserving its time of day. Null when
-    the value isn't a literal date (empty, or a relative token). */
-export function shiftByDays(value: unknown, days: number): Date | null {
-    const date = literalDateValue(value);
-    return date ? addDays(date, days) : null;
+/** A relative value's anchor token, normalizing the legacy lookback form. Null for "now"
+    (no offset) or anything that isn't a token at all. */
+function anchorTokenValue(value: unknown) {
+    if (typeof value !== "string") return null;
+    const token = lookbackToAnchorToken(value) ?? value;
+    return isAnchorToken(token) ? parseAnchorToken(token) : null;
 }
 
-/** Slides a ≥/≤ date range forward or back by its own width, with no gap or overlap --
-    "next range" after Sep 1-7 is Sep 8-14. Null when either bound isn't a literal date. */
-export function shiftDateRange(
+/** Moves a literal date by whole calendar days, or a relative token ("today:-1") by
+    incrementing the offset it already carries -- the same offset the "Relative" editor
+    exposes. Null when the value is empty, "now", or otherwise not shiftable. */
+export function shiftDateValue(value: unknown, direction: 1 | -1): Date | string | null {
+    const anchor = anchorTokenValue(value);
+    if (anchor) return serializeAnchorToken(anchor.anchor, anchor.offset + direction);
+
+    const date = literalDateValue(value);
+    return date ? addDays(date, direction) : null;
+}
+
+/** Slides a ≥/≤ pair one step: for a literal date range, forward or back by its own width
+    with no gap or overlap ("next range" after Sep 1-7 is Sep 8-14); for a matching pair of
+    relative tokens, both anchors' offsets move by one together (last month -> this month).
+    Null when the two bounds aren't a shiftable pair of the same kind. */
+export function shiftDateRangeValue(
     startValue: unknown,
     endValue: unknown,
     direction: 1 | -1,
-): { start: Date; end: Date } | null {
+): { start: Date | string; end: Date | string } | null {
+    const startAnchor = anchorTokenValue(startValue);
+    const endAnchor = anchorTokenValue(endValue);
+    if (startAnchor && endAnchor) {
+        return {
+            start: serializeAnchorToken(startAnchor.anchor, startAnchor.offset + direction),
+            end: serializeAnchorToken(endAnchor.anchor, endAnchor.offset + direction),
+        };
+    }
+
     const start = literalDateValue(startValue);
     const end = literalDateValue(endValue);
     if (!start || !end) return null;
