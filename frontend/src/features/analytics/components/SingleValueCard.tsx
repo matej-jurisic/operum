@@ -1,4 +1,5 @@
-import { ActionIcon, Box, Stack, Text } from "@mantine/core";
+import { ActionIcon, Box, Stack, Text, em } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { MdLink } from "react-icons/md";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 import { SingleValueAnalyticDto } from "../types/AnalyticDto";
@@ -19,6 +20,9 @@ interface Props {
 
 const MIN_VALUE_FONT = 18;
 const MAX_VALUE_FONT = 60;
+// Average glyph width for the bold value text, as a fraction of its font size; bounds the
+// font so long values (e.g. "08:00:00") can't grow past the box and overflow.
+const CHAR_WIDTH_RATIO = 0.62;
 
 export function SingleValueCard({
     analytic,
@@ -30,7 +34,12 @@ export function SingleValueCard({
     fillHeight,
 }: Props) {
     const layout = useCardLayout(fillHeight);
+    const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
+    const compact = isMobile || layout.isCompact;
     const valueBox = useSyncedElementSize<HTMLDivElement>(!!fillHeight);
+
+    const renderedValue = renderValue(analytic.valueField?.type, analytic.value);
+    const valueLength = String(renderedValue).length;
 
     const valueFontSize =
         fillHeight && valueBox.width > 0 && valueBox.height > 0
@@ -40,6 +49,9 @@ export function SingleValueCard({
                       MAX_VALUE_FONT,
                       valueBox.height * 0.55,
                       valueBox.width * 0.22,
+                      valueLength > 0
+                          ? valueBox.width / (valueLength * CHAR_WIDTH_RATIO)
+                          : MAX_VALUE_FONT,
                   ),
               )
             : undefined;
@@ -85,7 +97,7 @@ export function SingleValueCard({
                         : undefined
                 }
             >
-                <Stack w={"100%"} h={"100%"} gap={10} justify="center">
+                <Stack w={"100%"} h={"100%"} gap={compact ? 6 : 10} justify="center">
                     <Text
                         size={valueFontSize ? undefined : "xl"}
                         fw={600}
@@ -96,7 +108,7 @@ export function SingleValueCard({
                             fontSize: valueFontSize,
                         }}
                     >
-                        {renderValue(analytic.valueField?.type, analytic.value)}
+                        {renderedValue}
                     </Text>
                     {analytic.secondaryValue && (
                         <Text
@@ -124,6 +136,7 @@ export function SingleValueCard({
                             valueFieldType={analytic.valueField?.type}
                             color={color}
                             direction="neutral"
+                            compact={compact}
                         />
                     )}
                 </Stack>

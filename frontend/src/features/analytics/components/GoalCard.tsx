@@ -1,4 +1,5 @@
-import { Box, Group, Progress, Text } from "@mantine/core";
+import { Box, Group, Progress, Text, em } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 import { GoalAnalyticDto, GoalDirections } from "../types/AnalyticDto";
 import { useCardLayout } from "./cardSizing";
@@ -24,6 +25,8 @@ export function GoalCard({
     fillHeight,
 }: Props) {
     const layout = useCardLayout(fillHeight);
+    const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
+    const compact = isMobile || layout.isCompact;
 
     const type = analytic.valueField?.type;
     const hasProgress =
@@ -54,13 +57,17 @@ export function GoalCard({
                               display: "flex",
                               flexDirection: "column",
                               justifyContent: "center",
-                              gap: 10,
+                              gap: compact ? 6 : 10,
                           }
-                        : { display: "flex", flexDirection: "column", gap: 10 }
+                        : {
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: compact ? 6 : 10,
+                          }
                 }
             >
                 <Group justify="space-between" align="baseline" gap="xs" wrap="nowrap">
-                    <Text fw={700} size="xl" style={{ lineHeight: 1.1 }}>
+                    <Text fw={700} size={compact ? "lg" : "xl"} style={{ lineHeight: 1.1 }}>
                         {renderValue(type, analytic.value)}
                     </Text>
                     {percent !== null && (
@@ -77,7 +84,7 @@ export function GoalCard({
                 <Progress
                     value={hasProgress ? Math.min(100, Math.max(0, percent!)) : 0}
                     color={statusColor}
-                    size="lg"
+                    size={compact ? "sm" : "lg"}
                     radius="xl"
                     striped={achieved}
                 />
@@ -103,6 +110,7 @@ export function GoalCard({
                         direction={
                             isLowerIsBetter ? "lowerIsBetter" : "higherIsBetter"
                         }
+                        compact={compact}
                     />
                 )}
             </Box>

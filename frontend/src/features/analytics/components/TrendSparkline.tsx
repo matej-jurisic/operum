@@ -10,6 +10,8 @@ interface Props {
     /** "neutral" keeps the delta text in a fixed color regardless of sign. */
     direction: "higherIsBetter" | "lowerIsBetter" | "neutral";
     previousPeriodLabel?: string;
+    /** Shrinks the chart so the widget it sits in can be shorter, e.g. on mobile. */
+    compact?: boolean;
 }
 
 // Mirrors TrendCalculator's magnitude parsing server-side (timespan as seconds, else a plain number).
@@ -33,6 +35,10 @@ const WIDTH = 100;
 const HEIGHT = 60;
 const PAD = 3;
 
+const COMPACT_WIDTH = 80;
+const COMPACT_HEIGHT = 32;
+const COMPACT_PAD = 2;
+
 /** Renders nothing when `trend` is undefined (no connected date range for TrendCalculator to bucket). */
 export function TrendSparkline({
     trend,
@@ -41,8 +47,13 @@ export function TrendSparkline({
     color,
     direction,
     previousPeriodLabel = "previous period",
+    compact,
 }: Props) {
     if (!trend) return null;
+
+    const width = compact ? COMPACT_WIDTH : WIDTH;
+    const height = compact ? COMPACT_HEIGHT : HEIGHT;
+    const pad = compact ? COMPACT_PAD : PAD;
 
     const points = trend.points;
     const current = parseMagnitude(valueFieldType, currentValue);
@@ -67,13 +78,13 @@ export function TrendSparkline({
                   const minY = Math.min(...ys);
                   const maxY = Math.max(...ys);
                   const scaleX = (i: number) =>
-                      PAD + (i / (points.length - 1)) * (WIDTH - PAD * 2);
+                      pad + (i / (points.length - 1)) * (width - pad * 2);
                   const scaleY = (y: number) =>
                       maxY === minY
-                          ? HEIGHT / 2
-                          : HEIGHT -
-                            PAD -
-                            ((y - minY) / (maxY - minY)) * (HEIGHT - PAD * 2);
+                          ? height / 2
+                          : height -
+                            pad -
+                            ((y - minY) / (maxY - minY)) * (height - pad * 2);
                   const coords = points.map(
                       (p, i) => [scaleX(i), scaleY(p.y)] as const,
                   );
@@ -90,7 +101,7 @@ export function TrendSparkline({
             style={{
                 display: "flex",
                 flexDirection: "column",
-                gap: 2,
+                gap: compact ? 0 : 2,
                 width: "100%",
                 alignItems: "center",
                 justifyContent: "space-between",
@@ -100,12 +111,12 @@ export function TrendSparkline({
                 <div
                     style={{
                         width: "80%",
-                        maxWidth: WIDTH,
-                        aspectRatio: `${WIDTH} / ${HEIGHT}`,
+                        maxWidth: width,
+                        aspectRatio: `${width} / ${height}`,
                     }}
                 >
                     <svg
-                        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+                        viewBox={`0 0 ${width} ${height}`}
                         width="100%"
                         height="100%"
                         preserveAspectRatio="none"
