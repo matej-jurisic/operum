@@ -96,6 +96,16 @@ export const DashboardProvider: React.FC<{
         setIsLoading(false);
     }, [dashboardId]);
 
+    // Every write below hands back only the widgets it could have changed (see
+    // DashboardService.BuildWidgets), so its response is patched in by id: a widget the write
+    // did not touch keeps the data it already has and never re-renders.
+    const patchWidgets = useCallback((changed: DashboardWidgetDto[] | undefined) => {
+        if (!changed?.length) return;
+
+        const byId = new Map(changed.map((w) => [w.id, w]));
+        setWidgets((current) => current.map((w) => byId.get(w.id) ?? w));
+    }, []);
+
     // Resubmits each affected filter widget once, even when more than one source follows it.
     const applyFilterFollows = async (itemId: string, sources: FilterFollowLinks[]) => {
         const byFilter = new Map<
@@ -235,29 +245,30 @@ export const DashboardProvider: React.FC<{
         await refreshWidgets();
     };
 
-    // Removing a tab moves its child widgets to the first remaining tab, so the server
-    // hands back the whole board recalculated rather than the client guessing what moved.
+    // Removing a tab moves its child widgets to the first remaining tab, so the panel and
+    // every child come back recalculated rather than the client guessing what moved.
     const saveTabsContainer = async (itemId: string, dto: SaveTabsContainerDto) => {
         const res = await dashboardController.saveTabsContainer(dashboardId, itemId, dto);
-        setWidgets(res.data ?? []);
+        patchWidgets(res.data);
     };
 
-    // An edit can change how a widget is filtered, so the server recalculates the whole board.
+    // The view a source reads through, a goal's targets and the axis are all recalculated server-side. Only this placement comes back.
     const updateItem = async (itemId: string, dto: UpdateDashboardItemDto) => {
         const res = await dashboardController.updateDashboardItem(
             dashboardId,
             itemId,
             dto
         );
-        setWidgets(res.data ?? []);
+        patchWidgets(res.data);
     };
 
-    // A changed column set still changes what the table shows, so the whole board recomputes.
+    // A changed column set still changes what the table shows, so the table comes back recomputed.
     const updateEntriesItem = async (itemId: string, dto: UpdateDashboardEntriesItemDto) => {
         const res = await dashboardController.updateEntriesItem(dashboardId, itemId, dto);
-        setWidgets(res.data ?? []);
+        patchWidgets(res.data);
     };
 
+    // The widget and every widget its clauses link come back re-filtered, so a filter only redraws what it actually narrows.
     const setFilterValues = async (
         itemId: string,
         values: Record<string, string | null>
@@ -265,12 +276,14 @@ export const DashboardProvider: React.FC<{
         const res = await dashboardController.setFilterValues(dashboardId, itemId, {
             values,
         });
-        setWidgets(res.data ?? []);
+        patchWidgets(res.data);
     };
 
+    // Comes back with the widget and every follower it gained or lost -- one that stopped
+    // following it has to be redrawn unfiltered.
     const updateFilterItem = async (itemId: string, dto: SaveFilterItemDto) => {
         const res = await dashboardController.updateFilterItem(dashboardId, itemId, dto);
-        setWidgets(res.data ?? []);
+        patchWidgets(res.data);
     };
 
     // Nothing else on the board depends on a text widget's content, so only that item is patched in.

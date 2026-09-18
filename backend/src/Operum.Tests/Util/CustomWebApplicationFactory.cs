@@ -52,6 +52,10 @@ namespace Operum.Tests.Util
             // real limit would throttle the suite. A subclass's Settings can still lower it.
             builder.UseSetting("RateLimiting:PermitLimit", int.MaxValue.ToString());
 
+            // No appsettings.json for the Testing environment, so registration's confirmation
+            // link needs ServerUrl set here. Before the Settings loop, so a subclass can override it.
+            builder.UseSetting("ServerUrl", "https://operum.test");
+
             foreach (var (key, value) in Settings)
                 builder.UseSetting(key, value);
 

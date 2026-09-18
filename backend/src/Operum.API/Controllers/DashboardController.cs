@@ -151,7 +151,7 @@ namespace Operum.API.Controllers
             return GetApiResponse(await dashboardService.AddTabsContainerItem(dashboardId));
         }
 
-        // A tabs container's title and whole tab list; removing a tab moves its child widgets to the first remaining tab, so the whole board comes back recomputed.
+        // A tabs container's title and whole tab list; removing a tab moves its child widgets to the first remaining tab. Like every write below, the response carries only the widgets this write could have changed.
         [HttpPut("{dashboardId}/items/{itemId}/tabs-container")]
         public async Task<IActionResult> SaveTabsContainer([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] SaveTabsContainerDto dto)
         {
@@ -165,14 +165,14 @@ namespace Operum.API.Controllers
             return GetApiResponse(await dashboardService.UpdateDashboardItem(dashboardId, itemId, dto));
         }
 
-        // A filter widget's current per-clause values alone: the inputs on the board.
+        // A filter widget's current per-clause values alone: the inputs on the board. Comes back with the widget and the followers those values re-filter.
         [HttpPut("{dashboardId}/items/{itemId}/filter-values")]
         public async Task<IActionResult> SetFilterValues([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] SetFilterValuesDto dto)
         {
             return GetApiResponse(await dashboardService.SetFilterValues(dashboardId, itemId, dto));
         }
 
-        // A filter widget's own clauses, presets, and the full set of widgets that follow it (in either facet) with their per-clause field maps.
+        // A filter widget's own clauses, presets, and the full set of widgets that follow it (in either facet) with their per-clause field maps. Comes back with the widget and every follower it gained or lost.
         [HttpPut("{dashboardId}/items/{itemId}/filter")]
         public async Task<IActionResult> UpdateFilterItem([FromRoute] string dashboardId, [FromRoute] string itemId, [FromBody] SaveFilterItemDto dto)
         {

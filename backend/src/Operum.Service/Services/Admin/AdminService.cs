@@ -33,11 +33,17 @@ namespace Operum.Service.Services.Admin
                     Name = t.Name,
                     Description = t.Description,
                     Color = t.Color,
+                    Icon = t.Icon,
                     OwnerId = t.OwnerId,
                     OwnerName = t.Owner.UserName,
                     FieldCount = t.Fields.Count,
                     CollaboratorCount = t.ApplicationUserTrackers.Count,
                     EntryCount = db.Entries.Count(e => e.TrackerId == t.Id),
+                    // Same "updated ..." stamp the user's own tracker list shows, so an
+                    // admin can tell a live tracker from an abandoned one.
+                    LastEntryAt = db.Entries
+                        .Where(e => e.TrackerId == t.Id)
+                        .Max(e => (DateTime?)e.CreatedAt),
                 })
                 .OrderBy(t => t.OwnerName)
                 .ThenBy(t => t.Name)

@@ -1977,6 +1977,32 @@ namespace Operum.Tests.Tests.Dashboards
         private static int PointsOf(JsonElement widgets, string itemId)
             => Analytic(ChartFor(widgets, itemId)).GetProperty("points").GetArrayLength();
 
+        // Nothing else on the board reads this placement, so nothing else is recalculated.
+        [Fact]
+        public async Task UpdateDashboardItem_ReturnsOnlyThePlacementItChanged()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("itemupdatescope");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var editedId = await PlaceLineChart(client, dashboardId, tracker);
+            await PlaceLineChart(client, dashboardId, tracker);
+
+            var sourceId = await SingleSourceId(client, dashboardId, editedId);
+
+            var updated = await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{editedId}", new UpdateDashboardItemDto
+            {
+                Sources = [new UpdateDashboardItemSourceDto { SourceId = sourceId, Label = "Trend" }]
+            });
+            Assert.Equal(HttpStatusCode.OK, updated.StatusCode);
+
+            var widgets = await Data(updated);
+            Assert.Equal(1, widgets.GetArrayLength());
+            Assert.Equal(editedId, widgets[0].GetProperty("id").GetString());
+            Assert.Equal("Trend", Analytic(widgets[0]).GetProperty("name").GetString());
+        }
+
         [Fact]
         public async Task UpdateDashboardItem_RenamesTheWidgetWithoutTouchingItsDefinition()
         {
@@ -2288,6 +2314,100 @@ namespace Operum.Tests.Tests.Dashboards
                 new SetFilterValuesDto { Values = new() { [slotId] = "" } });
             Assert.Equal(HttpStatusCode.OK, cleared.StatusCode);
             Assert.Equal(1, PointsOf(await Data(cleared), chartId));
+        }
+
+        // A write comes back with the widgets it could have changed and nothing else: typing
+        // one filter value never recalculates a chart that filter doesn't narrow.
+        [Fact]
+        public async Task SetFilterValues_ReturnsTheFilterWidgetAndItsFollowersOnly()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("filtervaluescope");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var followedId = await PlaceLineChart(client, dashboardId, tracker);
+            var unfollowedId = await PlaceLineChart(client, dashboardId, tracker);
+
+            var item = await Data(await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/items/filter",
+                new SaveFilterItemDto
+                {
+                    Clauses = AmountOverClauses(),
+                    Links =
+                    [
+                        new WidgetLinkDto
+                        {
+                            ItemId = followedId,
+                            TrackerId = tracker.Id,
+                            FieldByQuery = new() { ["0"] = tracker.AmountFieldId }
+                        }
+                    ]
+                }));
+            var filterId = item.GetProperty("id").GetString()!;
+            var slotId = await FilterSlotId(client, dashboardId, filterId);
+
+            var narrowed = await client.PutAsJsonAsync(
+                $"dashboard/{dashboardId}/items/{filterId}/filter-values",
+                new SetFilterValuesDto { Values = new() { [slotId] = "10" } });
+            Assert.Equal(HttpStatusCode.OK, narrowed.StatusCode);
+
+            var widgets = await Data(narrowed);
+            var returned = widgets.EnumerateArray()
+                .Select(w => w.GetProperty("id").GetString())
+                .ToList();
+
+            Assert.Equal(2, returned.Count);
+            Assert.Contains(filterId, returned);
+            Assert.Contains(followedId, returned);
+
+            // The follower comes back narrowed; the chart the filter doesn't reach is simply
+            // absent, and a fresh read still draws it in full.
+            Assert.Equal(0, PointsOf(widgets, followedId));
+            Assert.Equal(1, PointsOf(await Widgets(client, dashboardId), unfollowedId));
+        }
+
+        // The one widget an edit that drops a link changes is the widget that has just stopped
+        // following, so it has to come back too -- unfiltered.
+        [Fact]
+        public async Task UpdateFilter_DroppingAFollower_ReturnsItUnfiltered()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("filterdropfollower");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var chartId = await PlaceLineChart(client, dashboardId, tracker);
+
+            var item = await Data(await client.PostAsJsonAsync(
+                $"dashboard/{dashboardId}/items/filter",
+                new SaveFilterItemDto
+                {
+                    Clauses = AmountOverClauses(),
+                    Links =
+                    [
+                        new WidgetLinkDto
+                        {
+                            ItemId = chartId,
+                            TrackerId = tracker.Id,
+                            FieldByQuery = new() { ["0"] = tracker.AmountFieldId }
+                        }
+                    ]
+                }));
+            var filterId = item.GetProperty("id").GetString()!;
+            var slotId = await FilterSlotId(client, dashboardId, filterId);
+
+            var narrowed = await client.PutAsJsonAsync(
+                $"dashboard/{dashboardId}/items/{filterId}/filter-values",
+                new SetFilterValuesDto { Values = new() { [slotId] = "10" } });
+            Assert.Equal(0, PointsOf(await Data(narrowed), chartId));
+
+            var unlinked = await client.PutAsJsonAsync(
+                $"dashboard/{dashboardId}/items/{filterId}/filter",
+                new SaveFilterItemDto { Clauses = AmountOverClauses(), Links = [] });
+            Assert.Equal(HttpStatusCode.OK, unlinked.StatusCode);
+
+            Assert.Equal(1, PointsOf(await Data(unlinked), chartId));
         }
 
         [Fact]

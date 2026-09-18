@@ -1,128 +1,39 @@
-import {
-    Badge,
-    Group,
-    ScrollArea,
-    Skeleton,
-    Stack,
-    Table,
-    Text,
-} from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
+import { ScrollArea, Stack } from "@mantine/core";
 import { useEffect, useState } from "react";
 import EmptyState from "../../../shared/components/EmptyState";
 import { adminController } from "../api/adminController";
 import { AdminTrackerDto } from "../types/AdminTrackerDto";
-import { AdminTrackersCards } from "./AdminTrackersCards";
+import AdminTrackerCard from "./AdminTrackerCard";
 
 export default function AdminTrackers() {
     const [trackers, setTrackers] = useState<AdminTrackerDto[]>([]);
-    const [loading, setLoading] = useState(true);
-    const isMobile = useMediaQuery("(max-width: 768px)");
+    const [loaded, setLoaded] = useState(false);
 
     useEffect(() => {
         const load = async () => {
-            setLoading(true);
             const response = await adminController.getAllTrackers();
             setTrackers(response.data);
-            setLoading(false);
+            setLoaded(true);
         };
         load();
     }, []);
 
     return (
-        <Skeleton visible={loading} h="100%">
-            <Stack gap="md" h="100%">
-                <ScrollArea flex={1}>
-                    {!loading && trackers.length === 0 && (
-                        <EmptyState
-                            title="No trackers yet"
-                            hint="Trackers created by any user will appear here."
-                        />
-                    )}
-                    {!loading && trackers.length > 0 && (
-                        <>
-                            {isMobile ? (
-                                <AdminTrackersCards trackers={trackers} />
-                            ) : (
-                                <Table.ScrollContainer minWidth={0} style={{ backgroundColor: "var(--mantine-color-body)" }}>
-                                    <Table
-                                        striped
-                                        highlightOnHover
-                                        withColumnBorders
-                                        withTableBorder
-                                        verticalSpacing="sm"
-                                    >
-                                        <Table.Thead>
-                                            <Table.Tr>
-                                                <Table.Th>Tracker</Table.Th>
-                                                <Table.Th>Owner</Table.Th>
-                                                <Table.Th>Fields</Table.Th>
-                                                <Table.Th>Entries</Table.Th>
-                                                <Table.Th>Collaborators</Table.Th>
-                                            </Table.Tr>
-                                        </Table.Thead>
-                                        <Table.Tbody>
-                                            {trackers.map((tracker) => (
-                                                <Table.Tr key={tracker.id}>
-                                                    <Table.Td>
-                                                        <Group gap="sm" wrap="nowrap">
-                                                            {tracker.color && (
-                                                                <div
-                                                                    style={{
-                                                                        width: 4,
-                                                                        minHeight: 32,
-                                                                        borderRadius: 2,
-                                                                        background: tracker.color,
-                                                                        flexShrink: 0,
-                                                                    }}
-                                                                />
-                                                            )}
-                                                            <div>
-                                                                <Text fw={500}>
-                                                                    {tracker.name}
-                                                                </Text>
-                                                                {tracker.description && (
-                                                                    <Text
-                                                                        size="xs"
-                                                                        c="dimmed"
-                                                                        lineClamp={1}
-                                                                    >
-                                                                        {tracker.description}
-                                                                    </Text>
-                                                                )}
-                                                            </div>
-                                                        </Group>
-                                                    </Table.Td>
-                                                    <Table.Td>
-                                                        <Text size="sm">
-                                                            {tracker.ownerName}
-                                                        </Text>
-                                                    </Table.Td>
-                                                    <Table.Td>
-                                                        <Badge variant="light" color="blue">
-                                                            {tracker.fieldCount}
-                                                        </Badge>
-                                                    </Table.Td>
-                                                    <Table.Td>
-                                                        <Badge variant="light" color="teal">
-                                                            {tracker.entryCount}
-                                                        </Badge>
-                                                    </Table.Td>
-                                                    <Table.Td>
-                                                        <Badge variant="light" color="violet">
-                                                            {tracker.collaboratorCount}
-                                                        </Badge>
-                                                    </Table.Td>
-                                                </Table.Tr>
-                                            ))}
-                                        </Table.Tbody>
-                                    </Table>
-                                </Table.ScrollContainer>
-                            )}
-                        </>
-                    )}
-                </ScrollArea>
-            </Stack>
-        </Skeleton>
+        // The global request loader already covers the first fetch, so this stays empty
+        // until the trackers arrive.
+        <ScrollArea h="100%">
+            {!loaded ? null : trackers.length === 0 ? (
+                <EmptyState
+                    title="No trackers yet"
+                    hint="Trackers created by any user will appear here."
+                />
+            ) : (
+                <Stack gap="md" pb="md">
+                    {trackers.map((tracker) => (
+                        <AdminTrackerCard key={tracker.id} tracker={tracker} />
+                    ))}
+                </Stack>
+            )}
+        </ScrollArea>
     );
 }

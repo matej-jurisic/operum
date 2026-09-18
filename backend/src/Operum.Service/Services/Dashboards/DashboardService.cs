@@ -35,6 +35,68 @@ namespace Operum.Service.Services.Dashboards
         private static MergeSource ToMergeSource(ResolvedSource r) =>
             new(r.Source.Id, r.Source.Label, r.TrackerName, r.TrackerColor, r.Result);
 
+        // Two widgets reading the same tracker through the same view and the same follow filters load it once between them. Lives for one BuildWidgets call only.
+        private sealed class EntrySetCache(OperumContext db, TimeZoneInfo tz)
+        {
+            private readonly Dictionary<string, List<Entry>> _sets = [];
+
+            // The returned list is shared, not copied: callers only ever enumerate it.
+            public async Task<List<Entry>> Get(
+                string trackerId,
+                View? view,
+                List<ResolvedClause> filters,
+                List<ResolvedClause> sorts,
+                int? limit = null)
+            {
+                var key = KeyFor(trackerId, view?.Id, filters, sorts, limit);
+                if (_sets.TryGetValue(key, out var cached))
+                    return cached;
+
+                var query = db.Entries
+                    .Include(e => e.FieldValues).ThenInclude(fv => fv.Field)
+                    .Where(e => e.TrackerId == trackerId);
+
+                if (view != null)
+                {
+                    query = ViewQueryBuilder.ApplyViewFilters(query, ViewQueryBuilder.ResolveFilters(view), tz);
+                    query = ViewQueryBuilder.ApplyViewSorting(query, ViewQueryBuilder.ResolveSorts(view));
+                }
+
+                // Every filter widget a source follows narrows it further, ANDed on top of the fixed view above.
+                if (filters.Count > 0)
+                    query = ViewQueryBuilder.ApplyViewFilters(query, filters, tz);
+                if (sorts.Count > 0)
+                    query = ViewQueryBuilder.ApplyViewSorting(query, sorts);
+
+                if (limit != null)
+                    query = query.Take(limit.Value);
+
+                var entries = await query.ToListAsync();
+                _sets[key] = entries;
+                return entries;
+            }
+
+            // The view is keyed by id rather than by its resolved clauses, so two views that filter alike each load their own set: a missed hit, never a wrong one. Filter clauses are ANDed, so the signature sorts them; sorts are applied in order, so it does not.
+            private static string KeyFor(
+                string trackerId,
+                string? viewId,
+                List<ResolvedClause> filters,
+                List<ResolvedClause> sorts,
+                int? limit)
+            {
+                static string Part(ResolvedClause c) =>
+                    $"{c.FieldId}~{c.FieldType}~{c.Operator}~{c.Value}~{c.Descending}";
+
+                return string.Join("\u0000", [
+                    trackerId,
+                    viewId ?? string.Empty,
+                    string.Join(";", filters.Select(Part).Order()),
+                    string.Join(";", sorts.Select(Part)),
+                    limit?.ToString() ?? string.Empty
+                ]);
+            }
+        }
+
         // Must match the controller's own camelCase JSON convention since Config is written by hand.
         private static readonly JsonSerializerOptions ConfigJsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -99,11 +161,19 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(await BuildWidgets(dashboard));
         }
 
-        // Every source is recalculated on every call, regardless of what changed.
-        private async Task<List<DashboardWidgetDto>> BuildWidgets(Dashboard dashboard)
+        // `onlyItemIds` narrows what is calculated, and so what comes back, to the items a write actually changed; null calculates the whole board. Either way the preamble below reads every filter widget on the board, since a widget's filters come from the ones it follows, wherever those sit.
+        private async Task<List<DashboardWidgetDto>> BuildWidgets(Dashboard dashboard, IReadOnlySet<string>? onlyItemIds = null)
         {
-            var items = dashboard.Items.OrderBy(i => i.Order).ToList();
+            var boardItems = dashboard.Items.OrderBy(i => i.Order).ToList();
+            var items = onlyItemIds == null
+                ? boardItems
+                : boardItems.Where(i => onlyItemIds.Contains(i.Id)).ToList();
             var results = new List<DashboardWidgetDto>();
+            var tz = currentUserService.GetCurrentUserTimeZone();
+
+            // Shared by every source calculated below, so a board of charts over one tracker
+            // reads that tracker once rather than once per chart.
+            var entryCache = new EntrySetCache(db, tz);
 
             // Resolved up front in one query so the client gets name/color/icon inline.
             var quickAddTrackerIds = items
@@ -132,7 +202,8 @@ namespace Operum.Service.Services.Dashboards
                 .Where(x => x.Config != null)
                 .ToDictionary(x => x.ItemId, x => x.Config!);
 
-            var filterConfigsByItemId = items
+            // Every filter widget on the board, parsed once, plus every DashboardView and the pooled clause behind each of its queries.
+            var filterConfigsByItemId = boardItems
                 .Where(i => i.Type == DashboardWidgetTypes.Filter)
                 .Select(i => (ItemId: i.Id, Config: TryParseFilterConfig(i.Config)))
                 .Where(x => x.Config != null)
@@ -158,12 +229,16 @@ namespace Operum.Service.Services.Dashboards
                         filterClauseDataTypes.TryAdd(slot.QueryId, slotQuery.DataType);
                     }
 
-            var dashboardViewsById = (await db.DashboardViews
-                    .Where(dv => dv.DashboardId == dashboard.Id)
-                    .Include(dv => dv.DashboardViewQueries.OrderBy(q => q.Order)).ThenInclude(q => q.Query)
-                    .OrderBy(dv => dv.Order)
-                    .ToListAsync())
-                .ToDictionary(dv => dv.Id);
+            // Only read to offer a filter widget its presets, so a build that renders no
+            // filter widget skips them.
+            var dashboardViewsById = items.Any(i => i.Type == DashboardWidgetTypes.Filter)
+                ? (await db.DashboardViews
+                        .Where(dv => dv.DashboardId == dashboard.Id)
+                        .Include(dv => dv.DashboardViewQueries.OrderBy(q => q.Order)).ThenInclude(q => q.Query)
+                        .OrderBy(dv => dv.Order)
+                        .ToListAsync())
+                    .ToDictionary(dv => dv.Id)
+                : [];
 
             // Loaded up front: ApplyViewFilters needs the field's Type.
             var selectorFieldIds = filterConfigsByItemId.Values
@@ -175,6 +250,41 @@ namespace Operum.Service.Services.Dashboards
             var selectorFieldsById = selectorFieldIds.Count > 0
                 ? await db.Fields.Where(f => selectorFieldIds.Contains(f.Id)).ToDictionaryAsync(f => f.Id)
                 : new Dictionary<string, Field>();
+
+            // The fixed view every analytic source reads through, loaded in one query rather
+            // than one per source inside the loop below.
+            var sourceViewIds = items
+                .SelectMany(i => i.Sources)
+                .Select(s => s.ViewId)
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Select(id => id!)
+                .Distinct()
+                .ToList();
+
+            var sourceViewsById = sourceViewIds.Count > 0
+                ? await db.Views
+                    .Include(v => v.ViewQueries.OrderBy(vq => vq.Order)).ThenInclude(vq => vq.Query)
+                    .Include(v => v.ViewQueries).ThenInclude(vq => vq.Field)
+                    .Where(v => sourceViewIds.Contains(v.Id))
+                    .ToDictionaryAsync(v => v.Id)
+                : [];
+
+            // Every Entries table's tracker fields, the same way — the table picks its
+            // columns out of them (see BuildEntriesWidget).
+            var entriesTrackerIds = items
+                .Where(i => i.Type == DashboardWidgetTypes.Entries && i.EntriesWidget != null)
+                .Select(i => i.EntriesWidget!.TrackerId)
+                .Distinct()
+                .ToList();
+
+            var entriesFieldsByTrackerId = entriesTrackerIds.Count > 0
+                ? (await db.Fields
+                        .Where(f => entriesTrackerIds.Contains(f.TrackerId))
+                        .OrderBy(f => f.Order)
+                        .ToListAsync())
+                    .GroupBy(f => f.TrackerId)
+                    .ToDictionary(g => g.Key, g => g.ToList())
+                : [];
 
             foreach (var item in items)
             {
@@ -235,7 +345,8 @@ namespace Operum.Service.Services.Dashboards
                             item.Id, item.EntriesWidget, entriesConfig,
                             filterConfigsByItemId.Values,
                             filterQueriesById, selectorFieldsById,
-                            currentUserService.GetCurrentUserTimeZone());
+                            entriesFieldsByTrackerId.GetValueOrDefault(item.EntriesWidget.TrackerId, []),
+                            entryCache);
                     }
 
                     results.Add(MapToWidgetDto(item, null, quickAddTracker,
@@ -255,7 +366,7 @@ namespace Operum.Service.Services.Dashboards
                         ParseGoalConditionalTargets(item.GoalConditionalTargets),
                         ConnectedFilterValues(item.Id, filterConfigsByItemId.Values),
                         filterClauseDataTypes,
-                        currentUserService.GetCurrentUserTimeZone());
+                        tz);
 
                 var resolvedSources = new List<ResolvedSource>();
 
@@ -264,38 +375,21 @@ namespace Operum.Service.Services.Dashboards
                     var widgetSource = source.WidgetSource;
                     if (widgetSource == null) continue;
 
-                    var tz = currentUserService.GetCurrentUserTimeZone();
-
+                    // A view that has been deleted out from under the source, or that no
+                    // longer belongs to the tracker the source reads, is ignored.
                     View? view = null;
-                    if (!string.IsNullOrEmpty(source.ViewId))
-                    {
-                        view = await db.Views
-                            .Include(v => v.ViewQueries.OrderBy(vq => vq.Order)).ThenInclude(vq => vq.Query)
-                            .Include(v => v.ViewQueries).ThenInclude(vq => vq.Field)
-                            .FirstOrDefaultAsync(v => v.Id == source.ViewId && v.TrackerId == widgetSource.TrackerId);
-                    }
-
-                    var entriesQuery = db.Entries
-                        .Include(e => e.FieldValues).ThenInclude(fv => fv.Field)
-                        .Where(e => e.TrackerId == widgetSource.TrackerId);
-
-                    if (view != null)
-                    {
-                        entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, ViewQueryBuilder.ResolveFilters(view), tz);
-                        entriesQuery = ViewQueryBuilder.ApplyViewSorting(entriesQuery, ViewQueryBuilder.ResolveSorts(view));
-                    }
+                    if (!string.IsNullOrEmpty(source.ViewId) &&
+                        sourceViewsById.TryGetValue(source.ViewId, out var sourceView) &&
+                        sourceView.TrackerId == widgetSource.TrackerId)
+                        view = sourceView;
 
                     // A clause left blank is skipped rather than filtering on nothing.
                     var (followFilters, followSorts) = ResolveFilterClauses(
                         item.Id, widgetSource.TrackerId, filterConfigsByItemId.Values,
                         filterQueriesById, selectorFieldsById);
 
-                    if (followFilters.Count > 0)
-                        entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, followFilters, tz);
-                    if (followSorts.Count > 0)
-                        entriesQuery = ViewQueryBuilder.ApplyViewSorting(entriesQuery, followSorts);
-
-                    var entries = await entriesQuery.ToListAsync();
+                    var entries = await entryCache.Get(
+                        widgetSource.TrackerId, view, followFilters, followSorts);
 
                     // A correlation scatter has no per-source calculation: each source is a
                     // raw-values line chart's (match key -> value) pairs, joined by MergeCorrelation.
@@ -738,7 +832,7 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(MapToItemDto(item));
         }
 
-        // Returns the whole board recomputed, since a changed clause changes what every follower draws.
+        // Returns the widget and its followers, the ones it had and the ones it has now, since a changed clause changes what every follower draws and a dropped link unfilters what used to follow it.
         public async Task<Result<List<DashboardWidgetDto>>> UpdateFilterItem(string dashboardId, string itemId, SaveFilterItemDto dto)
         {
             var user = currentUserService.GetCurrentUser();
@@ -779,9 +873,10 @@ namespace Operum.Service.Services.Dashboards
             item.Config = JsonSerializer.Serialize(built.Data, ConfigJsonOptions);
             await db.SaveChangesAsync();
 
-            return Result.Success(await BuildWidgets(dashboard));
+            return Result.Success(await BuildWidgets(dashboard, FilterScope(item.Id, previous, built.Data)));
         }
 
+        // Persists the values onto the item's Config, so every future load starts from them. Returns the widget and every follower its links name.
         public async Task<Result<List<DashboardWidgetDto>>> SetFilterValues(string dashboardId, string itemId, SetFilterValuesDto dto)
         {
             var dashboard = await GetUserDashboard(dashboardId);
@@ -806,7 +901,7 @@ namespace Operum.Service.Services.Dashboards
             item.Config = JsonSerializer.Serialize(config, ConfigJsonOptions);
             await db.SaveChangesAsync();
 
-            return Result.Success(await BuildWidgets(dashboard));
+            return Result.Success(await BuildWidgets(dashboard, FilterScope(item.Id, config)));
         }
 
         // A preset's clauses (data type, operator, in order) must match the widget's clauses exactly.
@@ -1280,7 +1375,14 @@ namespace Operum.Service.Services.Dashboards
 
             await db.SaveChangesAsync();
 
-            return Result.Success(await BuildWidgets(dashboard));
+            // The panel and its children: a child can have been moved to another tab just
+            // above, and the client has no way to work out which ones from the tab list alone.
+            // The rest of the board is untouched by a tab rename.
+            var scope = new HashSet<string> { item.Id };
+            foreach (var child in dashboard.Items.Where(i => i.ParentItemId == item.Id))
+                scope.Add(child.Id);
+
+            return Result.Success(await BuildWidgets(dashboard, scope));
         }
 
         private async Task<Result<DashboardItemDto>> AddTextItem(string dashboardId, string type, (int Width, int Height) size, string text)
@@ -1407,9 +1509,12 @@ namespace Operum.Service.Services.Dashboards
 
             await db.SaveChangesAsync();
 
-            return Result.Success(await BuildWidgets(dashboard));
+            // Only this placement changed, so only this placement is recalculated -- nothing
+            // else on the board reads its sources, its axis or its targets.
+            return Result.Success(await BuildWidgets(dashboard, new HashSet<string> { item.Id }));
         }
 
+        // Only which columns an Entries widget shows and whether it collapses to a button: the tracker it reads from stays as placed. Returns this one table recomputed.
         public async Task<Result<List<DashboardWidgetDto>>> UpdateEntriesItem(string dashboardId, string itemId, UpdateDashboardEntriesItemDto dto)
         {
             var dashboard = await GetUserDashboard(dashboardId);
@@ -1433,7 +1538,7 @@ namespace Operum.Service.Services.Dashboards
 
             await db.SaveChangesAsync();
 
-            return Result.Success(await BuildWidgets(dashboard));
+            return Result.Success(await BuildWidgets(dashboard, new HashSet<string> { item.Id }));
         }
 
         // Nothing else on the board depends on this widget's Config, so only the changed item is returned.
@@ -1625,6 +1730,18 @@ namespace Operum.Service.Services.Dashboards
             }
 
             return values;
+        }
+
+        // What a write to one filter widget has to recalculate. Pass both the config as it was and as it now is, so a widget that just stopped following it comes back unfiltered too.
+        private static HashSet<string> FilterScope(string itemId, params FilterWidgetConfigDto?[] configs)
+        {
+            var scope = new HashSet<string> { itemId };
+
+            foreach (var config in configs)
+                foreach (var link in config?.Links ?? [])
+                    scope.Add(link.ItemId);
+
+            return scope;
         }
 
         // A blank filter value is dropped unless its operator reads a blank as "is empty" / "has a value" on its own.
@@ -2047,13 +2164,9 @@ namespace Operum.Service.Services.Dashboards
             IEnumerable<FilterWidgetConfigDto> filterConfigs,
             IReadOnlyDictionary<string, Query> filterQueriesById,
             IReadOnlyDictionary<string, Field> selectorFieldsById,
-            TimeZoneInfo tz)
+            List<Field> trackerFields,
+            EntrySetCache entryCache)
         {
-            var trackerFields = await db.Fields
-                .Where(f => f.TrackerId == entriesWidget.TrackerId)
-                .OrderBy(f => f.Order)
-                .ToListAsync();
-
             // Skips any field the tracker has since lost; falls back to every field when none resolve.
             var fieldsById = trackerFields.ToDictionary(f => f.Id);
             var columnFields = config.ColumnFieldIds
@@ -2063,17 +2176,13 @@ namespace Operum.Service.Services.Dashboards
             if (columnFields.Count == 0)
                 columnFields = trackerFields;
 
-            var entriesQuery = db.Entries
-                .Include(e => e.FieldValues).ThenInclude(fv => fv.Field)
-                .Where(e => e.TrackerId == entriesWidget.TrackerId);
-
             var (followFilters, followSorts) = ResolveFilterClauses(
                 itemId, entriesWidget.TrackerId, filterConfigs, filterQueriesById, selectorFieldsById);
 
-            entriesQuery = ViewQueryBuilder.ApplyViewFilters(entriesQuery, followFilters, tz);
-            entriesQuery = ViewQueryBuilder.ApplyViewSorting(entriesQuery, followSorts);
-
-            var entries = await entriesQuery.Take(EntriesWidgetRowLimit).ToListAsync();
+            // Capped, so this shares an entry set only with another table filtered the same
+            // way -- never with a chart, which reads the tracker uncapped.
+            var entries = await entryCache.Get(
+                entriesWidget.TrackerId, null, followFilters, followSorts, EntriesWidgetRowLimit);
 
             return new EntriesWidgetDto
             {
