@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Operum.API.Controllers.Base;
+using Operum.Model.DTOs.Dashboard;
 using Operum.Model.DTOs.Dashboard.Requests;
 using Operum.Service.Interfaces;
 
@@ -202,6 +203,22 @@ namespace Operum.API.Controllers
         public async Task<IActionResult> UpdateDashboardLayout([FromRoute] string dashboardId, [FromBody] UpdateDashboardLayoutDto dto)
         {
             return GetApiResponse(await dashboardService.UpdateDashboardLayout(dashboardId, dto));
+        }
+
+        // The whole board as one editable document: layout, placement presentation and text.
+        // The wiring each widget was built from comes back read-only.
+        [HttpGet("{dashboardId}/document")]
+        public async Task<IActionResult> GetDashboardDocument([FromRoute] string dashboardId)
+        {
+            return GetApiResponse(await dashboardService.GetDashboardDocument(dashboardId));
+        }
+
+        // All or nothing: a document that fails validation changes nothing and comes back
+        // with every problem found, each naming the path it sits at.
+        [HttpPut("{dashboardId}/document")]
+        public async Task<IActionResult> SaveDashboardDocument([FromRoute] string dashboardId, [FromBody] DashboardDocumentDto document)
+        {
+            return GetApiResponse(await dashboardService.SaveDashboardDocument(dashboardId, document));
         }
     }
 }

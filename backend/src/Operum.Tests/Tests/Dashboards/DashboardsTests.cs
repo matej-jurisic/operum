@@ -3,6 +3,7 @@ using Operum.Model.Constants.Analytics;
 using Operum.Model.Constants.Fields;
 using Operum.Model.DTOs.Analytics.Requests;
 using Operum.Model.DTOs.Dashboard;
+using Operum.Model.Enums;
 using Operum.Model.DTOs.Dashboard.Requests;
 using Operum.Model.DTOs.Entries.Requests;
 using Operum.Model.DTOs.Fields.Requests;
@@ -15,6 +16,7 @@ using Operum.Tests.Util;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Operum.Tests.Tests.Dashboards
 {
@@ -3148,6 +3150,703 @@ namespace Operum.Tests.Tests.Dashboards
             var widgets = await Widgets(client, dashboardId);
             Assert.Equal(["Day"], EntriesColumnNames(widgets, itemId));
             Assert.Equal(1, EntriesRowCount(widgets, itemId));
+        }
+
+        // ----- Board document (hand-edited JSON over the same board) -----
+
+        private static readonly JsonSerializerOptions DocumentJsonOptions = new(JsonSerializerDefaults.Web);
+
+        private static async Task<DashboardDocumentDto> GetDocument(HttpClient client, string dashboardId)
+        {
+            var response = await client.GetAsync($"dashboard/{dashboardId}/document");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var data = await Data(response);
+            return JsonSerializer.Deserialize<DashboardDocumentDto>(data.GetRawText(), DocumentJsonOptions)!;
+        }
+
+        private static Task<HttpResponseMessage> PutDocument(HttpClient client, string dashboardId, DashboardDocumentDto document)
+            => client.PutAsJsonAsync($"dashboard/{dashboardId}/document", document);
+
+        private static async Task<string[]> Messages(HttpResponseMessage response)
+        {
+            var body = await response.Content.ReadAsStringAsync();
+            var json = JsonDocument.Parse(body).RootElement;
+            return [.. json.GetProperty("messages").EnumerateArray().Select(m => m.GetString()!)];
+        }
+
+        private static DashboardDocumentItemDto DocItem(DashboardDocumentDto document, string itemId)
+            => document.Items.Single(i => i.Id == itemId);
+
+        [Fact]
+        public async Task GetDashboardDocument_CarriesPlacementAndEchoesWiringReadOnly()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docget");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+
+            var document = await GetDocument(client, dashboardId);
+
+            Assert.Equal(DashboardDocumentDto.CurrentSchemaVersion, document.SchemaVersion);
+            Assert.Equal(dashboardId, document.Board.Id);
+            Assert.Equal("My board", document.Board.Name);
+
+            var item = DocItem(document, itemId);
+            Assert.Equal(DashboardWidgetTypes.Analytic, item.Type);
+            Assert.Equal(DashboardDocumentDisplayModes.Full, item.Layout!.DisplayMode);
+            Assert.NotNull(item.Wiring);
+            Assert.Equal("Workouts", item.Wiring!.Sources![0].TrackerName);
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_AppliesPlacementAndColor()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docsave");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+
+            var document = await GetDocument(client, dashboardId);
+            var item = DocItem(document, itemId);
+            item.Layout = new DashboardDocumentLayoutDto { X = 4, Y = 7, W = 8, H = 10, DisplayMode = DashboardDocumentDisplayModes.Expandable };
+            item.Color = "grape";
+            document.Board.Name = "Renamed board";
+
+            var response = await PutDocument(client, dashboardId, document);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            var widget = WidgetById(await Widgets(client, dashboardId), itemId);
+            Assert.Equal(4, Layout(widget).GetProperty("x").GetInt32());
+            Assert.Equal(7, Layout(widget).GetProperty("y").GetInt32());
+            Assert.Equal(8, Layout(widget).GetProperty("w").GetInt32());
+            Assert.Equal(10, Layout(widget).GetProperty("h").GetInt32());
+            Assert.Equal((int)DashboardItemDisplayMode.Expandable, Layout(widget).GetProperty("displayMode").GetInt32());
+            Assert.Equal("grape", widget.GetProperty("color").GetString());
+
+            var board = await Data(await client.GetAsync($"dashboard/{dashboardId}"));
+            Assert.Equal("Renamed board", board.GetProperty("name").GetString());
+        }
+
+        // UpdateDashboardLayout clamps a dragged widget; a hand-written number is reported
+        // instead, or the edit looks like it silently failed.
+        [Fact]
+        public async Task SaveDashboardDocument_OutOfBoundsWidth_IsRejectedRatherThanClamped()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docclamp");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+
+            var before = Layout(WidgetById(await Widgets(client, dashboardId), itemId)).GetProperty("w").GetInt32();
+
+            var document = await GetDocument(client, dashboardId);
+            DocItem(document, itemId).Layout!.W = DashboardGrid.Columns + 5;
+
+            var response = await PutDocument(client, dashboardId, document);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(await Messages(response), m => m.Contains("items[0].layout.w"));
+
+            var after = Layout(WidgetById(await Widgets(client, dashboardId), itemId)).GetProperty("w").GetInt32();
+            Assert.Equal(before, after);
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_ReportsEveryProblemAtOnce()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docmulti");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            await AddLineItem(client, dashboardId, tracker);
+
+            var document = await GetDocument(client, dashboardId);
+            document.Board.Name = "   ";
+            document.Items[0].Layout!.W = 0;
+            document.Items[0].MobileLayout!.DisplayMode = "sideways";
+
+            var response = await PutDocument(client, dashboardId, document);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+            var messages = await Messages(response);
+            Assert.Contains(messages, m => m.Contains("board.name"));
+            Assert.Contains(messages, m => m.Contains("items[0].layout.w"));
+            Assert.Contains(messages, m => m.Contains("items[0].mobileLayout.displayMode"));
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_ItemLeftOut_IsRejected()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docmissing");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+
+            var document = await GetDocument(client, dashboardId);
+            document.Items.Clear();
+
+            var response = await PutDocument(client, dashboardId, document);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(await Messages(response), m => m.Contains(itemId));
+
+            Assert.Equal(1, (await Widgets(client, dashboardId)).GetArrayLength());
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_UnknownItem_IsRejected()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docunknown");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            await AddLineItem(client, dashboardId, tracker);
+
+            var document = await GetDocument(client, dashboardId);
+            document.Items.Add(new DashboardDocumentItemDto { Id = "not-a-real-item" });
+
+            var response = await PutDocument(client, dashboardId, document);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(await Messages(response), m => m.Contains("not-a-real-item"));
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_EditedWiring_IsRejected()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docwiring");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+
+            var document = await GetDocument(client, dashboardId);
+            DocItem(document, itemId).Wiring!.Sources![0].ViewId = "some-other-view";
+
+            var response = await PutDocument(client, dashboardId, document);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(await Messages(response), m => m.Contains("wiring is read-only"));
+        }
+
+        // Source order is what a combined chart draws in, so the echo is order-sensitive.
+        [Fact]
+        public async Task SaveDashboardDocument_ReorderedWiringList_IsRejected()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docwiringorder");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+
+            var document = await GetDocument(client, dashboardId);
+            var source = DocItem(document, itemId).Wiring!.Sources![0];
+            source.Fields.Reverse();
+
+            var reversedFields = await PutDocument(client, dashboardId, document);
+            Assert.Equal(HttpStatusCode.BadRequest, reversedFields.StatusCode);
+
+            source.Fields.Reverse();
+            Assert.Equal(HttpStatusCode.OK, (await PutDocument(client, dashboardId, document)).StatusCode);
+        }
+
+        private static JsonNode? ReverseKeys(JsonNode? node)
+        {
+            switch (node)
+            {
+                case JsonObject obj:
+                    var reversed = new JsonObject();
+                    foreach (var property in obj.Reverse())
+                        reversed[property.Key] = ReverseKeys(property.Value?.DeepClone());
+                    return reversed;
+                case JsonArray array:
+                    var copy = new JsonArray();
+                    foreach (var element in array)
+                        copy.Add(ReverseKeys(element?.DeepClone()));
+                    return copy;
+                default:
+                    return node?.DeepClone();
+            }
+        }
+
+        // An editor that reformats, or a user who moves a line, must not read as an edit to
+        // the read-only block.
+        [Fact]
+        public async Task SaveDashboardDocument_ReformattedDocument_IsAccepted()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docreformat");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+
+            var document = await GetDocument(client, dashboardId);
+            DocItem(document, itemId).Layout!.X = 5;
+
+            var shuffled = ReverseKeys(JsonSerializer.SerializeToNode(document, DocumentJsonOptions))!.ToJsonString();
+            var content = new StringContent(shuffled, System.Text.Encoding.UTF8, "application/json");
+
+            var response = await client.PutAsync($"dashboard/{dashboardId}/document", content);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            var widget = WidgetById(await Widgets(client, dashboardId), itemId);
+            Assert.Equal(5, Layout(widget).GetProperty("x").GetInt32());
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_OmittedReadOnlyBlocks_AreAccepted()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docomit");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+
+            var document = await GetDocument(client, dashboardId);
+            var item = DocItem(document, itemId);
+            item.Wiring = null;
+            item.Name = null;
+            item.Type = null;
+            item.Layout!.X = 3;
+
+            Assert.Equal(HttpStatusCode.OK, (await PutDocument(client, dashboardId, document)).StatusCode);
+
+            var widget = WidgetById(await Widgets(client, dashboardId), itemId);
+            Assert.Equal(3, Layout(widget).GetProperty("x").GetInt32());
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_SchemaVersionMismatch_IsRejected()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docschema");
+
+            var dashboardId = await CreateDashboard(client);
+            var document = await GetDocument(client, dashboardId);
+            document.SchemaVersion = 99;
+
+            var response = await PutDocument(client, dashboardId, document);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(await Messages(response), m => m.Contains("schemaVersion"));
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_RenamesAndReordersTabsInPlace()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("doctabs");
+
+            var dashboardId = await CreateDashboard(client);
+            var (containerId, _) = await AddTabsContainer(client, dashboardId);
+            await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{containerId}/tabs-container", new SaveTabsContainerDto
+            {
+                Title = "Panel",
+                Tabs = [new SaveTabDto { Name = "First" }, new SaveTabDto { Name = "Second" }]
+            });
+            var tabIds = await TabIds(client, dashboardId, containerId);
+
+            var document = await GetDocument(client, dashboardId);
+            var item = DocItem(document, containerId);
+            var tabs = item.Tabs.Value!;
+            tabs.Reverse();
+            tabs[0].Name = "Renamed";
+
+            Assert.Equal(HttpStatusCode.OK, (await PutDocument(client, dashboardId, document)).StatusCode);
+
+            var config = JsonDocument.Parse(
+                WidgetById(await Widgets(client, dashboardId), containerId).GetProperty("config").GetString()!).RootElement;
+            var savedTabs = config.GetProperty("tabs").EnumerateArray().ToList();
+            Assert.Equal(tabIds[1], savedTabs[0].GetProperty("id").GetString());
+            Assert.Equal("Renamed", savedTabs[0].GetProperty("name").GetString());
+            Assert.Equal(tabIds[0], savedTabs[1].GetProperty("id").GetString());
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_AddingATab_IsRejected()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("doctabadd");
+
+            var dashboardId = await CreateDashboard(client);
+            var (containerId, _) = await AddTabsContainer(client, dashboardId);
+
+            var document = await GetDocument(client, dashboardId);
+            DocItem(document, containerId).Tabs.Value!.Add(new DashboardDocumentTabDto { Id = "brand-new", Name = "Extra" });
+
+            var response = await PutDocument(client, dashboardId, document);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(await Messages(response), m => m.Contains("tabs"));
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_MovesWidgetIntoATab()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("doctabmove");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            var (containerId, tabIds) = await AddTabsContainer(client, dashboardId);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+
+            var document = await GetDocument(client, dashboardId);
+            var item = DocItem(document, itemId);
+            item.ParentItemId = containerId;
+            item.ParentTabId = tabIds[0];
+
+            Assert.Equal(HttpStatusCode.OK, (await PutDocument(client, dashboardId, document)).StatusCode);
+
+            var widget = WidgetById(await Widgets(client, dashboardId), itemId);
+            Assert.Equal(containerId, widget.GetProperty("parentItemId").GetString());
+            Assert.Equal(tabIds[0], widget.GetProperty("parentTabId").GetString());
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_UnknownTab_IsRejected()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docbadtab");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            var (containerId, _) = await AddTabsContainer(client, dashboardId);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+
+            var document = await GetDocument(client, dashboardId);
+            var item = DocItem(document, itemId);
+            item.ParentItemId = containerId;
+            item.ParentTabId = "no-such-tab";
+
+            var response = await PutDocument(client, dashboardId, document);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(await Messages(response), m => m.Contains("parentTabId"));
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_NestingAContainer_IsRejected()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docnest");
+
+            var dashboardId = await CreateDashboard(client);
+            var (tabsContainerId, _) = await AddTabsContainer(client, dashboardId);
+            var plainContainerId = (await Data(await client.PostAsync($"dashboard/{dashboardId}/items/container", null))).GetProperty("id").GetString()!;
+
+            var document = await GetDocument(client, dashboardId);
+            DocItem(document, plainContainerId).ParentItemId = tabsContainerId;
+
+            var response = await PutDocument(client, dashboardId, document);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(await Messages(response), m => m.Contains("container cannot be nested"));
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_SetsHeaderText()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("dochead");
+
+            var dashboardId = await CreateDashboard(client);
+            var headerId = (await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/header",
+                new AddDashboardHeaderItemDto { Text = "Before" }))).GetProperty("id").GetString()!;
+
+            var document = await GetDocument(client, dashboardId);
+            DocItem(document, headerId).Text = "After";
+
+            Assert.Equal(HttpStatusCode.OK, (await PutDocument(client, dashboardId, document)).StatusCode);
+
+            var config = JsonDocument.Parse(
+                WidgetById(await Widgets(client, dashboardId), headerId).GetProperty("config").GetString()!).RootElement;
+            Assert.Equal("After", config.GetProperty("text").GetString());
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_TextOnADivider_IsRejected()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docdivider");
+
+            var dashboardId = await CreateDashboard(client);
+            var dividerId = (await Data(await client.PostAsync($"dashboard/{dashboardId}/items/divider", null))).GetProperty("id").GetString()!;
+
+            var document = await GetDocument(client, dashboardId);
+            DocItem(document, dividerId).Text = "Nope";
+
+            var response = await PutDocument(client, dashboardId, document);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(await Messages(response), m => m.Contains("has no text"));
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_SetsEntriesColumns()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("doccolumns");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await PlaceEntriesTable(client, dashboardId, tracker, [tracker.DayFieldId, tracker.AmountFieldId]);
+
+            var document = await GetDocument(client, dashboardId);
+            DocItem(document, itemId).ColumnFieldIds = new List<string> { tracker.AmountFieldId };
+
+            Assert.Equal(HttpStatusCode.OK, (await PutDocument(client, dashboardId, document)).StatusCode);
+
+            Assert.Equal(["Amount"], EntriesColumnNames(await Widgets(client, dashboardId), itemId));
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_ColumnFromAnotherTracker_IsRejected()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docbadcolumn");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var other = await CreateCapableTracker(client, "Sleep");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await PlaceEntriesTable(client, dashboardId, tracker, [tracker.DayFieldId]);
+
+            var document = await GetDocument(client, dashboardId);
+            DocItem(document, itemId).ColumnFieldIds = new List<string> { other.AmountFieldId };
+
+            var response = await PutDocument(client, dashboardId, document);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(await Messages(response), m => m.Contains("columnFieldIds"));
+        }
+
+        // Order is derived, never authored: the document carries no order field at all.
+        [Fact]
+        public async Task SaveDashboardDocument_DerivesOrderFromDesktopPlacement()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docorder");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            var first = await AddLineItem(client, dashboardId, tracker);
+            var second = await AddLineItem(client, dashboardId, tracker);
+
+            var document = await GetDocument(client, dashboardId);
+            DocItem(document, first).Layout!.Y = 50;
+            DocItem(document, second).Layout!.Y = 0;
+
+            Assert.Equal(HttpStatusCode.OK, (await PutDocument(client, dashboardId, document)).StatusCode);
+
+            var board = await Data(await client.GetAsync($"dashboard/{dashboardId}"));
+            var ordered = board.GetProperty("items").EnumerateArray()
+                .OrderBy(i => i.GetProperty("order").GetInt32())
+                .Select(i => i.GetProperty("id").GetString())
+                .ToList();
+            Assert.Equal([second, first], ordered);
+        }
+
+
+        // Drops keys from one item so the request looks like a user deleting those lines.
+        private static async Task<HttpResponseMessage> PutDocumentWithout(
+            HttpClient client, string dashboardId, DashboardDocumentDto document, string itemId, params string[] keys)
+        {
+            var node = JsonSerializer.SerializeToNode(document, DocumentJsonOptions)!;
+            foreach (var element in node["items"]!.AsArray())
+            {
+                if (element!["id"]!.GetValue<string>() != itemId)
+                    continue;
+
+                foreach (var key in keys)
+                    element.AsObject().Remove(key);
+            }
+
+            return await client.PutAsync($"dashboard/{dashboardId}/document",
+                new StringContent(node.ToJsonString(), System.Text.Encoding.UTF8, "application/json"));
+        }
+
+        private static async Task<string?> ItemColor(HttpClient client, string dashboardId, string itemId)
+        {
+            var widget = WidgetById(await Widgets(client, dashboardId), itemId);
+            return widget.TryGetProperty("color", out var color) && color.ValueKind != JsonValueKind.Null
+                ? color.GetString()
+                : null;
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_OmittedColor_LeavesItAlone()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("doccolor");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+
+            var document = await GetDocument(client, dashboardId);
+            DocItem(document, itemId).Color = "grape";
+            Assert.Equal(HttpStatusCode.OK, (await PutDocument(client, dashboardId, document)).StatusCode);
+            Assert.Equal("grape", await ItemColor(client, dashboardId, itemId));
+
+            var reread = await GetDocument(client, dashboardId);
+            var response = await PutDocumentWithout(client, dashboardId, reread, itemId, "color");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal("grape", await ItemColor(client, dashboardId, itemId));
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_NullColor_ClearsItToAuto()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docclearcolor");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+
+            var document = await GetDocument(client, dashboardId);
+            DocItem(document, itemId).Color = "grape";
+            Assert.Equal(HttpStatusCode.OK, (await PutDocument(client, dashboardId, document)).StatusCode);
+
+            var reread = await GetDocument(client, dashboardId);
+            DocItem(reread, itemId).Color = null;
+
+            Assert.Equal(HttpStatusCode.OK, (await PutDocument(client, dashboardId, reread)).StatusCode);
+            Assert.Null(await ItemColor(client, dashboardId, itemId));
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_OmittedParent_KeepsTheWidgetInItsTab()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("dockeeptab");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            var (containerId, tabIds) = await AddTabsContainer(client, dashboardId);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+
+            var document = await GetDocument(client, dashboardId);
+            var item = DocItem(document, itemId);
+            item.ParentItemId = containerId;
+            item.ParentTabId = tabIds[0];
+            Assert.Equal(HttpStatusCode.OK, (await PutDocument(client, dashboardId, document)).StatusCode);
+
+            var reread = await GetDocument(client, dashboardId);
+            var response = await PutDocumentWithout(client, dashboardId, reread, itemId, "parentItemId", "parentTabId");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var widget = WidgetById(await Widgets(client, dashboardId), itemId);
+            Assert.Equal(containerId, widget.GetProperty("parentItemId").GetString());
+            Assert.Equal(tabIds[0], widget.GetProperty("parentTabId").GetString());
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_NullParent_MovesTheWidgetBackToTheBoard()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docleavetab");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            var (containerId, tabIds) = await AddTabsContainer(client, dashboardId);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+
+            var document = await GetDocument(client, dashboardId);
+            var item = DocItem(document, itemId);
+            item.ParentItemId = containerId;
+            item.ParentTabId = tabIds[0];
+            Assert.Equal(HttpStatusCode.OK, (await PutDocument(client, dashboardId, document)).StatusCode);
+
+            var reread = await GetDocument(client, dashboardId);
+            var moved = DocItem(reread, itemId);
+            moved.ParentItemId = null;
+            moved.ParentTabId = null;
+
+            Assert.Equal(HttpStatusCode.OK, (await PutDocument(client, dashboardId, reread)).StatusCode);
+
+            var widget = WidgetById(await Widgets(client, dashboardId), itemId);
+            Assert.False(widget.TryGetProperty("parentItemId", out var parent) && parent.ValueKind != JsonValueKind.Null);
+        }
+
+        // Text has no null state, so null would be a write that quietly did nothing.
+        [Fact]
+        public async Task SaveDashboardDocument_NullText_IsRejected()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docnulltext");
+
+            var dashboardId = await CreateDashboard(client);
+            var headerId = (await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/header",
+                new AddDashboardHeaderItemDto { Text = "Kept" }))).GetProperty("id").GetString()!;
+
+            var document = await GetDocument(client, dashboardId);
+            DocItem(document, headerId).Text = null;
+
+            var response = await PutDocument(client, dashboardId, document);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(await Messages(response), m => m.Contains("text: cannot be null"));
+
+            var config = JsonDocument.Parse(
+                WidgetById(await Widgets(client, dashboardId), headerId).GetProperty("config").GetString()!).RootElement;
+            Assert.Equal("Kept", config.GetProperty("text").GetString());
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_EmptyText_ClearsIt()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docemptytext");
+
+            var dashboardId = await CreateDashboard(client);
+            var headerId = (await Data(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/header",
+                new AddDashboardHeaderItemDto { Text = "Before" }))).GetProperty("id").GetString()!;
+
+            var document = await GetDocument(client, dashboardId);
+            DocItem(document, headerId).Text = "";
+
+            Assert.Equal(HttpStatusCode.OK, (await PutDocument(client, dashboardId, document)).StatusCode);
+
+            var config = JsonDocument.Parse(
+                WidgetById(await Widgets(client, dashboardId), headerId).GetProperty("config").GetString()!).RootElement;
+            Assert.Equal("", config.GetProperty("text").GetString());
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_NullColumnFieldIds_IsRejected()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docnullcolumns");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await PlaceEntriesTable(client, dashboardId, tracker, [tracker.DayFieldId]);
+
+            var document = await GetDocument(client, dashboardId);
+            DocItem(document, itemId).ColumnFieldIds = null;
+
+            var response = await PutDocument(client, dashboardId, document);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(await Messages(response), m => m.Contains("columnFieldIds: cannot be null"));
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_OtherUsersBoard_IsNotFound()
+        {
+            await _factory.SeedDatabaseAsync();
+            var owner = await _factory.NewUserClient("docowner");
+            var stranger = await _factory.NewUserClient("docstranger");
+
+            var dashboardId = await CreateDashboard(owner);
+            var document = await GetDocument(owner, dashboardId);
+
+            Assert.Equal(HttpStatusCode.NotFound, (await stranger.GetAsync($"dashboard/{dashboardId}/document")).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await PutDocument(stranger, dashboardId, document)).StatusCode);
         }
     }
 }

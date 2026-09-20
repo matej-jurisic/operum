@@ -46,6 +46,8 @@ Build any number of dashboards ("boards"), each with its own name, color, and ic
 | Container | A panel holding a sub-grid of other widgets, so a group can be moved, resized, and titled as one. Nesting is one level deep |
 | Tabs container | A container whose body is split into named tabs, each holding its own sub-grid; only the active tab's widgets show |
 
+A board can also be edited as JSON, from the board menu. The document carries every widget's grid placement, display mode, color, and text, so a whole board can be rearranged, recolored, or retitled in one pass instead of widget by widget. A field you leave out stays as it is, and one set to null is cleared. Each widget's sources and filter links come along read-only for context, and a save that changed them is refused rather than quietly ignored. Widgets are still added and removed from the board itself.
+
 The **Widget Library** holds chart and table definitions independently of any board. Build one once, place it on as many boards as you want, edit or delete it in one place. A filter widget can offer board-level saved filter sets as one-tap presets, and each followed widget picks which of its tracker's fields the filter runs against. Adding a chart or table to a board with existing filter widgets offers a checklist to follow them right away, so the new widget doesn't load unfiltered.
 
 ### Analytics

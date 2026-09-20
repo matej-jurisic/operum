@@ -27,6 +27,7 @@ import navigationStore from "../../../shared/stores/NavigationStore";
 import { dashboardController } from "../api/dashboardController";
 import BoardActions from "../components/BoardActions";
 import BoardFormModal from "../components/BoardFormModal";
+import { BoardDocumentModal } from "../components/BoardDocumentModal";
 import { DashboardGrid } from "../components/DashboardGrid";
 import { EditEntriesWidgetModal } from "../components/EditEntriesWidgetModal";
 import { EditTextWidgetModal } from "../components/EditTextWidgetModal";
@@ -77,6 +78,7 @@ function DashboardContent({
     const [previewMobile, setPreviewMobile] = useState(false);
     const [isWidgetsOpen, setIsWidgetsOpen] = useState(false);
     const [isHiddenOpen, setIsHiddenOpen] = useState(false);
+    const [isDocumentOpen, setIsDocumentOpen] = useState(false);
     const [editingItemId, setEditingItemId] = useState<string>();
     const editingWidget = widgets.find((w) => w.id === editingItemId);
 
@@ -225,6 +227,7 @@ function DashboardContent({
                         onDelete={onDeleteBoard}
                         onToggleArrange={() => setIsConfiguring((v) => !v)}
                         onOpenWidgets={() => setIsWidgetsOpen(true)}
+                        onEditDocument={() => setIsDocumentOpen(true)}
                     />
                 </Group>
             </Group>
@@ -362,6 +365,20 @@ function DashboardContent({
                     color={color}
                     onEdit={setEditingItemId}
                     onClose={() => setIsHiddenOpen(false)}
+                />
+            )}
+
+            {isDocumentOpen && (
+                <BoardDocumentModal
+                    dashboardId={activeBoard.id}
+                    color={color}
+                    onClose={() => setIsDocumentOpen(false)}
+                    onSaved={async () => {
+                        // The document can rename or recolor the board itself, which the
+                        // sidebar reads from the navigation store rather than from here.
+                        await navigationStore.refreshDashboards();
+                        await refreshWidgets();
+                    }}
                 />
             )}
 

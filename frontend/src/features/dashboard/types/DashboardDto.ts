@@ -408,6 +408,87 @@ export interface DashboardItemDto {
     sources: DashboardItemSourceDto[];
 }
 
+/** How a placement is drawn, spelled out for the hand-edited board document. Every other
+    payload carries DashboardItemDisplayMode's number. */
+export const DocumentDisplayModes = {
+    Full: "full",
+    Expandable: "expandable",
+    Hidden: "hidden",
+} as const;
+
+export interface DashboardDocumentLayoutDto extends WidgetLayoutDto {
+    displayMode: string;
+}
+
+export interface DashboardDocumentTabDto {
+    id: string;
+    name: string;
+}
+
+export interface DashboardDocumentSourceDto {
+    id: string;
+    trackerName: string;
+    label?: string | null;
+    viewId?: string | null;
+    /** "purpose: field name" per mapped field. */
+    fields: string[];
+}
+
+/** Read-only context on an item: what the widget was built from. A save that changed any of
+    it is rejected, so an edit meant to rewire the board never silently disappears. */
+export interface DashboardDocumentWiringDto {
+    sources?: DashboardDocumentSourceDto[] | null;
+    filter?: FilterWidgetConfig | null;
+    goalConditionalTargets?: GoalConditionalTargetDto[] | null;
+}
+
+/** A field left out is left alone; a field set to null is cleared. `text`, `tabs` and
+    `columnFieldIds` have no null state, so null is refused there rather than silently
+    meaning nothing: clear them with "" and []. `order` is derived from the desktop
+    placement on every save and is deliberately absent. */
+export interface DashboardDocumentItemDto {
+    id: string;
+    /** Read-only. */
+    type?: string | null;
+    /** Read-only. */
+    name?: string | null;
+    /** Null puts the widget back on the board itself. */
+    parentItemId?: string | null;
+    parentTabId?: string | null;
+    layout?: DashboardDocumentLayoutDto | null;
+    mobileLayout?: DashboardDocumentLayoutDto | null;
+    /** Null is "Auto": the tracker's color, or the board's. */
+    color?: string | null;
+    showTrend?: boolean | null;
+    yAxisFromZero?: boolean | null;
+    /** Header/Note/Container text, or a tabs container's title. Empty clears it. */
+    text?: string;
+    /** Tabs container only. Renaming and reordering only. */
+    tabs?: DashboardDocumentTabDto[];
+    /** Entries widgets only. Empty shows every field. */
+    columnFieldIds?: string[];
+    /** Read-only. */
+    wiring?: DashboardDocumentWiringDto | null;
+}
+
+export interface DashboardDocumentBoardDto {
+    /** Read-only. */
+    id?: string | null;
+    name: string;
+    /** Null clears it, the same as every other nullable field in the document. */
+    color?: string | null;
+    icon?: string | null;
+}
+
+/** The whole board as one editable document. A save must list every item already on the
+    board exactly once: widgets are added and removed from the board itself, where a removal
+    also reparents children and unpicks the filter links that named the widget. */
+export interface DashboardDocumentDto {
+    schemaVersion: number;
+    board: DashboardDocumentBoardDto;
+    items: DashboardDocumentItemDto[];
+}
+
 export interface CreateDashboardDto {
     name: string;
     color?: string;

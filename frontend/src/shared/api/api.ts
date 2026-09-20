@@ -60,6 +60,13 @@ const showSessionExpiredNotification = () => {
 /** Timeout for calls that can legitimately run long: imports, bulk edits, and integration syncs. */
 export const LONG_REQUEST_TIMEOUT_MS = 5 * 60 * 1000;
 
+/** Opts a request out of the global error toasts, for a caller that renders the response's
+    messages itself. A validation failure that reports one problem per field would otherwise
+    raise one toast per problem. */
+export interface SilentErrorsConfig extends AxiosRequestConfig {
+    silentErrors?: boolean;
+}
+
 const api = axios.create({
     baseURL: import.meta.env.VITE_REACT_API_URL,
     headers: {
@@ -93,6 +100,7 @@ api.interceptors.response.use(
         try {
             const originalRequest = error.config as AxiosRequestConfig & {
                 _retry?: boolean;
+                silentErrors?: boolean;
             };
 
             // Avoid intercepting the refresh call's own 401, which would loop.
@@ -181,7 +189,7 @@ api.interceptors.response.use(
                         withBorder: true,
                     });
                 }
-            } else {
+            } else if (!originalRequest.silentErrors) {
                 const messages = error.response?.data?.messages;
                 if (messages?.length) {
                     messages.forEach((m: string) => {

@@ -24,7 +24,7 @@ using Operum.Service.Mappings.Mapper;
 
 namespace Operum.Service.Services.Dashboards
 {
-    public class DashboardService(ICurrentUserService currentUserService, OperumContext db, IMapper mapper, IWidgetsService widgetsService) : IDashboardService
+    public partial class DashboardService(ICurrentUserService currentUserService, OperumContext db, IMapper mapper, IWidgetsService widgetsService) : IDashboardService
     {
         private sealed record ResolvedSource(
             DashboardItemSource Source,
@@ -1655,35 +1655,42 @@ namespace Operum.Service.Services.Dashboards
             // Order still decides reading order for a client without the grid. Only the
             // desktop layout gets a say, to avoid the two grids fighting over it.
             if (dto.Variant == DashboardLayoutVariants.Desktop)
-            {
-                int TabRank(DashboardItem c) =>
-                    c.ParentItemId != null
-                    && tabOrderByContainer.TryGetValue(c.ParentItemId, out var tabIds)
-                    && c.ParentTabId != null
-                        ? tabIds.IndexOf(c.ParentTabId)
-                        : 0;
-
-                var childrenByParent = dashboard.Items
-                    .Where(i => i.ParentItemId != null)
-                    .GroupBy(i => i.ParentItemId!)
-                    .ToDictionary(
-                        g => g.Key,
-                        g => g.OrderBy(TabRank).ThenBy(c => c.Y).ThenBy(c => c.X).ToList());
-
-                var order = 0;
-                foreach (var item in dashboard.Items
-                    .Where(i => i.ParentItemId == null)
-                    .OrderBy(i => i.Y).ThenBy(i => i.X))
-                {
-                    item.Order = order++;
-                    if (childrenByParent.TryGetValue(item.Id, out var children))
-                        foreach (var child in children)
-                            child.Order = order++;
-                }
-            }
+                RecomputeItemOrder(dashboard, tabOrderByContainer);
 
             await db.SaveChangesAsync();
             return Result.Success();
+        }
+
+        // Reading order, top-left to bottom-right, derived from the desktop placement: a
+        // child follows its container, and inside one, its tab's position in the tab list.
+        private static void RecomputeItemOrder(
+            Dashboard dashboard,
+            IReadOnlyDictionary<string, List<string>> tabOrderByContainer)
+        {
+            int TabRank(DashboardItem c) =>
+                c.ParentItemId != null
+                && tabOrderByContainer.TryGetValue(c.ParentItemId, out var tabIds)
+                && c.ParentTabId != null
+                    ? tabIds.IndexOf(c.ParentTabId)
+                    : 0;
+
+            var childrenByParent = dashboard.Items
+                .Where(i => i.ParentItemId != null)
+                .GroupBy(i => i.ParentItemId!)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderBy(TabRank).ThenBy(c => c.Y).ThenBy(c => c.X).ToList());
+
+            var order = 0;
+            foreach (var item in dashboard.Items
+                .Where(i => i.ParentItemId == null)
+                .OrderBy(i => i.Y).ThenBy(i => i.X))
+            {
+                item.Order = order++;
+                if (childrenByParent.TryGetValue(item.Id, out var children))
+                    foreach (var child in children)
+                        child.Order = order++;
+            }
         }
 
         // Out-of-bounds values are clamped rather than rejected, so one bad placement doesn't fail the whole board save.
