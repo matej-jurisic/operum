@@ -26,7 +26,6 @@ import {
     TbBell,
     TbBook,
     TbBoxAlignTop,
-    TbBraces,
     TbCalendar,
     TbCheck,
     TbCheckbox,
@@ -233,12 +232,6 @@ const EXTRAS = [
         color: "orange",
         title: "Command palette",
         text: "Press Ctrl+K or Cmd+K to jump to any tracker or board, or start a new one.",
-    },
-    {
-        icon: <TbBraces size={20} />,
-        color: "blue",
-        title: "Build a board as JSON",
-        text: "Describe a whole board in JSON, widgets and filters included, and import it in one step. Or edit an existing one the same way.",
     },
 ];
 

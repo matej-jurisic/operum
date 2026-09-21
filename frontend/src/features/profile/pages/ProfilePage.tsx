@@ -17,10 +17,17 @@ import {
     useMantineTheme,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import { useClipboard } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { observer } from "mobx-react";
 import { useEffect, useState } from "react";
-import { TbDatabase, TbLayoutGrid, TbUsers } from "react-icons/tb";
+import {
+    TbCheck,
+    TbCopy,
+    TbDatabase,
+    TbLayoutGrid,
+    TbUsers,
+} from "react-icons/tb";
 import { useNavigate } from "react-router-dom";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
 import SidebarBurger from "../../../shared/components/navigation/SidebarBurger";
@@ -31,6 +38,7 @@ import {
 import globalStore from "../../../shared/stores/GlobalStore";
 import navigationStore from "../../../shared/stores/NavigationStore";
 import useAuth from "../../auth/hooks/useAuth";
+import { trackersController } from "../../trackers/api/trackersController";
 import {
     profileController,
     UserProfileStatsDto,
@@ -44,6 +52,8 @@ const ProfilePage = observer(function ProfilePage() {
 
     const [stats, setStats] = useState<UserProfileStatsDto | null>(null);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [isCopyingSchema, setIsCopyingSchema] = useState(false);
+    const clipboard = useClipboard({ timeout: 2000 });
     const [defaultPage, setDefaultPage] = useState(
         user.defaultPage ?? FALLBACK_PAGE,
     );
@@ -81,6 +91,16 @@ const ProfilePage = observer(function ProfilePage() {
         if (res.isSuccess) {
             globalStore.setCurrentUser({ ...user, defaultPage: next });
             writeDefaultPage(next);
+        }
+    };
+
+    const handleCopySchema = async () => {
+        setIsCopyingSchema(true);
+        try {
+            const res = await trackersController.getTrackerSchema();
+            clipboard.copy(JSON.stringify(res.data, null, 2));
+        } finally {
+            setIsCopyingSchema(false);
         }
     };
 
@@ -344,6 +364,33 @@ const ProfilePage = observer(function ProfilePage() {
                                         checkIconPosition="right"
                                         onChange={handleDefaultPageChange}
                                     />
+                                </Stack>
+                            </Card>
+
+                            <Card withBorder radius="md" p="lg">
+                                <Stack gap="md">
+                                    <Text fw={600}>Tracker schema</Text>
+                                    <Group justify="space-between" align="center">
+                                        <Text size="sm" c="dimmed">
+                                            Names only, no entries or ids.
+                                        </Text>
+                                        <Button
+                                            variant="outline"
+                                            loading={isCopyingSchema}
+                                            leftSection={
+                                                clipboard.copied ? (
+                                                    <TbCheck size={16} />
+                                                ) : (
+                                                    <TbCopy size={16} />
+                                                )
+                                            }
+                                            onClick={handleCopySchema}
+                                        >
+                                            {clipboard.copied
+                                                ? "Copied"
+                                                : "Copy schema"}
+                                        </Button>
+                                    </Group>
                                 </Stack>
                             </Card>
 

@@ -3,7 +3,6 @@ import { CiSettings } from "react-icons/ci";
 import { FiPlus } from "react-icons/fi";
 import { MdDelete, MdEdit } from "react-icons/md";
 import { TbArrowsMove } from "react-icons/tb";
-import { VscJson } from "react-icons/vsc";
 
 interface Props {
     color: string;
@@ -13,7 +12,6 @@ interface Props {
     onDelete: () => void;
     onToggleArrange: () => void;
     onOpenWidgets: () => void;
-    onEditDocument: () => void;
 }
 
 export default function BoardActions({
@@ -24,7 +22,6 @@ export default function BoardActions({
     onDelete,
     onToggleArrange,
     onOpenWidgets,
-    onEditDocument,
 }: Props) {
     return (
         <Menu shadow="md" position="bottom-start" withinPortal>
@@ -54,12 +51,6 @@ export default function BoardActions({
                 </Menu.Item>
                 <Menu.Item leftSection={<MdEdit size={16} />} onClick={onEdit}>
                     Edit board
-                </Menu.Item>
-                <Menu.Item
-                    leftSection={<VscJson size={16} />}
-                    onClick={onEditDocument}
-                >
-                    Edit as JSON
                 </Menu.Item>
                 <Menu.Divider />
                 <Menu.Item

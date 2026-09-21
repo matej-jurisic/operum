@@ -1,4 +1,4 @@
-import api, { SilentErrorsConfig } from "../../../shared/api/api";
+import api from "../../../shared/api/api";
 import { ApiResponse } from "../../../shared/types/ApiResponse";
 import {
     AddDashboardHeaderItemDto,
@@ -7,7 +7,6 @@ import {
     CreateAndPlaceEntriesWidgetDto,
     CreateAndPlaceWidgetDto,
     CreateDashboardDto,
-    DashboardDocumentDto,
     DashboardDto,
     DashboardItemDto,
     DashboardViewDto,
@@ -237,30 +236,5 @@ export const dashboardController = {
         dto: UpdateDashboardLayoutDto
     ): Promise<ApiResponse> => {
         return await api.put(`/dashboard/${dashboardId}/layout`, dto);
-    },
-
-    getDashboardDocument: async (
-        dashboardId: string
-    ): Promise<ApiResponse<DashboardDocumentDto>> => {
-        return await api.get(`/dashboard/${dashboardId}/document`);
-    },
-
-    // The editor renders the rejected document's messages next to the text it typed, so the
-    // global toasts are opted out of here.
-    saveDashboardDocument: async (
-        dashboardId: string,
-        document: unknown
-    ): Promise<ApiResponse<DashboardWidgetDto[]>> => {
-        return await api.put(`/dashboard/${dashboardId}/document`, document, {
-            silentErrors: true,
-        } as SilentErrorsConfig);
-    },
-
-    createDashboardFromDocument: async (
-        document: unknown
-    ): Promise<ApiResponse<DashboardDto>> => {
-        return await api.post("/dashboard/document", document, {
-            silentErrors: true,
-        } as SilentErrorsConfig);
     },
 };

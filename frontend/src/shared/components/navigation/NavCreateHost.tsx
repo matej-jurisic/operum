@@ -39,10 +39,6 @@ const NavCreateHost = observer(() => {
             {navigationStore.dashboardCreateOpen && (
                 <BoardFormModal
                     onClose={() => navigationStore.stopDashboardCreate()}
-                    onImported={async (id) => {
-                        await navigationStore.refreshDashboards();
-                        navigate(`/dashboard/${id}`);
-                    }}
                     onSubmit={async (values) => {
                         try {
                             const res =
