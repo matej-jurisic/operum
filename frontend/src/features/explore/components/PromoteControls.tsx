@@ -8,7 +8,7 @@ import {
     Text,
     TextInput,
 } from "@mantine/core";
-import { notifications } from "@mantine/notifications";
+import { notifySuccess } from "../../../shared/utils/notify";
 import { useEffect, useState } from "react";
 import { TbLayoutDashboard, TbBookmark } from "react-icons/tb";
 import { CreateAnalyticFieldDto } from "../../analytics/types/requests/CreateAnalyticDto";
@@ -125,12 +125,7 @@ export function PromoteControls({
                     viewId: viewIds[i],
                 })),
             });
-            notifications.show({
-                title: "Added to dashboard",
-                message: "The widget is on the board.",
-                color: "teal",
-                withBorder: true,
-            });
+            notifySuccess("The widget is on the dashboard.", "Added to dashboard");
             reset();
         } finally {
             setBusy(false);
@@ -151,12 +146,7 @@ export function PromoteControls({
                     fields: s.fields,
                 })),
             });
-            notifications.show({
-                title: "Saved to Widget Library",
-                message: "Add it to a dashboard from the board menu.",
-                color: "teal",
-                withBorder: true,
-            });
+            notifySuccess("Add it to a dashboard from the dashboard menu.", "Saved to Widget Library");
             reset();
         } finally {
             setBusy(false);

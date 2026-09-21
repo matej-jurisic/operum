@@ -151,6 +151,7 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
                                 variant={isReordering ? "filled" : "outline"}
                                 onClick={() => setIsReordering((prev) => !prev)}
                                 color={theme.primaryColor}
+                                aria-label="Reorder trackers"
                             >
                                 <RiListOrdered2 size={18} />
                             </ActionIcon>
@@ -171,7 +172,7 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
                                         setOpenDialogType(OpenDialogType.Wizard)
                                     }
                                 >
-                                    Guided Setup
+                                    Guided setup
                                 </Menu.Item>
                                 <Menu.Divider />
                                 <Menu.Item
@@ -182,7 +183,7 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
                                         )
                                     }
                                 >
-                                    Create New
+                                    Create new
                                 </Menu.Item>
                                 <Menu.Item
                                     leftSection={<FiPlusSquare size={16} />}
@@ -192,7 +193,7 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
                                         )
                                     }
                                 >
-                                    Create From Template
+                                    Create from template
                                 </Menu.Item>
                             </Menu.Dropdown>
                         </Menu>
@@ -226,7 +227,7 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
                                         setOpenDialogType(OpenDialogType.Wizard)
                                     }
                                 >
-                                    Get Started
+                                    Get started
                                 </Button>
                             </Stack>
                         )
@@ -351,7 +352,9 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
                                 ? "Are you sure you want to delete the template?"
                                 : "Are you sure you want to delete the tracker?"
                         }
-                        severity="important"
+                        severity="warning"
+                        title={isTemplates ? "Delete template" : "Delete tracker"}
+                        confirmLabel="Delete"
                     />
                 )}
         </>

@@ -16,9 +16,11 @@ import {
     Title,
     useMantineTheme,
 } from "@mantine/core";
+import { notifySuccess } from "../../../shared/utils/notify";
+import { PASSWORD_MIN_LENGTH, validatePassword, validatePasswordConfirmation } from "../../auth/utils/passwordRules";
+import { useDocumentTitle } from "../../../shared/hooks/useDocumentTitle";
 import { useForm } from "@mantine/form";
 import { useClipboard } from "@mantine/hooks";
-import { notifications } from "@mantine/notifications";
 import { observer } from "mobx-react";
 import { useEffect, useState } from "react";
 import {
@@ -45,6 +47,7 @@ import {
 } from "../api/profileController";
 
 const ProfilePage = observer(function ProfilePage() {
+    useDocumentTitle("Profile");
     const theme = useMantineTheme();
     const navigate = useNavigate();
     const { setUserData, clearUserData } = useAuth();
@@ -59,7 +62,7 @@ const ProfilePage = observer(function ProfilePage() {
     );
 
     const pageOptions = [
-        { value: FALLBACK_PAGE, label: "Default dashboard" },
+        { value: FALLBACK_PAGE, label: "Last opened dashboard" },
         ...(navigationStore.dashboards.length
             ? [
                   {
@@ -113,9 +116,9 @@ const ProfilePage = observer(function ProfilePage() {
         validate: {
             userName: (v) =>
                 v.length < 3
-                    ? "At least 3 characters"
+                    ? "Username must be at least 3 characters long"
                     : v.length > 20
-                      ? "At most 20 characters"
+                      ? "Username must be at most 20 characters long"
                       : null,
         },
     });
@@ -127,15 +130,10 @@ const ProfilePage = observer(function ProfilePage() {
             confirmPassword: "",
         },
         validate: {
-            currentPassword: (v) => (!v ? "Required" : null),
-            newPassword: (v) =>
-                v.length < 6
-                    ? "At least 6 characters"
-                    : !/\d/.test(v)
-                      ? "Must contain a digit"
-                      : null,
+            currentPassword: (v) => (!v ? "Current password is required" : null),
+            newPassword: validatePassword,
             confirmPassword: (v, values) =>
-                v !== values.newPassword ? "Passwords do not match" : null,
+                validatePasswordConfirmation(v, values.newPassword),
         },
     });
 
@@ -153,11 +151,7 @@ const ProfilePage = observer(function ProfilePage() {
                 userName: res.data.userName ?? values.userName,
                 roles: user.roles,
             });
-            notifications.show({
-                message: "Username updated",
-                color: "teal",
-                withBorder: true,
-            });
+            notifySuccess("Username updated");
         }
     };
 
@@ -165,11 +159,7 @@ const ProfilePage = observer(function ProfilePage() {
         const res = await profileController.updateTimezone(values.timeZone);
         if (res.isSuccess) {
             globalStore.setCurrentUser({ ...user, timeZone: values.timeZone });
-            notifications.show({
-                message: "Time zone updated",
-                color: "teal",
-                withBorder: true,
-            });
+            notifySuccess("Time zone updated");
         }
     };
 
@@ -180,11 +170,7 @@ const ProfilePage = observer(function ProfilePage() {
         );
         if (res.isSuccess) {
             passwordForm.reset();
-            notifications.show({
-                message: "Password changed",
-                color: "teal",
-                withBorder: true,
-            });
+            notifySuccess("Password changed");
         }
     };
 
@@ -203,19 +189,19 @@ const ProfilePage = observer(function ProfilePage() {
 
     const statCards = [
         {
-            label: "Trackers Owned",
+            label: "Trackers owned",
             value: stats?.trackersOwned ?? "-",
             icon: <TbLayoutGrid size={20} />,
             color: "blue",
         },
         {
-            label: "Shared With Me",
+            label: "Shared with me",
             value: stats?.sharedWithMe ?? "-",
             icon: <TbUsers size={20} />,
             color: "teal",
         },
         {
-            label: "Total Entries",
+            label: "Total entries",
             value: stats?.totalEntries ?? "-",
             icon: <TbDatabase size={20} />,
             color: "grape",
@@ -320,7 +306,7 @@ const ProfilePage = observer(function ProfilePage() {
                                                 type="submit"
                                                 variant="outline"
                                             >
-                                                Save Username
+                                                Save username
                                             </Button>
                                         </Group>
                                     </Stack>
@@ -346,7 +332,7 @@ const ProfilePage = observer(function ProfilePage() {
                                                 type="submit"
                                                 variant="outline"
                                             >
-                                                Save Timezone
+                                                Save time zone
                                             </Button>
                                         </Group>
                                     </Stack>
@@ -401,21 +387,22 @@ const ProfilePage = observer(function ProfilePage() {
                                     )}
                                 >
                                     <Stack gap="md">
-                                        <Text fw={600}>Change Password</Text>
+                                        <Text fw={600}>Change password</Text>
                                         <PasswordInput
-                                            label="Current Password"
+                                            label="Current password"
                                             {...passwordForm.getInputProps(
                                                 "currentPassword",
                                             )}
                                         />
                                         <PasswordInput
-                                            label="New Password"
+                                            label="New password"
+                                            description={`At least ${PASSWORD_MIN_LENGTH} characters`}
                                             {...passwordForm.getInputProps(
                                                 "newPassword",
                                             )}
                                         />
                                         <PasswordInput
-                                            label="Confirm New Password"
+                                            label="Confirm new password"
                                             {...passwordForm.getInputProps(
                                                 "confirmPassword",
                                             )}
@@ -425,7 +412,7 @@ const ProfilePage = observer(function ProfilePage() {
                                                 type="submit"
                                                 variant="outline"
                                             >
-                                                Change Password
+                                                Change password
                                             </Button>
                                         </Group>
                                     </Stack>
@@ -442,7 +429,7 @@ const ProfilePage = observer(function ProfilePage() {
                             >
                                 <Stack gap="md">
                                     <Text fw={600} c="red">
-                                        Danger Zone
+                                        Danger zone
                                     </Text>
                                     <Divider color="red" opacity={0.3} />
                                     <Group
@@ -450,7 +437,7 @@ const ProfilePage = observer(function ProfilePage() {
                                         align="center"
                                     >
                                         <Text fw={500} size="sm">
-                                            Delete Account
+                                            Delete account
                                         </Text>
                                         <Button
                                             color="red"
@@ -459,7 +446,7 @@ const ProfilePage = observer(function ProfilePage() {
                                                 setShowDeleteDialog(true)
                                             }
                                         >
-                                            Delete Account
+                                            Delete account
                                         </Button>
                                     </Group>
                                 </Stack>
@@ -472,7 +459,9 @@ const ProfilePage = observer(function ProfilePage() {
             {showDeleteDialog && (
                 <ConfirmationDialog
                     isOpen
-                    severity="important"
+                    severity="warning"
+                    title="Delete account"
+                    confirmLabel="Delete account"
                     message="Permanently delete your account and every tracker you own? This cannot be undone."
                     onClose={() => setShowDeleteDialog(false)}
                     onConfirm={handleDeleteAccount}

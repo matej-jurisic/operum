@@ -8,8 +8,9 @@ import {
     Title,
     useMantineTheme,
 } from "@mantine/core";
+import { useDocumentTitle } from "../../../shared/hooks/useDocumentTitle";
 import { useMediaQuery } from "@mantine/hooks";
-import dayjs from "dayjs";
+import { formatDateOnly } from "../../../shared/utils/formatters/TypeFormatter";
 import { observer } from "mobx-react";
 import { useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
@@ -34,6 +35,7 @@ import {
 } from "../types/requests/SaveIntegrationTargetDto";
 
 const IntegrationsPage = observer(function IntegrationsPage() {
+    useDocumentTitle("Integrations");
     const theme = useMantineTheme();
     const isMobile = useMediaQuery("(max-width: 48em)");
 
@@ -52,6 +54,8 @@ const IntegrationsPage = observer(function IntegrationsPage() {
         target: IntegrationTargetDto;
     } | null>(null);
     const [confirming, setConfirming] = useState<{
+        title: string;
+        confirmLabel: string;
         message: string;
         onConfirm: () => Promise<void>;
     } | null>(null);
@@ -154,7 +158,9 @@ const IntegrationsPage = observer(function IntegrationsPage() {
         target: IntegrationTargetDto,
     ) => {
         setConfirming({
-            message: `Re-import ${target.trackerName} from ${dayjs(target.backfillFrom).format("D MMM YYYY")}? Mapped fields on existing entries will be overwritten, including any manual edits.`,
+            title: "Re-import data",
+            confirmLabel: "Re-import",
+            message: `Re-import ${target.trackerName} from ${formatDateOnly(target.backfillFrom)}? Mapped fields on existing entries will be overwritten, including any manual edits.`,
             onConfirm: async () => {
                 setSyncingTargetId(target.id);
                 try {
@@ -199,6 +205,8 @@ const IntegrationsPage = observer(function IntegrationsPage() {
         }
 
         setConfirming({
+            title: "Issue new secret",
+            confirmLabel: "Issue secret",
             message: `Issue a new secret for ${target.trackerName}? The old one stops working right away, and deliveries fail until you paste the new one into ${provider.displayName}.`,
             onConfirm: async () => {
                 const response = await integrationsController.setWebhookSecret(
@@ -222,6 +230,8 @@ const IntegrationsPage = observer(function IntegrationsPage() {
         target: IntegrationTargetDto,
     ) => {
         setConfirming({
+            title: "Stop importing",
+            confirmLabel: "Stop importing",
             message: `Stop importing into ${target.trackerName}? Entries already imported stay.`,
             onConfirm: async () => {
                 await integrationsController.deleteTarget(
@@ -236,6 +246,8 @@ const IntegrationsPage = observer(function IntegrationsPage() {
     const disconnect = (integration: IntegrationDto) => {
         const name = providerFor(integration)?.displayName ?? integration.provider;
         setConfirming({
+            title: "Disconnect integration",
+            confirmLabel: "Disconnect",
             message: `Disconnect ${name}? All of its imports stop. Entries already imported stay.`,
             onConfirm: async () => {
                 await integrationsController.disconnect(integration.id);
@@ -369,6 +381,8 @@ const IntegrationsPage = observer(function IntegrationsPage() {
                     setConfirming(null);
                     await action?.onConfirm();
                 }}
+                title={confirming?.title ?? ""}
+                confirmLabel={confirming?.confirmLabel}
                 message={confirming?.message ?? ""}
                 severity="warning"
             />
@@ -405,7 +419,7 @@ function NothingConnected({
                 leftSection={<FiPlus size={16} />}
                 onClick={onConnect}
             >
-                Get Started
+                Get started
             </Button>
         </Stack>
     );

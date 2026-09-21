@@ -59,13 +59,12 @@ export default function BoardFormModal({ board, onClose, onSubmit }: Props) {
         <Modal
             opened
             onClose={onClose}
-            title={board ? "Edit board" : "New board"}
+            title={board ? "Edit dashboard" : "New dashboard"}
             centered
         >
             <Stack gap="md">
                 <TextInput
-                    label="Board Name"
-                    placeholder="Enter board name"
+                    label="Dashboard name"
                     value={name}
                     onChange={(e) => setName(e.currentTarget.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
@@ -73,7 +72,7 @@ export default function BoardFormModal({ board, onClose, onSubmit }: Props) {
                 />
                 <Stack gap="xs">
                     <Text size="sm" fw={500}>
-                        Board Color
+                        Dashboard color
                     </Text>
                     <Group gap="xs">
                         {colorOptions.map((c) => (

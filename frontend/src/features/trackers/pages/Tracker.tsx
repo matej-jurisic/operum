@@ -1,4 +1,5 @@
 import { Badge, Container, Group, Stack, Tabs, ThemeIcon, Title } from "@mantine/core";
+import { useDocumentTitle } from "../../../shared/hooks/useDocumentTitle";
 import { useMediaQuery } from "@mantine/hooks";
 import { createElement, useCallback, useEffect, useState } from "react";
 import {
@@ -79,6 +80,7 @@ export default function Tracker() {
     };
 
     const isMobile = useMediaQuery("(max-width: 48em)");
+    useDocumentTitle(tracker?.name);
 
     // Providers below only read initialTracker once, so hold render until it matches the URL.
     if (trackerId && missingTrackerId === trackerId) {
@@ -272,7 +274,9 @@ export default function Tracker() {
                 onClose={() => setDeleteOpen(false)}
                 onConfirm={handleDelete}
                 message="Are you sure you want to delete the tracker?"
-                severity="important"
+                severity="warning"
+                title="Delete tracker"
+                confirmLabel="Delete"
             />
         </ComposedTrackerProvider>
     );

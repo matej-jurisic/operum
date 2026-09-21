@@ -38,7 +38,7 @@ export const filterWidgetClauseTemplates: FilterWidgetClauseTemplate[] = [
     {
         id: "range",
         name: "Range",
-        description: "Two board inputs: a lower and an upper bound, matched together.",
+        description: "Two dashboard inputs: a lower and an upper bound, matched together.",
         icon: <FiMoreHorizontal size={16} />,
         fieldTypes: ORDERED_TYPES,
         clauses: [
@@ -49,7 +49,7 @@ export const filterWidgetClauseTemplates: FilterWidgetClauseTemplate[] = [
     {
         id: "minimum",
         name: "Minimum",
-        description: "One board input that keeps rows at or above the value.",
+        description: "One dashboard input that keeps rows at or above the value.",
         icon: <FiChevronsRight size={16} />,
         fieldTypes: ORDERED_TYPES,
         clauses: [{ operator: OperatorTypes.GreaterThanOrEqual }],
@@ -57,7 +57,7 @@ export const filterWidgetClauseTemplates: FilterWidgetClauseTemplate[] = [
     {
         id: "maximum",
         name: "Maximum",
-        description: "One board input that keeps rows at or below the value.",
+        description: "One dashboard input that keeps rows at or below the value.",
         icon: <FiChevronsLeft size={16} />,
         fieldTypes: ORDERED_TYPES,
         clauses: [{ operator: OperatorTypes.LessThanOrEqual }],
@@ -65,7 +65,7 @@ export const filterWidgetClauseTemplates: FilterWidgetClauseTemplate[] = [
     {
         id: "exact",
         name: "Exact match",
-        description: "One board input that keeps rows whose field equals the value.",
+        description: "One dashboard input that keeps rows whose field equals the value.",
         icon: <FiTarget size={16} />,
         fieldTypes: ALL_TYPES,
         clauses: [{ operator: OperatorTypes.Equals }],
@@ -73,7 +73,7 @@ export const filterWidgetClauseTemplates: FilterWidgetClauseTemplate[] = [
     {
         id: "exclude",
         name: "Exclude",
-        description: "One board input that drops rows whose field equals the value.",
+        description: "One dashboard input that drops rows whose field equals the value.",
         icon: <FiSlash size={16} />,
         fieldTypes: ALL_TYPES,
         clauses: [{ operator: OperatorTypes.NotEquals }],
@@ -81,7 +81,7 @@ export const filterWidgetClauseTemplates: FilterWidgetClauseTemplate[] = [
     {
         id: "text_search",
         name: "Text search",
-        description: "One board input that keeps rows whose text contains it.",
+        description: "One dashboard input that keeps rows whose text contains it.",
         icon: <CiSearch size={16} />,
         fieldTypes: [FieldTypes.String],
         clauses: [{ operator: OperatorTypes.Contains }],
@@ -89,7 +89,7 @@ export const filterWidgetClauseTemplates: FilterWidgetClauseTemplate[] = [
     {
         id: "starts_with",
         name: "Starts with",
-        description: "One board input that keeps rows whose text starts with it.",
+        description: "One dashboard input that keeps rows whose text starts with it.",
         icon: <FiType size={16} />,
         fieldTypes: [FieldTypes.String],
         clauses: [{ operator: OperatorTypes.StartsWith }],

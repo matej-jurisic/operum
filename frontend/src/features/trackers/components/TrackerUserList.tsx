@@ -203,6 +203,8 @@ export default function TrackerUserList() {
                     }}
                     message={`Remove user ${selectedUser.userName} from tracker?`}
                     severity="warning"
+                    title="Remove user"
+                    confirmLabel="Remove"
                 />
             )}
 
@@ -226,7 +228,7 @@ export default function TrackerUserList() {
                                 }
                             />
                             <Checkbox
-                                label="Can edit schema (fields, views, analytics, constants)"
+                                label="Can edit schema (fields, views, constants, notifications)"
                                 checked={editCanEditSchema}
                                 onChange={(e) =>
                                     setEditCanEditSchema(

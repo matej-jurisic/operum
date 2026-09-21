@@ -68,7 +68,7 @@ export function EntriesWidgetLibraryCard({
                         </Menu.Target>
                         <Menu.Dropdown onClick={(event) => event.stopPropagation()}>
                             <Menu.Item leftSection={<MdAdd size={16} />} onClick={onAdd}>
-                                Add to board
+                                Add to dashboard
                             </Menu.Item>
                             <Menu.Item leftSection={<MdEdit size={16} />} onClick={onEdit}>
                                 Edit
@@ -106,7 +106,7 @@ export function EntriesWidgetLibraryCard({
                     }}
                     style={{ alignSelf: "flex-start" }}
                 >
-                    Add to board
+                    Add to dashboard
                 </Button>
             </Stack>
         </Card>

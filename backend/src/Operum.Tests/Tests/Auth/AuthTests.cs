@@ -170,8 +170,11 @@ public class AuthTests(CustomWebApplicationFactory factory, ITestOutputHelper ou
     }
 
     [Theory]
-    [InlineData("missingdigit")]
     [InlineData("short")]
+    [InlineData("123456789")]
+    [InlineData("password123")]
+    [InlineData("1234567890")]
+    [InlineData("aaaaaaaaaaaa")]
     public async Task Register_WeakPasswords_ReturnsBadRequest(string weakPassword)
     {
         var client = _factory.CreateClient();
@@ -181,6 +184,46 @@ public class AuthTests(CustomWebApplicationFactory factory, ITestOutputHelper ou
 
         var response = await client.PostAsJsonAsync("auth/register", user);
         await _outputHelper.PrintMessages(response);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("correct horse battery staple")]
+    [InlineData("alllowercaseletters")]
+    public async Task Register_LongPasswordWithoutDigitOrMixedCase_IsAccepted(string password)
+    {
+        var client = _factory.CreateClient();
+        await _factory.SeedDatabaseAsync();
+        var user = TestDataHelper.CreateUniqueRegisterPayload();
+        user.Password = password;
+
+        var response = await client.PostAsJsonAsync("auth/register", user);
+        await _outputHelper.PrintMessages(response);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Register_PasswordLongerThanTheCap_ReturnsBadRequest()
+    {
+        var client = _factory.CreateClient();
+        await _factory.SeedDatabaseAsync();
+        var user = TestDataHelper.CreateUniqueRegisterPayload();
+        user.Password = new string('a', PasswordPolicy.MaxLength) + "b";
+
+        var response = await client.PostAsJsonAsync("auth/register", user);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Register_PasswordEqualToTheUsername_ReturnsBadRequest()
+    {
+        var client = _factory.CreateClient();
+        await _factory.SeedDatabaseAsync();
+        var user = TestDataHelper.CreateUniqueRegisterPayload();
+        user.UserName = "same_as_password_1";
+        user.Password = "Same_As_Password_1";
+
+        var response = await client.PostAsJsonAsync("auth/register", user);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 }

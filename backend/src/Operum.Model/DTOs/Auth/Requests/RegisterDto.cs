@@ -24,14 +24,11 @@ namespace Operum.Model.DTOs.Auth.Requests
                 .MinimumLength(3).WithMessage("Username must be at least 3 characters long.")
                 .MaximumLength(20).WithMessage("Username cannot exceed 20 characters.");
 
-            // Matches ASP.NET Identity defaults.
+            // Length only; the common-password and account-match checks live in PasswordPolicyValidator.
             RuleFor(x => x.Password)
                 .NotEmpty().WithMessage((x) => Messages.Required("password"))
-                .MinimumLength(6).WithMessage("Password must be at least 6 characters long.")
-                //.Matches(@"[A-Z]").WithMessage("Password must contain at least one uppercase letter.")
-                //.Matches(@"[a-z]").WithMessage("Password must contain at least one lowercase letter.")
-                //.Matches(@"[^\w\d\s]").WithMessage("Password must contain at least one non-alphanumeric character.");
-                .Matches(@"\d").WithMessage("Password must contain at least one digit.");
+                .MinimumLength(PasswordPolicy.MinLength).WithMessage($"Password must be at least {PasswordPolicy.MinLength} characters long.")
+                .MaximumLength(PasswordPolicy.MaxLength).WithMessage($"Password must be at most {PasswordPolicy.MaxLength} characters long.");
         }
     }
 }

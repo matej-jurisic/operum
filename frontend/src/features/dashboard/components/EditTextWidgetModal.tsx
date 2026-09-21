@@ -24,7 +24,7 @@ const COPY: Record<Props["kind"], { title: string; label: string; placeholder: s
     note: {
         title: "Edit note",
         label: "Text",
-        placeholder: "Anything worth keeping on the board",
+        placeholder: "Anything worth keeping on the dashboard",
     },
     container: { title: "Rename container", label: "Name", placeholder: "Container" },
     tabsContainer: {

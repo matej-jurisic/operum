@@ -148,7 +148,7 @@ export default function AbstractClauseListEditor({
         <Stack gap="sm">
             <Group justify="space-between" wrap="nowrap">
                 <Text fw={500} size="sm">
-                    {filterOnly ? "Live Clauses" : "Clauses"}
+                    {filterOnly ? "Live clauses" : "Clauses"}
                     {rows.length > 0 && (
                         <Text span c="dimmed" size="sm" ml="xs">
                             ({rows.length}/{max})
@@ -385,7 +385,7 @@ export default function AbstractClauseListEditor({
                 <Stack gap="md">
                     <Select
                         label="Data type"
-                        placeholder="Pick the data type to filter on"
+                        placeholder="Select the data type to filter on"
                         allowDeselect={false}
                         data={templateTypeOptions}
                         value={templateDataType}

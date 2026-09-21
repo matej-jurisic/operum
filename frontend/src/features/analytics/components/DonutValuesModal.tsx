@@ -38,7 +38,7 @@ export function DonutValuesModal({ analytic, isAbsolute, opened, onClose }: Prop
     }, [analytic, isAbsolute]);
 
     return (
-        <Modal opened={opened} onClose={onClose} title={analytic.name} size="md">
+        <Modal opened={opened} onClose={onClose} title={analytic.name} size="md" centered>
             <Table>
                 <Table.Thead>
                     <Table.Tr>

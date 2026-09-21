@@ -23,7 +23,7 @@ import {
     Stack,
 } from "@mantine/core";
 import { ReactNode, useEffect, useState } from "react";
-import { CiBoxList } from "react-icons/ci";
+import { RiListOrdered2 } from "react-icons/ri";
 import { FiPlus } from "react-icons/fi";
 import { IoChevronDownCircle } from "react-icons/io5";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
@@ -146,8 +146,9 @@ export default function Views(props: Props) {
                                         setIsReordering((prev) => !prev)
                                     }
                                     color={props.tracker.color}
+                                    aria-label="Reorder views"
                                 >
-                                    <CiBoxList size={18} />
+                                    <RiListOrdered2 size={18} />
                                 </ActionIcon>
                             )}
                             {canEditSchema && isOwner && (
@@ -166,12 +167,13 @@ export default function Views(props: Props) {
                                             variant="outline"
                                             color={tracker.color}
                                             size={"lg"}
+                                            aria-label="Default view options"
                                         >
                                             <IoChevronDownCircle size={18} />
                                         </ActionIcon>
                                     </Menu.Target>
                                     <Menu.Dropdown>
-                                        <Menu.Label>Default View</Menu.Label>
+                                        <Menu.Label>Default view</Menu.Label>
                                         <Menu.Divider />
                                         <Menu.Item
                                             onClick={async () => {
@@ -348,6 +350,8 @@ export default function Views(props: Props) {
                         }
                     }}
                     severity="warning"
+                    title="Delete view"
+                    confirmLabel="Delete"
                     message={`Are you sure you want to delete the view "${selectedView.name}"?`}
                 />
             )}

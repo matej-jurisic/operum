@@ -2,8 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace Operum.Model.DTOs.Trackers
 {
-    // A tracker described by names alone: no ids and no entries. It is what a hand-written
-    // board document needs to point at a tracker, its fields and its views.
+    // A tracker described by names alone: no ids and no entries, safe to paste into a chat or prompt.
     public class TrackerSchemaDto
     {
         public string Name { get; set; } = string.Empty;

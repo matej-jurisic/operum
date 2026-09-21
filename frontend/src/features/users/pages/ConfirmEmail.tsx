@@ -1,4 +1,4 @@
-import { notifications } from "@mantine/notifications";
+import { notifySuccess } from "../../../shared/utils/notify";
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import api from "../../../shared/api/api";
@@ -17,11 +17,7 @@ export function ConfirmEmail() {
                 await api.post(
                     `/auth/confirm-email?userId=${userId}&token=${token}`
                 );
-                notifications.show({
-                    message: "Email confirmed. You can now log in.",
-                    color: "teal",
-                    withBorder: true,
-                });
+                notifySuccess("Email confirmed. You can now log in.");
             } catch {
                 // The api layer already surfaced the error
             } finally {

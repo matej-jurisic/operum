@@ -97,6 +97,7 @@ export default function Constants(props: ConstantsProps) {
                                                             OpenDialogType.View,
                                                         );
                                                     }}
+                                                    aria-label={`View details ${constant.name}`}
                                                 >
                                                     <CiBoxList size={16} />
                                                 </ActionIcon>
@@ -112,6 +113,7 @@ export default function Constants(props: ConstantsProps) {
                                                             OpenDialogType.Edit,
                                                         );
                                                     }}
+                                                    aria-label={`Edit constant ${constant.name}`}
                                                 >
                                                     <MdEdit size={16} />
                                                 </ActionIcon>
@@ -127,6 +129,7 @@ export default function Constants(props: ConstantsProps) {
                                                             OpenDialogType.Delete,
                                                         );
                                                     }}
+                                                    aria-label={`Delete constant ${constant.name}`}
                                                 >
                                                     <MdDelete size={16} />
                                                 </ActionIcon>
@@ -217,7 +220,9 @@ export default function Constants(props: ConstantsProps) {
                         setSelectedConstant(undefined);
                         setOpenDialogType(undefined);
                     }}
-                    severity="important"
+                    severity="warning"
+                    title="Delete constant"
+                    confirmLabel="Delete"
                     message="Deleting this constant will break any formulas that reference it."
                 />
             )}

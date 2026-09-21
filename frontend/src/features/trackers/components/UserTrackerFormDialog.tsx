@@ -1,4 +1,4 @@
-import { Button, Checkbox, Modal, Select, Stack } from "@mantine/core";
+import { Button, Checkbox, Group, Modal, Select, Stack } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDebouncedValue } from "@mantine/hooks";
 import { useEffect, useState } from "react";
@@ -70,7 +70,7 @@ export default function UserTrackerFormDialog(props: Props) {
     };
 
     return (
-        <Modal opened onClose={handleClose} title="Add User" centered>
+        <Modal opened onClose={handleClose} title="Add user" centered>
             <form onSubmit={form.onSubmit(handleSubmit)}>
                 <Stack align="stretch">
                     <Select
@@ -92,17 +92,22 @@ export default function UserTrackerFormDialog(props: Props) {
                         onChange={(e) => form.setFieldValue("canEditData", e.currentTarget.checked)}
                     />
                     <Checkbox
-                        label="Can edit schema (fields, views, analytics, constants)"
+                        label="Can edit schema (fields, views, constants, notifications)"
                         checked={form.values.canEditSchema}
                         onChange={(e) => form.setFieldValue("canEditSchema", e.currentTarget.checked)}
                     />
-                    <Button
-                        color={tracker?.color || "blue"}
-                        type="submit"
-                        disabled={!form.values.username.trim()}
-                    >
-                        Add
-                    </Button>
+                    <Group justify="flex-end">
+                        <Button variant="default" onClick={handleClose}>
+                            Cancel
+                        </Button>
+                        <Button
+                            color={tracker?.color || "blue"}
+                            type="submit"
+                            disabled={!form.values.username.trim()}
+                        >
+                            Add
+                        </Button>
+                    </Group>
                 </Stack>
             </form>
         </Modal>

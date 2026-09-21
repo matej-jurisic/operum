@@ -231,7 +231,7 @@ const EXTRAS = [
         icon: <TbCommand size={20} />,
         color: "orange",
         title: "Command palette",
-        text: "Press Ctrl+K or Cmd+K to jump to any tracker or board, or start a new one.",
+        text: "Press Ctrl+K or Cmd+K to jump to any tracker or dashboard, or start a new one.",
     },
 ];
 
@@ -671,7 +671,7 @@ const SECTION_COPY: Record<
     widgets: {
         title: "Widgets",
         description:
-            "A board is a grid of widgets you drag into place, with separate desktop and mobile layouts.",
+            "A dashboard is a grid of widgets you drag into place, with separate desktop and mobile layouts.",
         diagram: <WidgetsDiagram />,
     },
     integrations: {
@@ -791,7 +791,7 @@ const Home = observer(() => {
                                     lh={1.6}
                                 >
                                     Create a tracker with the fields you want,
-                                    log entries against it, and build boards
+                                    log entries against it, and build dashboards
                                     from what you have logged.
                                 </Text>
 

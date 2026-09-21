@@ -33,10 +33,6 @@ namespace Operum.Service.Interfaces
         Task<Result> RemoveDashboardItem(string dashboardId, string itemId);
         Task<Result> UpdateDashboardLayout(string dashboardId, UpdateDashboardLayoutDto dto);
 
-        Task<Result<DashboardDocumentDto>> GetDashboardDocument(string dashboardId);
-        Task<Result<List<DashboardWidgetDto>>> SaveDashboardDocument(string dashboardId, DashboardDocumentDto document);
-        Task<Result<DashboardDto>> CreateDashboardFromDocument(DashboardDocumentDto document);
-
         Task<Result<List<DashboardViewDto>>> GetDashboardViews(string dashboardId);
         Task<Result<DashboardViewDto>> AddDashboardView(string dashboardId, SaveDashboardViewDto dto);
         Task<Result<DashboardViewDto>> UpdateDashboardView(string dashboardId, string viewId, SaveDashboardViewDto dto);

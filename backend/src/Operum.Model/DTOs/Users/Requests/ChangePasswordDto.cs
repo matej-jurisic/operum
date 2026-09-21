@@ -18,8 +18,8 @@ namespace Operum.Model.DTOs.Users.Requests
 
             RuleFor(x => x.NewPassword)
                 .NotEmpty().WithMessage(Messages.Required("new password"))
-                .MinimumLength(6).WithMessage("Password must be at least 6 characters long.")
-                .Matches(@"\d").WithMessage("Password must contain at least one digit.");
+                .MinimumLength(PasswordPolicy.MinLength).WithMessage($"Password must be at least {PasswordPolicy.MinLength} characters long.")
+                .MaximumLength(PasswordPolicy.MaxLength).WithMessage($"Password must be at most {PasswordPolicy.MaxLength} characters long.");
         }
     }
 }

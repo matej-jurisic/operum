@@ -1,4 +1,5 @@
 import { useEntries } from "../../features/entries/context/EntriesContext";
+import { notifySuccess } from "../utils/notify";
 import { EntrySelection } from "../../features/entries/types/EntrySelection";
 import { useFields } from "../../features/fields/context/FieldsContext";
 import { CreateFieldDto } from "../../features/fields/types/CreateFieldDto";
@@ -85,11 +86,14 @@ export const useTrackerOperations = () => {
     };
 
     const importEntries = async (file: File | null) => {
+        if (!file) return;
         await _importEntries(file);
+        notifySuccess("Entries imported");
     };
 
     const recalculateEntries = async (selection: EntrySelection) => {
         await _recalculateEntries(selection);
+        notifySuccess("Calculated fields updated");
     };
 
     const createView = async (view: CreateViewDto) => {

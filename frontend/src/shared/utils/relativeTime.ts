@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import { formatDateOnly } from "./formatters/TypeFormatter";
 
 /** Compact "time ago" label; falls back to an absolute date past 30 days. */
 export function relativeTime(value?: string | null): string {
@@ -13,5 +14,5 @@ export function relativeTime(value?: string | null): string {
     if (hours < 24) return `${hours}h ago`;
 
     const days = dayjs().diff(then, "day");
-    return days < 30 ? `${days}d ago` : then.format("D MMM YYYY");
+    return days < 30 ? `${days}d ago` : formatDateOnly(value);
 }

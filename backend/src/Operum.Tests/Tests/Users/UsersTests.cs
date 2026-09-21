@@ -167,6 +167,34 @@ namespace Operum.Tests.Tests.Users
         }
 
         [Fact]
+        public async Task ChangePassword_ToACommonOne_ReturnsBadRequest()
+        {
+            var client = await _factory.NewUserClient("commonpassword");
+
+            var response = await client.PutAsJsonAsync("users/me/password", new ChangePasswordDto
+            {
+                CurrentPassword = "MyStrongPassword123!",
+                NewPassword = "password1234"
+            });
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task ChangePassword_ToALongPassphraseWithoutDigits_Succeeds()
+        {
+            var client = await _factory.NewUserClient("passphrase");
+
+            var response = await client.PutAsJsonAsync("users/me/password", new ChangePasswordDto
+            {
+                CurrentPassword = "MyStrongPassword123!",
+                NewPassword = "correct horse battery staple"
+            });
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+
+        [Fact]
         public async Task UpdateTimeZone_KnownZone_IsAccepted()
         {
             var client = await _factory.NewUserClient("timezone");

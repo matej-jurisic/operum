@@ -83,7 +83,7 @@ export default function FieldValueInput({
                     dropdownType="modal"
                     style={styles}
                     valueFormat="DD/MM/YYYY"
-                    placeholder="Pick date"
+                    placeholder="Select date"
                     highlightToday
                     {...baseProps}
                     value={baseProps.value || null}
@@ -125,7 +125,7 @@ export default function FieldValueInput({
                     key={key}
                     valueFormat="DD/MM/YYYY HH:mm:ss"
                     withSeconds
-                    placeholder="Pick date/time"
+                    placeholder="Select date and time"
                     highlightToday
                     {...baseProps}
                     dropdownType="modal"

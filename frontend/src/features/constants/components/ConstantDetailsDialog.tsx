@@ -40,7 +40,7 @@ export default function ConstantDetailsDialog({
                         {constant.name}
                     </Title>
                     <Badge color={tracker.color} variant="filled" miw="max-content">
-                        Constant Details
+                        Constant details
                     </Badge>
                 </Group>
             }
@@ -55,13 +55,13 @@ export default function ConstantDetailsDialog({
                 </Group>
 
                 <Group justify="space-between" wrap="nowrap">
-                    <Text fw={500}>Base Value</Text>
+                    <Text fw={500}>Base value</Text>
                     <Code>{constant.value}</Code>
                 </Group>
 
                 {constant.values?.length > 0 && (
                     <>
-                        <Divider label="Conditional Values" />
+                        <Divider label="Conditional values" />
                         <Stack gap="sm">
                             {constant.values
                                 .slice()

@@ -8,6 +8,7 @@ import {
     Title,
     useMantineTheme,
 } from "@mantine/core";
+import { useDocumentTitle } from "../../../shared/hooks/useDocumentTitle";
 import { useNavigate } from "react-router-dom";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -20,6 +21,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 export default function TermsOfService() {
+    useDocumentTitle("Terms of service");
     const theme = useMantineTheme();
     const navigate = useNavigate();
 

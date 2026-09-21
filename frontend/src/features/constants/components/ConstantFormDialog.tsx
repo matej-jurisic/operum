@@ -189,7 +189,7 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                 !value.trim()
                     ? "Name is required"
                     : value.length > 30
-                      ? "Name cannot exceed 30 characters"
+                      ? "Name must be at most 30 characters"
                       : null,
             type: (value) => (!value ? "Type is required" : null),
             value: (value, values) => validateValueForType(value, values.type),
@@ -305,7 +305,7 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
         <Modal
             opened
             onClose={props.onClose}
-            title={props.constantId ? "Edit Constant" : "Create Constant"}
+            title={props.constantId ? "Edit constant" : "Create constant"}
             centered
             size="lg"
         >
@@ -321,7 +321,7 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                     <Select
                         allowDeselect={false}
                         label="Type"
-                        placeholder="Choose type"
+                        placeholder="Select type"
                         data={calculatedFieldTypes}
                         required
                         {...form.getInputProps("type")}
@@ -341,7 +341,7 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
 
                     <ConstantValueInput
                         type={form.values.type}
-                        label="Base Value"
+                        label="Base value"
                         description="Used when no conditional value matches"
                         value={form.values.value}
                         error={form.errors.value}
@@ -351,7 +351,7 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                     <Stack gap="sm">
                         <Group justify="space-between" align="center">
                             <Title order={5}>
-                                Conditional Values
+                                Conditional values
                                 {form.values.values.length > 0 && (
                                     <Text
                                         span
@@ -469,7 +469,7 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                                                             MAX_FILTERS_PER_VALUE
                                                         }
                                                     >
-                                                        Add Filter
+                                                        Add filter
                                                     </Button>
                                                 </Group>
 
@@ -580,9 +580,14 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                         )}
                     </Stack>
 
-                    <Button color={props.tracker.color} type="submit">
-                        {props.constantId ? "Update" : "Create"}
-                    </Button>
+                    <Group justify="flex-end">
+                        <Button variant="default" onClick={props.onClose}>
+                            Cancel
+                        </Button>
+                        <Button color={props.tracker.color} type="submit">
+                            {props.constantId ? "Save" : "Create"}
+                        </Button>
+                    </Group>
                 </Stack>
             </form>
         </Modal>

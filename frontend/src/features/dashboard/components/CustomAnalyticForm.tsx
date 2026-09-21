@@ -472,6 +472,7 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
                                         variant="outline"
                                         color="red"
                                         onClick={() => removeRow(index)}
+                                        aria-label="Remove row"
                                     >
                                         <MdDelete size={14} />
                                     </ActionIcon>

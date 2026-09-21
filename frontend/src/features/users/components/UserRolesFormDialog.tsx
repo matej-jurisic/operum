@@ -65,9 +65,14 @@ export default function UserRolesFormDialog(props: Props) {
                         required
                         {...form.getInputProps("roleName")}
                     />
-                    <Button type="submit" disabled={allRoles.length === 0}>
-                        Add Role
-                    </Button>
+                    <Group justify="flex-end">
+                        <Button variant="default" onClick={props.onClose}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" disabled={allRoles.length === 0}>
+                            Add role
+                        </Button>
+                    </Group>
                 </Stack>
             </form>
         </Modal>

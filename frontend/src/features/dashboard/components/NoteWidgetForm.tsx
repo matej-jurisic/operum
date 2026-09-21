@@ -29,7 +29,7 @@ export function NoteWidgetForm({ onBack, onAdd }: Props) {
         <Stack gap="md">
             <Textarea
                 label="Text"
-                placeholder="Anything worth keeping on the board"
+                placeholder="Anything worth keeping on the dashboard"
                 autosize
                 minRows={4}
                 maxRows={10}

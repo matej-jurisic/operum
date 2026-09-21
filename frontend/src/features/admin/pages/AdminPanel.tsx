@@ -6,6 +6,7 @@ import {
     Title,
     useMantineTheme,
 } from "@mantine/core";
+import { useDocumentTitle } from "../../../shared/hooks/useDocumentTitle";
 import { useMediaQuery } from "@mantine/hooks";
 import { CiAlignBottom, CiBoxList, CiUser } from "react-icons/ci";
 import { PiDatabaseThin } from "react-icons/pi";
@@ -17,6 +18,7 @@ import AdminStats from "../components/AdminStats";
 import AdminTrackers from "../components/AdminTrackers";
 
 export default function AdminPanel() {
+    useDocumentTitle("Admin");
     const location = useLocation();
     const navigate = useNavigate();
     const currentTab = location.pathname.split("/").pop() || "overview";
@@ -29,7 +31,7 @@ export default function AdminPanel() {
                 <Group gap="sm" wrap="nowrap">
                     <SidebarBurger />
                     <Title c={theme.primaryColor} order={2}>
-                        Admin Panel
+                        Admin panel
                     </Title>
                 </Group>
                 <Stack flex="1" mih={0}>

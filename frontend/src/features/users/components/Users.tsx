@@ -87,8 +87,7 @@ export default function Users() {
                         await load();
                         closeDialog();
                     }}
-                    title="Mail Confirmation"
-                    severity="info"
+                    title="Confirm mail"
                     message={`Set mail as confirmed for user ${selectedUser.userName}?`}
                 />
             )}

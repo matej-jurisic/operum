@@ -1,6 +1,7 @@
 import {
     Alert,
     Button,
+    Group,
     Modal,
     PasswordInput,
     Radio,
@@ -138,15 +139,19 @@ export default function ConnectProviderDialog({
                     )}
                 </Stack>
 
-                <Button
-                    color={theme.primaryColor}
-                    size="md"
-                    onClick={connect}
-                    disabled={!canConnect}
-                    loading={connecting}
-                >
-                    Connect
-                </Button>
+                <Group justify="flex-end">
+                    <Button variant="default" onClick={onClose}>
+                        Cancel
+                    </Button>
+                    <Button
+                        color={theme.primaryColor}
+                        onClick={connect}
+                        disabled={!canConnect}
+                        loading={connecting}
+                    >
+                        Connect
+                    </Button>
+                </Group>
             </Stack>
         </Modal>
     );

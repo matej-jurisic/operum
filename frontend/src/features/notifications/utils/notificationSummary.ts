@@ -1,3 +1,4 @@
+import { formatDateOnlyFromDate } from "../../../shared/utils/formatters/TypeFormatter";
 import { NotificationEventDto } from "../types/NotificationDto";
 
 const OPERATOR_PHRASES: Record<string, string> = {
@@ -18,7 +19,7 @@ export function operatorPhrase(operator: string): string {
 
 export function displayValue(value: unknown): string {
     if (value === undefined || value === null || value === "") return "…";
-    if (value instanceof Date) return value.toLocaleDateString();
+    if (value instanceof Date) return formatDateOnlyFromDate(value);
     return String(value);
 }
 

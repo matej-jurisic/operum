@@ -326,7 +326,7 @@ export default function TargetFormDialog({
                     <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
                         <Select
                             label="Tracker"
-                            placeholder="Select tracker"
+                            placeholder="Select a tracker"
                             data={trackerOptions}
                             value={trackerId}
                             onChange={(value) => {
@@ -580,14 +580,18 @@ export default function TargetFormDialog({
                     </Stack>
                 )}
 
-                <Button
-                    size="md"
-                    onClick={save}
-                    disabled={!canSave}
-                    loading={saving}
-                >
-                    {isEdit ? "Save mapping" : "Start importing"}
-                </Button>
+                <Group justify="flex-end">
+                    <Button variant="default" onClick={onClose}>
+                        Cancel
+                    </Button>
+                    <Button
+                        onClick={save}
+                        disabled={!canSave}
+                        loading={saving}
+                    >
+                        {isEdit ? "Save mapping" : "Start importing"}
+                    </Button>
+                </Group>
             </Stack>
         </Modal>
     );

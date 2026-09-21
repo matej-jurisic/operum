@@ -1,4 +1,4 @@
-import { ActionIcon, Checkbox, Group, Menu, Text } from "@mantine/core";
+import { ActionIcon, Checkbox, Group, Menu, Text, Tooltip } from "@mantine/core";
 import { IoMdEye } from "react-icons/io";
 import { useTracker } from "../../trackers/context/TrackerContext";
 import { ExtraColumns, useVisibleColumns } from "../hooks/useVisibleColumns";
@@ -14,14 +14,17 @@ export function ColumnVisibilityMenu() {
             width={200}
         >
             <Menu.Target>
-                <ActionIcon
-                    variant="outline"
-                    color={tracker.color}
-                    size={"lg"}
-                    disabled={fields.length === 0}
-                >
-                    <IoMdEye size={18} />
-                </ActionIcon>
+                <Tooltip label="Show or hide columns">
+                    <ActionIcon
+                        variant="outline"
+                        color={tracker.color}
+                        size={"lg"}
+                        disabled={fields.length === 0}
+                        aria-label="Show or hide columns"
+                    >
+                        <IoMdEye size={18} />
+                    </ActionIcon>
+                </Tooltip>
             </Menu.Target>
 
             <Menu.Dropdown>
@@ -56,7 +59,7 @@ export function ColumnVisibilityMenu() {
                     px="xs"
                 >
                     <Group justify="space-between">
-                        <Text size="sm">Created At</Text>
+                        <Text size="sm">Created at</Text>
                         <Checkbox
                             size="sm"
                             color={tracker.color}

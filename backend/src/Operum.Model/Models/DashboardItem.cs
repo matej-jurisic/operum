@@ -10,10 +10,6 @@ namespace Operum.Model.Models
         [Key]
         public string Id { get; set; } = Guid.NewGuid().ToString();
 
-        // What the board document calls this item: readable, unique on its board, given the
-        // first time the board is exported and kept from then on. Null until then.
-        public string? Key { get; set; }
-
         // Reading order of the board (top-left to bottom-right), derived from the grid
         // placement whenever the layout is saved.
         public int Order { get; set; }

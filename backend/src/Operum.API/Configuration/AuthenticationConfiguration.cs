@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using Operum.Model;
 using Operum.Model.Common;
+using Operum.Model.Constants;
 using Operum.Model.Enums;
 using Operum.Model.Models;
+using Operum.Service.Services.Authentication;
 using System.Text;
 
 namespace Operum.API.Configuration
@@ -98,14 +100,16 @@ namespace Operum.API.Configuration
                 .AddSignInManager<SignInManager<User>>()
                 .AddUserManager<UserManager<User>>()
                 .AddEntityFrameworkStores<OperumContext>()
+                .AddPasswordValidator<PasswordPolicyValidator>()
                 .AddDefaultTokenProviders();
 
             services.Configure<IdentityOptions>(options =>
             {
                 options.User.RequireUniqueEmail = true;
 
-                options.Password.RequireDigit = true;
-                options.Password.RequiredLength = 6;
+                options.Password.RequiredLength = PasswordPolicy.MinLength;
+                options.Password.RequiredUniqueChars = 4;
+                options.Password.RequireDigit = false;
                 options.Password.RequireNonAlphanumeric = false;
                 options.Password.RequireUppercase = false;
                 options.Password.RequireLowercase = false;

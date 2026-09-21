@@ -172,7 +172,7 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                                                 )
                                             }
                                         >
-                                            Create Entry
+                                            Create entry
                                         </Menu.Item>
                                         <Menu.Item
                                             leftSection={
@@ -184,7 +184,7 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                                                 )
                                             }
                                         >
-                                            Import Entries
+                                            Import entries
                                         </Menu.Item>
                                     </Menu.Dropdown>
                                 </Menu>
@@ -206,6 +206,7 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                                                 )
                                             }
                                             disabled={selectedCount === 0}
+                                            aria-label="Rerun calculated fields"
                                         >
                                             <TbRefresh size={18} />
                                         </ActionIcon>
@@ -213,55 +214,67 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                                 )}
 
                             {canEditData && isSelectMode && !isMobile && (
-                                <ActionIcon
-                                    variant="outline"
-                                    color="red"
-                                    size="lg"
-                                    onClick={() =>
-                                        setOpenDialogType(
-                                            OpenDialogType.BulkDelete,
-                                        )
-                                    }
-                                    disabled={selectedCount === 0}
-                                >
-                                    <MdDelete size={18} />
-                                </ActionIcon>
+                                <Tooltip label="Delete selected entries">
+                                    <ActionIcon
+                                        variant="outline"
+                                        color="red"
+                                        size="lg"
+                                        onClick={() =>
+                                            setOpenDialogType(
+                                                OpenDialogType.BulkDelete,
+                                            )
+                                        }
+                                        disabled={selectedCount === 0}
+                                        aria-label="Delete selected entries"
+                                    >
+                                        <MdDelete size={18} />
+                                    </ActionIcon>
+                                </Tooltip>
                             )}
 
-                            <ActionIcon
-                                variant={isSelectMode ? "filled" : "outline"}
-                                color={tracker.color}
-                                onClick={() => setIsSelectMode((prev) => !prev)}
-                                disabled={entries.length === 0}
-                                size="lg"
-                            >
-                                <MdSelectAll size={18} />
-                            </ActionIcon>
+                            <Tooltip label="Select entries">
+                                <ActionIcon
+                                    variant={isSelectMode ? "filled" : "outline"}
+                                    color={tracker.color}
+                                    onClick={() => setIsSelectMode((prev) => !prev)}
+                                    disabled={entries.length === 0}
+                                    size="lg"
+                                    aria-label="Select entries"
+                                >
+                                    <MdSelectAll size={18} />
+                                </ActionIcon>
+                            </Tooltip>
                             <ColumnVisibilityMenu />
 
-                            <ActionIcon
-                                variant="outline"
-                                color={tracker.color}
-                                size={"lg"}
-                                onClick={() =>
-                                    setOpenDialogType(
-                                        OpenDialogType.ExportEntries,
-                                    )
-                                }
-                            >
-                                <CiExport size={18} />
-                            </ActionIcon>
+                            <Tooltip label="Export entries">
+                                <ActionIcon
+                                    variant="outline"
+                                    color={tracker.color}
+                                    size={"lg"}
+                                    onClick={() =>
+                                        setOpenDialogType(
+                                            OpenDialogType.ExportEntries,
+                                        )
+                                    }
+                                    aria-label="Export entries"
+                                >
+                                    <CiExport size={18} />
+                                </ActionIcon>
+                            </Tooltip>
 
-                            <ActionIcon
-                                variant="outline"
-                                color={tracker.color}
-                                size="lg"
-                                onClick={() =>
-                                    setOpenDialogType(OpenDialogType.NoteView)
-                                }
-                            >
-                                <TbNotes size={18} />
-                            </ActionIcon>
+                            <Tooltip label="Note view">
+                                <ActionIcon
+                                    variant="outline"
+                                    color={tracker.color}
+                                    size="lg"
+                                    onClick={() =>
+                                        setOpenDialogType(OpenDialogType.NoteView)
+                                    }
+                                    aria-label="Note view"
+                                >
+                                    <TbNotes size={18} />
+                                </ActionIcon>
+                            </Tooltip>
                         </Group>
                     </Group>
 
@@ -300,7 +313,7 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                                             }
                                             onClick={toggleSelectAll}
                                         >
-                                            Select All
+                                            Select all
                                         </Button>
                                         {canEditData &&
                                             fields.some(
@@ -318,6 +331,7 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                                                     disabled={
                                                         selectedCount === 0
                                                     }
+                                                    aria-label="Rerun calculated fields"
                                                 >
                                                     <TbRefresh size={18} />
                                                 </ActionIcon>
@@ -333,6 +347,7 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                                                     )
                                                 }
                                                 disabled={selectedCount === 0}
+                                                aria-label="Delete selected entries"
                                             >
                                                 <MdDelete size={18} />
                                             </ActionIcon>
@@ -472,6 +487,8 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                         setSelectedEntry(undefined);
                     }}
                     severity="warning"
+                    title="Delete entry"
+                    confirmLabel="Delete"
                     message="Are you sure you want to delete this entry?"
                 />
             )}
@@ -486,6 +503,8 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                         setOpenDialogType(undefined);
                     }}
                     severity="warning"
+                    title="Delete entries"
+                    confirmLabel="Delete"
                     message={`Are you sure you want to delete ${selectedCount} selected ${
                         selectedCount === 1 ? "entry" : "entries"
                     }?`}
@@ -542,7 +561,7 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                 selectedEntry && (
                     <EntryFormDialog
                         tracker={tracker}
-                        title="Duplicate Entry"
+                        title="Duplicate entry"
                         initialValues={selectedEntry.fieldValues.reduce(
                             (acc, field) => {
                                 acc[field.fieldName] = field.value;
@@ -582,18 +601,19 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
                         await ExportCsv(tracker.id, selectedViewId);
                         setOpenDialogType(undefined);
                     }}
-                    title="Export data"
+                    title="Export entries"
+                    confirmLabel="Export"
                     message={
                         <Text>
                             Would you like to export entries for{" "}
-                            <Text component="span" fw={700} c="blue">
+                            <Text component="span" fw={700}>
                                 {tracker.name}
                             </Text>
                             {viewName && (
                                 <>
                                     {" "}
                                     with selected view{" "}
-                                    <Text component="span" fw={700} c="green">
+                                    <Text component="span" fw={700}>
                                         {viewName}
                                     </Text>
                                 </>
@@ -607,8 +627,9 @@ export default function Entries({ autoOpenCreate = false }: EntriesProps) {
             <Modal
                 opened={openDialogType === OpenDialogType.NoteView}
                 onClose={() => setOpenDialogType(undefined)}
-                title="Note View"
+                title="Note view"
                 size="xl"
+                centered
                 styles={{
                     body: {
                         display: "flex",

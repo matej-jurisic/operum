@@ -136,6 +136,7 @@ export default function SortableTrackerCard({
                                                         e.stopPropagation();
                                                         onQuickAdd(tracker);
                                                     }}
+                                                    aria-label={`Add entry to ${tracker.name}`}
                                                 >
                                                     <FiPlus size={18} />
                                                 </ActionIcon>
@@ -153,6 +154,7 @@ export default function SortableTrackerCard({
                                                     onClick={(e) =>
                                                         e.stopPropagation()
                                                     }
+                                                    aria-label={`Actions for ${tracker.name}`}
                                                 >
                                                     <FiMoreVertical size={18} />
                                                 </ActionIcon>
@@ -196,6 +198,7 @@ export default function SortableTrackerCard({
                                                 e.stopPropagation();
                                                 onQuickAdd(tracker);
                                             }}
+                                            aria-label={`Add entry to ${tracker.name}`}
                                         >
                                             <FiPlus size={18} />
                                         </ActionIcon>

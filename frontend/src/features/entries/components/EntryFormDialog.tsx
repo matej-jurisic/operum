@@ -1,4 +1,4 @@
-import { Button, Modal, Stack } from "@mantine/core";
+import { Button, Group, Modal, Stack } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
 import FieldValueInput from "../../fields/components/FieldValueInput";
@@ -52,7 +52,7 @@ export function GetStringValue(type: string | unknown, value: unknown) {
 }
 
 export default function EntryFormDialog(props: EntryFormDialogProps) {
-    const title = props.title ?? (props.entryId ? "Update Entry" : "Create Entry");
+    const title = props.title ?? (props.entryId ? "Edit entry" : "Create entry");
     const { fields } = useFields();
     const { updateEntry, createEntry } = useTrackerOperations();
 
@@ -101,9 +101,14 @@ export default function EntryFormDialog(props: EntryFormDialogProps) {
                                 />
                             ))}
 
-                            <Button color={props.tracker.color} type="submit">
-                                {props.entryId ? "Update" : "Create"}
-                            </Button>
+                            <Group justify="flex-end">
+                                <Button variant="default" onClick={props.onClose}>
+                                    Cancel
+                                </Button>
+                                <Button color={props.tracker.color} type="submit">
+                                    {props.entryId ? "Save" : "Create"}
+                                </Button>
+                            </Group>
 
                         </Stack>
                     </form>

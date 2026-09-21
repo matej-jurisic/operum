@@ -1,4 +1,4 @@
-import { Button, Modal, Stack } from "@mantine/core";
+import { Button, Group, Modal, Stack } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { entriesController } from "../api/entriesController";
 import FieldValueInput from "../../fields/components/FieldValueInput";
@@ -40,9 +40,14 @@ export default function QuickAddEntryDialog({ tracker, onClose, onCreated }: Pro
                     {inputtableFields.map((field) => (
                         <FieldValueInput key={field.id} field={field} form={form} />
                     ))}
-                    <Button color={tracker.color} type="submit">
-                        Add Entry
-                    </Button>
+                    <Group justify="flex-end">
+                        <Button variant="default" onClick={onClose}>
+                            Cancel
+                        </Button>
+                        <Button color={tracker.color} type="submit">
+                            Add entry
+                        </Button>
+                    </Group>
                 </Stack>
             </form>
         </Modal>

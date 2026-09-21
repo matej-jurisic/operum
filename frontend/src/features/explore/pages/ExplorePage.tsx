@@ -14,6 +14,7 @@ import {
     Title,
     useMantineTheme,
 } from "@mantine/core";
+import { useDocumentTitle } from "../../../shared/hooks/useDocumentTitle";
 import { useForm } from "@mantine/form";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MdAdd } from "react-icons/md";
@@ -129,6 +130,7 @@ function readStateFromUrl(raw: string | null): ExploreState {
 }
 
 export default function ExplorePage() {
+    useDocumentTitle("Explore");
     const theme = useMantineTheme();
     const [searchParams, setSearchParams] = useSearchParams();
 

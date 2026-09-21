@@ -5,6 +5,7 @@ import {
     Stack,
     Tooltip,
 } from "@mantine/core";
+import { notifySuccess } from "../../../shared/utils/notify";
 import { useEffect, useMemo, useState } from "react";
 import { FiBell, FiBellOff, FiPlus } from "react-icons/fi";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
@@ -148,6 +149,8 @@ export default function Notifications() {
                             setSelectedNotification(undefined);
                         }}
                         severity="warning"
+                        title="Delete notification"
+                        confirmLabel="Delete"
                         message={`Are you sure you want to delete the notification "${selectedNotification.name}"?`}
                     />
                 )}
@@ -159,11 +162,12 @@ export default function Notifications() {
                         onClose={() => setOpenDialogType(undefined)}
                         onConfirm={async () => {
                             await _resetNotification(selectedNotification.id);
+                            notifySuccess("Notification reset");
                             setOpenDialogType(undefined);
                             setSelectedNotification(undefined);
                         }}
-                        severity="info"
                         title="Reset notification"
+                        confirmLabel="Reset"
                         message={`"${selectedNotification.name}" will alert again on its next check about everything that currently matches, including entries it has already reported.`}
                     />
                 )}

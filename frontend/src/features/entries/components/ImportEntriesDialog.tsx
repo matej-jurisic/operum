@@ -47,7 +47,7 @@ export default function ImportEntriesDialog(props: ImportEntriesDialogProps) {
             centered
             opened
             onClose={props.onClose}
-            title="Import Entries"
+            title="Import entries"
             size="lg"
         >
             <form
@@ -75,6 +75,7 @@ export default function ImportEntriesDialog(props: ImportEntriesDialogProps) {
                                     onClick={() =>
                                         clipboard.copy(generateCsvHeader())
                                     }
+                                    aria-label="Copy header"
                                 >
                                     <FiCopy size={14} />
                                 </ActionIcon>
@@ -97,9 +98,14 @@ export default function ImportEntriesDialog(props: ImportEntriesDialogProps) {
                         placeholder="Upload file"
                         {...form.getInputProps("file")}
                     />
-                    <Button color={props.tracker.color} type="submit">
-                        Import
-                    </Button>
+                    <Group justify="flex-end">
+                        <Button variant="default" onClick={props.onClose}>
+                            Cancel
+                        </Button>
+                        <Button color={props.tracker.color} type="submit">
+                            Import
+                        </Button>
+                    </Group>
                 </Stack>
             </form>
         </Modal>

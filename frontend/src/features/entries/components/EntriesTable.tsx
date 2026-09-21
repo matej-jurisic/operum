@@ -89,7 +89,7 @@ export function EntriesTable({
         if (isColumnVisible(ExtraColumns.CreatedAt)) {
             headers.push({
                 id: "createdAt",
-                label: "Created At",
+                label: "Created at",
                 minWidth: gridColumMinWidth.datetime,
                 width: "auto",
             });
@@ -160,6 +160,7 @@ export function EntriesTable({
                                     variant="outline"
                                     color={tracker.color}
                                     onClick={() => onViewDetails(entry)}
+                                    aria-label="View entry details"
                                 >
                                     <CiBoxList size={16} />
                                 </ActionIcon>
@@ -169,6 +170,7 @@ export function EntriesTable({
                                             variant="outline"
                                             color="green"
                                             onClick={() => onEdit(entry)}
+                                            aria-label="Edit entry"
                                         >
                                             <MdEdit size={16} />
                                         </ActionIcon>
@@ -176,6 +178,7 @@ export function EntriesTable({
                                             variant="outline"
                                             color="gray"
                                             onClick={() => onDuplicate(entry)}
+                                            aria-label="Duplicate entry"
                                         >
                                             <IoDuplicateOutline size={16} />
                                         </ActionIcon>
@@ -183,6 +186,7 @@ export function EntriesTable({
                                             variant="outline"
                                             color="red"
                                             onClick={() => onDelete(entry)}
+                                            aria-label="Delete entry"
                                         >
                                             <MdDelete size={16} />
                                         </ActionIcon>

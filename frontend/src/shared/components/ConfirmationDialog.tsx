@@ -5,9 +5,12 @@ interface ConfirmationDialogProps {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: () => void;
-    title?: string;
+    title: string;
     message: string | JSX.Element;
-    severity?: "info" | "warning" | "important";
+    /** Name the action ("Delete", "Remove"); defaults to "Confirm". */
+    confirmLabel?: string;
+    /** "warning" marks a destructive action and turns the confirm button red. */
+    severity?: "info" | "warning";
 }
 
 export default function ConfirmationDialog({
@@ -16,22 +19,15 @@ export default function ConfirmationDialog({
     onConfirm,
     title,
     message,
+    confirmLabel = "Confirm",
     severity = "info",
 }: ConfirmationDialogProps) {
-    const confirmColor = {
-        info: "blue",
-        warning: "red",
-        important: "red",
-    }[severity];
-
     return (
         <Modal
             centered
             opened={isOpen}
             onClose={onClose}
-            title={
-                title ?? severity.charAt(0).toUpperCase() + severity.slice(1)
-            }
+            title={title}
             withCloseButton
             padding="lg"
         >
@@ -46,8 +42,12 @@ export default function ConfirmationDialog({
                     <Button variant="outline" onClick={onClose} color="gray">
                         Cancel
                     </Button>
-                    <Button autoFocus onClick={onConfirm} color={confirmColor}>
-                        Confirm
+                    <Button
+                        autoFocus
+                        onClick={onConfirm}
+                        color={severity === "warning" ? "red" : "blue"}
+                    >
+                        {confirmLabel}
                     </Button>
                 </Group>
             </Stack>

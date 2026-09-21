@@ -38,13 +38,13 @@ export function ExtractFieldsDialog(props: ExtractFieldsDialogProps) {
                 value.trim().length === 0
                     ? "Tracker name is required"
                     : value.length > 100
-                    ? "Name must be shorter than 100 characters"
+                    ? "Tracker name must be at most 100 characters"
                     : null,
             referenceFieldName: (value) =>
                 value.trim().length === 0
                     ? "Field name is required"
                     : value.length > 30
-                    ? "Name must be shorter than 30 characters"
+                    ? "Field name must be at most 30 characters"
                     : null,
         },
     });

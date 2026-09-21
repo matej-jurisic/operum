@@ -183,7 +183,7 @@ export function FilterForm({
                     What this widget filters
                 </Text>
                 <Text size="xs" c="dimmed">
-                    Each clause becomes an input on the board. Its value is typed in
+                    Each clause becomes an input on the dashboard. Its value is typed in
                     there, not here.
                 </Text>
                 <AbstractClauseListEditor

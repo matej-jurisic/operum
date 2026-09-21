@@ -214,6 +214,7 @@ export function CalendarCard({
                             variant="subtle"
                             color={color || "blue"}
                             onClick={() => setSelectedDate(undefined)}
+                            aria-label="Back to calendar"
                         >
                             <MdArrowBack size={16} />
                         </ActionIcon>
@@ -268,6 +269,7 @@ export function CalendarCard({
                                                             event.entryId,
                                                         )
                                                     }
+                                                    aria-label="Open entry"
                                                 >
                                                     <MdLink size={18} />
                                                 </ActionIcon>

@@ -138,6 +138,7 @@ export function EntriesCards({
                                                 onClick={() =>
                                                     onViewDetails(entry)
                                                 }
+                                                aria-label="View entry details"
                                             >
                                                 <CiBoxList size={16} />
                                             </ActionIcon>
@@ -150,6 +151,7 @@ export function EntriesCards({
                                                         onClick={() =>
                                                             onEdit(entry)
                                                         }
+                                                        aria-label="Edit entry"
                                                     >
                                                         <MdEdit size={16} />
                                                     </ActionIcon>
@@ -160,6 +162,7 @@ export function EntriesCards({
                                                         onClick={() =>
                                                             onDuplicate(entry)
                                                         }
+                                                        aria-label="Duplicate entry"
                                                     >
                                                         <IoDuplicateOutline
                                                             size={16}
@@ -172,6 +175,7 @@ export function EntriesCards({
                                                         onClick={() =>
                                                             onDelete(entry)
                                                         }
+                                                        aria-label="Delete entry"
                                                     >
                                                         <MdDelete size={16} />
                                                     </ActionIcon>

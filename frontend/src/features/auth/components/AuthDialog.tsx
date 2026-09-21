@@ -1,4 +1,5 @@
 import { Alert, Anchor, Checkbox, Group, Modal, PasswordInput, Stack, Text, TextInput } from "@mantine/core";
+import { PASSWORD_MIN_LENGTH, validatePassword, validatePasswordConfirmation } from "../utils/passwordRules";
 import { useForm } from "@mantine/form";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -51,27 +52,9 @@ export default function AuthDialog(props: Props) {
                 }
                 return null;
             },
-            password: (value) => {
-                if (value.length < 6) {
-                    return "Password must be at least 6 characters long";
-                }
-                if (!/[A-Z]/.test(value)) {
-                    return "Password must include an uppercase letter";
-                }
-                if (!/[a-z]/.test(value)) {
-                    return "Password must include a lowercase letter";
-                }
-                if (!/\d/.test(value)) {
-                    return "Password must include a number";
-                }
-                return null;
-            },
-            confirmPassword: (value, values) => {
-                if (value !== values.password) {
-                    return "Passwords must match";
-                }
-                return null;
-            },
+            password: validatePassword,
+            confirmPassword: (value, values) =>
+                validatePasswordConfirmation(value, values.password),
             agreedToTerms: (value) =>
                 !value ? "You must agree to the Terms and Privacy Policy" : null,
         },
@@ -121,7 +104,7 @@ export default function AuthDialog(props: Props) {
                                 </Alert>
                             )}
                             <TextInput
-                                label="Username or Email"
+                                label="Username or email"
                                 required
                                 {...loginForm.getInputProps("credentials")}
                             />
@@ -151,11 +134,12 @@ export default function AuthDialog(props: Props) {
                             <PasswordInput
                                 required
                                 label="Password"
+                                description={`At least ${PASSWORD_MIN_LENGTH} characters`}
                                 {...registerForm.getInputProps("password")}
                             />
                             <PasswordInput
                                 required
-                                label="Confirm Password"
+                                label="Confirm password"
                                 {...registerForm.getInputProps("confirmPassword")}
                             />
                             <Checkbox

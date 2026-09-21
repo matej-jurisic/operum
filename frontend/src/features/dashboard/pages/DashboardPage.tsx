@@ -8,6 +8,7 @@ import {
     Title,
     useMantineTheme,
 } from "@mantine/core";
+import { useDocumentTitle } from "../../../shared/hooks/useDocumentTitle";
 import { useMediaQuery } from "@mantine/hooks";
 import { observer } from "mobx-react";
 import { createElement, useCallback, useEffect, useState } from "react";
@@ -241,14 +242,14 @@ function DashboardContent({
                         <TbLayoutDashboard size={36} />
                     </ThemeIcon>
                     <Text fw={700} size="xl">
-                        Nothing on this board yet
+                        Nothing on this dashboard yet
                     </Text>
                     <Button
                         color={color}
                         leftSection={<FiPlus size={16} />}
                         onClick={() => setIsWidgetsOpen(true)}
                     >
-                        Get Started
+                        Get started
                     </Button>
                 </Stack>
             ) : (
@@ -392,6 +393,7 @@ const DashboardPage = observer(function DashboardPage() {
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
     const activeBoard = boards.find((b) => b.id === dashboardId);
+    useDocumentTitle(activeBoard?.name ?? "Dashboard");
 
     // Resolve a bare /dashboard to the last board that was opened
     useEffect(() => {
@@ -487,13 +489,13 @@ const DashboardPage = observer(function DashboardPage() {
                         <TbLayoutDashboard size={36} />
                     </ThemeIcon>
                     <Text fw={700} size="xl">
-                        No boards yet
+                        No dashboards yet
                     </Text>
                     <Button
                         leftSection={<FiPlus size={16} />}
                         onClick={() => setIsCreateOpen(true)}
                     >
-                        Get Started
+                        Get started
                     </Button>
                 </Stack>
                 {createModal}
@@ -536,8 +538,9 @@ const DashboardPage = observer(function DashboardPage() {
                 isOpen={isDeleteOpen}
                 onClose={() => setIsDeleteOpen(false)}
                 onConfirm={handleDelete}
-                title={`Delete "${activeBoard.name}"?`}
-                message="This will permanently delete the board and all its items."
+                title="Delete dashboard"
+                confirmLabel="Delete"
+                message={`"${activeBoard.name}" and all its items will be permanently deleted.`}
                 severity="warning"
             />
         </>

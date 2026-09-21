@@ -354,6 +354,7 @@ export default function TrackerWizard({ onClose, onConfirm }: Props) {
                                                     removeField(f.id)
                                                 }
                                                 mt={fieldErrors[f.id] ? -20 : 0}
+                                                aria-label="Remove field"
                                             >
                                                 <MdDelete size={16} />
                                             </ActionIcon>
@@ -459,7 +460,7 @@ export default function TrackerWizard({ onClose, onConfirm }: Props) {
                             step === 2 ? <MdCheck size={18} /> : undefined
                         }
                     >
-                        {step === 2 ? "Create Tracker" : "Next"}
+                        {step === 2 ? "Create tracker" : "Next"}
                     </Button>
                 </Group>
             </Stack>

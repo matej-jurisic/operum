@@ -357,7 +357,7 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
         <Modal
             opened
             onClose={onClose}
-            title={isEdit ? "Edit Notification" : "Create Notification"}
+            title={isEdit ? "Edit notification" : "Create notification"}
             centered
             size="lg"
         >
@@ -403,8 +403,8 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
                         {!isEntry && (
                             <Stack gap="md" mt="xs">
                                 <Select
-                                    label="Analytic"
-                                    placeholder="Select a single-value analytic"
+                                    label="Chart"
+                                    placeholder="Select a single-value chart"
                                     data={singleValueCodes.map((c) => ({ value: c.code, label: c.name }))}
                                     value={form.values.analyticCode || null}
                                     onChange={handleCodeChange}
@@ -469,6 +469,7 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
                                                 variant="outline"
                                                 onClick={() => form.removeListItem("filters", i)}
                                                 mt="lg"
+                                                aria-label="Remove condition"
                                             >
                                                 <MdDelete size={16} />
                                             </ActionIcon>
@@ -536,7 +537,7 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
                                 />
 
                                 <TimePicker
-                                    label="Time of Day"
+                                    label="Time of day"
                                     format="24h"
                                     {...form.getInputProps("timeOfDay")}
                                 />
@@ -623,16 +624,21 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
                     />
 
                     <Select
-                        label="Scope to View"
+                        label="Scope to view"
                         placeholder="All entries (no filter)"
                         data={views.map((v) => ({ value: v.id, label: v.name }))}
                         {...form.getInputProps("viewId")}
                         clearable
                     />
 
-                    <Button color={tracker.color} type="submit" size="md">
-                        {isEdit ? "Save Changes" : "Create Notification"}
-                    </Button>
+                    <Group justify="flex-end">
+                        <Button variant="default" onClick={onClose}>
+                            Cancel
+                        </Button>
+                        <Button color={tracker.color} type="submit">
+                            {isEdit ? "Save" : "Create"}
+                        </Button>
+                    </Group>
                 </Stack>
             </form>
         </Modal>

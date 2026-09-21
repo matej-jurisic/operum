@@ -203,7 +203,7 @@ export function FilterWidgetCard({
                         {presets.length > 0 && (
                             <Select
                                 label="Apply a preset"
-                                placeholder="Pick a preset…"
+                                placeholder="Select a preset"
                                 data={presets.map((p) => ({
                                     value: p.id,
                                     label: p.name,

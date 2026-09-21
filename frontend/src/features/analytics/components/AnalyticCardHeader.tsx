@@ -96,6 +96,7 @@ export function AnalyticCardHeader({
             variant="outline"
             style={{ pointerEvents: "auto" }}
             onClick={() => onEdit(analyticId)}
+              aria-label="Edit widget"
           >
             <MdEdit size={18} />
           </ActionIcon>
@@ -107,6 +108,7 @@ export function AnalyticCardHeader({
             variant="outline"
             style={{ pointerEvents: "auto" }}
             onClick={() => onRemove(analyticId)}
+              aria-label="Remove widget"
           >
             <MdDelete size={18} />
           </ActionIcon>

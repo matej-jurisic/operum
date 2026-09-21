@@ -1,3 +1,4 @@
+import { MOD_KEY } from "../../utils/modKey";
 import {
     closestCenter,
     DndContext,
@@ -250,7 +251,7 @@ const AppSidebar = observer(
                 <Box px={px} mb="xs" h={BLOCK_HEIGHT}>
                     {collapsed ? (
                         <Group justify="center" h="100%">
-                            <Tooltip label="Search  ⌘K" position="right" withArrow>
+                            <Tooltip label={`Search (${MOD_KEY} K)`} position="right" withArrow>
                                 <ActionIcon
                                     variant="default"
                                     size="lg"
@@ -287,7 +288,7 @@ const AppSidebar = observer(
                                 </Group>
                                 <Group gap={4} wrap="nowrap">
                                     <Kbd size="xs" style={KBD_STYLE}>
-                                        ⌘
+                                        {MOD_KEY}
                                     </Kbd>
                                     <Kbd size="xs" style={KBD_STYLE}>
                                         K

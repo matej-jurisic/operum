@@ -1,3 +1,4 @@
+import { formatDateOnlyFromDate } from "./TypeFormatter";
 import { FieldDto } from "../../../features/fields/types/FieldDto";
 import { OperatorTypes } from "../../constants/DataTypes";
 import { fieldTypes } from "../../constants/DataTypesForSelect";
@@ -67,7 +68,7 @@ export const describeAbstractClause = (c: AbstractClause): string => {
         typeof c.value === "string" && isDynamicDateToken(c.value)
             ? formatDynamicDateToken(c.value)
             : c.value instanceof Date
-              ? c.value.toLocaleDateString()
+              ? formatDateOnlyFromDate(c.value)
               : String(c.value);
 
     return `${type} ${operator} ${value}`.replace(/\s+/g, " ").trim();

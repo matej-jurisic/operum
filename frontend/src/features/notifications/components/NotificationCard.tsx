@@ -9,6 +9,7 @@ import {
     Title,
     Tooltip,
 } from "@mantine/core";
+import { formatDateTime } from "../../../shared/utils/formatters/TypeFormatter";
 import { MdDelete, MdEdit, MdReplay } from "react-icons/md";
 import { useNotifications } from "../context/NotificationsContext";
 import { NotificationEventDto, TrackerNotificationDto } from "../types/NotificationDto";
@@ -105,7 +106,7 @@ export default function NotificationCard({
                     </Group>
                     {notification.lastFiredAt && (
                         <Text size="xs" c="dimmed">
-                            Last fired: {new Date(notification.lastFiredAt).toLocaleString()}
+                            Last fired: {formatDateTime(notification.lastFiredAt)}
                         </Text>
                     )}
                 </Stack>

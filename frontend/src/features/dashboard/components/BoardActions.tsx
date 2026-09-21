@@ -30,7 +30,7 @@ export default function BoardActions({
                     variant="outline"
                     color={color}
                     px={isMobile ? "xs" : undefined}
-                    aria-label="Board actions"
+                    aria-label="Dashboard actions"
                     style={{ flexShrink: 0 }}
                 >
                     <CiSettings size={18} />
@@ -47,10 +47,10 @@ export default function BoardActions({
                     leftSection={<TbArrowsMove size={16} />}
                     onClick={onToggleArrange}
                 >
-                    {isConfiguring ? "Stop arranging" : "Arrange board"}
+                    {isConfiguring ? "Stop arranging" : "Arrange dashboard"}
                 </Menu.Item>
                 <Menu.Item leftSection={<MdEdit size={16} />} onClick={onEdit}>
-                    Edit board
+                    Edit dashboard
                 </Menu.Item>
                 <Menu.Divider />
                 <Menu.Item
@@ -58,7 +58,7 @@ export default function BoardActions({
                     leftSection={<MdDelete size={16} />}
                     onClick={onDelete}
                 >
-                    Delete board
+                    Delete dashboard
                 </Menu.Item>
             </Menu.Dropdown>
         </Menu>

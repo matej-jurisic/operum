@@ -37,8 +37,8 @@ interface TemplateItem {
 }
 
 const trackerTypeOptions = [
-    { value: PublicityEnum.Draft.toString(), label: "Template Draft" },
-    { value: PublicityEnum.Public.toString(), label: "Public Template" },
+    { value: PublicityEnum.Draft.toString(), label: "Template draft" },
+    { value: PublicityEnum.Public.toString(), label: "Public template" },
 ];
 
 const renderTemplateOption: SelectProps["renderOption"] = ({
@@ -91,7 +91,7 @@ export default function TrackerFormDialog(props: TrackerFormDialogProps) {
                 value.trim().length === 0
                     ? `${entityName} name is required`
                     : value.length > 30
-                      ? `${entityName} name must be shorter than 30 characters`
+                      ? `${entityName} name must be at most 30 characters`
                       : null,
             description: (value) =>
                 value && value.length > 500
@@ -140,8 +140,8 @@ export default function TrackerFormDialog(props: TrackerFormDialogProps) {
             onClose={props.onClose}
             title={
                 props.trackerId
-                    ? `Update ${entityName}`
-                    : `Create ${entityName}`
+                    ? `Edit ${entityName.toLowerCase()}`
+                    : `Create ${entityName.toLowerCase()}`
             }
             centered
         >
@@ -149,7 +149,7 @@ export default function TrackerFormDialog(props: TrackerFormDialogProps) {
                 <Stack>
                     {props.withTemplate && !props.trackerId && (
                         <Select
-                            label={`From Template`}
+                            label="From template"
                             placeholder={"Select template"}
                             data={trackerOptions}
                             renderOption={renderTemplateOption}
@@ -158,20 +158,18 @@ export default function TrackerFormDialog(props: TrackerFormDialogProps) {
                         />
                     )}
                     <TextInput
-                        label={`${entityName} Name`}
-                        placeholder={`Enter ${entityName.toLowerCase()} name`}
+                        label={`${entityName} name`}
                         maxLength={30}
                         {...form.getInputProps("name")}
                     />
                     <Textarea
-                        label={`${entityName} Description`}
+                        label={`${entityName} description`}
                         autosize
-                        placeholder={`Enter ${entityName.toLowerCase()} description`}
                         maxLength={500}
                         {...form.getInputProps("description")}
                     />
                     <ColorSwatchPicker
-                        label={`${entityName} Color`}
+                        label={`${entityName} color`}
                         value={form.values.color}
                         onChange={(c) =>
                             form.setFieldValue("color", c ?? "indigo")
@@ -188,7 +186,7 @@ export default function TrackerFormDialog(props: TrackerFormDialogProps) {
                     )}
                     {props.asTemplate && props.trackerId && (
                         <Select
-                            label={`${entityName} Type`}
+                            label={`${entityName} type`}
                             placeholder={`Select ${entityName.toLowerCase()} type`}
                             data={trackerTypeOptions}
                             allowDeselect={false}
@@ -196,11 +194,14 @@ export default function TrackerFormDialog(props: TrackerFormDialogProps) {
                             value={form.values.trackerTypeId?.toString()}
                         />
                     )}
-                    <Button type="submit">
-                        {props.trackerId
-                            ? `Update ${entityName}`
-                            : `Create ${entityName}`}
-                    </Button>
+                    <Group justify="flex-end">
+                        <Button variant="default" onClick={props.onClose}>
+                            Cancel
+                        </Button>
+                        <Button type="submit">
+                            {props.trackerId ? "Save" : "Create"}
+                        </Button>
+                    </Group>
                 </Stack>
             </form>
         </Modal>

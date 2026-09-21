@@ -7,6 +7,7 @@ import {
     useSensor,
     useSensors,
 } from "@dnd-kit/core";
+import { notifySuccess } from "../../../shared/utils/notify";
 import { restrictToParentElement } from "@dnd-kit/modifiers";
 import {
     arrayMove,
@@ -22,9 +23,8 @@ import {
     Stack,
     Tooltip,
 } from "@mantine/core";
-import { notifications } from "@mantine/notifications";
 import { useEffect, useState } from "react";
-import { CiBoxList } from "react-icons/ci";
+import { RiListOrdered2 } from "react-icons/ri";
 import { FiPlus } from "react-icons/fi";
 import { TbArrowsSplit } from "react-icons/tb";
 import { useNavigate } from "react-router-dom";
@@ -215,7 +215,7 @@ export default function Fields(props: FieldsProps) {
                                         color={props.tracker.color}
                                         aria-label="Reorder fields"
                                     >
-                                        <CiBoxList size={18} />
+                                        <RiListOrdered2 size={18} />
                                     </ActionIcon>
                                 </Group>
                             </>
@@ -280,7 +280,9 @@ export default function Fields(props: FieldsProps) {
                         setSelectedField(undefined);
                         setOpenDialogType(undefined);
                     }}
-                    severity="important"
+                    severity="warning"
+                    title="Delete field"
+                    confirmLabel="Delete"
                     message="Deleting a field will delete all the data stored in it."
                 />
             )}
@@ -310,10 +312,7 @@ export default function Fields(props: FieldsProps) {
                         onExtracted={(result) => {
                             setOpenDialogType(undefined);
                             stopSelecting();
-                            notifications.show({
-                                title: "Fields extracted",
-                                message: `${result.newTrackerName} now holds ${result.extractedEntryCount} rows.`,
-                            });
+                            notifySuccess(`${result.newTrackerName} now holds ${result.extractedEntryCount} rows.`, "Fields extracted");
                             navigate(
                                 `/trackers/${result.newTrackerId}/fields`
                             );

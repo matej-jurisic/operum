@@ -79,6 +79,7 @@ export function SingleValueCard({
                         variant="outline"
                         color={color}
                         onClick={() => onEntryClick(analytic.entryId!)}
+                        aria-label="Open entry"
                     >
                         <MdLink size={18} />
                     </ActionIcon>

@@ -250,7 +250,7 @@ export default function ViewFormDialog({
             opened
             centered
             onClose={onClose}
-            title={viewId ? "Edit View" : "Create View"}
+            title={viewId ? "Edit view" : "Create view"}
             size="lg"
             fullScreen={isMobile}
         >
@@ -258,15 +258,13 @@ export default function ViewFormDialog({
                 <Stack gap="lg">
                     <Stack gap="md">
                         <TextInput
-                            label="View Name"
-                            placeholder="Enter view name"
+                            label="View name"
                             required
                             maxLength={50}
                             {...form.getInputProps("name")}
                         />
                         <Textarea
                             label="Description"
-                            placeholder="Enter view description"
                             maxLength={500}
                             autosize
                             {...form.getInputProps("description")}
@@ -570,9 +568,14 @@ export default function ViewFormDialog({
                         />
                     </Stack>
 
-                    <Button color={tracker.color} type="submit" size="md">
-                        {viewId ? "Update View" : "Create View"}
-                    </Button>
+                    <Group justify="flex-end">
+                        <Button variant="default" onClick={onClose}>
+                            Cancel
+                        </Button>
+                        <Button color={tracker.color} type="submit">
+                            {viewId ? "Save" : "Create"}
+                        </Button>
+                    </Group>
                 </Stack>
             </form>
         </Modal>

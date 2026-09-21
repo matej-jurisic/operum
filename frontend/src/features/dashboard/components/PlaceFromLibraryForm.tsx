@@ -273,8 +273,8 @@ export function PlaceFromLibraryForm({
             {!preset && hasNothingInLibrary && (
                 <Alert color="gray" variant="light">
                     Nothing in the Widget Library yet. Open the Widget Library from the
-                    board menu to build a reusable one, or create a chart directly on this
-                    board.
+                    dashboard menu to build a reusable one, or create a chart directly on this
+                    dashboard.
                 </Alert>
             )}
 

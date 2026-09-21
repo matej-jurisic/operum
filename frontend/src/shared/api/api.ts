@@ -50,7 +50,7 @@ const clearUserData = () => {
 
 const showSessionExpiredNotification = () => {
     notifications.show({
-        title: "Session Expired",
+        title: "Session expired",
         message: "Please log in again.",
         color: "red",
         withBorder: true,

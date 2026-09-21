@@ -122,7 +122,7 @@ function panelTitle(panel: Panel): string {
             return "New entries table";
         case "place-chart":
         case "place-table":
-            return "Add to board";
+            return "Add to dashboard";
         case "edit-chart":
             return "Edit widget";
         case "edit-table":
@@ -438,7 +438,7 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
                                     hint={
                                         query || trackerFilter
                                             ? "No charts match this search."
-                                            : "Build one with New chart. It's saved here and placed on this board."
+                                            : "Build one with New chart. It's saved here and placed on this dashboard."
                                     }
                                 />
                             ) : (
@@ -489,7 +489,7 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
                                     hint={
                                         query || trackerFilter
                                             ? "No tables match this search."
-                                            : "Build one with New table. It's saved here and placed on this board."
+                                            : "Build one with New table. It's saved here and placed on this dashboard."
                                     }
                                 />
                             ) : (

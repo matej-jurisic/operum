@@ -59,7 +59,7 @@ export default function EntryDetailsDialog({
                         variant="filled"
                         miw="max-content"
                     >
-                        Entry Details
+                        Entry details
                     </Badge>
                 </Group>
             }
@@ -86,7 +86,7 @@ export default function EntryDetailsDialog({
                 <Divider label="Information" />
                 <Group justify="space-between">
                     <Text maw={"50%"} className="wrapped-text">
-                        Created At
+                        Created at
                     </Text>
                     <Text className="wrapped-text">
                         {formatDateTimeFromDate(new Date(entry.createdAt))}

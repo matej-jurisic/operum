@@ -79,7 +79,7 @@ export default function EntryFilterListEditor({
         <Stack gap="md">
             <Group justify="space-between" align="center">
                 <Text fw={500} size="md">
-                    Filtering Rules
+                    Filtering rules
                     {filters.length > 0 && (
                         <Text span c="dimmed" size="sm" ml="xs">
                             ({filters.length}/{maxFilters})
@@ -109,7 +109,7 @@ export default function EntryFilterListEditor({
                                 })
                             }
                         >
-                            Add Manually
+                            Add manually
                         </Menu.Item>
                         <Menu.Item
                             leftSection={<FiPlusSquare size={14} />}
@@ -118,7 +118,7 @@ export default function EntryFilterListEditor({
                                 setShowTemplateModal(true);
                             }}
                         >
-                            Add From Template
+                            Add from template
                         </Menu.Item>
                     </Menu.Dropdown>
                 </Menu>
@@ -227,13 +227,13 @@ export default function EntryFilterListEditor({
                         setSelectedFieldForTemplate("");
                     }}
                     centered
-                    title="Choose Filter Template"
+                    title="Choose filter template"
                     size="md"
                 >
                     <Stack gap="md">
                         <Select
-                            label="Select Field"
-                            placeholder="Choose a field to filter on"
+                            label="Select field"
+                            placeholder="Select a field to filter on"
                             allowDeselect={false}
                             data={fieldOptions}
                             value={selectedFieldForTemplate}

@@ -1,6 +1,7 @@
 import {
     Button,
     Checkbox,
+    Group,
     Modal,
     SegmentedControl,
     Select,
@@ -68,8 +69,8 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
             name: (value) =>
                 value.trim().length === 0
                     ? "Field name is required"
-                    : value.length > 30
-                    ? "Name must be shorter than 30 characters"
+                    : value.length > (props.fieldId ? 100 : 30)
+                    ? `Field name must be at most ${props.fieldId ? 100 : 30} characters`
                     : null,
             description: (value) =>
                 value && value.length > 500
@@ -80,7 +81,7 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
                 values.isCalculated && !value?.trim()
                     ? "Formula is required for calculated fields"
                     : values.isCalculated && value && value.length > 500
-                    ? "Formula cannot exceed 500 characters"
+                    ? "Formula must be at most 500 characters"
                     : null,
             selectOptions: (values, form) =>
                 form.type === "number" && values?.some((v) => isNaN(Number(v)))
@@ -160,7 +161,7 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
         <Modal
             opened
             onClose={props.onClose}
-            title={props.fieldId ? "Edit Field" : "Create Field"}
+            title={props.fieldId ? "Edit field" : "Create field"}
             centered
         >
             <form onSubmit={form.onSubmit(handleSubmit)}>
@@ -176,8 +177,7 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
                     />
 
                     <TextInput
-                        label="Field Name"
-                        placeholder="Enter field name"
+                        label="Field name"
                         maxLength={30}
                         {...form.getInputProps("name")}
                     />
@@ -185,7 +185,7 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
                     <Select
                         allowDeselect={false}
                         label="Type"
-                        placeholder="Choose field type"
+                        placeholder="Select field type"
                         data={isCalculated ? calculatedFieldTypes : fieldTypes}
                         required
                         {...form.getInputProps("type")}
@@ -196,7 +196,7 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
                         <>
                             <Select
                                 label="Referenced tracker"
-                                placeholder="Choose a tracker"
+                                placeholder="Select a tracker"
                                 searchable
                                 data={trackers.map((t) => ({
                                     value: t.id,
@@ -244,7 +244,6 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
 
                     <Textarea
                         label="Description"
-                        placeholder="Enter field description"
                         autosize
                         maxLength={500}
                         {...form.getInputProps("description")}
@@ -252,7 +251,7 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
 
                     {!isCalculated && (form.values.type === "string" || form.values.type === "number") && (
                         <TagsInput
-                            label="Suggested Options"
+                            label="Suggested options"
                             placeholder="Type and press Enter to add options"
                             {...form.getInputProps("selectOptions")}
                         />
@@ -266,9 +265,14 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
                         />
                     )}
 
-                    <Button color={props.tracker.color} type="submit">
-                        {props.fieldId ? "Update" : "Create"}
-                    </Button>
+                    <Group justify="flex-end">
+                        <Button variant="default" onClick={props.onClose}>
+                            Cancel
+                        </Button>
+                        <Button color={props.tracker.color} type="submit">
+                            {props.fieldId ? "Save" : "Create"}
+                        </Button>
+                    </Group>
                 </Stack>
             </form>
         </Modal>
