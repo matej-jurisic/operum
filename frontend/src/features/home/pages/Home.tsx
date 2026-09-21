@@ -237,8 +237,8 @@ const EXTRAS = [
     {
         icon: <TbBraces size={20} />,
         color: "blue",
-        title: "Edit a board as JSON",
-        text: "Rearrange, recolor, and retitle a whole board in one pass instead of widget by widget.",
+        title: "Build a board as JSON",
+        text: "Describe a whole board in JSON, widgets and filters included, and import it in one step. Or edit an existing one the same way.",
     },
 ];
 

@@ -639,47 +639,8 @@ namespace Operum.Service.Services.Dashboards
                 }
             }
 
-            var nextOrder = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.Order) + 1 : 0;
-
-            var (width, height) = DashboardGrid.DefaultSizeFor(widget.ResultType);
-            var nextRow = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.Y + i.H) : 0;
-
-            // Both grids are placed at once so neither has a hole the first time the board opens on the other screen size.
-            var nextMobileRow = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.MobileY + i.MobileH) : 0;
-
-            var sources = widget.Sources.OrderBy(s => s.Order).Select(widgetSource =>
-            {
-                overridesBySourceId.TryGetValue(widgetSource.Id, out var over);
-                return new DashboardItemSource
-                {
-                    Order = widgetSource.Order,
-                    WidgetSourceId = widgetSource.Id,
-                    Label = over?.Label,
-                    ViewId = over?.ViewId
-                };
-            }).ToList();
-
-            var item = new DashboardItem
-            {
-                DashboardId = dashboard.Id,
-                Order = nextOrder,
-                Type = DashboardWidgetTypes.Analytic,
-                WidgetId = widget.Id,
-                X = 0,
-                Y = nextRow,
-                W = width,
-                H = height,
-                MobileX = 0,
-                MobileY = nextMobileRow,
-                MobileW = DashboardGrid.MobileColumns,
-                MobileH = height,
-                DisplayMode = dto.DisplayMode,
-                MobileDisplayMode = dto.MobileDisplayMode,
-                YAxisFromZero = dto.YAxisFromZero,
-                Color = string.IsNullOrEmpty(dto.Color) ? null : dto.Color,
-                ShowTrend = dto.ShowTrend,
-                Sources = sources
-            };
+            var item = BuildAnalyticItem(dashboard, widget, dto, overridesBySourceId);
+            var sources = item.Sources;
 
             db.DashboardItems.Add(item);
             await db.SaveChangesAsync();
@@ -719,6 +680,54 @@ namespace Operum.Service.Services.Dashboards
                 ShowTrend = item.ShowTrend,
                 Sources = sourceDtos
             });
+        }
+
+        // Both grids are placed at once so neither has a hole the first time the board opens on the other screen size.
+        private static DashboardItem BuildAnalyticItem(
+            Dashboard dashboard,
+            Widget widget,
+            PlaceWidgetDto dto,
+            IReadOnlyDictionary<string, PlaceWidgetSourceOverrideDto> overridesBySourceId)
+        {
+            var nextOrder = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.Order) + 1 : 0;
+
+            var (width, height) = DashboardGrid.DefaultSizeFor(widget.ResultType);
+            var nextRow = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.Y + i.H) : 0;
+            var nextMobileRow = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.MobileY + i.MobileH) : 0;
+
+            var sources = widget.Sources.OrderBy(s => s.Order).Select(widgetSource =>
+            {
+                overridesBySourceId.TryGetValue(widgetSource.Id, out var over);
+                return new DashboardItemSource
+                {
+                    Order = widgetSource.Order,
+                    WidgetSourceId = widgetSource.Id,
+                    Label = over?.Label,
+                    ViewId = over?.ViewId
+                };
+            }).ToList();
+
+            return new DashboardItem
+            {
+                DashboardId = dashboard.Id,
+                Order = nextOrder,
+                Type = DashboardWidgetTypes.Analytic,
+                WidgetId = widget.Id,
+                X = 0,
+                Y = nextRow,
+                W = width,
+                H = height,
+                MobileX = 0,
+                MobileY = nextMobileRow,
+                MobileW = DashboardGrid.MobileColumns,
+                MobileH = height,
+                DisplayMode = dto.DisplayMode,
+                MobileDisplayMode = dto.MobileDisplayMode,
+                YAxisFromZero = dto.YAxisFromZero,
+                Color = string.IsNullOrEmpty(dto.Color) ? null : dto.Color,
+                ShowTrend = dto.ShowTrend,
+                Sources = sources
+            };
         }
 
         public async Task<Result<DashboardItemDto>> AddQuickAddItem(string dashboardId, AddDashboardQuickAddItemDto dto)
@@ -1466,39 +1475,11 @@ namespace Operum.Service.Services.Dashboards
                 source.ViewId = string.IsNullOrEmpty(sourceDto.ViewId) ? null : sourceDto.ViewId;
             }
 
-            string? conditionalTargetsJson = null;
-            if (item.Widget?.ResultType == AnalyticTypes.Goal && dto.GoalConditionalTargets.Count > 0)
-            {
-                var filterConfigs = dashboard.Items
-                    .Where(i => i.Type == DashboardWidgetTypes.Filter)
-                    .Select(i => TryParseFilterConfig(i.Config))
-                    .Where(c => c != null)
-                    .Select(c => c!)
-                    .ToList();
+            var targets = ValidateGoalConditionalTargets(dashboard, item, dto.GoalConditionalTargets);
+            if (targets.IsFailure)
+                return Result.Failure(targets.StatusCode, targets.Messages);
 
-                var connectedKeys = ConnectedFilterValues(item.Id, filterConfigs).Keys.ToHashSet();
-
-                var valueFieldType = item.Sources
-                    .SelectMany(s => s.WidgetSource?.Fields ?? [])
-                    .FirstOrDefault(f => f.Purpose == AnalyticPurposes.Value)?.Field?.Type;
-
-                foreach (var row in dto.GoalConditionalTargets)
-                {
-                    if (row.Conditions.Count == 0)
-                        return Result.Failure(ResultStatusCodes.BadRequest, Messages.Required("a condition for every conditional target"));
-
-                    if (!row.Conditions.Keys.All(connectedKeys.Contains))
-                        return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("condition for a filter this widget doesn't follow"));
-
-                    var target = row.Target?.Trim() ?? string.Empty;
-                    if (!GoalTargets.IsParseable(target) || !GoalTargets.MatchesFieldType(item.Widget.Code, valueFieldType, target))
-                        return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("conditional target for this field's type"));
-
-                    row.Target = target;
-                }
-
-                conditionalTargetsJson = JsonSerializer.Serialize(dto.GoalConditionalTargets, ConfigJsonOptions);
-            }
+            var conditionalTargetsJson = targets.Data;
 
             item.DisplayMode = dto.DisplayMode;
             item.MobileDisplayMode = dto.MobileDisplayMode;
@@ -1512,6 +1493,46 @@ namespace Operum.Service.Services.Dashboards
             // Only this placement changed, so only this placement is recalculated -- nothing
             // else on the board reads its sources, its axis or its targets.
             return Result.Success(await BuildWidgets(dashboard, new HashSet<string> { item.Id }));
+        }
+
+        // Null when there are no rows to keep: only a Goal placement has conditional targets, and an empty list means the default always applies.
+        private static Result<string?> ValidateGoalConditionalTargets(
+            Dashboard dashboard,
+            DashboardItem item,
+            List<GoalConditionalTargetDto> rows)
+        {
+            if (item.Widget?.ResultType != AnalyticTypes.Goal || rows.Count == 0)
+                return Result.Success<string?>(null);
+
+            var filterConfigs = dashboard.Items
+                .Where(i => i.Type == DashboardWidgetTypes.Filter)
+                .Select(i => TryParseFilterConfig(i.Config))
+                .Where(c => c != null)
+                .Select(c => c!)
+                .ToList();
+
+            var connectedKeys = ConnectedFilterValues(item.Id, filterConfigs).Keys.ToHashSet();
+
+            var valueFieldType = item.Sources
+                .SelectMany(s => s.WidgetSource?.Fields ?? [])
+                .FirstOrDefault(f => f.Purpose == AnalyticPurposes.Value)?.Field?.Type;
+
+            foreach (var row in rows)
+            {
+                if (row.Conditions.Count == 0)
+                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.Required("a condition for every conditional target"));
+
+                if (!row.Conditions.Keys.All(connectedKeys.Contains))
+                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("condition for a filter this widget doesn't follow"));
+
+                var target = row.Target?.Trim() ?? string.Empty;
+                if (!GoalTargets.IsParseable(target) || !GoalTargets.MatchesFieldType(item.Widget.Code, valueFieldType, target))
+                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("conditional target for this field's type"));
+
+                row.Target = target;
+            }
+
+            return Result.Success<string?>(JsonSerializer.Serialize(rows, ConfigJsonOptions));
         }
 
         // Only which columns an Entries widget shows and whether it collapses to a button: the tracker it reads from stays as placed. Returns this one table recomputed.

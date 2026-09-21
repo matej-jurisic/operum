@@ -1,3 +1,6 @@
+using Microsoft.Extensions.DependencyInjection;
+using Operum.Model;
+using Operum.Model.Common;
 using Operum.Model.Constants;
 using Operum.Model.Constants.Analytics;
 using Operum.Model.Constants.Fields;
@@ -15,6 +18,7 @@ using Operum.Tests.Extensions;
 using Operum.Tests.Util;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -3174,8 +3178,26 @@ namespace Operum.Tests.Tests.Dashboards
             return [.. json.GetProperty("messages").EnumerateArray().Select(m => m.GetString()!)];
         }
 
-        private static DashboardDocumentItemDto DocItem(DashboardDocumentDto document, string itemId)
-            => document.Items.Single(i => i.Id == itemId);
+        // The document names items by key and the API by id; these bridge a test that has one or the other.
+        private string KeyOf(string itemId)
+        {
+            using var scope = _factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<OperumContext>();
+            return db.DashboardItems.Where(i => i.Id == itemId).Select(i => i.Key).Single()!;
+        }
+
+        private string ItemIdOf(string dashboardId, string key)
+        {
+            using var scope = _factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<OperumContext>();
+            return db.DashboardItems.Where(i => i.DashboardId == dashboardId && i.Key == key).Select(i => i.Id).Single();
+        }
+
+        private DashboardDocumentItemDto DocItem(DashboardDocumentDto document, string itemId)
+        {
+            var key = KeyOf(itemId);
+            return document.Items.Single(i => i.Key == key);
+        }
 
         [Fact]
         public async Task GetDashboardDocument_CarriesPlacementAndEchoesWiringReadOnly()
@@ -3190,7 +3212,6 @@ namespace Operum.Tests.Tests.Dashboards
             var document = await GetDocument(client, dashboardId);
 
             Assert.Equal(DashboardDocumentDto.CurrentSchemaVersion, document.SchemaVersion);
-            Assert.Equal(dashboardId, document.Board.Id);
             Assert.Equal("My board", document.Board.Name);
 
             var item = DocItem(document, itemId);
@@ -3278,62 +3299,6 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Contains(messages, m => m.Contains("board.name"));
             Assert.Contains(messages, m => m.Contains("items[0].layout.w"));
             Assert.Contains(messages, m => m.Contains("items[0].mobileLayout.displayMode"));
-        }
-
-        [Fact]
-        public async Task SaveDashboardDocument_ItemLeftOut_IsRejected()
-        {
-            await _factory.SeedDatabaseAsync();
-            var client = await _factory.NewUserClient("docmissing");
-
-            var tracker = await CreateCapableTracker(client, "Workouts");
-            var dashboardId = await CreateDashboard(client);
-            var itemId = await AddLineItem(client, dashboardId, tracker);
-
-            var document = await GetDocument(client, dashboardId);
-            document.Items.Clear();
-
-            var response = await PutDocument(client, dashboardId, document);
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-            Assert.Contains(await Messages(response), m => m.Contains(itemId));
-
-            Assert.Equal(1, (await Widgets(client, dashboardId)).GetArrayLength());
-        }
-
-        [Fact]
-        public async Task SaveDashboardDocument_UnknownItem_IsRejected()
-        {
-            await _factory.SeedDatabaseAsync();
-            var client = await _factory.NewUserClient("docunknown");
-
-            var tracker = await CreateCapableTracker(client, "Workouts");
-            var dashboardId = await CreateDashboard(client);
-            await AddLineItem(client, dashboardId, tracker);
-
-            var document = await GetDocument(client, dashboardId);
-            document.Items.Add(new DashboardDocumentItemDto { Id = "not-a-real-item" });
-
-            var response = await PutDocument(client, dashboardId, document);
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-            Assert.Contains(await Messages(response), m => m.Contains("not-a-real-item"));
-        }
-
-        [Fact]
-        public async Task SaveDashboardDocument_EditedWiring_IsRejected()
-        {
-            await _factory.SeedDatabaseAsync();
-            var client = await _factory.NewUserClient("docwiring");
-
-            var tracker = await CreateCapableTracker(client, "Workouts");
-            var dashboardId = await CreateDashboard(client);
-            var itemId = await AddLineItem(client, dashboardId, tracker);
-
-            var document = await GetDocument(client, dashboardId);
-            DocItem(document, itemId).Wiring!.Sources![0].ViewId = "some-other-view";
-
-            var response = await PutDocument(client, dashboardId, document);
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-            Assert.Contains(await Messages(response), m => m.Contains("wiring is read-only"));
         }
 
         // Source order is what a combined chart draws in, so the echo is order-sensitive.
@@ -3459,7 +3424,7 @@ namespace Operum.Tests.Tests.Dashboards
             var item = DocItem(document, containerId);
             var tabs = item.Tabs.Value!;
             tabs.Reverse();
-            tabs[0].Name = "Renamed";
+            tabs[0] = "Renamed";
 
             Assert.Equal(HttpStatusCode.OK, (await PutDocument(client, dashboardId, document)).StatusCode);
 
@@ -3469,23 +3434,6 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(tabIds[1], savedTabs[0].GetProperty("id").GetString());
             Assert.Equal("Renamed", savedTabs[0].GetProperty("name").GetString());
             Assert.Equal(tabIds[0], savedTabs[1].GetProperty("id").GetString());
-        }
-
-        [Fact]
-        public async Task SaveDashboardDocument_AddingATab_IsRejected()
-        {
-            await _factory.SeedDatabaseAsync();
-            var client = await _factory.NewUserClient("doctabadd");
-
-            var dashboardId = await CreateDashboard(client);
-            var (containerId, _) = await AddTabsContainer(client, dashboardId);
-
-            var document = await GetDocument(client, dashboardId);
-            DocItem(document, containerId).Tabs.Value!.Add(new DashboardDocumentTabDto { Id = "brand-new", Name = "Extra" });
-
-            var response = await PutDocument(client, dashboardId, document);
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-            Assert.Contains(await Messages(response), m => m.Contains("tabs"));
         }
 
         [Fact]
@@ -3501,8 +3449,8 @@ namespace Operum.Tests.Tests.Dashboards
 
             var document = await GetDocument(client, dashboardId);
             var item = DocItem(document, itemId);
-            item.ParentItemId = containerId;
-            item.ParentTabId = tabIds[0];
+            item.Parent = KeyOf(containerId);
+            item.Tab = "Tab 1";
 
             Assert.Equal(HttpStatusCode.OK, (await PutDocument(client, dashboardId, document)).StatusCode);
 
@@ -3524,12 +3472,12 @@ namespace Operum.Tests.Tests.Dashboards
 
             var document = await GetDocument(client, dashboardId);
             var item = DocItem(document, itemId);
-            item.ParentItemId = containerId;
-            item.ParentTabId = "no-such-tab";
+            item.Parent = KeyOf(containerId);
+            item.Tab = "no-such-tab";
 
             var response = await PutDocument(client, dashboardId, document);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-            Assert.Contains(await Messages(response), m => m.Contains("parentTabId"));
+            Assert.Contains(await Messages(response), m => m.Contains(".tab"));
         }
 
         [Fact]
@@ -3543,7 +3491,7 @@ namespace Operum.Tests.Tests.Dashboards
             var plainContainerId = (await Data(await client.PostAsync($"dashboard/{dashboardId}/items/container", null))).GetProperty("id").GetString()!;
 
             var document = await GetDocument(client, dashboardId);
-            DocItem(document, plainContainerId).ParentItemId = tabsContainerId;
+            DocItem(document, plainContainerId).Parent = KeyOf(tabsContainerId);
 
             var response = await PutDocument(client, dashboardId, document);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -3598,7 +3546,7 @@ namespace Operum.Tests.Tests.Dashboards
             var itemId = await PlaceEntriesTable(client, dashboardId, tracker, [tracker.DayFieldId, tracker.AmountFieldId]);
 
             var document = await GetDocument(client, dashboardId);
-            DocItem(document, itemId).ColumnFieldIds = new List<string> { tracker.AmountFieldId };
+            DocItem(document, itemId).Columns = new List<string> { "Amount" };
 
             Assert.Equal(HttpStatusCode.OK, (await PutDocument(client, dashboardId, document)).StatusCode);
 
@@ -3617,11 +3565,11 @@ namespace Operum.Tests.Tests.Dashboards
             var itemId = await PlaceEntriesTable(client, dashboardId, tracker, [tracker.DayFieldId]);
 
             var document = await GetDocument(client, dashboardId);
-            DocItem(document, itemId).ColumnFieldIds = new List<string> { other.AmountFieldId };
+            DocItem(document, itemId).Columns = new List<string> { "Elsewhere" };
 
             var response = await PutDocument(client, dashboardId, document);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-            Assert.Contains(await Messages(response), m => m.Contains("columnFieldIds"));
+            Assert.Contains(await Messages(response), m => m.Contains("columns"));
         }
 
         // Order is derived, never authored: the document carries no order field at all.
@@ -3652,13 +3600,13 @@ namespace Operum.Tests.Tests.Dashboards
 
 
         // Drops keys from one item so the request looks like a user deleting those lines.
-        private static async Task<HttpResponseMessage> PutDocumentWithout(
+        private async Task<HttpResponseMessage> PutDocumentWithout(
             HttpClient client, string dashboardId, DashboardDocumentDto document, string itemId, params string[] keys)
         {
             var node = JsonSerializer.SerializeToNode(document, DocumentJsonOptions)!;
             foreach (var element in node["items"]!.AsArray())
             {
-                if (element!["id"]!.GetValue<string>() != itemId)
+                if (element!["key"]!.GetValue<string>() != KeyOf(itemId))
                     continue;
 
                 foreach (var key in keys)
@@ -3733,12 +3681,12 @@ namespace Operum.Tests.Tests.Dashboards
 
             var document = await GetDocument(client, dashboardId);
             var item = DocItem(document, itemId);
-            item.ParentItemId = containerId;
-            item.ParentTabId = tabIds[0];
+            item.Parent = KeyOf(containerId);
+            item.Tab = "Tab 1";
             Assert.Equal(HttpStatusCode.OK, (await PutDocument(client, dashboardId, document)).StatusCode);
 
             var reread = await GetDocument(client, dashboardId);
-            var response = await PutDocumentWithout(client, dashboardId, reread, itemId, "parentItemId", "parentTabId");
+            var response = await PutDocumentWithout(client, dashboardId, reread, itemId, "parent", "tab");
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var widget = WidgetById(await Widgets(client, dashboardId), itemId);
@@ -3759,14 +3707,14 @@ namespace Operum.Tests.Tests.Dashboards
 
             var document = await GetDocument(client, dashboardId);
             var item = DocItem(document, itemId);
-            item.ParentItemId = containerId;
-            item.ParentTabId = tabIds[0];
+            item.Parent = KeyOf(containerId);
+            item.Tab = "Tab 1";
             Assert.Equal(HttpStatusCode.OK, (await PutDocument(client, dashboardId, document)).StatusCode);
 
             var reread = await GetDocument(client, dashboardId);
             var moved = DocItem(reread, itemId);
-            moved.ParentItemId = null;
-            moved.ParentTabId = null;
+            moved.Parent = null;
+            moved.Tab = null;
 
             Assert.Equal(HttpStatusCode.OK, (await PutDocument(client, dashboardId, reread)).StatusCode);
 
@@ -3828,11 +3776,11 @@ namespace Operum.Tests.Tests.Dashboards
             var itemId = await PlaceEntriesTable(client, dashboardId, tracker, [tracker.DayFieldId]);
 
             var document = await GetDocument(client, dashboardId);
-            DocItem(document, itemId).ColumnFieldIds = null;
+            DocItem(document, itemId).Columns = null;
 
             var response = await PutDocument(client, dashboardId, document);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-            Assert.Contains(await Messages(response), m => m.Contains("columnFieldIds: cannot be null"));
+            Assert.Contains(await Messages(response), m => m.Contains("columns: cannot be null"));
         }
 
         [Fact]
@@ -3847,6 +3795,719 @@ namespace Operum.Tests.Tests.Dashboards
 
             Assert.Equal(HttpStatusCode.NotFound, (await stranger.GetAsync($"dashboard/{dashboardId}/document")).StatusCode);
             Assert.Equal(HttpStatusCode.NotFound, (await PutDocument(stranger, dashboardId, document)).StatusCode);
+        }
+
+        // ----- Board document: building and reshaping a board from JSON -----
+
+        private static Task<HttpResponseMessage> PutJson(HttpClient client, string dashboardId, string json)
+            => client.PutAsync($"dashboard/{dashboardId}/document", new StringContent(json, Encoding.UTF8, "application/json"));
+
+        private static Task<HttpResponseMessage> PostJson(HttpClient client, string json)
+            => client.PostAsync("dashboard/document", new StringContent(json, Encoding.UTF8, "application/json"));
+
+        private static string Board(string items, string? boardExtras = null) => $$"""
+            { "schemaVersion": 3, "board": { "name": "My board"{{(boardExtras == null ? "" : ", " + boardExtras)}} }, "items": [ {{items}} ] }
+            """;
+
+        private static async Task AssertSaved(HttpResponseMessage response)
+            => Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
+
+        private static DashboardDocumentItemDto ItemWithText(DashboardDocumentDto document, string text)
+            => document.Items.Single(i => i.Text.IsSet && i.Text.Value == text);
+
+        private static DashboardDocumentItemDto ItemNamed(DashboardDocumentDto document, string name)
+            => document.Items.Single(i => i.Name == name);
+
+        [Fact]
+        public async Task SaveDashboardDocument_ItemLeftOut_IsDeleted()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docmissing");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            await AddLineItem(client, dashboardId, tracker);
+
+            var document = await GetDocument(client, dashboardId);
+            document.Items.Clear();
+
+            var response = await PutDocument(client, dashboardId, document);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            Assert.Equal(0, (await Widgets(client, dashboardId)).GetArrayLength());
+            Assert.Equal(1, (await Data(await client.GetAsync("widgets"))).GetArrayLength());
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_NewKeyWithoutAType_IsRejected()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docnotype");
+
+            var dashboardId = await CreateDashboard(client);
+
+            var response = await PutJson(client, dashboardId, Board("""{ "key": "mystery" }"""));
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(await Messages(response), m => m.Contains("mystery") && m.Contains("type"));
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_RenamedDefinition_IsRejected()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docdefinition");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+
+            var document = await GetDocument(client, dashboardId);
+            DocItem(document, itemId).Wiring!.Widget!.Code = AnalyticCodes.Sum;
+
+            var response = await PutDocument(client, dashboardId, document);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(await Messages(response), m => m.Contains("wiring.widget is read-only"));
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_ViewOfAnotherTracker_IsRejected()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docviewowner");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+
+            var document = await GetDocument(client, dashboardId);
+            DocItem(document, itemId).Wiring!.Sources![0].View = "some-other-view";
+
+            var response = await PutDocument(client, dashboardId, document);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(await Messages(response), m => m.Contains("sources[0].view"));
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_AddingATab_CreatesIt()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("doctabadd");
+
+            var dashboardId = await CreateDashboard(client);
+            var (containerId, tabIds) = await AddTabsContainer(client, dashboardId);
+
+            var document = await GetDocument(client, dashboardId);
+            DocItem(document, containerId).Tabs.Value!.Add("Extra");
+
+            Assert.Equal(HttpStatusCode.OK, (await PutDocument(client, dashboardId, document)).StatusCode);
+            var after = await TabIds(client, dashboardId, containerId);
+            Assert.Equal(2, after.Length);
+            Assert.Equal(tabIds[0], after[0]);
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_ChildOfADroppedTab_IsRejected()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("doctabdrop");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            var (containerId, tabIds) = await AddTabsContainer(client, dashboardId);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+
+            var document = await GetDocument(client, dashboardId);
+            var child = DocItem(document, itemId);
+            child.Parent = KeyOf(containerId);
+            child.Tab = "Tab 1";
+            Assert.Equal(HttpStatusCode.OK, (await PutDocument(client, dashboardId, document)).StatusCode);
+
+            document = await GetDocument(client, dashboardId);
+            DocItem(document, containerId).Tabs = new Optional<List<string>>(["Fresh"]);
+
+            var response = await PutDocument(client, dashboardId, document);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(await Messages(response), m => m.Contains("is not a tab of"));
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_ChildOfADeletedContainer_IsRejected()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docorphan");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            var (containerId, tabIds) = await AddTabsContainer(client, dashboardId);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+
+            var document = await GetDocument(client, dashboardId);
+            var child = DocItem(document, itemId);
+            child.Parent = KeyOf(containerId);
+            child.Tab = "Tab 1";
+            Assert.Equal(HttpStatusCode.OK, (await PutDocument(client, dashboardId, document)).StatusCode);
+
+            document = await GetDocument(client, dashboardId);
+            document.Items.Remove(DocItem(document, containerId));
+
+            var response = await PutDocument(client, dashboardId, document);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(await Messages(response), m => m.Contains("is not a container in this document"));
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_CreatesStructuralWidgets()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("doccreatestruct");
+
+            var dashboardId = await CreateDashboard(client);
+
+            var response = await PutJson(client, dashboardId, Board("""
+                { "key": "title", "type": "header", "text": "Overview" },
+                { "key": "rule", "type": "divider" },
+                { "key": "memo", "type": "note", "text": "Remember" },
+                { "key": "group", "type": "container", "text": "Group" },
+                { "key": "inner", "type": "header", "text": "Inside", "parent": "group" },
+                { "key": "panel", "type": "tabsContainer", "text": "Panel",
+                  "tabs": [ "First", "Second" ] },
+                { "key": "tabbed", "type": "note", "text": "In b", "parent": "panel", "tab": "Second" }
+                """));
+            await AssertSaved(response);
+
+            var document = await GetDocument(client, dashboardId);
+            Assert.Equal(7, document.Items.Count);
+            Assert.Equivalent(new[] { "title", "rule", "memo", "group", "inner", "panel", "tabbed" }, document.Items.Select(i => i.Key));
+
+            var group = ItemWithText(document, "Group");
+            var panel = ItemWithText(document, "Panel");
+            Assert.Equal(group.Key, ItemWithText(document, "Inside").Parent.Value);
+            Assert.Equal(["First", "Second"], panel.Tabs.Value);
+
+            var tabbed = ItemWithText(document, "In b");
+            Assert.Equal(panel.Key, tabbed.Parent.Value);
+            Assert.Equal("Second", tabbed.Tab.Value);
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_NewItemWithoutLayout_IsPlacedBelowTheBoard()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docplaced");
+
+            var dashboardId = await CreateDashboard(client);
+
+            var response = await PutJson(client, dashboardId, Board("""
+                { "key": "one", "type": "header", "text": "One", "layout": { "x": 0, "y": 0, "w": 24, "h": 5, "displayMode": "full" } },
+                { "key": "two", "type": "header", "text": "Two" }
+                """));
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            var document = await GetDocument(client, dashboardId);
+            var one = ItemWithText(document, "One").Layout!;
+            var two = ItemWithText(document, "Two").Layout!;
+            Assert.True(two.Y >= one.Y + one.H);
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_CreatesAnalyticFromAnInlineDefinition()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docinline");
+
+            await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+
+            var response = await PutJson(client, dashboardId, Board("""
+                { "key": "total", "type": "analytic", "name": "Total",
+                  "wiring": {
+                    "widget": { "resultType": "Single Value", "code": "Sum" },
+                    "sources": [ { "trackerName": "Workouts", "label": "All time", "fields": [ "Value: Amount" ] } ] } }
+                """));
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            var item = ItemNamed(await GetDocument(client, dashboardId), "Total");
+            Assert.Equal(AnalyticTypes.SingleValue, item.Wiring!.Widget!.ResultType);
+            Assert.Equal(AnalyticCodes.Sum, item.Wiring.Widget.Code);
+            Assert.Equal(["Value: Amount"], item.Wiring.Sources![0].Fields);
+            Assert.Equal("All time", item.Wiring.Sources[0].Label.Value);
+
+            var library = await Data(await client.GetAsync("widgets"));
+            Assert.Equal(1, library.GetArrayLength());
+            Assert.Equal("Total", library[0].GetProperty("name").GetString());
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_PlacesALibraryWidgetByReference()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docreference");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            await CreateWidget(client, tracker, "Trend");
+
+            var response = await PutJson(client, dashboardId, Board("""
+                { "key": "trend", "type": "analytic",
+                  "wiring": { "library": "Trend", "sources": [ { "label": "Mine" } ] } }
+                """));
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            var item = ItemNamed(await GetDocument(client, dashboardId), "Trend");
+            Assert.Equal(AnalyticTypes.LineChart, item.Wiring!.Widget!.ResultType);
+            Assert.Equal("Mine", item.Wiring.Sources![0].Label.Value);
+            Assert.Equal(1, (await Data(await client.GetAsync("widgets"))).GetArrayLength());
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_InvalidDefinition_ListsTheValidValues()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docbaddefinition");
+
+            await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+
+            var response = await PutJson(client, dashboardId, Board("""
+                { "key": "bad", "type": "analytic",
+                  "wiring": {
+                    "widget": { "resultType": "Pie", "code": "Sum" },
+                    "sources": [ { "trackerName": "Workouts", "fields": [ "Value: Nope", "Amount" ] } ] } }
+                """));
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+            var messages = await Messages(response);
+            Assert.Contains(messages, m => m.Contains("resultType") && m.Contains("Single Value"));
+            Assert.Contains(messages, m => m.Contains("no field \"Nope\""));
+            Assert.Contains(messages, m => m.Contains("Purpose: Field name"));
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_WrongCalculation_SaysWhatTheTypeTakes()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docwrongcode");
+
+            await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+
+            var response = await PutJson(client, dashboardId, Board("""
+                { "key": "bars", "type": "analytic",
+                  "wiring": {
+                    "widget": { "resultType": "Bar Chart", "code": "Raw Values", "grouping": "Exact" },
+                    "sources": [ { "trackerName": "Workouts", "fields": [ "Value: Amount", "Name: Category" ] } ] } }
+                """));
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(await Messages(response), m => m.Contains("a Bar Chart takes one of") && m.Contains("Sum"));
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_CreatesQuickAddAndEntriesWidgets()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docquickentries");
+
+            await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+
+            var response = await PutJson(client, dashboardId, Board("""
+                { "key": "add", "type": "quickAdd", "wiring": { "trackerName": "Workouts" } },
+                { "key": "log", "type": "entries", "name": "Log", "columns": [ "Day", "Category" ],
+                  "wiring": { "trackerName": "Workouts" } }
+                """));
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            var document = await GetDocument(client, dashboardId);
+            Assert.Equal("Workouts", document.Items.Single(i => i.Type == DashboardWidgetTypes.QuickAdd).Wiring!.TrackerName);
+
+            var log = ItemNamed(document, "Log");
+            Assert.Equal("Workouts", log.Wiring!.TrackerName);
+            Assert.Equal(["Day", "Category"], log.Columns.Value);
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_AmbiguousTrackerName_AsksForARename()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docambiguous");
+
+            await CreateCapableTracker(client, "Twin");
+            await CreateCapableTracker(client, "Twin");
+            var dashboardId = await CreateDashboard(client);
+
+            var response = await PutJson(client, dashboardId, Board("""
+                { "key": "add", "type": "quickAdd", "wiring": { "trackerName": "Twin" } }
+                """));
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(await Messages(response), m => m.Contains("2 trackers are named") && m.Contains("Rename one"));
+        }
+
+        private const string GoalWithFilterItems = """
+            { "key": "goal", "type": "analytic", "name": "Volume",
+              "wiring": {
+                "widget": { "resultType": "Goal", "code": "Sum", "goalTarget": "60" },
+                "sources": [ { "trackerName": "Workouts", "fields": [ "Value: Amount" ] } ],
+                "goalConditionalTargets": [ { "conditions": { "min": "1" }, "target": "999" } ] } },
+            { "key": "filter", "type": "filter",
+              "wiring": { "filter": {
+                "clauses": [ { "key": "min", "dataType": "number", "operator": "Greater Than", "value": "1" } ],
+                "links": [ { "item": "goal", "fields": { "min": "Amount" } } ] } } }
+            """;
+
+        [Fact]
+        public async Task SaveDashboardDocument_CreatesAFilterWithLinksAndGoalTargets()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docfilter");
+
+            await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+
+            var response = await PutJson(client, dashboardId, Board(GoalWithFilterItems));
+            await AssertSaved(response);
+
+            var document = await GetDocument(client, dashboardId);
+            var goal = ItemNamed(document, "Volume");
+            var filter = document.Items.Single(i => i.Type == DashboardWidgetTypes.Filter).Wiring!.Filter!;
+
+            var clause = Assert.Single(filter.Clauses);
+            Assert.Equal("1", clause.Value);
+            Assert.Equal(goal.Key, Assert.Single(filter.Links).Item);
+            Assert.Equal("Amount", filter.Links[0].Fields[clause.Key!]);
+
+            var row = Assert.Single(goal.Wiring!.GoalConditionalTargets!);
+            Assert.Equal("1", row.Conditions[clause.Key!]);
+
+            // The filter is set to "1" and the conditional row keys off it, so 999 replaces 60.
+            var target = Analytic(ChartFor(await Widgets(client, dashboardId), ItemIdOf(dashboardId, goal.Key))).GetProperty("target").GetString();
+            Assert.Equal("999", target);
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_RelativeDateFilterValue_IsAcceptedAndKept()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docrelativedate");
+
+            await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+
+            var response = await PutJson(client, dashboardId, Board("""
+                { "key": "range", "type": "filter",
+                  "wiring": { "filter": {
+                    "clauses": [ { "key": "from", "dataType": "date", "operator": "Greater Than Or Equal", "value": "start_of_month" } ],
+                    "links": [ { "item": "volume", "fields": { "from": "Day" } } ] } } },
+                { "key": "volume", "type": "analytic", "name": "Volume",
+                  "wiring": {
+                    "widget": { "resultType": "Goal", "code": "Sum", "goalTarget": "60" },
+                    "sources": [ { "trackerName": "Workouts", "fields": [ "Value: Amount" ] } ] } }
+                """));
+            await AssertSaved(response);
+
+            var filter = (await GetDocument(client, dashboardId)).Items.Single(i => i.Type == DashboardWidgetTypes.Filter).Wiring!.Filter!;
+            Assert.Equal("start_of_month", filter.Clauses[0].Value);
+            Assert.Equal("Day", Assert.Single(filter.Links).Fields[filter.Clauses[0].Key!]);
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_ExportedBoard_ImportsUnchanged()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docroundtrip");
+
+            await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+
+            Assert.Equal(HttpStatusCode.OK, (await PutJson(client, dashboardId, Board(
+                GoalWithFilterItems + """
+                , { "key": "title", "type": "header", "text": "Overview" }
+                , { "key": "log", "type": "entries", "name": "Log", "wiring": { "trackerName": "Workouts" } }
+                """,
+                """ "presets": [ { "name": "Big", "clauses": [ { "kind": "filter", "dataType": "number", "operator": "Greater Than", "value": "3" } ] } ] """))).StatusCode);
+
+            var before = JsonSerializer.Serialize(await GetDocument(client, dashboardId), DocumentJsonOptions);
+
+            var document = await GetDocument(client, dashboardId);
+            Assert.Equal(HttpStatusCode.OK, (await PutDocument(client, dashboardId, document)).StatusCode);
+
+            Assert.Equal(before, JsonSerializer.Serialize(await GetDocument(client, dashboardId), DocumentJsonOptions));
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_DeletedFollower_IsUnlinkedFromAnUntouchedFilter()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docunlink");
+
+            await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            Assert.Equal(HttpStatusCode.OK, (await PutJson(client, dashboardId, Board(GoalWithFilterItems))).StatusCode);
+
+            var document = await GetDocument(client, dashboardId);
+            document.Items.Remove(ItemNamed(document, "Volume"));
+            document.Items.Single(i => i.Type == DashboardWidgetTypes.Filter).Wiring = null;
+            Assert.Equal(HttpStatusCode.OK, (await PutDocument(client, dashboardId, document)).StatusCode);
+
+            var after = await GetDocument(client, dashboardId);
+            Assert.Empty(after.Items.Single().Wiring!.Filter!.Links);
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_LinkToADeletedItem_IsRejected()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docdeadlink");
+
+            await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            Assert.Equal(HttpStatusCode.OK, (await PutJson(client, dashboardId, Board(GoalWithFilterItems))).StatusCode);
+
+            var document = await GetDocument(client, dashboardId);
+            document.Items.Remove(ItemNamed(document, "Volume"));
+
+            var response = await PutDocument(client, dashboardId, document);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(await Messages(response), m => m.Contains("is not an item in this document"));
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_GoalConditionOnAMissingClause_IsRejected()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docgoalkey");
+
+            await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+
+            var response = await PutJson(client, dashboardId, Board(GoalWithFilterItems.Replace("\"min\": \"1\" }, \"target\"", "\"nope\": \"1\" }, \"target\"")));
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(await Messages(response), m => m.Contains("no filter clause has the key \"nope\""));
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_Presets_AreCreatedRenamedAndDeleted()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docpresets");
+
+            var dashboardId = await CreateDashboard(client);
+            const string clause = """{ "kind": "filter", "dataType": "number", "operator": "Greater Than", "value": "3" }""";
+
+            Assert.Equal(HttpStatusCode.OK, (await PutJson(client, dashboardId, Board("", $$"""
+                "presets": [ { "name": "Big", "clauses": [ {{clause}} ] }, { "name": "Huge", "clauses": [ {{clause}} ] } ]
+                """))).StatusCode);
+
+            var document = await GetDocument(client, dashboardId);
+            Assert.Equal(["Big", "Huge"], document.Board.Presets!.Select(p => p.Name));
+
+            document.Board.Presets.RemoveAt(1);
+            document.Board.Presets[0].Name = "Large";
+            Assert.Equal(HttpStatusCode.OK, (await PutDocument(client, dashboardId, document)).StatusCode);
+
+            var renamed = (await GetDocument(client, dashboardId)).Board.Presets!;
+            var only = Assert.Single(renamed);
+            Assert.Equal("Large", only.Name);
+
+            // A document that says nothing about presets leaves them be.
+            Assert.Equal(HttpStatusCode.OK, (await PutJson(client, dashboardId, Board(""))).StatusCode);
+            Assert.Single((await GetDocument(client, dashboardId)).Board.Presets!);
+
+            // Listing none is deliberate, and clears them.
+            Assert.Equal(HttpStatusCode.OK, (await PutJson(client, dashboardId, Board("", "\"presets\": []"))).StatusCode);
+            Assert.Empty((await GetDocument(client, dashboardId)).Board.Presets!);
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_FilterOffersPresetsByName()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docpresetname");
+
+            await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+
+            var response = await PutJson(client, dashboardId, Board("""
+                { "key": "filter", "type": "filter",
+                  "wiring": { "filter": {
+                    "clauses": [ { "key": "min", "dataType": "number", "operator": "Greater Than" } ],
+                    "presets": [ "Big" ] } } }
+                """, """ "presets": [ { "name": "Big", "clauses": [ { "kind": "filter", "dataType": "number", "operator": "Greater Than", "value": "3" } ] } ] """));
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            var document = await GetDocument(client, dashboardId);
+            Assert.Equal(["Big"], document.Items.Single().Wiring!.Filter!.Presets);
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_FailureAfterWriting_RollsEverythingBack()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docrollback");
+
+            await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+
+            // The goal passes every check the document can make on its own; only the Library rejects
+            // it, after the first widget has already been created.
+            var response = await PutJson(client, dashboardId, Board("""
+                { "key": "fine", "type": "analytic", "name": "Fine",
+                  "wiring": { "widget": { "resultType": "Single Value", "code": "Sum" },
+                              "sources": [ { "trackerName": "Workouts", "fields": [ "Value: Amount" ] } ] } },
+                { "key": "title", "type": "header", "text": "Kept out" },
+                { "key": "goal", "type": "analytic", "name": "Broken",
+                  "wiring": { "widget": { "resultType": "Goal", "code": "Sum" },
+                              "sources": [ { "trackerName": "Workouts", "fields": [ "Value: Amount" ] } ] } }
+                """));
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(await Messages(response), m => m.Contains("items[2].wiring.widget"));
+
+            Assert.Equal(0, (await Widgets(client, dashboardId)).GetArrayLength());
+            Assert.Equal(0, (await Data(await client.GetAsync("widgets"))).GetArrayLength());
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_MoreItemsThanABoardHolds_IsRejected()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("doclimit");
+
+            var dashboardId = await CreateDashboard(client);
+            var items = string.Join(",", Enumerable.Range(0, DataLimits.MaxDashboardItemCount + 1)
+                .Select(i => $$"""{ "key": "h{{i}}", "type": "header", "text": "H{{i}}" }"""));
+
+            var response = await PutJson(client, dashboardId, Board(items));
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(await Messages(response), m => m.Contains("dashboard items"));
+        }
+
+        [Fact]
+        public async Task CreateDashboardFromDocument_BuildsTheWholeBoard()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docnewboard");
+
+            await CreateCapableTracker(client, "Workouts");
+
+            var response = await PostJson(client, $$"""
+                { "schemaVersion": 3, "board": { "name": "Generated", "color": "grape" },
+                  "items": [ {{GoalWithFilterItems}}, { "key": "title", "type": "header", "text": "Hello" } ] }
+                """);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            var created = await Data(response);
+            var newId = created.GetProperty("id").GetString()!;
+            Assert.Equal("Generated", created.GetProperty("name").GetString());
+            Assert.Equal("grape", created.GetProperty("color").GetString());
+            Assert.Equal(3, (await Widgets(client, newId)).GetArrayLength());
+        }
+
+        [Fact]
+        public async Task CreateDashboardFromDocument_InvalidDocument_LeavesNoBoardBehind()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docnewbad");
+
+            var before = (await Data(await client.GetAsync("dashboard"))).GetArrayLength();
+
+            var response = await PostJson(client, Board("""{ "key": "add", "type": "quickAdd", "wiring": { "trackerName": "Nowhere" } }"""));
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(await Messages(response), m => m.Contains("no tracker named \"Nowhere\""));
+
+            Assert.Equal(before, (await Data(await client.GetAsync("dashboard"))).GetArrayLength());
+        }
+
+        private static readonly System.Text.RegularExpressions.Regex AnyGuid =
+            new("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
+
+        [Fact]
+        public async Task GetDashboardDocument_ContainsNoIds()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("docnoids");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+
+            await AddLineItem(client, dashboardId, tracker);
+            await AddTabsContainer(client, dashboardId);
+            await PlaceEntriesTable(client, dashboardId, tracker, [tracker.DayFieldId]);
+
+            await AssertSaved(await PutJson(client, dashboardId, Board(
+                GoalWithFilterItems + """
+                , { "key": "inner", "type": "header", "text": "Inside", "parent": "group" }
+                , { "key": "group", "type": "container", "text": "Group" }
+                """,
+                """ "presets": [ { "name": "Big", "clauses": [ { "kind": "filter", "dataType": "number", "operator": "Greater Than", "value": "3" } ] } ] """)));
+
+            var response = await client.GetAsync($"dashboard/{dashboardId}/document");
+            var raw = (await Data(response)).GetRawText();
+
+            Assert.DoesNotMatch(AnyGuid, raw);
+        }
+
+        [Fact]
+        public async Task GetDashboardDocument_GivesKeysOnceAndKeepsThem()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("dockeys");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            await AddLineItem(client, dashboardId, tracker);
+
+            var first = (await GetDocument(client, dashboardId)).Items.Select(i => i.Key).ToList();
+            Assert.Equal(first, (await GetDocument(client, dashboardId)).Items.Select(i => i.Key).ToList());
+
+            await AddLineItem(client, dashboardId, tracker);
+
+            var after = (await GetDocument(client, dashboardId)).Items.Select(i => i.Key).ToList();
+            Assert.Equal(2, after.Distinct().Count());
+            Assert.Contains(first[0], after);
+            Assert.All(after, key => Assert.Matches("^[a-z0-9-]+$", key));
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_KeyWithSpaces_IsRejected()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("dockeybad");
+
+            var dashboardId = await CreateDashboard(client);
+
+            var response = await PutJson(client, dashboardId, Board("""{ "key": "my header", "type": "header", "text": "Hi" }"""));
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(await Messages(response), m => m.Contains("items[0].key") && m.Contains("letters, digits"));
+        }
+
+        [Fact]
+        public async Task SaveDashboardDocument_RenamedTab_KeepsItsChildren()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("doctabrename");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            var (containerId, _) = await AddTabsContainer(client, dashboardId);
+            await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{containerId}/tabs-container", new SaveTabsContainerDto
+            {
+                Tabs = [new SaveTabDto { Name = "First" }, new SaveTabDto { Name = "Second" }]
+            });
+            var tabIds = await TabIds(client, dashboardId, containerId);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+
+            var document = await GetDocument(client, dashboardId);
+            var child = DocItem(document, itemId);
+            child.Parent = KeyOf(containerId);
+            child.Tab = "First";
+            await AssertSaved(await PutDocument(client, dashboardId, document));
+
+            document = await GetDocument(client, dashboardId);
+            DocItem(document, containerId).Tabs = new Optional<List<string>>(["Renamed", "Second"]);
+            DocItem(document, itemId).Tab = "Renamed";
+            await AssertSaved(await PutDocument(client, dashboardId, document));
+
+            Assert.Equal(tabIds, await TabIds(client, dashboardId, containerId));
+            Assert.Equal(tabIds[0], WidgetById(await Widgets(client, dashboardId), itemId).GetProperty("parentTabId").GetString());
         }
     }
 }

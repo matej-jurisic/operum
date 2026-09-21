@@ -72,6 +72,7 @@ function DashboardContent({
         saveLayout,
     } = useDashboard();
     const theme = useMantineTheme();
+    const navigate = useNavigate();
     const [isConfiguring, setIsConfiguring] = useState(false);
     // Arranges the mobile layout inside a phone-width frame while the viewport stays wide.
     // Cleared whenever arrange mode ends so the next session opens on the desktop board.
@@ -79,6 +80,7 @@ function DashboardContent({
     const [isWidgetsOpen, setIsWidgetsOpen] = useState(false);
     const [isHiddenOpen, setIsHiddenOpen] = useState(false);
     const [isDocumentOpen, setIsDocumentOpen] = useState(false);
+    const [isImportOpen, setIsImportOpen] = useState(false);
     const [editingItemId, setEditingItemId] = useState<string>();
     const editingWidget = widgets.find((w) => w.id === editingItemId);
 
@@ -228,6 +230,7 @@ function DashboardContent({
                         onToggleArrange={() => setIsConfiguring((v) => !v)}
                         onOpenWidgets={() => setIsWidgetsOpen(true)}
                         onEditDocument={() => setIsDocumentOpen(true)}
+                        onImportDocument={() => setIsImportOpen(true)}
                     />
                 </Group>
             </Group>
@@ -378,6 +381,17 @@ function DashboardContent({
                         // sidebar reads from the navigation store rather than from here.
                         await navigationStore.refreshDashboards();
                         await refreshWidgets();
+                    }}
+                />
+            )}
+
+            {isImportOpen && (
+                <BoardDocumentModal
+                    color={color}
+                    onClose={() => setIsImportOpen(false)}
+                    onSaved={async (newBoardId) => {
+                        await navigationStore.refreshDashboards();
+                        navigate(`/dashboard/${newBoardId}`);
                     }}
                 />
             )}

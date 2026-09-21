@@ -255,4 +255,12 @@ export const dashboardController = {
             silentErrors: true,
         } as SilentErrorsConfig);
     },
+
+    createDashboardFromDocument: async (
+        document: unknown
+    ): Promise<ApiResponse<DashboardDto>> => {
+        return await api.post("/dashboard/document", document, {
+            silentErrors: true,
+        } as SilentErrorsConfig);
+    },
 };

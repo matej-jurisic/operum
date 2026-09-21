@@ -420,41 +420,91 @@ export interface DashboardDocumentLayoutDto extends WidgetLayoutDto {
     displayMode: string;
 }
 
-export interface DashboardDocumentTabDto {
-    id: string;
+export const DASHBOARD_DOCUMENT_SCHEMA_VERSION = 3;
+
+/** One clause of a preset or of a filter widget. `key` names a filter clause so a link's
+    fields and a goal's conditions can refer to it. */
+export interface DashboardDocumentClauseDto {
+    key?: string | null;
+    kind?: string | null;
+    dataType: string;
+    operator?: string | null;
+    value?: string | null;
+    descending?: boolean;
+}
+
+/** Told apart by name. */
+export interface DashboardDocumentPresetDto {
     name: string;
+    clauses: DashboardDocumentClauseDto[];
 }
 
+/** The tracker and fields are the Library widget's and fixed once it exists; the label and
+    the fixed view belong to this placement. Fields are "Purpose: Field name". */
 export interface DashboardDocumentSourceDto {
-    id: string;
-    trackerName: string;
+    trackerName?: string | null;
     label?: string | null;
-    viewId?: string | null;
-    /** "purpose: field name" per mapped field. */
-    fields: string[];
+    /** A view of the tracker, by name. Null clears it. */
+    view?: string | null;
+    fields?: string[] | null;
 }
 
-/** Read-only context on an item: what the widget was built from. A save that changed any of
-    it is rejected, so an edit meant to rewire the board never silently disappears. */
+export interface DashboardDocumentWidgetDto {
+    resultType: string;
+    code: string;
+    grouping?: string | null;
+    matchedValuesOnly?: boolean;
+    goalTarget?: string | null;
+    goalDirection?: string | null;
+}
+
+export interface DashboardDocumentFilterLinkDto {
+    /** The followed item's key. */
+    item: string;
+    /** Only needed for a widget that reads more than one tracker. */
+    trackerName?: string | null;
+    /** Clause key to the name of the field that clause filters. */
+    fields: Record<string, string>;
+}
+
+export interface DashboardDocumentFilterDto {
+    clauses: DashboardDocumentClauseDto[];
+    /** Preset names. */
+    presets?: string[] | null;
+    links: DashboardDocumentFilterLinkDto[];
+}
+
+/** What an item is wired to; only the parts that fit its type apply. The Library definition
+    (widget, sources' trackers and fields, quickAdd/entries tracker) is read-only on an existing
+    item and authored on a new one. */
 export interface DashboardDocumentWiringDto {
+    /** Analytic or entries, on a new item: a Widget Library widget, by name. */
+    library?: string | null;
+    widget?: DashboardDocumentWidgetDto | null;
     sources?: DashboardDocumentSourceDto[] | null;
-    filter?: FilterWidgetConfig | null;
+    /** Conditions are keyed by a filter clause's key. */
     goalConditionalTargets?: GoalConditionalTargetDto[] | null;
+    trackerName?: string | null;
+    filter?: DashboardDocumentFilterDto | null;
 }
 
 /** A field left out is left alone; a field set to null is cleared. `text`, `tabs` and
-    `columnFieldIds` have no null state, so null is refused there rather than silently
-    meaning nothing: clear them with "" and []. `order` is derived from the desktop
-    placement on every save and is deliberately absent. */
+    `columns` have no null state, so null is refused there rather than silently meaning
+    nothing: clear them with "" and []. `order` is derived from the desktop placement on
+    every save and is deliberately absent. A key the board does not have is a new item. */
 export interface DashboardDocumentItemDto {
-    id: string;
-    /** Read-only. */
+    /** Letters, digits, dot, dash and underscore. Given to an item when its board is first
+        exported, and its name in the document from then on. */
+    key: string;
+    /** Required on a new item, read-only on an existing one. */
     type?: string | null;
-    /** Read-only. */
+    /** On a new analytic or entries item this names the Library widget. */
     name?: string | null;
-    /** Null puts the widget back on the board itself. */
-    parentItemId?: string | null;
-    parentTabId?: string | null;
+    /** The key of the container this sits in. Null puts the widget back on the board itself. */
+    parent?: string | null;
+    /** The name of the tab, inside a tabs container. */
+    tab?: string | null;
+    /** A new item may leave both layouts out and is placed below the board. */
     layout?: DashboardDocumentLayoutDto | null;
     mobileLayout?: DashboardDocumentLayoutDto | null;
     /** Null is "Auto": the tracker's color, or the board's. */
@@ -463,26 +513,24 @@ export interface DashboardDocumentItemDto {
     yAxisFromZero?: boolean | null;
     /** Header/Note/Container text, or a tabs container's title. Empty clears it. */
     text?: string;
-    /** Tabs container only. Renaming and reordering only. */
-    tabs?: DashboardDocumentTabDto[];
-    /** Entries widgets only. Empty shows every field. */
-    columnFieldIds?: string[];
-    /** Read-only. */
+    /** Tabs container only: the tab names, in order. The list is the whole set. */
+    tabs?: string[];
+    /** Entries widgets only: field names. Empty shows every field. */
+    columns?: string[];
     wiring?: DashboardDocumentWiringDto | null;
 }
 
 export interface DashboardDocumentBoardDto {
-    /** Read-only. */
-    id?: string | null;
     name: string;
     /** Null clears it, the same as every other nullable field in the document. */
     color?: string | null;
     icon?: string | null;
+    /** Left out, the board's presets stay as they are; present, the list is the whole set. */
+    presets?: DashboardDocumentPresetDto[] | null;
 }
 
-/** The whole board as one editable document. A save must list every item already on the
-    board exactly once: widgets are added and removed from the board itself, where a removal
-    also reparents children and unpicks the filter links that named the widget. */
+/** The whole board as one editable document, complete enough to build a board from nothing
+    and free of ids. A widget the document leaves out is deleted. */
 export interface DashboardDocumentDto {
     schemaVersion: number;
     board: DashboardDocumentBoardDto;

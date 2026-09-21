@@ -1,16 +1,23 @@
+using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
-using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using Operum.Model.Common;
 using Operum.Model.Constants;
+using Operum.Model.Constants.Analytics;
 using Operum.Model.DTOs.Dashboard;
+using Operum.Model.DTOs.Dashboard.Requests;
+using Operum.Model.DTOs.Queries;
+using Operum.Model.DTOs.Widgets.Requests;
 using Operum.Model.Enums;
 using Operum.Model.Models;
 
 namespace Operum.Service.Services.Dashboards
 {
-    // The board as one hand-editable document. Everything the grid and the edit dialogs
-    // decide is writable here; the wiring a widget was built with is echoed read-only, and a
-    // save that changed it fails rather than dropping the edit silently.
+    // The board as one hand-editable document that can also build a board from nothing, with
+    // no ids in it: items are named by key, everything else by name. A save is planned whole
+    // before anything is written, so a document with three mistakes in it reports all three;
+    // what remains (Library definitions the services create, and the checks that need the
+    // saved items) runs in one transaction that a failure rolls back.
     public partial class DashboardService
     {
         public async Task<Result<DashboardDocumentDto>> GetDashboardDocument(string dashboardId)
@@ -19,170 +26,361 @@ namespace Operum.Service.Services.Dashboards
             if (dashboard == null)
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
 
-            return Result.Success(BuildDocument(dashboard));
+            await EnsureItemKeys(dashboard);
+
+            return Result.Success(await BuildDocument(dashboard));
         }
 
-        // Validated whole before anything is written, so a document with three mistakes in it
-        // reports all three and leaves the board untouched.
         public async Task<Result<List<DashboardWidgetDto>>> SaveDashboardDocument(string dashboardId, DashboardDocumentDto document)
         {
             var dashboard = await GetUserDashboard(dashboardId);
             if (dashboard == null)
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
 
+            await using var transaction = await db.Database.BeginTransactionAsync();
+
+            var result = await ApplyDocument(dashboard, document);
+            if (result.IsSuccess)
+                await transaction.CommitAsync();
+
+            return result;
+        }
+
+        public async Task<Result<DashboardDto>> CreateDashboardFromDocument(DashboardDocumentDto document)
+        {
+            var name = document.Board.Name?.Trim() ?? string.Empty;
+            if (name.Length == 0)
+                return Result.Failure(ResultStatusCodes.BadRequest, "board.name is required.");
+
+            await using var transaction = await db.Database.BeginTransactionAsync();
+
+            var created = await CreateDashboard(new CreateDashboardDto
+            {
+                Name = name,
+                Color = document.Board.Color.IsSet ? Blank(document.Board.Color.Value) : null,
+                Icon = document.Board.Icon.IsSet ? Blank(document.Board.Icon.Value) : null
+            });
+            if (!created.IsSuccess)
+                return Result.Failure(created.StatusCode, created.Messages);
+
+            var dashboard = (await GetUserDashboard(created.Data.Id))!;
+
+            var applied = await ApplyDocument(dashboard, document);
+            if (!applied.IsSuccess)
+                return Result.Failure(applied.StatusCode, applied.Messages);
+
+            await transaction.CommitAsync();
+
+            return Result.Success(MapToDto((await GetUserDashboard(created.Data.Id))!));
+        }
+
+        private async Task<Result<List<DashboardWidgetDto>>> ApplyDocument(Dashboard dashboard, DashboardDocumentDto document)
+        {
             if (document.SchemaVersion != DashboardDocumentDto.CurrentSchemaVersion)
                 return Result.Failure(ResultStatusCodes.BadRequest,
-                    $"schemaVersion: expected {DashboardDocumentDto.CurrentSchemaVersion}, got {document.SchemaVersion}.");
+                    $"schemaVersion: expected {DashboardDocumentDto.CurrentSchemaVersion}, got {document.SchemaVersion}. Export the board again to get the current format.");
 
             var errors = new List<string>();
-
-            if (!string.IsNullOrEmpty(document.Board.Id) && document.Board.Id != dashboard.Id)
-                errors.Add("board.id is read-only.");
 
             var boardName = document.Board.Name?.Trim() ?? string.Empty;
             if (boardName.Length == 0)
                 errors.Add("board.name is required.");
 
-            var itemErrors = MatchItemSet(dashboard, document);
-            if (itemErrors.Count > 0)
-                return Result.Failure(ResultStatusCodes.BadRequest, [.. errors, .. itemErrors]);
+            await EnsureItemKeys(dashboard);
 
-            var itemsById = dashboard.Items.ToDictionary(i => i.Id);
-            var containerIds = dashboard.Items
-                .Where(i => DashboardWidgetTypes.IsContainer(i.Type))
-                .Select(i => i.Id)
-                .ToHashSet();
+            var plan = new DocumentPlan(dashboard, document, await LoadDocumentLookups(), errors);
 
-            // Every write the document asks for, collected first and applied only once the
-            // whole document has checked out.
-            var planned = new List<PlannedItemWrite>();
+            if (!MatchItemSet(plan))
+                return Result.Failure(ResultStatusCodes.BadRequest, errors);
 
-            for (var index = 0; index < document.Items.Count; index++)
-            {
-                var documentItem = document.Items[index];
-                var item = itemsById[documentItem.Id];
-                var path = $"items[{index}]";
+            await PlanPresets(plan);
+            PlanTabs(plan);
 
-                ValidateReadOnly(path, documentItem, item, errors);
+            for (var index = 0; index < plan.Items.Count; index++)
+                await PlanItem(plan, plan.Items[index]);
 
-                var write = new PlannedItemWrite(item);
-
-                ValidatePlacement(path, documentItem, item, containerIds, itemsById, write, errors);
-                await ValidateTypeSpecific(path, documentItem, item, write, errors);
-
-                planned.Add(write);
-            }
+            ResolveFilterLinks(plan);
 
             if (errors.Count > 0)
                 return Result.Failure(ResultStatusCodes.BadRequest, errors);
 
-            dashboard.Name = boardName;
-            if (document.Board.Color.IsSet)
-                dashboard.Color = Blank(document.Board.Color.Value);
-            if (document.Board.Icon.IsSet)
-                dashboard.Icon = Blank(document.Board.Icon.Value);
-
-            foreach (var write in planned)
-                write.Apply();
-
-            var tabOrderByContainer = dashboard.Items
-                .Where(i => i.Type == DashboardWidgetTypes.TabsContainer)
-                .ToDictionary(
-                    i => i.Id,
-                    i => (TryParseTabsContainerConfig(i.Config)?.Tabs ?? []).Select(t => t.Id).ToList());
-
-            RecomputeItemOrder(dashboard, tabOrderByContainer);
-
-            await db.SaveChangesAsync();
-
-            return Result.Success(await BuildWidgets(dashboard));
+            return await WriteDocument(plan, boardName);
         }
 
-        // A document must account for the board exactly as it stands: widgets are added and
-        // removed in the UI, where a removal also reparents children and unpicks the filter
-        // links that named the widget.
-        private static List<string> MatchItemSet(Dashboard dashboard, DashboardDocumentDto document)
-        {
-            var errors = new List<string>();
+        // ----- Keys -----
 
+        private static readonly Regex ValidKey = new(@"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$", RegexOptions.Compiled);
+
+        // An item is given its key the first time its board is exported or imported, from what it
+        // is called, and keeps it from then on. Items placed in the UI have none until then.
+        private async Task EnsureItemKeys(Dashboard dashboard)
+        {
+            var missing = dashboard.Items.Where(i => i.Key == null).OrderBy(i => i.Order).ToList();
+            if (missing.Count == 0)
+                return;
+
+            var taken = dashboard.Items.Where(i => i.Key != null).Select(i => i.Key!).ToHashSet();
+            foreach (var item in missing)
+            {
+                var seed = KeySeed(item);
+                var key = seed;
+                for (var n = 2; taken.Contains(key); n++)
+                    key = $"{seed}-{n}";
+
+                taken.Add(key);
+                item.Key = key;
+            }
+
+            await db.SaveChangesAsync();
+        }
+
+        private static string KeySeed(DashboardItem item)
+        {
+            var text = item.Type switch
+            {
+                DashboardWidgetTypes.Header or DashboardWidgetTypes.Note or DashboardWidgetTypes.Container
+                    => TryParseTextConfig(item.Config)?.Text,
+                DashboardWidgetTypes.TabsContainer => TryParseTabsContainerConfig(item.Config)?.Title,
+                DashboardWidgetTypes.Analytic or DashboardWidgetTypes.Entries => ResolveItemName(item),
+                _ => null
+            };
+
+            var slug = Slugify(text);
+            return slug.Length > 0 ? slug : Slugify(item.Type);
+        }
+
+        private static string Slugify(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return string.Empty;
+
+            var spaced = Regex.Replace(text, "([a-z0-9])([A-Z])", "$1-$2").ToLowerInvariant();
+            var slug = Regex.Replace(spaced, "[^a-z0-9]+", "-").Trim('-');
+            return slug.Length > 40 ? slug[..40].TrimEnd('-') : slug;
+        }
+
+        // ----- Planning: everything that can be checked without writing -----
+
+        private sealed class DocumentPlan(Dashboard dashboard, DashboardDocumentDto document, DocumentLookups lookups, List<string> errors)
+        {
+            public Dashboard Dashboard { get; } = dashboard;
+            public DashboardDocumentDto Document { get; } = document;
+            public DocumentLookups Lookups { get; } = lookups;
+            public List<string> Errors { get; } = errors;
+
+            public List<ItemPlan> Items { get; } = [];
+            public Dictionary<string, ItemPlan> ByKey { get; } = [];
+            public HashSet<string> DeletedItemIds { get; } = [];
+
+            public Dictionary<string, List<TabDefDto>> TabsByContainer { get; } = [];
+            public Dictionary<string, string> FilterClauseKeys { get; } = [];
+
+            public List<PresetPlan> Presets { get; } = [];
+            public bool PresetsAuthoritative { get; set; }
+            public Dictionary<string, string> PresetIdByName { get; } = new(StringComparer.OrdinalIgnoreCase);
+        }
+
+        private sealed class ItemPlan(string path, DashboardDocumentItemDto doc, DashboardItem item, bool isNew)
+        {
+            public string Path { get; } = path;
+            public DashboardDocumentItemDto Doc { get; } = doc;
+            public string Key => Doc.Key;
+            public DashboardItem Item { get; set; } = item;
+            public bool IsNew { get; } = isNew;
+            public PlannedItemWrite Write { get; } = new();
+
+            // Analytic
+            public Widget? LibraryWidget { get; set; }
+            public CreateWidgetDto? Definition { get; set; }
+            public List<(string? Label, string? ViewId)> SourceInputs { get; } = [];
+            public List<PlannedSourceWrite> SourceWrites { get; } = [];
+            public List<GoalConditionalTargetDto>? GoalRows { get; set; }
+
+            // QuickAdd and entries
+            public string? TrackerId { get; set; }
+            public EntriesWidget? LibraryEntries { get; set; }
+
+            public ResolvedFilter? Filter { get; set; }
+        }
+
+        private sealed record PlannedSourceWrite(int Index, bool SetLabel, string? Label, bool SetView, string? ViewId);
+
+        private sealed record ResolvedFilter(
+            SaveFilterItemDto Dto,
+            List<string> ClauseKeys,
+            List<string?> Values,
+            string Path);
+
+        private sealed record PresetPlan(string Id, bool IsNew, string Name, List<ClauseDto> Clauses, string Path);
+
+        // Every item on the board is accounted for: matched to one the document lists by key, or
+        // deleted for being left out. A key the board does not have is a new item.
+        private static bool MatchItemSet(DocumentPlan plan)
+        {
+            var errors = plan.Errors;
+            var before = errors.Count;
+            var onBoard = plan.Dashboard.Items.ToDictionary(i => i.Key!);
             var seen = new HashSet<string>();
             var duplicated = new List<string>();
-            foreach (var documentItem in document.Items)
+
+            for (var index = 0; index < plan.Document.Items.Count; index++)
             {
-                if (string.IsNullOrEmpty(documentItem.Id))
+                var doc = plan.Document.Items[index];
+                var path = $"items[{index}]";
+
+                if (string.IsNullOrWhiteSpace(doc.Key))
                 {
-                    errors.Add("Every item needs an id.");
-                    return errors;
+                    errors.Add($"{path}.key: every item needs one.");
+                    return false;
                 }
 
-                if (!seen.Add(documentItem.Id))
-                    duplicated.Add(documentItem.Id);
+                if (!seen.Add(doc.Key))
+                {
+                    duplicated.Add(doc.Key);
+                    continue;
+                }
+
+                if (onBoard.TryGetValue(doc.Key, out var existing))
+                {
+                    var itemPlan = new ItemPlan(path, doc, existing, isNew: false);
+                    plan.Items.Add(itemPlan);
+                    plan.ByKey[doc.Key] = itemPlan;
+                    continue;
+                }
+
+                if (!ValidKey.IsMatch(doc.Key))
+                {
+                    errors.Add($"{path}.key: \"{doc.Key}\" can use letters, digits, dot, dash and underscore, up to 64 characters.");
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(doc.Type) || !DashboardWidgetTypes.IsValid(doc.Type))
+                {
+                    errors.Add($"{path}.type: \"{doc.Key}\" is not on this board, so it is created as a new item and needs a type: {string.Join(", ", DashboardWidgetTypes.All.Order())}.");
+                    continue;
+                }
+
+                var fresh = new ItemPlan(path, doc, new DashboardItem { DashboardId = plan.Dashboard.Id, Type = doc.Type }, isNew: true);
+                plan.Items.Add(fresh);
+                plan.ByKey[doc.Key] = fresh;
             }
 
             if (duplicated.Count > 0)
                 errors.Add($"Listed more than once: {string.Join(", ", duplicated.Distinct())}.");
 
-            var onBoard = dashboard.Items.Select(i => i.Id).ToHashSet();
+            foreach (var (_, item) in onBoard.Where(kv => !seen.Contains(kv.Key)))
+                plan.DeletedItemIds.Add(item.Id);
 
-            var unknown = seen.Except(onBoard).ToList();
-            if (unknown.Count > 0)
-                errors.Add($"Not on this board: {string.Join(", ", unknown)}. Widgets are added from the board's Add widget menu.");
+            if (seen.Count > DataLimits.MaxDashboardItemCount)
+                errors.Add(Messages.MaxNumberReached("dashboard items", DataLimits.MaxDashboardItemCount));
 
-            var missing = onBoard.Except(seen).ToList();
-            if (missing.Count > 0)
-                errors.Add($"Missing from the document: {string.Join(", ", missing)}. Every widget on the board has to be listed; delete one from the board itself.");
-
-            return errors;
+            return errors.Count == before;
         }
 
-        private static void ValidateReadOnly(string path, DashboardDocumentItemDto documentItem, DashboardItem item, List<string> errors)
+        private static string? Blank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+        private async Task PlanItem(DocumentPlan plan, ItemPlan itemPlan)
         {
-            if (documentItem.Type != null && documentItem.Type != item.Type)
-                errors.Add($"{path}.type is read-only.");
+            var doc = itemPlan.Doc;
+            var errors = plan.Errors;
 
-            if (documentItem.Name != null && documentItem.Name != ResolveItemName(item))
-                errors.Add($"{path}.name is read-only. Rename the widget in the Widget Library.");
+            if (itemPlan.IsNew)
+                await ResolveNewItem(plan, itemPlan);
+            else
+                ValidateReadOnly(plan, itemPlan);
 
-            if (documentItem.Wiring != null && Canonical(documentItem.Wiring) != Canonical(BuildWiring(item)))
-                errors.Add($"{path}.wiring is read-only. Sources, filter links and goal targets are edited from the widget's own dialog.");
-        }
+            ValidateWiringFitsType(itemPlan, errors);
+            ValidatePlacement(plan, itemPlan);
+            ValidateTypeSpecific(plan, itemPlan);
 
-        private static void ValidatePlacement(
-            string path,
-            DashboardDocumentItemDto documentItem,
-            DashboardItem item,
-            IReadOnlySet<string> containerIds,
-            IReadOnlyDictionary<string, DashboardItem> itemsById,
-            PlannedItemWrite write,
-            List<string> errors)
-        {
-            if (documentItem.Layout != null)
-                ValidateLayout($"{path}.layout", documentItem.Layout, DashboardLayoutVariants.Desktop, write, isMobile: false, errors);
+            if (doc.Wiring?.Filter != null)
+                ResolveFilter(plan, itemPlan);
 
-            if (documentItem.MobileLayout != null)
-                ValidateLayout($"{path}.mobileLayout", documentItem.MobileLayout, DashboardLayoutVariants.Mobile, write, isMobile: true, errors);
-
-            if (documentItem.Color.IsSet)
+            if (doc.Wiring?.GoalConditionalTargets != null)
             {
-                write.Color = Blank(documentItem.Color.Value);
+                if (itemPlan.Item.Type != DashboardWidgetTypes.Analytic)
+                    errors.Add($"{itemPlan.Path}.wiring.goalConditionalTargets: only an analytic widget has them.");
+                else
+                    itemPlan.GoalRows = doc.Wiring.GoalConditionalTargets;
+            }
+        }
+
+        private void ValidateReadOnly(DocumentPlan plan, ItemPlan itemPlan)
+        {
+            var doc = itemPlan.Doc;
+            var item = itemPlan.Item;
+            var path = itemPlan.Path;
+
+            if (doc.Type != null && doc.Type != item.Type)
+                plan.Errors.Add($"{path}.type is read-only.");
+
+            if (doc.Name != null && doc.Name != ResolveItemName(item))
+                plan.Errors.Add($"{path}.name is read-only. Rename the widget in the Widget Library.");
+
+            if (doc.Wiring != null)
+                ValidateExistingWiring(plan, itemPlan);
+        }
+
+        // Only some parts of the wiring belong to a type; naming another type's part is
+        // refused rather than dropped.
+        private static void ValidateWiringFitsType(ItemPlan itemPlan, List<string> errors)
+        {
+            var wiring = itemPlan.Doc.Wiring;
+            if (wiring == null)
+                return;
+
+            var type = itemPlan.Item.Type;
+            var path = $"{itemPlan.Path}.wiring";
+
+            void Reject(bool present, string property, string owner)
+            {
+                if (present)
+                    errors.Add($"{path}.{property}: only {owner} has this.");
+            }
+
+            var analytic = type == DashboardWidgetTypes.Analytic;
+            Reject(wiring.Widget != null && !analytic, "widget", "an analytic widget");
+            Reject(wiring.Sources != null && !analytic, "sources", "an analytic widget");
+            Reject(wiring.Filter != null && type != DashboardWidgetTypes.Filter, "filter", "a filter widget");
+            Reject(wiring.Library != null && !(analytic || type == DashboardWidgetTypes.Entries), "library", "an analytic or entries widget");
+            Reject(wiring.TrackerName != null && type is not (DashboardWidgetTypes.QuickAdd or DashboardWidgetTypes.Entries), "trackerName", "a quick add or entries widget");
+        }
+
+        private void ValidatePlacement(DocumentPlan plan, ItemPlan itemPlan)
+        {
+            var doc = itemPlan.Doc;
+            var item = itemPlan.Item;
+            var path = itemPlan.Path;
+            var write = itemPlan.Write;
+            var errors = plan.Errors;
+
+            if (doc.Layout != null)
+                ValidateLayout($"{path}.layout", doc.Layout, DashboardLayoutVariants.Desktop, write, isMobile: false, errors);
+
+            if (doc.MobileLayout != null)
+                ValidateLayout($"{path}.mobileLayout", doc.MobileLayout, DashboardLayoutVariants.Mobile, write, isMobile: true, errors);
+
+            if (doc.Color.IsSet)
+            {
+                write.Color = Blank(doc.Color.Value);
                 write.SetColor = true;
             }
 
-            if (documentItem.ShowTrend.HasValue)
-                write.ShowTrend = documentItem.ShowTrend;
+            if (doc.ShowTrend.HasValue)
+                write.ShowTrend = doc.ShowTrend;
 
-            if (documentItem.YAxisFromZero.HasValue)
-                write.YAxisFromZero = documentItem.YAxisFromZero;
+            if (doc.YAxisFromZero.HasValue)
+                write.YAxisFromZero = doc.YAxisFromZero;
 
             // A field left out keeps what the item already has, so the pair is validated as
             // it will end up rather than as it was written.
-            var parentId = documentItem.ParentItemId.IsSet ? Blank(documentItem.ParentItemId.Value) : item.ParentItemId;
-            var tabId = documentItem.ParentTabId.IsSet ? Blank(documentItem.ParentTabId.Value) : item.ParentTabId;
+            var parentKey = doc.Parent.IsSet ? Blank(doc.Parent.Value) : ExistingParentKey(plan, item);
+            var tabName = Blank(doc.Tab.Value);
 
-            if (parentId == null)
+            if (parentKey == null)
             {
-                if (tabId != null)
-                    errors.Add($"{path}.parentTabId: only an item inside a tabs container has a tab.");
+                if (doc.Tab.IsSet && tabName != null)
+                    errors.Add($"{path}.tab: only an item inside a tabs container has a tab.");
 
                 write.ParentItemId = null;
                 write.ParentTabId = null;
@@ -190,43 +388,64 @@ namespace Operum.Service.Services.Dashboards
                 return;
             }
 
-            if (parentId == item.Id)
+            if (parentKey == doc.Key)
             {
-                errors.Add($"{path}.parentItemId: an item cannot contain itself.");
+                errors.Add($"{path}.parent: an item cannot contain itself.");
                 return;
             }
 
             if (DashboardWidgetTypes.IsContainer(item.Type))
             {
-                errors.Add($"{path}.parentItemId: a container cannot be nested inside another.");
+                errors.Add($"{path}.parent: a container cannot be nested inside another.");
                 return;
             }
 
-            if (!containerIds.Contains(parentId))
+            if (!plan.ByKey.TryGetValue(parentKey, out var parentPlan) || !DashboardWidgetTypes.IsContainer(parentPlan.Item.Type))
             {
-                errors.Add($"{path}.parentItemId: {parentId} is not a container on this board.");
+                errors.Add($"{path}.parent: \"{parentKey}\" is not a container in this document.");
                 return;
             }
 
-            var parent = itemsById[parentId];
+            var parent = parentPlan.Item;
+            string? tabId = null;
+
             if (parent.Type == DashboardWidgetTypes.TabsContainer)
             {
-                // Validated against the tabs already stored: the document can rename and
-                // reorder them but never change which ids exist.
-                var tabIds = (TryParseTabsContainerConfig(parent.Config)?.Tabs ?? []).Select(t => t.Id).ToList();
-                if (tabId == null)
-                    errors.Add($"{path}.parentTabId is required inside a tabs container.");
-                else if (!tabIds.Contains(tabId))
-                    errors.Add($"{path}.parentTabId: {tabId} is not a tab of {parentId}.");
+                var tabs = plan.TabsByContainer.GetValueOrDefault(parent.Id) ?? [];
+
+                if (doc.Tab.IsSet)
+                {
+                    tabId = tabName == null ? null : tabs.FirstOrDefault(t => string.Equals(t.Name, tabName, StringComparison.OrdinalIgnoreCase))?.Id;
+                    if (tabName == null)
+                        errors.Add($"{path}.tab is required inside a tabs container.");
+                    else if (tabId == null)
+                        errors.Add($"{path}.tab: \"{tabName}\" is not a tab of {parentKey}. Its tabs are {Options(tabs.Select(t => t.Name))}.");
+                }
+                else if (item.ParentItemId == parent.Id && item.ParentTabId != null && tabs.Any(t => t.Id == item.ParentTabId))
+                {
+                    tabId = item.ParentTabId;
+                }
+                else
+                {
+                    errors.Add($"{path}.tab is required inside a tabs container.");
+                }
             }
-            else if (tabId != null)
+            else if (doc.Tab.IsSet && tabName != null)
             {
-                errors.Add($"{path}.parentTabId: {parentId} has no tabs.");
+                errors.Add($"{path}.tab: {parentKey} has no tabs.");
             }
 
-            write.ParentItemId = parentId;
-            write.ParentTabId = parent.Type == DashboardWidgetTypes.TabsContainer ? tabId : null;
+            write.ParentItemId = parent.Id;
+            write.ParentTabId = tabId;
             write.SetParent = true;
+        }
+
+        private static string? ExistingParentKey(DocumentPlan plan, DashboardItem item)
+        {
+            if (item.ParentItemId == null)
+                return null;
+
+            return plan.Dashboard.Items.FirstOrDefault(i => i.Id == item.ParentItemId)?.Key;
         }
 
         // The bounds UpdateDashboardLayout clamps a dragged widget to, reported instead of
@@ -288,276 +507,323 @@ namespace Operum.Service.Services.Dashboards
             }
         }
 
-        private async Task ValidateTypeSpecific(
-            string path,
-            DashboardDocumentItemDto documentItem,
-            DashboardItem item,
-            PlannedItemWrite write,
-            List<string> errors)
+        private void ValidateTypeSpecific(DocumentPlan plan, ItemPlan itemPlan)
         {
+            var doc = itemPlan.Doc;
+            var item = itemPlan.Item;
+            var path = itemPlan.Path;
+            var write = itemPlan.Write;
+            var errors = plan.Errors;
+
             var takesText = item.Type is DashboardWidgetTypes.Header
                 or DashboardWidgetTypes.Note
                 or DashboardWidgetTypes.Container
                 or DashboardWidgetTypes.TabsContainer;
 
-            if (documentItem.Text.IsSet && !takesText)
+            if (doc.Text.IsSet && !takesText)
                 errors.Add($"{path}.text: a {item.Type} widget has no text.");
 
-            if (documentItem.Tabs.IsSet && item.Type != DashboardWidgetTypes.TabsContainer)
+            if (doc.Tabs.IsSet && item.Type != DashboardWidgetTypes.TabsContainer)
                 errors.Add($"{path}.tabs: only a tabs container has tabs.");
 
-            if (documentItem.ColumnFieldIds.IsSet && item.Type != DashboardWidgetTypes.Entries)
-                errors.Add($"{path}.columnFieldIds: only an entries widget has columns.");
+            if (doc.Columns.IsSet && item.Type != DashboardWidgetTypes.Entries)
+                errors.Add($"{path}.columns: only an entries widget has columns.");
 
             // These three have no null state, so null would otherwise be a write that quietly
             // did nothing.
-            if (documentItem.Text is { IsSet: true, Value: null })
+            if (doc.Text is { IsSet: true, Value: null })
                 errors.Add($"{path}.text: cannot be null. Use \"\" to clear it.");
 
-            if (documentItem.Tabs is { IsSet: true, Value: null })
+            if (doc.Tabs is { IsSet: true, Value: null })
                 errors.Add($"{path}.tabs: cannot be null. Leave it out to keep the tabs as they are.");
 
-            if (documentItem.ColumnFieldIds is { IsSet: true, Value: null })
-                errors.Add($"{path}.columnFieldIds: cannot be null. Use [] to show every field.");
+            if (doc.Columns is { IsSet: true, Value: null })
+                errors.Add($"{path}.columns: cannot be null. Use [] to show every field.");
 
-            if (documentItem.Text is { IsSet: true, Value: not null } text
-                && takesText
-                && item.Type != DashboardWidgetTypes.TabsContainer)
+            if (item.Type == DashboardWidgetTypes.TabsContainer)
+            {
+                WriteTabsConfig(plan, itemPlan);
+            }
+            else if (takesText)
             {
                 var maxLength = item.Type == DashboardWidgetTypes.Note
                     ? DataLimits.MaxNoteTextLength
                     : DataLimits.MaxHeaderTextLength;
 
-                if (text.Value!.Length > maxLength)
-                    errors.Add($"{path}.text: cannot exceed {maxLength} characters.");
-                else
-                    write.Config = JsonSerializer.Serialize(new TextWidgetConfigDto { Text = text.Value }, ConfigJsonOptions);
+                if (doc.Text is { IsSet: true, Value: not null } text)
+                {
+                    if (text.Value!.Length > maxLength)
+                        errors.Add($"{path}.text: cannot exceed {maxLength} characters.");
+                    else
+                        write.Config = JsonSerializer.Serialize(new TextWidgetConfigDto { Text = text.Value }, ConfigJsonOptions);
+                }
+                else if (itemPlan.IsNew && item.Type is DashboardWidgetTypes.Header or DashboardWidgetTypes.Note)
+                {
+                    write.Config = JsonSerializer.Serialize(new TextWidgetConfigDto { Text = string.Empty }, ConfigJsonOptions);
+                }
             }
 
-            if (item.Type == DashboardWidgetTypes.TabsContainer)
-                ValidateTabs(path, documentItem, item, write, errors);
+            if (item.Type == DashboardWidgetTypes.Entries)
+                WriteEntriesConfig(plan, itemPlan);
 
-            if (item.Type == DashboardWidgetTypes.Entries
-                && documentItem.ColumnFieldIds is { IsSet: true, Value: not null } columnFieldIds)
+            if (item.Type == DashboardWidgetTypes.QuickAdd && itemPlan.IsNew && itemPlan.TrackerId != null)
+                write.Config = JsonSerializer.Serialize(new QuickAddWidgetConfigDto { TrackerId = itemPlan.TrackerId }, ConfigJsonOptions);
+        }
+
+        private void WriteEntriesConfig(DocumentPlan plan, ItemPlan itemPlan)
+        {
+            var trackerId = itemPlan.IsNew ? itemPlan.TrackerId : itemPlan.Item.EntriesWidget?.TrackerId;
+            var path = $"{itemPlan.Path}.columns";
+
+            if (!itemPlan.Doc.Columns.IsSet || itemPlan.Doc.Columns.Value == null)
             {
-                if (item.EntriesWidget == null)
+                if (itemPlan.IsNew)
+                    itemPlan.Write.Config = JsonSerializer.Serialize(new EntriesWidgetConfigDto(), ConfigJsonOptions);
+                return;
+            }
+
+            if (trackerId == null)
+            {
+                if (!itemPlan.IsNew)
+                    plan.Errors.Add($"{path}: this entries widget has no tracker.");
+                return;
+            }
+
+            // A column already shown keeps its field even where two fields share a name.
+            var current = itemPlan.IsNew ? [] : TryParseEntriesConfig(itemPlan.Item.Config)?.ColumnFieldIds ?? [];
+
+            var resolved = new List<string>();
+            foreach (var name in itemPlan.Doc.Columns.Value!)
+            {
+                var fieldId = plan.Lookups.ResolveField(path, trackerId, name, plan.Errors, current);
+                if (fieldId != null && !resolved.Contains(fieldId))
+                    resolved.Add(fieldId);
+            }
+
+            if (resolved.Count > DataLimits.MaxColumns)
+            {
+                plan.Errors.Add($"{path}: {Messages.MaxNumberReached("columns", DataLimits.MaxColumns)}");
+                return;
+            }
+
+            itemPlan.Write.Config = JsonSerializer.Serialize(new EntriesWidgetConfigDto { ColumnFieldIds = resolved }, ConfigJsonOptions);
+        }
+
+        // ----- Tabs -----
+
+        // Settled for every container before any child is placed, since a child names its tab.
+        // A tab keeps its stored id when the document names it again, or, where the document
+        // renames tabs, takes over the id of the one at the same position.
+        private void PlanTabs(DocumentPlan plan)
+        {
+            foreach (var itemPlan in plan.Items.Where(p => p.Item.Type == DashboardWidgetTypes.TabsContainer))
+            {
+                var path = $"{itemPlan.Path}.tabs";
+                var existing = itemPlan.IsNew ? [] : TryParseTabsContainerConfig(itemPlan.Item.Config)?.Tabs ?? [];
+
+                if (itemPlan.Doc.Tabs is not { IsSet: true, Value: not null } setTabs)
                 {
-                    errors.Add($"{path}.columnFieldIds: this entries widget has no tracker.");
-                    return;
+                    plan.TabsByContainer[itemPlan.Item.Id] = existing.Count > 0
+                        ? existing
+                        : [new TabDefDto { Id = Guid.NewGuid().ToString(), Name = "Tab 1" }];
+                    continue;
                 }
 
-                var columns = await ResolveEntriesColumns(item.EntriesWidget.TrackerId, columnFieldIds.Value!);
-                if (columns.IsFailure)
-                    errors.Add($"{path}.columnFieldIds: {string.Join(" ", columns.Messages)}");
-                else
-                    write.Config = JsonSerializer.Serialize(new EntriesWidgetConfigDto { ColumnFieldIds = columns.Data! }, ConfigJsonOptions);
+                var names = setTabs.Value!.Select(n => n?.Trim() ?? string.Empty).ToList();
+
+                if (names.Count is < 1 or > DataLimits.MaxDashboardTabCount)
+                {
+                    plan.Errors.Add($"{path}: needs between 1 and {DataLimits.MaxDashboardTabCount} tabs.");
+                    continue;
+                }
+
+                if (names.Any(n => n.Length == 0 || n.Length > DataLimits.MaxTabNameLength))
+                {
+                    plan.Errors.Add($"{path}: a tab name is required and cannot exceed {DataLimits.MaxTabNameLength} characters.");
+                    continue;
+                }
+
+                if (names.Select(n => n.ToLowerInvariant()).Distinct().Count() != names.Count)
+                {
+                    plan.Errors.Add($"{path}: tab names must differ from one another.");
+                    continue;
+                }
+
+                var kept = new Dictionary<int, string>();
+                var claimed = new HashSet<string>();
+                for (var i = 0; i < names.Count; i++)
+                {
+                    var match = existing.FirstOrDefault(t => string.Equals(t.Name, names[i], StringComparison.OrdinalIgnoreCase));
+                    if (match != null && claimed.Add(match.Id))
+                        kept[i] = match.Id;
+                }
+
+                var unclaimed = new Queue<TabDefDto>(existing.Where(t => !claimed.Contains(t.Id)));
+                var tabs = new List<TabDefDto>();
+                for (var i = 0; i < names.Count; i++)
+                {
+                    var id = kept.TryGetValue(i, out var keptId)
+                        ? keptId
+                        : unclaimed.TryDequeue(out var renamed) ? renamed.Id : Guid.NewGuid().ToString();
+
+                    tabs.Add(new TabDefDto { Id = id, Name = names[i] });
+                }
+
+                plan.TabsByContainer[itemPlan.Item.Id] = tabs;
             }
         }
 
-        private static string? Blank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-
-        // Renaming and reordering only: adding or removing a tab moves whichever widgets sat
-        // in it, which is the tabs dialog's job.
-        private static void ValidateTabs(
-            string path,
-            DashboardDocumentItemDto documentItem,
-            DashboardItem item,
-            PlannedItemWrite write,
-            List<string> errors)
+        private void WriteTabsConfig(DocumentPlan plan, ItemPlan itemPlan)
         {
-            var setsTitle = documentItem.Text is { IsSet: true, Value: not null };
-            var setsTabs = documentItem.Tabs is { IsSet: true, Value: not null };
-            if (!setsTitle && !setsTabs)
+            if (!plan.TabsByContainer.TryGetValue(itemPlan.Item.Id, out var tabs))
                 return;
 
-            var current = TryParseTabsContainerConfig(item.Config);
-            if (current == null)
-            {
-                errors.Add($"{path}: this tabs container's stored tabs could not be read, so the document cannot edit them.");
+            var setsTitle = itemPlan.Doc.Text is { IsSet: true, Value: not null };
+            var setsTabs = itemPlan.Doc.Tabs is { IsSet: true, Value: not null };
+            if (!itemPlan.IsNew && !setsTitle && !setsTabs)
                 return;
-            }
 
-            var title = Blank(documentItem.Text.Value);
+            var title = Blank(itemPlan.Doc.Text.Value);
             if (setsTitle && (title?.Length ?? 0) > DataLimits.MaxHeaderTextLength)
             {
-                errors.Add($"{path}.text: cannot exceed {DataLimits.MaxHeaderTextLength} characters.");
+                plan.Errors.Add($"{itemPlan.Path}.text: cannot exceed {DataLimits.MaxHeaderTextLength} characters.");
                 return;
             }
 
-            var tabs = current.Tabs;
-            if (setsTabs)
+            var current = itemPlan.IsNew ? null : TryParseTabsContainerConfig(itemPlan.Item.Config);
+            itemPlan.Write.Config = JsonSerializer.Serialize(new TabsContainerConfigDto
             {
-                var currentIds = current.Tabs.Select(t => t.Id).ToList();
-                var documentIds = documentItem.Tabs.Value!.Select(t => t.Id ?? string.Empty).ToList();
-
-                if (!currentIds.OrderBy(id => id).SequenceEqual(documentIds.OrderBy(id => id)))
-                {
-                    errors.Add($"{path}.tabs: must list every existing tab id exactly once. Tabs are added and removed from the tabs container's own dialog.");
-                    return;
-                }
-
-                var renamed = new List<TabDefDto>();
-                foreach (var tab in documentItem.Tabs.Value!)
-                {
-                    var name = tab.Name?.Trim() ?? string.Empty;
-                    if (name.Length == 0 || name.Length > DataLimits.MaxTabNameLength)
-                    {
-                        errors.Add($"{path}.tabs: a tab name is required and cannot exceed {DataLimits.MaxTabNameLength} characters.");
-                        return;
-                    }
-
-                    renamed.Add(new TabDefDto { Id = tab.Id, Name = name });
-                }
-
-                tabs = renamed;
-            }
-
-            write.Config = JsonSerializer.Serialize(new TabsContainerConfigDto
-            {
-                Title = setsTitle ? title : current.Title,
+                Title = setsTitle ? title : current?.Title,
                 Tabs = tabs
             }, ConfigJsonOptions);
         }
 
-        private static DashboardDocumentDto BuildDocument(Dashboard dashboard) => new()
-        {
-            SchemaVersion = DashboardDocumentDto.CurrentSchemaVersion,
-            Board = new DashboardDocumentBoardDto
-            {
-                Id = dashboard.Id,
-                Name = dashboard.Name,
-                Color = new Optional<string>(dashboard.Color),
-                Icon = new Optional<string>(dashboard.Icon)
-            },
-            Items = dashboard.Items.OrderBy(i => i.Order).Select(BuildDocumentItem).ToList()
-        };
+        // ----- Writing -----
 
-        private static DashboardDocumentItemDto BuildDocumentItem(DashboardItem item)
+        private async Task<Result<List<DashboardWidgetDto>>> WriteDocument(DocumentPlan plan, string boardName)
         {
-            var documentItem = new DashboardDocumentItemDto
+            var user = currentUserService.GetCurrentUser();
+            var dashboard = plan.Dashboard;
+            var document = plan.Document;
+            var errors = plan.Errors;
+
+            dashboard.Name = boardName;
+            if (document.Board.Color.IsSet)
+                dashboard.Color = Blank(document.Board.Color.Value);
+            if (document.Board.Icon.IsSet)
+                dashboard.Icon = Blank(document.Board.Icon.Value);
+
+            await WritePresets(plan, user.Id);
+            if (errors.Count > 0)
+                return Result.Failure(ResultStatusCodes.BadRequest, errors);
+
+            foreach (var itemPlan in plan.Items.Where(p => p.IsNew))
+                await CreateLibraryDefinition(plan, itemPlan);
+
+            if (errors.Count > 0)
+                return Result.Failure(ResultStatusCodes.BadRequest, errors);
+
+            foreach (var itemPlan in plan.Items.Where(p => p.IsNew))
             {
-                Id = item.Id,
-                Type = item.Type,
-                Name = ResolveItemName(item),
-                ParentItemId = new Optional<string>(item.ParentItemId),
-                ParentTabId = new Optional<string>(item.ParentTabId),
-                Layout = new DashboardDocumentLayoutDto
+                itemPlan.Item = BuildNewItem(plan, itemPlan);
+                db.DashboardItems.Add(itemPlan.Item);
+                if (!dashboard.Items.Contains(itemPlan.Item))
+                    dashboard.Items.Add(itemPlan.Item);
+            }
+
+            foreach (var itemPlan in plan.Items)
+            {
+                itemPlan.Write.Item = itemPlan.Item;
+                itemPlan.Write.Apply();
+
+                foreach (var sourceWrite in itemPlan.SourceWrites)
                 {
-                    X = item.X,
-                    Y = item.Y,
-                    W = item.W,
-                    H = item.H,
-                    DisplayMode = DashboardDocumentDisplayModes.From(item.DisplayMode)
-                },
-                MobileLayout = new DashboardDocumentLayoutDto
-                {
-                    X = item.MobileX,
-                    Y = item.MobileY,
-                    W = item.MobileW,
-                    H = item.MobileH,
-                    DisplayMode = DashboardDocumentDisplayModes.From(item.MobileDisplayMode)
-                },
-                Color = new Optional<string>(item.Color),
-                ShowTrend = item.ShowTrend,
-                YAxisFromZero = item.YAxisFromZero,
-                Wiring = BuildWiring(item)
-            };
-
-            if (item.Type is DashboardWidgetTypes.Header or DashboardWidgetTypes.Note or DashboardWidgetTypes.Container)
-                documentItem.Text = new Optional<string>(TryParseTextConfig(item.Config)?.Text ?? string.Empty);
-
-            if (item.Type == DashboardWidgetTypes.TabsContainer)
-            {
-                var config = TryParseTabsContainerConfig(item.Config);
-                documentItem.Text = new Optional<string>(config?.Title ?? string.Empty);
-                documentItem.Tabs = new Optional<List<DashboardDocumentTabDto>>(
-                    (config?.Tabs ?? [])
-                        .Select(t => new DashboardDocumentTabDto { Id = t.Id, Name = t.Name })
-                        .ToList());
+                    var source = itemPlan.Item.Sources.OrderBy(s => s.Order).ElementAt(sourceWrite.Index);
+                    if (sourceWrite.SetLabel)
+                        source.Label = sourceWrite.Label;
+                    if (sourceWrite.SetView)
+                        source.ViewId = sourceWrite.ViewId;
+                }
             }
 
-            if (item.Type == DashboardWidgetTypes.Entries)
-                documentItem.ColumnFieldIds = new Optional<List<string>>(
-                    TryParseEntriesConfig(item.Config)?.ColumnFieldIds ?? []);
+            await db.SaveChangesAsync();
 
-            return documentItem;
+            // The board is read again so every item, new ones included, carries the full
+            // graph the filter and goal checks read their trackers and fields from.
+            db.ChangeTracker.Clear();
+            dashboard = (await GetUserDashboard(dashboard.Id))!;
+
+            var itemsById = dashboard.Items.ToDictionary(i => i.Id);
+            var keyToSlot = new Dictionary<string, string>();
+
+            await WriteFilters(plan, dashboard, itemsById, keyToSlot, user.Id);
+            WriteGoalTargets(plan, dashboard, itemsById, keyToSlot);
+
+            if (errors.Count > 0)
+                return Result.Failure(ResultStatusCodes.BadRequest, errors);
+
+            await WriteRemovals(plan, dashboard, itemsById);
+
+            var tabOrderByContainer = dashboard.Items
+                .Where(i => i.Type == DashboardWidgetTypes.TabsContainer)
+                .ToDictionary(
+                    i => i.Id,
+                    i => (TryParseTabsContainerConfig(i.Config)?.Tabs ?? []).Select(t => t.Id).ToList());
+
+            RecomputeItemOrder(dashboard, tabOrderByContainer);
+
+            await db.SaveChangesAsync();
+
+            return Result.Success(await BuildWidgets(dashboard));
         }
 
-        private static DashboardDocumentWiringDto? BuildWiring(DashboardItem item)
+        private async Task WriteRemovals(DocumentPlan plan, Dashboard dashboard, Dictionary<string, DashboardItem> itemsById)
         {
-            var sources = item.Sources
-                .OrderBy(s => s.Order)
-                .Select(s => new DashboardDocumentSourceDto
-                {
-                    Id = s.Id,
-                    TrackerName = s.WidgetSource?.Tracker?.Name ?? string.Empty,
-                    Label = s.Label,
-                    ViewId = s.ViewId,
-                    Fields = (s.WidgetSource?.Fields ?? [])
-                        .Where(f => f.Field != null)
-                        .Select(f => $"{f.Purpose}: {f.Field.Name}")
-                        .ToList()
-                })
-                .ToList();
+            // A filter this document did not restate keeps its config, minus whatever it named
+            // that is now gone.
+            var restated = plan.Items.Where(p => p.Filter != null).Select(p => p.Item.Id).ToHashSet();
+            var survivingPresetIds = plan.PresetsAuthoritative
+                ? plan.Presets.Select(p => p.Id).ToHashSet()
+                : null;
 
-            var filter = item.Type == DashboardWidgetTypes.Filter ? TryParseFilterConfig(item.Config) : null;
-            var goalTargets = ParseGoalConditionalTargets(item.GoalConditionalTargets);
-
-            if (sources.Count == 0 && filter == null && goalTargets.Count == 0)
-                return null;
-
-            return new DashboardDocumentWiringDto
+            foreach (var filterItem in dashboard.Items.Where(i => i.Type == DashboardWidgetTypes.Filter && !restated.Contains(i.Id)))
             {
-                Sources = sources.Count > 0 ? sources : null,
-                Filter = filter,
-                GoalConditionalTargets = goalTargets.Count > 0 ? goalTargets : null
-            };
-        }
+                var config = TryParseFilterConfig(filterItem.Config);
+                if (config == null)
+                    continue;
 
-        private static TextWidgetConfigDto? TryParseTextConfig(string? config)
-        {
-            if (string.IsNullOrEmpty(config))
-                return null;
+                var links = config.Links.RemoveAll(l => plan.DeletedItemIds.Contains(l.ItemId));
+                var presets = survivingPresetIds == null
+                    ? 0
+                    : config.PresetIds.RemoveAll(id => !survivingPresetIds.Contains(id));
 
-            try
-            {
-                return JsonSerializer.Deserialize<TextWidgetConfigDto>(config, ConfigJsonOptions);
+                if (links + presets > 0)
+                    filterItem.Config = JsonSerializer.Serialize(config, ConfigJsonOptions);
             }
-            catch (JsonException)
+
+            foreach (var id in plan.DeletedItemIds)
             {
-                return null;
+                var item = itemsById[id];
+                db.DashboardItems.Remove(item);
+                dashboard.Items.Remove(item);
+            }
+
+            if (plan.PresetsAuthoritative)
+            {
+                var stale = await db.DashboardViews
+                    .Where(v => v.DashboardId == dashboard.Id)
+                    .Select(v => v.Id)
+                    .ToListAsync();
+
+                var keep = plan.Presets.Select(p => p.Id).ToHashSet();
+                foreach (var viewId in stale.Where(id => !keep.Contains(id)))
+                    await db.DashboardViews.Where(v => v.Id == viewId).ExecuteDeleteAsync();
             }
         }
 
-        // Property order and map key order carry no meaning, so a reformatted or reordered
-        // read-only block still compares equal; array order does, and is left alone.
-        private static string Canonical(object? value)
+        private sealed class PlannedItemWrite
         {
-            var node = JsonSerializer.SerializeToNode(value, ConfigJsonOptions);
-            return SortNode(node)?.ToJsonString() ?? "null";
-        }
-
-        private static JsonNode? SortNode(JsonNode? node)
-        {
-            switch (node)
-            {
-                case JsonObject obj:
-                    var sorted = new JsonObject();
-                    foreach (var property in obj.OrderBy(p => p.Key, StringComparer.Ordinal))
-                        sorted[property.Key] = SortNode(property.Value?.DeepClone());
-                    return sorted;
-                case JsonArray array:
-                    var copy = new JsonArray();
-                    foreach (var element in array)
-                        copy.Add(SortNode(element?.DeepClone()));
-                    return copy;
-                default:
-                    return node?.DeepClone();
-            }
-        }
-
-        private sealed class PlannedItemWrite(DashboardItem item)
-        {
+            public DashboardItem Item { get; set; } = null!;
             public (int X, int Y, int W, int H)? Layout { get; set; }
             public (int X, int Y, int W, int H)? MobileLayout { get; set; }
             public DashboardItemDisplayMode? DisplayMode { get; set; }
@@ -575,33 +841,33 @@ namespace Operum.Service.Services.Dashboards
             {
                 if (Layout.HasValue)
                 {
-                    (item.X, item.Y, item.W, item.H) = Layout.Value;
-                    item.DisplayMode = DisplayMode!.Value;
+                    (Item.X, Item.Y, Item.W, Item.H) = Layout.Value;
+                    Item.DisplayMode = DisplayMode!.Value;
                 }
 
                 if (MobileLayout.HasValue)
                 {
-                    (item.MobileX, item.MobileY, item.MobileW, item.MobileH) = MobileLayout.Value;
-                    item.MobileDisplayMode = MobileDisplayMode!.Value;
+                    (Item.MobileX, Item.MobileY, Item.MobileW, Item.MobileH) = MobileLayout.Value;
+                    Item.MobileDisplayMode = MobileDisplayMode!.Value;
                 }
 
                 if (SetParent)
                 {
-                    item.ParentItemId = ParentItemId;
-                    item.ParentTabId = ParentTabId;
+                    Item.ParentItemId = ParentItemId;
+                    Item.ParentTabId = ParentTabId;
                 }
 
                 if (SetColor)
-                    item.Color = Color;
+                    Item.Color = Color;
 
                 if (ShowTrend.HasValue)
-                    item.ShowTrend = ShowTrend.Value;
+                    Item.ShowTrend = ShowTrend.Value;
 
                 if (YAxisFromZero.HasValue)
-                    item.YAxisFromZero = YAxisFromZero.Value;
+                    Item.YAxisFromZero = YAxisFromZero.Value;
 
                 if (Config != null)
-                    item.Config = Config;
+                    Item.Config = Config;
             }
         }
     }

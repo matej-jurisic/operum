@@ -46,7 +46,33 @@ Build any number of dashboards ("boards"), each with its own name, color, and ic
 | Container | A panel holding a sub-grid of other widgets, so a group can be moved, resized, and titled as one. Nesting is one level deep |
 | Tabs container | A container whose body is split into named tabs, each holding its own sub-grid; only the active tab's widgets show |
 
-A board can also be edited as JSON, from the board menu. The document carries every widget's grid placement, display mode, color, and text, so a whole board can be rearranged, recolored, or retitled in one pass instead of widget by widget. A field you leave out stays as it is, and one set to null is cleared. Each widget's sources and filter links come along read-only for context, and a save that changed them is refused rather than quietly ignored. Widgets are still added and removed from the board itself.
+A board can also be built and edited as JSON. **Edit as JSON** in the board menu opens the whole board as one document, and **Import board from JSON** creates a new board from one. The document lists every widget with its grid placement, display mode, color, text, and wiring (Library widget, sources, filter clauses and links, goal targets), plus the board's filter presets, so a whole dashboard can be written by hand or generated and imported in one step. A save is all or nothing, and every problem found comes back at once with the path it sits at.
+
+- The document has no ids. A widget is named by its `key` (letters, digits, dot, dash, underscore), which it is given the first time its board is exported and keeps from then on. Trackers, fields, views, presets, and tabs are named. Where a name matches more than one, the error asks you to rename one.
+- A widget whose `key` is on the board is updated, and any other `key` is a new widget. A widget the document leaves out is deleted, after a confirmation.
+- An analytic widget either points at a Widget Library widget by name with `wiring.library` or defines a new one inline with `wiring.widget` and `wiring.sources`, which is added to the Library. An existing widget's Library definition is read-only, and a save that changed it is refused.
+- A field you leave out stays as it is, and one set to null is cleared. A new widget can leave out its layout and is placed below the board.
+
+```json
+{
+  "schemaVersion": 3,
+  "board": { "name": "Fitness", "color": "grape" },
+  "items": [
+    { "key": "range", "type": "filter",
+      "wiring": { "filter": {
+        "clauses": [{ "key": "from", "dataType": "date", "operator": "Greater Than Or Equal", "value": "start_of_month" }],
+        "links": [{ "item": "volume", "fields": { "from": "Date" } }] } } },
+    { "key": "volume", "type": "analytic", "name": "Volume",
+      "wiring": {
+        "widget": { "resultType": "Goal", "code": "Sum", "goalTarget": "60" },
+        "sources": [{ "trackerName": "Workouts", "fields": ["Value: Duration"] }] } },
+    { "key": "log", "type": "entries", "name": "Recent workouts",
+      "columns": ["Date", "Duration"], "wiring": { "trackerName": "Workouts" } }
+  ]
+}
+```
+
+Exporting a board shows working values for every field: result types (`Single Value`, `Line Chart`, `Bar Chart`, `Scatter Chart`, `Calendar`, `Donut Chart`, `Goal`), calculations such as `Sum` or `Raw Values`, and source fields written as `Purpose: Field name`. A wrong calculation for a result type comes back with the ones that type takes.
 
 The **Widget Library** holds chart and table definitions independently of any board. Build one once, place it on as many boards as you want, edit or delete it in one place. A filter widget can offer board-level saved filter sets as one-tap presets, and each followed widget picks which of its tracker's fields the filter runs against. Adding a chart or table to a board with existing filter widgets offers a checklist to follow them right away, so the new widget doesn't load unfiltered.
 

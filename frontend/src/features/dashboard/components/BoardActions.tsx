@@ -2,7 +2,7 @@ import { Button, Menu } from "@mantine/core";
 import { CiSettings } from "react-icons/ci";
 import { FiPlus } from "react-icons/fi";
 import { MdDelete, MdEdit } from "react-icons/md";
-import { TbArrowsMove } from "react-icons/tb";
+import { TbArrowsMove, TbFileImport } from "react-icons/tb";
 import { VscJson } from "react-icons/vsc";
 
 interface Props {
@@ -14,6 +14,7 @@ interface Props {
     onToggleArrange: () => void;
     onOpenWidgets: () => void;
     onEditDocument: () => void;
+    onImportDocument: () => void;
 }
 
 export default function BoardActions({
@@ -25,6 +26,7 @@ export default function BoardActions({
     onToggleArrange,
     onOpenWidgets,
     onEditDocument,
+    onImportDocument,
 }: Props) {
     return (
         <Menu shadow="md" position="bottom-start" withinPortal>
@@ -60,6 +62,12 @@ export default function BoardActions({
                     onClick={onEditDocument}
                 >
                     Edit as JSON
+                </Menu.Item>
+                <Menu.Item
+                    leftSection={<TbFileImport size={16} />}
+                    onClick={onImportDocument}
+                >
+                    Import board from JSON
                 </Menu.Item>
                 <Menu.Divider />
                 <Menu.Item

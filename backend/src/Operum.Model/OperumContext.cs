@@ -125,6 +125,11 @@ namespace Operum.Model
                 .HasForeignKey(i => i.DashboardId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            builder.Entity<DashboardItem>()
+                .HasIndex(i => new { i.DashboardId, i.Key })
+                .IsUnique()
+                .HasFilter("\"Key\" IS NOT NULL");
+
             // Every widget placed before this option existed drew a 0-based y-axis, so the
             // column backfills to true and new placements default to it unless asked otherwise.
             builder.Entity<DashboardItem>()

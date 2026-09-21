@@ -205,8 +205,8 @@ namespace Operum.API.Controllers
             return GetApiResponse(await dashboardService.UpdateDashboardLayout(dashboardId, dto));
         }
 
-        // The whole board as one editable document: layout, placement presentation and text.
-        // The wiring each widget was built from comes back read-only.
+        // The whole board as one editable document: every widget with its placement and wiring,
+        // and the board's filter presets. Exporting and importing it unchanged changes nothing.
         [HttpGet("{dashboardId}/document")]
         public async Task<IActionResult> GetDashboardDocument([FromRoute] string dashboardId)
         {
@@ -214,11 +214,19 @@ namespace Operum.API.Controllers
         }
 
         // All or nothing: a document that fails validation changes nothing and comes back
-        // with every problem found, each naming the path it sits at.
+        // with every problem found, each naming the path it sits at. A widget the document
+        // leaves out is deleted, and one it introduces under a new key is created.
         [HttpPut("{dashboardId}/document")]
         public async Task<IActionResult> SaveDashboardDocument([FromRoute] string dashboardId, [FromBody] DashboardDocumentDto document)
         {
             return GetApiResponse(await dashboardService.SaveDashboardDocument(dashboardId, document));
+        }
+
+        // Builds a new board from a document in one step.
+        [HttpPost("document")]
+        public async Task<IActionResult> CreateDashboardFromDocument([FromBody] DashboardDocumentDto document)
+        {
+            return GetApiResponse(await dashboardService.CreateDashboardFromDocument(document));
         }
     }
 }
