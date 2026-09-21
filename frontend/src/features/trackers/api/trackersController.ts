@@ -7,10 +7,14 @@ import UpdateCollaboratorPermissionsDto from "../types/requests/UpdateCollaborat
 import { UpdateTrackerDto } from "../types/requests/UpdateTrackerDto";
 import { TrackerCollaboratorDto } from "../types/TrackerCollaboratorDto";
 import { TrackerDto } from "../types/TrackerDto";
+import { TrackerSchemaDto } from "../types/TrackerSchemaDto";
 
 export const trackersController = {
     getPublicTemplates: async (): Promise<ApiResponse<TrackerDto[]>> => {
         return await api.get("/trackers/templates");
+    },
+    getTrackerSchema: async (): Promise<ApiResponse<TrackerSchemaDto[]>> => {
+        return await api.get("/trackers/schema");
     },
     getTracker: async (trackerId: string): Promise<ApiResponse<TrackerDto>> => {
         return await api.get(`/trackers/${trackerId}`);

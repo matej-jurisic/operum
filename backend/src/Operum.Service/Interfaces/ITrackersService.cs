@@ -11,6 +11,7 @@ namespace Operum.Service.Interfaces
         public Task<Result<TrackerDto>> CreateTracker(CreateTrackerDto tracker);
         public Task<Result<TrackerDto>> GetTracker(string id);
         public Task<Result<List<TrackerDto>>> GetTrackerList(string filter);
+        public Task<Result<List<TrackerSchemaDto>>> GetTrackerSchema();
         public Task<Result<List<TrackerDto>>> GetAllTemplateTrackerList();
         public Task<Result<List<TrackerDto>>> GetPublicTemplateTrackerList();
         public Task<Result<TrackerDto>> UpdateTracker(string id, UpdateTrackerDto tracker);

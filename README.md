@@ -52,6 +52,7 @@ A board can also be built and edited as JSON. **Edit as JSON** in the board menu
 - A widget whose `key` is on the board is updated, and any other `key` is a new widget. A widget the document leaves out is deleted, after a confirmation.
 - An analytic widget either points at a Widget Library widget by name with `wiring.library` or defines a new one inline with `wiring.widget` and `wiring.sources`, which is added to the Library. An existing widget's Library definition is read-only, and a save that changed it is refused.
 - A field you leave out stays as it is, and one set to null is cleared. A new widget can leave out its layout and is placed below the board.
+- **Copy tracker schema**, in the same editor, copies every tracker you can access as names only: fields with their types, and views with their columns, filters, and sorts. It carries no entries or ids, so it is safe to paste into a chat or a prompt when generating a board.
 
 ```json
 {

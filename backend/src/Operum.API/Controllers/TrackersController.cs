@@ -24,6 +24,12 @@ namespace Operum.API.Controllers
             return GetApiResponse(await trackerService.GetAllTemplateTrackerList());
         }
 
+        [HttpGet("schema")]
+        public async Task<IActionResult> GetTrackerSchema()
+        {
+            return GetApiResponse(await trackerService.GetTrackerSchema());
+        }
+
         [HttpGet("templates")]
         public async Task<IActionResult> GetPublicTemplateTrackerList()
         {

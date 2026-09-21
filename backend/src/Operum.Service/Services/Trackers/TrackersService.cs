@@ -317,6 +317,62 @@ namespace Operum.Service.Services.Trackers
             return Result.Success(mapper.Map<List<Tracker>, List<TrackerDto>>(trackers));
         }
 
+        public async Task<Result<List<TrackerSchemaDto>>> GetTrackerSchema()
+        {
+            var user = currentUserService.GetCurrentUser();
+
+            var trackers = await db.Trackers
+                .AsSplitQuery()
+                .Include(x => x.Fields).ThenInclude(f => f.ReferencedTracker)
+                .Include(x => x.Views).ThenInclude(v => v.ViewQueries).ThenInclude(q => q.Query)
+                .Include(x => x.Views).ThenInclude(v => v.ViewQueries).ThenInclude(q => q.Field)
+                .Include(x => x.Views).ThenInclude(v => v.ViewColumns).ThenInclude(c => c.Field)
+                .Where(x => x.TrackerTypeId == null &&
+                    (x.OwnerId == user.Id || x.ApplicationUserTrackers.Any(a => a.ApplicationUserId == user.Id)))
+                .OrderBy(x => x.Name)
+                .ToListAsync();
+
+            return Result.Success(trackers.Select(tracker => new TrackerSchemaDto
+            {
+                Name = tracker.Name,
+                Description = tracker.Description,
+                Fields = [.. tracker.Fields.OrderBy(f => f.Order).Select(field => new TrackerSchemaFieldDto
+                {
+                    Name = field.Name,
+                    Type = field.Type,
+                    Required = field.Required,
+                    SelectOptions = field.SelectOptions != null
+                        ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(field.SelectOptions)
+                        : null,
+                    Formula = field.IsCalculated ? field.Formula : null,
+                    References = field.ReferencedTracker?.Name
+                })],
+                Views = [.. tracker.Views.OrderBy(v => v.Order).Select(view => new TrackerSchemaViewDto
+                {
+                    Name = view.Name,
+                    Description = view.Description,
+                    Columns = [.. view.ViewColumns.OrderBy(c => c.Order).Select(c => c.Field.Name)],
+                    Filters = [.. view.ViewQueries
+                        .Where(q => q.Query.Kind == QueryKinds.Filter)
+                        .OrderBy(q => q.Order)
+                        .Select(q => new TrackerSchemaFilterDto
+                        {
+                            Field = q.Field.Name,
+                            Operator = q.Query.Operator,
+                            Value = q.Query.Value
+                        })],
+                    Sorts = [.. view.ViewQueries
+                        .Where(q => q.Query.Kind == QueryKinds.Sort)
+                        .OrderBy(q => q.Order)
+                        .Select(q => new TrackerSchemaSortDto
+                        {
+                            Field = q.Field.Name,
+                            Descending = q.Query.Descending
+                        })]
+                })]
+            }).ToList());
+        }
+
         public async Task<Result<List<TrackerDto>>> GetPublicTemplateTrackerList()
         {
             var trackers = await db.Trackers

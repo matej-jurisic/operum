@@ -7,9 +7,12 @@ import {
     Stack,
     Textarea,
 } from "@mantine/core";
+import { useClipboard } from "@mantine/hooks";
 import { useEffect, useState } from "react";
 import { MdErrorOutline, MdWarningAmber } from "react-icons/md";
+import { TbCheck, TbCopy } from "react-icons/tb";
 import { ApiResponse } from "../../../shared/types/ApiResponse";
+import { trackersController } from "../../trackers/api/trackersController";
 import { dashboardController } from "../api/dashboardController";
 import {
     DASHBOARD_DOCUMENT_SCHEMA_VERSION,
@@ -52,6 +55,8 @@ export function BoardDocumentModal({ dashboardId, color, onClose, onSaved }: Pro
     // be named before it is deleted.
     const [onBoard, setOnBoard] = useState<Map<string, string>>(new Map());
     const [pendingDeletes, setPendingDeletes] = useState<string[]>([]);
+    const [isCopyingSchema, setIsCopyingSchema] = useState(false);
+    const clipboard = useClipboard({ timeout: 2000 });
 
     useEffect(() => {
         if (!dashboardId) {
@@ -121,6 +126,16 @@ export function BoardDocumentModal({ dashboardId, color, onClose, onSaved }: Pro
         }
     };
 
+    const handleCopySchema = async () => {
+        setIsCopyingSchema(true);
+        try {
+            const res = await trackersController.getTrackerSchema();
+            clipboard.copy(JSON.stringify(res.data, null, 2));
+        } finally {
+            setIsCopyingSchema(false);
+        }
+    };
+
     const deleteCount = pendingDeletes.length;
 
     return (
@@ -182,22 +197,35 @@ export function BoardDocumentModal({ dashboardId, color, onClose, onSaved }: Pro
                     }}
                 />
 
-                <Group justify="flex-end" mt="sm">
-                    <Button variant="default" onClick={onClose}>
-                        Cancel
-                    </Button>
+                <Group justify="space-between" mt="sm">
                     <Button
-                        color={deleteCount > 0 ? "red" : color}
-                        loading={isSaving}
-                        disabled={!isLoaded}
-                        onClick={handleSave}
+                        variant="subtle"
+                        color="gray"
+                        loading={isCopyingSchema}
+                        leftSection={
+                            clipboard.copied ? <TbCheck size={16} /> : <TbCopy size={16} />
+                        }
+                        onClick={handleCopySchema}
                     >
-                        {deleteCount > 0
-                            ? `Delete ${deleteCount} and save`
-                            : isImport
-                              ? "Import"
-                              : "Save"}
+                        {clipboard.copied ? "Copied" : "Copy tracker schema"}
                     </Button>
+                    <Group>
+                        <Button variant="default" onClick={onClose}>
+                            Cancel
+                        </Button>
+                        <Button
+                            color={deleteCount > 0 ? "red" : color}
+                            loading={isSaving}
+                            disabled={!isLoaded}
+                            onClick={handleSave}
+                        >
+                            {deleteCount > 0
+                                ? `Delete ${deleteCount} and save`
+                                : isImport
+                                  ? "Import"
+                                  : "Save"}
+                        </Button>
+                    </Group>
                 </Group>
             </Stack>
         </Modal>
