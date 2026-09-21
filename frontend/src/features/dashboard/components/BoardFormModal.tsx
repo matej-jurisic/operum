@@ -10,8 +10,10 @@ import {
 } from "@mantine/core";
 import { useState } from "react";
 import { FaCircle } from "react-icons/fa";
+import { TbFileImport } from "react-icons/tb";
 import IconPicker from "../../trackers/components/IconPicker";
 import { DashboardDto } from "../types/DashboardDto";
+import { BoardDocumentModal } from "./BoardDocumentModal";
 
 const colorOptions = [
     "indigo",
@@ -31,6 +33,8 @@ const colorOptions = [
 interface Props {
     board?: DashboardDto;
     onClose: () => void;
+    /** Creating only: offers building the board from a JSON document instead. */
+    onImported?: (dashboardId: string) => Promise<void>;
     onSubmit: (values: {
         name: string;
         color?: string;
@@ -38,12 +42,13 @@ interface Props {
     }) => Promise<void>;
 }
 
-export default function BoardFormModal({ board, onClose, onSubmit }: Props) {
+export default function BoardFormModal({ board, onClose, onImported, onSubmit }: Props) {
     const theme = useMantineTheme();
     const [name, setName] = useState(board?.name ?? "");
     const [color, setColor] = useState(board?.color ?? "indigo");
     const [icon, setIcon] = useState<string | undefined>(board?.icon);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isImporting, setIsImporting] = useState(false);
 
     const handleSubmit = async () => {
         if (!name.trim() || isSubmitting) return;
@@ -54,6 +59,10 @@ export default function BoardFormModal({ board, onClose, onSubmit }: Props) {
             setIsSubmitting(false);
         }
     };
+
+    if (isImporting && onImported) {
+        return <BoardDocumentModal color={color} onClose={onClose} onSaved={onImported} />;
+    }
 
     return (
         <Modal
@@ -99,18 +108,30 @@ export default function BoardFormModal({ board, onClose, onSubmit }: Props) {
                     </Group>
                 </Stack>
                 <IconPicker value={icon} onChange={setIcon} color={color} />
-                <Group justify="flex-end">
-                    <Button variant="default" onClick={onClose}>
-                        Cancel
-                    </Button>
-                    <Button
-                        color={color}
-                        disabled={!name.trim()}
-                        loading={isSubmitting}
-                        onClick={handleSubmit}
-                    >
-                        {board ? "Save" : "Create"}
-                    </Button>
+                <Group justify={!board && onImported ? "space-between" : "flex-end"}>
+                    {!board && onImported && (
+                        <Button
+                            variant="subtle"
+                            color="gray"
+                            leftSection={<TbFileImport size={16} />}
+                            onClick={() => setIsImporting(true)}
+                        >
+                            Import from JSON
+                        </Button>
+                    )}
+                    <Group>
+                        <Button variant="default" onClick={onClose}>
+                            Cancel
+                        </Button>
+                        <Button
+                            color={color}
+                            disabled={!name.trim()}
+                            loading={isSubmitting}
+                            onClick={handleSubmit}
+                        >
+                            {board ? "Save" : "Create"}
+                        </Button>
+                    </Group>
                 </Group>
             </Stack>
         </Modal>

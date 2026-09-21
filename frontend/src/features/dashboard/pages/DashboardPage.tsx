@@ -72,7 +72,6 @@ function DashboardContent({
         saveLayout,
     } = useDashboard();
     const theme = useMantineTheme();
-    const navigate = useNavigate();
     const [isConfiguring, setIsConfiguring] = useState(false);
     // Arranges the mobile layout inside a phone-width frame while the viewport stays wide.
     // Cleared whenever arrange mode ends so the next session opens on the desktop board.
@@ -80,7 +79,6 @@ function DashboardContent({
     const [isWidgetsOpen, setIsWidgetsOpen] = useState(false);
     const [isHiddenOpen, setIsHiddenOpen] = useState(false);
     const [isDocumentOpen, setIsDocumentOpen] = useState(false);
-    const [isImportOpen, setIsImportOpen] = useState(false);
     const [editingItemId, setEditingItemId] = useState<string>();
     const editingWidget = widgets.find((w) => w.id === editingItemId);
 
@@ -230,7 +228,6 @@ function DashboardContent({
                         onToggleArrange={() => setIsConfiguring((v) => !v)}
                         onOpenWidgets={() => setIsWidgetsOpen(true)}
                         onEditDocument={() => setIsDocumentOpen(true)}
-                        onImportDocument={() => setIsImportOpen(true)}
                     />
                 </Group>
             </Group>
@@ -385,17 +382,6 @@ function DashboardContent({
                 />
             )}
 
-            {isImportOpen && (
-                <BoardDocumentModal
-                    color={color}
-                    onClose={() => setIsImportOpen(false)}
-                    onSaved={async (newBoardId) => {
-                        await navigationStore.refreshDashboards();
-                        navigate(`/dashboard/${newBoardId}`);
-                    }}
-                />
-            )}
-
             {isWidgetsOpen && (
                 <WidgetLibraryModal
                     color={color}
@@ -496,6 +482,10 @@ const DashboardPage = observer(function DashboardPage() {
     const createModal = isCreateOpen && (
         <BoardFormModal
             onClose={() => setIsCreateOpen(false)}
+            onImported={async (id) => {
+                await navigationStore.refreshDashboards();
+                navigate(`/dashboard/${id}`);
+            }}
             onSubmit={handleCreate}
         />
     );
