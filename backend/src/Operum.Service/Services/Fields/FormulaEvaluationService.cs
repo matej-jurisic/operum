@@ -294,16 +294,7 @@ namespace Operum.Service.Services.Fields
 
             if (constantsByName.TryGetValue(name, out var constant))
             {
-                var rawValue = constant.Value;
-
-                if (constant.Values.Count > 0)
-                {
-                    var match = constant.Values
-                        .OrderBy(v => v.Priority)
-                        .FirstOrDefault(v => EntryFilterMatcher.Matches(v.Filters, fieldValuesByFieldId, fieldsByIdForMatcher, tz));
-                    if (match != null)
-                        rawValue = match.Value;
-                }
+                var rawValue = ConstantValueResolver.ResolveRawValue(constant, fieldValuesByFieldId, fieldsByIdForMatcher, tz);
 
                 return constant.Type switch
                 {

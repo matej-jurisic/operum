@@ -4,6 +4,7 @@ import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations
 import FieldValueInput from "../../fields/components/FieldValueInput";
 import { useFields } from "../../fields/context/FieldsContext";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
+import { useDefaultValueResolution } from "../hooks/useDefaultValueResolution";
 
 interface EntryFormDialogProps {
     tracker: TrackerDto;
@@ -60,6 +61,16 @@ export default function EntryFormDialog(props: EntryFormDialogProps) {
         initialValues: props.initialValues || {},
     });
 
+    const { hiddenFieldNames } = useDefaultValueResolution(
+        props.tracker.id,
+        fields,
+        form,
+        !props.entryId,
+    );
+    const visibleFields = fields.filter(
+        (field) => !field.isCalculated && !hiddenFieldNames.has(field.name),
+    );
+
     const handleSubmit = async (values: Record<string, unknown>) => {
         const fieldValues: Record<string, string> = {};
 
@@ -92,7 +103,7 @@ export default function EntryFormDialog(props: EntryFormDialogProps) {
                             align="stretch"
                             style={{ maxWidth: 400, margin: "0 auto" }}
                         >
-                            {fields.filter((field) => !field.isCalculated).map((field) => (
+                            {visibleFields.map((field) => (
                                 <FieldValueInput
                                     key={field.id}
                                     field={field}

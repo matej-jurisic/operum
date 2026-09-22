@@ -93,16 +93,14 @@ namespace Operum.Tests.Tests.Constants
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
-        [Theory]
-        [InlineData(DataTypes.String, "hello")]
-        [InlineData(DataTypes.Date, "2026-01-01")]
-        public async Task CreateConstant_TypeThatCannotHoldAFormulaValue_ReturnsBadRequest(string type, string value)
+        [Fact]
+        public async Task CreateConstant_ReferenceType_ReturnsBadRequest()
         {
             var client = await OwnerClient();
-            var trackerId = await TestApi.CreateTracker(client, $"Constant type {type}");
+            var trackerId = await TestApi.CreateTracker(client, "Constant type reference");
 
             var response = await PostConstant(client, trackerId,
-                new CreateTrackerConstantDto { Name = "Thing", Type = type, Value = value });
+                new CreateTrackerConstantDto { Name = "Thing", Type = DataTypes.Reference, Value = "some-entry-id" });
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
@@ -111,6 +109,8 @@ namespace Operum.Tests.Tests.Constants
         [InlineData(DataTypes.Number, "quite a lot")]
         [InlineData(DataTypes.Bool, "maybe")]
         [InlineData(DataTypes.TimeSpan, "half an hour")]
+        [InlineData(DataTypes.Date, "not a date")]
+        [InlineData(DataTypes.DateTime, "not a datetime")]
         public async Task CreateConstant_ValueThatDoesNotMatchTheType_ReturnsBadRequest(string type, string value)
         {
             var client = await OwnerClient();
@@ -120,6 +120,37 @@ namespace Operum.Tests.Tests.Constants
                 new CreateTrackerConstantDto { Name = "Thing", Type = type, Value = value });
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Theory]
+        [InlineData(DataTypes.String, "hello")]
+        [InlineData(DataTypes.Date, "2026-01-01")]
+        [InlineData(DataTypes.DateTime, "2026-01-01T12:00:00Z")]
+        public async Task CreateConstant_NonFormulaType_Succeeds(string type, string value)
+        {
+            var client = await OwnerClient();
+            var trackerId = await TestApi.CreateTracker(client, $"Constant type {type}");
+
+            var response = await PostConstant(client, trackerId,
+                new CreateTrackerConstantDto { Name = "Thing", Type = type, Value = value });
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var constant = await TestApi.Data(await client.GetAsync($"trackers/{trackerId}/constants/{await TestApi.IdOf(response)}"));
+            Assert.Equal(type, constant.GetProperty("type").GetString());
+            Assert.Equal(value, constant.GetProperty("value").GetString());
+        }
+
+        [Fact]
+        public async Task CreateConstant_DateType_WithRelativeToken_StoresTheTokenUnresolved()
+        {
+            var client = await OwnerClient();
+            var trackerId = await TestApi.CreateTracker(client, "Relative date constant");
+
+            var constantId = await CreateConstant(client, trackerId,
+                new CreateTrackerConstantDto { Name = "Deadline", Type = DataTypes.Date, Value = "start_of_month:-1" });
+
+            var constant = await TestApi.Data(await client.GetAsync($"trackers/{trackerId}/constants/{constantId}"));
+            Assert.Equal("start_of_month:-1", constant.GetProperty("value").GetString());
         }
 
         [Fact]

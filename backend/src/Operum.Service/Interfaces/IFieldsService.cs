@@ -13,5 +13,6 @@ namespace Operum.Service.Interfaces
         public Task<Result> ReorderFields(string trackerId, ReorderFieldsDto reorderFields);
         public Task<Result> DeleteField(string trackerId, string fieldId);
         public Task<Result<ExtractFieldsResultDto>> ExtractFields(string trackerId, ExtractFieldsDto extract);
+        public Task<Result<ResolveDefaultValuesResponseDto>> ResolveDefaultValues(string trackerId, ResolveDefaultValuesDto dto);
     }
 }

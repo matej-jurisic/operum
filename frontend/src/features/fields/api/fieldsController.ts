@@ -6,6 +6,7 @@ import {
     ExtractFieldsResultDto,
 } from "../types/ExtractFieldsDto";
 import { FieldDto } from "../types/FieldDto";
+import { ResolveDefaultValuesResponseDto } from "../types/ResolveDefaultValuesDto";
 import { UpdateFieldDto } from "../types/UpdateFieldDto";
 
 export const fieldsController = {
@@ -51,5 +52,13 @@ export const fieldsController = {
             values,
             { timeout: LONG_REQUEST_TIMEOUT_MS }
         );
+    },
+    resolveDefaults: async (
+        trackerId: string,
+        fieldValues: Record<string, string | null>
+    ): Promise<ApiResponse<ResolveDefaultValuesResponseDto>> => {
+        return await api.post(`/trackers/${trackerId}/fields/resolve-defaults`, {
+            fieldValues,
+        });
     },
 };

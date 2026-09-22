@@ -451,25 +451,6 @@ export interface CreateAndPlaceWidgetDto {
     sources: CreateAndPlaceWidgetSourceDto[];
 }
 
-export interface PlaceWidgetSourceOverrideDto {
-    widgetSourceId: string;
-    label?: string;
-    viewId?: string | null;
-}
-
-export interface PlaceWidgetDto {
-    widgetId: string;
-    displayMode?: DashboardItemDisplayMode;
-    mobileDisplayMode?: DashboardItemDisplayMode;
-    /** Line charts only; defaults to true (0-anchored) server-side when omitted. */
-    yAxisFromZero?: boolean;
-    /** Left unset behaves as "Auto". Ignored server-side for a combined (multi-source) widget. */
-    color?: string;
-    /** SingleValue/Goal widgets only; defaults to true server-side when omitted. */
-    showTrend?: boolean;
-    sourceOverrides: PlaceWidgetSourceOverrideDto[];
-}
-
 /** Adds a WidgetTypes.QuickAdd widget: a button that opens a tracker's quick-add entry
     dialog from the board. */
 export interface AddDashboardQuickAddItemDto {
@@ -479,14 +460,6 @@ export interface AddDashboardQuickAddItemDto {
 export interface CreateAndPlaceEntriesWidgetDto {
     trackerId: string;
     name?: string;
-    /** Tracker fields to show as columns, in order. Empty/omitted shows every field. */
-    columnFieldIds?: string[];
-    displayMode?: DashboardItemDisplayMode;
-    mobileDisplayMode?: DashboardItemDisplayMode;
-}
-
-export interface PlaceEntriesWidgetDto {
-    entriesWidgetId: string;
     /** Tracker fields to show as columns, in order. Empty/omitted shows every field. */
     columnFieldIds?: string[];
     displayMode?: DashboardItemDisplayMode;

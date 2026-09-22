@@ -1,4 +1,4 @@
-// Shared by the Widget Library (features/widgets/types/WidgetDto.ts) and CustomAnalyticForm.
+// Shared by dashboard widget DTOs (features/dashboard/types/DashboardDto.ts) and CustomAnalyticForm.
 export interface CreateAnalyticFieldDto {
     fieldId: string;
     purpose: string;

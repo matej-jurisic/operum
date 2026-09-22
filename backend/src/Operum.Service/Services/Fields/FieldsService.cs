@@ -9,6 +9,7 @@ using Operum.Model.DTOs.Fields.Requests;
 using Operum.Model.Enums;
 using Operum.Model.Extensions;
 using Operum.Model.Models;
+using Operum.Service.Domain.Constants;
 using Operum.Service.Interfaces;
 using Operum.Service.Mappings.Mapper;
 using System.Text.RegularExpressions;
@@ -55,6 +56,14 @@ namespace Operum.Service.Services.Fields
                     return Result.Failure(ResultStatusCodes.BadRequest, refError);
                 field.IsCalculated = false;
             }
+
+            var defaultError = await ValidateDefaultValueConstant(trackerId, field.DefaultValueConstantId, field.Type);
+            if (defaultError != null)
+                return Result.Failure(ResultStatusCodes.BadRequest, defaultError);
+
+            var visibilityError = await ValidateVisibilityCondition(trackerId, null, field.VisibilityFieldId, field.VisibilityOperator);
+            if (visibilityError != null)
+                return Result.Failure(ResultStatusCodes.BadRequest, visibilityError);
 
             var newField = mapper.Map<CreateFieldDto, Field>(field);
 
@@ -236,6 +245,14 @@ namespace Operum.Service.Services.Fields
                     return Result.Failure(ResultStatusCodes.BadRequest, refError);
                 field.IsCalculated = false;
             }
+
+            var defaultError = await ValidateDefaultValueConstant(trackerId, field.DefaultValueConstantId, field.Type);
+            if (defaultError != null)
+                return Result.Failure(ResultStatusCodes.BadRequest, defaultError);
+
+            var visibilityError = await ValidateVisibilityCondition(trackerId, fieldId, field.VisibilityFieldId, field.VisibilityOperator);
+            if (visibilityError != null)
+                return Result.Failure(ResultStatusCodes.BadRequest, visibilityError);
 
             var wasReference = originalField.Type == DataTypes.Reference;
             var referenceTargetChanged = field.Type == DataTypes.Reference
@@ -534,6 +551,152 @@ namespace Operum.Service.Services.Fields
             }
 
             return null;
+        }
+
+        private async Task<string?> ValidateDefaultValueConstant(string trackerId, string? constantId, string fieldType)
+        {
+            if (string.IsNullOrEmpty(constantId))
+                return null;
+
+            var constant = await db.TrackerConstants.FirstOrDefaultAsync(c => c.Id == constantId && c.TrackerId == trackerId);
+            if (constant == null)
+                return Messages.ItemNotFound("constant");
+
+            if (!DataTypes.AreCompatible(constant.Type, fieldType))
+                return $"The linked constant's type ('{constant.Type}') is not compatible with this field's type ('{fieldType}').";
+
+            return null;
+        }
+
+        private async Task<string?> ValidateVisibilityCondition(string trackerId, string? currentFieldId, string? visibilityFieldId, string? visibilityOperator)
+        {
+            if (string.IsNullOrEmpty(visibilityFieldId))
+                return null;
+
+            if (visibilityFieldId == currentFieldId)
+                return "A field's visibility condition cannot reference itself.";
+
+            var target = await db.Fields.FirstOrDefaultAsync(f => f.Id == visibilityFieldId && f.TrackerId == trackerId);
+            if (target == null)
+                return Messages.ItemNotFound("field");
+
+            if (target.IsCalculated)
+                return "A field's visibility condition cannot reference a calculated field.";
+
+            if (string.IsNullOrEmpty(visibilityOperator) || !OperatorTypes.IsValid(visibilityOperator))
+                return "Unknown operator for the visibility condition.";
+
+            return null;
+        }
+
+        public async Task<Result<ResolveDefaultValuesResponseDto>> ResolveDefaultValues(string trackerId, ResolveDefaultValuesDto dto)
+        {
+            var user = currentUserService.GetCurrentUser();
+            var tracker = await db.Trackers
+                .Include(t => t.ApplicationUserTrackers)
+                .FirstOrDefaultAsync(t => t.Id == trackerId);
+
+            var hasAccess = tracker != null &&
+                (tracker.OwnerId == user.Id || tracker.ApplicationUserTrackers.Any(ut => ut.ApplicationUserId == user.Id));
+            if (tracker == null || !hasAccess)
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("tracker"));
+
+            var fields = await db.Fields.Where(f => f.TrackerId == trackerId).ToListAsync();
+
+            var defaultBearingFields = fields
+                .Where(f => f.DefaultValueConstantId != null || !string.IsNullOrEmpty(f.DefaultValue))
+                .ToList();
+            var visibilityBearingFields = fields
+                .Where(f => f.VisibilityFieldId != null)
+                .ToList();
+            if (defaultBearingFields.Count == 0 && visibilityBearingFields.Count == 0)
+                return Result.Success(new ResolveDefaultValuesResponseDto());
+
+            var constantIds = defaultBearingFields
+                .Where(f => f.DefaultValueConstantId != null)
+                .Select(f => f.DefaultValueConstantId!)
+                .Distinct()
+                .ToList();
+
+            var constants = constantIds.Count == 0
+                ? new List<TrackerConstant>()
+                : await db.TrackerConstants
+                    .Include(c => c.Values)
+                        .ThenInclude(v => v.Filters)
+                    .Where(c => constantIds.Contains(c.Id))
+                    .ToListAsync();
+            var constantsById = constants.ToDictionary(c => c.Id, c => c);
+
+            var fieldsById = fields.ToDictionary(f => f.Id, f => f);
+            var fieldsByName = fields.ToDictionary(f => f.Name, f => f, StringComparer.OrdinalIgnoreCase);
+
+            var fieldValuesByFieldId = new Dictionary<string, FieldValue>();
+            foreach (var (name, raw) in dto.FieldValues)
+            {
+                if (!fieldsByName.TryGetValue(name, out var field) || field.IsCalculated)
+                    continue;
+
+                var fv = new FieldValue { FieldId = field.Id };
+                fv.SetFieldValue(field, raw);
+                fieldValuesByFieldId[field.Id] = fv;
+            }
+
+            var tz = currentUserService.GetCurrentUserTimeZone();
+            var response = new ResolveDefaultValuesResponseDto();
+
+            foreach (var field in defaultBearingFields)
+            {
+                string? rawValue = null;
+                if (field.DefaultValueConstantId != null && constantsById.TryGetValue(field.DefaultValueConstantId, out var constant))
+                {
+                    rawValue = ConstantValueResolver.ResolveRawValue(constant, fieldValuesByFieldId, fieldsById, tz);
+                }
+                else if (!string.IsNullOrEmpty(field.DefaultValue))
+                {
+                    rawValue = field.DefaultValue;
+                }
+
+                if (rawValue == null)
+                    continue;
+
+                if (field.Type == DataTypes.Date || field.Type == DataTypes.DateTime)
+                {
+                    var resolved = DynamicDateTokens.ResolveValue(rawValue, tz);
+                    if (resolved == null)
+                        continue;
+                    rawValue = resolved.Value.ToString("O");
+                }
+
+                response.Defaults.Add(new ResolvedDefaultValueDto
+                {
+                    FieldId = field.Id,
+                    FieldName = field.Name,
+                    Value = rawValue,
+                });
+            }
+
+            foreach (var field in visibilityBearingFields)
+            {
+                var visible = EntryFilterMatcher.Matches(
+                    [new TrackerConstantValueFilter
+                    {
+                        FieldId = field.VisibilityFieldId!,
+                        Operator = field.VisibilityOperator!,
+                        Value = field.VisibilityValue,
+                    }],
+                    fieldValuesByFieldId,
+                    fieldsById,
+                    tz);
+
+                response.Visibility.Add(new ResolvedFieldVisibilityDto
+                {
+                    FieldId = field.Id,
+                    FieldName = field.Name,
+                    Visible = visible,
+                });
+            }
+
+            return Result.Success(response);
         }
 
         // Strip optional ".property" suffix (e.g. "Duration.hours" → "Duration")

@@ -1,5 +1,6 @@
 import { Group, NumberInput, SegmentedControl, Select, Stack, Text } from "@mantine/core";
 import { UseFormReturnType } from "@mantine/form";
+import { useEffect, useState } from "react";
 import FieldValueInput from "../../features/fields/components/FieldValueInput";
 import { FieldDto } from "../../features/fields/types/FieldDto";
 import {
@@ -54,6 +55,17 @@ export default function DynamicDateValueInput({
     const anchorToken = isToken && !isNow ? parseAnchorToken(token) : null;
     const anchor = anchorToken?.anchor ?? DateAnchors.Today;
     const offset = anchorToken?.offset ?? 0;
+
+    // Offset 0 has no sign (serializeAnchorToken drops it entirely), so direction
+    // can't be recovered from the stored value alone once the magnitude hits 0.
+    // Track it separately and only resync it from the offset when the offset
+    // actually carries a sign.
+    const [direction, setDirection] = useState<"past" | "future">(
+        offset < 0 ? "past" : "future",
+    );
+    useEffect(() => {
+        if (offset !== 0) setDirection(offset < 0 ? "past" : "future");
+    }, [offset]);
 
     const currentToken = isNow ? NOW_TOKEN : serializeAnchorToken(anchor, offset);
     const preview = isToken ? resolveDynamicDateToken(currentToken) : null;
@@ -117,7 +129,7 @@ export default function DynamicDateValueInput({
                                 value={Math.abs(offset)}
                                 onChange={(v) => {
                                     const magnitude = typeof v === "number" && v > 0 ? v : 0;
-                                    const signed = offset < 0 ? -magnitude : magnitude;
+                                    const signed = direction === "future" ? magnitude : -magnitude;
                                     onChange(serializeAnchorToken(anchor, signed));
                                 }}
                             />
@@ -131,13 +143,15 @@ export default function DynamicDateValueInput({
                                 { value: "past", label: "Ago" },
                                 { value: "future", label: "From now" },
                             ]}
-                            value={offset > 0 ? "future" : "past"}
+                            value={direction}
                             onChange={(v) => {
+                                const next = v as "past" | "future";
+                                setDirection(next);
                                 const magnitude = Math.abs(offset);
                                 onChange(
                                     serializeAnchorToken(
                                         anchor,
-                                        v === "future" ? magnitude : -magnitude,
+                                        next === "future" ? magnitude : -magnitude,
                                     ),
                                 );
                             }}

@@ -1,22 +1,19 @@
 import {
-    Alert,
     Button,
     Group,
     Modal,
     Select,
     Stack,
-    Text,
     TextInput,
 } from "@mantine/core";
 import { notifySuccess } from "../../../shared/utils/notify";
 import { useEffect, useState } from "react";
-import { TbLayoutDashboard, TbBookmark } from "react-icons/tb";
+import { TbLayoutDashboard } from "react-icons/tb";
 import { CreateAnalyticFieldDto } from "../../analytics/types/requests/CreateAnalyticDto";
 import { dashboardController } from "../../dashboard/api/dashboardController";
 import { DashboardDto } from "../../dashboard/types/DashboardDto";
 import { trackersController } from "../../trackers/api/trackersController";
 import { viewsController } from "../../views/api/viewsController";
-import { widgetsController } from "../../widgets/api/widgetsController";
 import { EvaluateFilterClauseDto } from "../types/EvaluateWidgetDto";
 
 /** One source of the current exploration, ready to be turned into a widget source. */
@@ -41,7 +38,7 @@ interface Props {
     defaultName: string;
 }
 
-type OpenModal = "dashboard" | "widget" | null;
+type OpenModal = "dashboard" | null;
 
 /** Inline filters can't live on a widget definition, so the dashboard path first saves each source's filters as a view. */
 export function PromoteControls({
@@ -63,7 +60,6 @@ export function PromoteControls({
     const filteredSourceIndexes = sources
         .map((s, i) => (s.filters.length > 0 ? i : -1))
         .filter((i) => i >= 0);
-    const hasAnyView = sources.some((s) => s.viewId || s.filters.length > 0);
 
     useEffect(() => {
         if (open !== "dashboard" || dashboards.length > 0) return;
@@ -132,27 +128,6 @@ export function PromoteControls({
         }
     };
 
-    const saveAsWidget = async () => {
-        setBusy(true);
-        try {
-            await widgetsController.createWidget({
-                name: name.trim() || undefined,
-                resultType,
-                grouping,
-                code,
-                matchedValuesOnly,
-                sources: sources.map((s) => ({
-                    trackerId: s.trackerId,
-                    fields: s.fields,
-                })),
-            });
-            notifySuccess("Add it to a dashboard from the dashboard menu.", "Saved to Widget Library");
-            reset();
-        } finally {
-            setBusy(false);
-        }
-    };
-
     const dashboardSubmitDisabled =
         !dashboardId ||
         filteredSourceIndexes.some((i) => !viewNames[i]?.trim());
@@ -171,13 +146,6 @@ export function PromoteControls({
                     onClick={() => setOpen("dashboard")}
                 >
                     Add to dashboard
-                </Button>
-                <Button
-                    variant="default"
-                    leftSection={<TbBookmark size={16} />}
-                    onClick={() => setOpen("widget")}
-                >
-                    Save as widget
                 </Button>
             </Group>
 
@@ -232,39 +200,6 @@ export function PromoteControls({
                             onClick={addToDashboard}
                         >
                             Add
-                        </Button>
-                    </Group>
-                </Stack>
-            </Modal>
-
-            <Modal
-                opened={open === "widget"}
-                onClose={reset}
-                title="Save as widget"
-                centered
-            >
-                <Stack gap="md">
-                    <TextInput
-                        label="Name"
-                        placeholder={defaultName}
-                        maxLength={100}
-                        value={name}
-                        onChange={(e) => setName(e.currentTarget.value)}
-                    />
-                    {hasAnyView && (
-                        <Alert color="gray" variant="light">
-                            <Text size="sm">
-                                Filters aren't stored on a library widget. Use
-                                "Add to dashboard" to keep them applied.
-                            </Text>
-                        </Alert>
-                    )}
-                    <Group justify="flex-end">
-                        <Button variant="default" onClick={reset}>
-                            Cancel
-                        </Button>
-                        <Button loading={busy} onClick={saveAsWidget}>
-                            Save
                         </Button>
                     </Group>
                 </Stack>

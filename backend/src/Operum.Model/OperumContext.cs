@@ -339,6 +339,56 @@ namespace Operum.Model
                 .HasIndex(m => new { m.TargetId, m.FieldId })
                 .IsUnique();
 
+            builder.Entity<FieldCorrelationInsight>()
+                .HasOne(i => i.User)
+                .WithMany()
+                .HasForeignKey(i => i.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<FieldCorrelationInsight>()
+                .HasOne(i => i.TrackerA)
+                .WithMany()
+                .HasForeignKey(i => i.TrackerAId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<FieldCorrelationInsight>()
+                .HasOne(i => i.TrackerB)
+                .WithMany()
+                .HasForeignKey(i => i.TrackerBId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Deleting a field drops whatever insight was computed from it, the same edge an
+            // integration field mapping has.
+            builder.Entity<FieldCorrelationInsight>()
+                .HasOne(i => i.MatchFieldA)
+                .WithMany()
+                .HasForeignKey(i => i.MatchFieldAId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<FieldCorrelationInsight>()
+                .HasOne(i => i.MatchFieldB)
+                .WithMany()
+                .HasForeignKey(i => i.MatchFieldBId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<FieldCorrelationInsight>()
+                .HasOne(i => i.ValueFieldA)
+                .WithMany()
+                .HasForeignKey(i => i.ValueFieldAId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<FieldCorrelationInsight>()
+                .HasOne(i => i.ValueFieldB)
+                .WithMany()
+                .HasForeignKey(i => i.ValueFieldBId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Canonical pair key: TrackerAId/ValueFieldAId always the lexicographically smaller
+            // side, so a pair is never stored twice in reversed order.
+            builder.Entity<FieldCorrelationInsight>()
+                .HasIndex(i => new { i.UserId, i.ValueFieldAId, i.ValueFieldBId })
+                .IsUnique();
+
             // An integration's idempotency key: re-ingesting an already-written record
             // updates it instead of duplicating. Filtered to integration-authored rows,
             // since hand-created and CSV-imported entries leave both columns null.
@@ -412,6 +462,22 @@ namespace Operum.Model
                 .HasForeignKey(f => f.ReferencedDisplayFieldId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            // Deleting the constant degrades the field to having no default instead of destroying
+            // the field.
+            builder.Entity<Field>()
+                .HasOne(f => f.DefaultValueConstant)
+                .WithMany()
+                .HasForeignKey(f => f.DefaultValueConstantId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Deleting the target field degrades this field to always visible instead of
+            // destroying the field.
+            builder.Entity<Field>()
+                .HasOne(f => f.VisibilityField)
+                .WithMany()
+                .HasForeignKey(f => f.VisibilityFieldId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             // The per-value link. SetNull is the backstop when the target entry is deleted;
             // the delete paths in EntriesService also clear the cached label in StringValue.
             builder.Entity<FieldValue>()
@@ -457,5 +523,6 @@ namespace Operum.Model
         public DbSet<Integration> Integrations { get; set; }
         public DbSet<IntegrationTarget> IntegrationTargets { get; set; }
         public DbSet<IntegrationFieldMapping> IntegrationFieldMappings { get; set; }
+        public DbSet<FieldCorrelationInsight> FieldCorrelationInsights { get; set; }
     }
 }

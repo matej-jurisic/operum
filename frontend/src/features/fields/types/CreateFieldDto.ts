@@ -8,4 +8,9 @@ export interface CreateFieldDto {
     formula?: string;
     referencedTrackerId?: string;
     referencedDisplayFieldId?: string;
+    defaultValue?: string;
+    defaultValueConstantId?: string;
+    visibilityFieldId?: string;
+    visibilityOperator?: string;
+    visibilityValue?: string;
 }

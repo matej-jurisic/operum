@@ -6,6 +6,15 @@ export const calculatedFieldTypes = [
     { value: "timespan", label: "Timespan" },
 ];
 
+export const constantTypes = [
+    { value: "string", label: "String" },
+    { value: "number", label: "Number" },
+    { value: "bool", label: "Bool" },
+    { value: "date", label: "Date" },
+    { value: "timespan", label: "Timespan" },
+    { value: "datetime", label: "Datetime" },
+];
+
 export const fieldTypes = [
     { value: "string", label: "String" },
     { value: "number", label: "Number" },

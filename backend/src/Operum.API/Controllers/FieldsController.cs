@@ -39,6 +39,12 @@ namespace Operum.API.Controllers
             return GetApiResponse(await fieldsService.ExtractFields(trackerId, extract));
         }
 
+        [HttpPost("resolve-defaults")]
+        public async Task<IActionResult> ResolveDefaultValues([FromRoute] string trackerId, [FromBody] ResolveDefaultValuesDto dto)
+        {
+            return GetApiResponse(await fieldsService.ResolveDefaultValues(trackerId, dto));
+        }
+
         [HttpPut("reorder")]
         public async Task<IActionResult> ReorderFields([FromRoute] string trackerId, [FromBody] ReorderFieldsDto reorderFields)
         {

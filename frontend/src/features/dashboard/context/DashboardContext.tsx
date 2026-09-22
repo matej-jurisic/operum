@@ -23,8 +23,6 @@ import {
     GoalConditionalTargetDto,
     LayoutVariant,
     LayoutVariants,
-    PlaceEntriesWidgetDto,
-    PlaceWidgetDto,
     SaveFilterItemDto,
     SaveTabsContainerDto,
     UpdateDashboardEntriesItemDto,
@@ -44,19 +42,10 @@ type DashboardContextType = {
         followFilters?: FilterFollowLinks[],
         goalConditionalTargets?: GoalConditionalTargetDto[],
     ) => Promise<DashboardItemDto | undefined>;
-    placeWidget: (
-        dto: PlaceWidgetDto,
-        followFilters?: FilterFollowLinks[],
-        goalConditionalTargets?: GoalConditionalTargetDto[],
-    ) => Promise<DashboardItemDto | undefined>;
     addQuickAddItem: (dto: AddDashboardQuickAddItemDto) => Promise<void>;
     addFilterItem: (dto: SaveFilterItemDto) => Promise<void>;
     createAndPlaceEntriesWidget: (
         dto: CreateAndPlaceEntriesWidgetDto,
-        followFilters?: FilterFollowLinks,
-    ) => Promise<DashboardItemDto | undefined>;
-    placeEntriesWidget: (
-        dto: PlaceEntriesWidgetDto,
         followFilters?: FilterFollowLinks,
     ) => Promise<DashboardItemDto | undefined>;
     addHeaderItem: (dto: AddDashboardHeaderItemDto) => Promise<void>;
@@ -170,22 +159,6 @@ export const DashboardProvider: React.FC<{
         return res.data;
     };
 
-    const placeWidget = async (
-        dto: PlaceWidgetDto,
-        followFilters?: FilterFollowLinks[],
-        goalConditionalTargets?: GoalConditionalTargetDto[],
-    ) => {
-        const res = await dashboardController.placeWidget(dashboardId, dto);
-        if (res.data && followFilters?.length) {
-            await applyFilterFollows(res.data.id, followFilters);
-        }
-        if (res.data && goalConditionalTargets?.length) {
-            await saveGoalConditionalTargets(res.data, goalConditionalTargets);
-        }
-        await refreshWidgets();
-        return res.data;
-    };
-
     const addQuickAddItem = async (dto: AddDashboardQuickAddItemDto) => {
         await dashboardController.addQuickAddItem(dashboardId, dto);
         await refreshWidgets();
@@ -201,18 +174,6 @@ export const DashboardProvider: React.FC<{
         followFilters?: FilterFollowLinks,
     ) => {
         const res = await dashboardController.createAndPlaceEntriesWidget(dashboardId, dto);
-        if (res.data && followFilters) {
-            await applyFilterFollows(res.data.id, [followFilters]);
-        }
-        await refreshWidgets();
-        return res.data;
-    };
-
-    const placeEntriesWidget = async (
-        dto: PlaceEntriesWidgetDto,
-        followFilters?: FilterFollowLinks,
-    ) => {
-        const res = await dashboardController.placeEntriesWidget(dashboardId, dto);
         if (res.data && followFilters) {
             await applyFilterFollows(res.data.id, [followFilters]);
         }
@@ -352,11 +313,9 @@ export const DashboardProvider: React.FC<{
                 isLoading,
                 refreshWidgets,
                 createAndPlaceWidget,
-                placeWidget,
                 addQuickAddItem,
                 addFilterItem,
                 createAndPlaceEntriesWidget,
-                placeEntriesWidget,
                 addHeaderItem,
                 addDividerItem,
                 addNoteItem,

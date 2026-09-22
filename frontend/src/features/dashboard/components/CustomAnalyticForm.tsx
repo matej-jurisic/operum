@@ -68,6 +68,8 @@ interface Props {
         followFilters?: FilterFollowLinks[],
         goalConditionalTargets?: GoalConditionalTargetDto[],
     ) => Promise<void>;
+    /** Set when the chart type was already picked from the widget picker; hides the "Chart type" field. */
+    presetResultType?: string;
 }
 
 // The chart type and calculation are picked once for the whole item, so a row only
@@ -109,14 +111,12 @@ const makeEmptyRow = (): TrackerRow => ({
     filterLinks: {},
 });
 
-/** The definition this produces is a first-class Widget Library entry: placeable on other
- *  boards afterwards, and editing it there updates every placement, this one included. */
-export function CustomAnalyticForm({ onBack, onAdd }: Props) {
+export function CustomAnalyticForm({ onBack, onAdd, presetResultType }: Props) {
     const { widgets } = useDashboard();
     const filterCandidates = useMemo(() => filterCandidatesFor(widgets), [widgets]);
     const [trackers, setTrackers] = useState<TrackerDto[]>([]);
     const [config, setConfig] = useState<AnalyticConfigDto>();
-    const [resultType, setResultType] = useState<string | null>(null);
+    const [resultType, setResultType] = useState<string | null>(presetResultType ?? null);
     const [grouping, setGrouping] = useState<string | null>(null);
     const [code, setCode] = useState<string | null>(null);
     const [name, setName] = useState("");
@@ -422,13 +422,15 @@ export function CustomAnalyticForm({ onBack, onAdd }: Props) {
 
     return (
         <Stack gap="md">
-            <Select
-                label="Chart type"
-                placeholder="Select a chart type"
-                data={resultTypeOptions}
-                value={resultType}
-                onChange={handleResultTypeChange}
-            />
+            {!presetResultType && (
+                <Select
+                    label="Chart type"
+                    placeholder="Select a chart type"
+                    data={resultTypeOptions}
+                    value={resultType}
+                    onChange={handleResultTypeChange}
+                />
+            )}
             {typeUsesGrouping && (
                 <Select
                     label="Group by"

@@ -17,6 +17,8 @@
 
         public static readonly HashSet<string> CalculatedCompatible = [Number, Bool, TimeSpan];
 
+        public static readonly HashSet<string> ConstantCompatible = [String, Number, Date, DateTime, TimeSpan, Bool];
+
         // Types that filter/sort identically, so a clause authored for one may run against the
         // other. Date/datetime are both stored and compared as a point in time.
         private static readonly string[][] InterchangeableGroups =

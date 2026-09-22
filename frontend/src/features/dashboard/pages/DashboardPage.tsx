@@ -34,7 +34,6 @@ import { EditTextWidgetModal } from "../components/EditTextWidgetModal";
 import { EditFilterModal } from "../components/EditFilterModal";
 import { EditWidgetModal } from "../components/EditWidgetModal";
 import { HiddenWidgetsModal } from "../components/HiddenWidgetsModal";
-import { WidgetsProvider } from "../../widgets/context/WidgetsContext";
 import { WidgetLibraryModal } from "../../widgets/components/WidgetLibraryModal";
 import { DashboardProvider, useDashboard } from "../context/DashboardContext";
 import {
@@ -513,18 +512,16 @@ const DashboardPage = observer(function DashboardPage() {
 
     return (
         <>
-            <WidgetsProvider>
-                <DashboardProvider
-                    key={activeBoard.id}
-                    dashboardId={activeBoard.id}
-                >
-                    <DashboardContent
-                        activeBoard={activeBoard}
-                        onEditBoard={() => setIsEditOpen(true)}
-                        onDeleteBoard={() => setIsDeleteOpen(true)}
-                    />
-                </DashboardProvider>
-            </WidgetsProvider>
+            <DashboardProvider
+                key={activeBoard.id}
+                dashboardId={activeBoard.id}
+            >
+                <DashboardContent
+                    activeBoard={activeBoard}
+                    onEditBoard={() => setIsEditOpen(true)}
+                    onDeleteBoard={() => setIsDeleteOpen(true)}
+                />
+            </DashboardProvider>
 
             {isEditOpen && (
                 <BoardFormModal

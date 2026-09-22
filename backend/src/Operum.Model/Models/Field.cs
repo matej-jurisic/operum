@@ -29,6 +29,25 @@ namespace Operum.Model.Models
         [ForeignKey(nameof(ReferencedDisplayFieldId))]
         public virtual Field? ReferencedDisplayField { get; set; }
 
+        // Mutually exclusive with DefaultValueConstantId: a literal (or, for date/datetime, a
+        // DynamicDateTokens token) applied when a new entry is created.
+        public string? DefaultValue { get; set; }
+
+        // Mutually exclusive with DefaultValue. Nulled when the constant is deleted, leaving the
+        // field with no default instead of destroying the schema around it.
+        public string? DefaultValueConstantId { get; set; }
+        [ForeignKey(nameof(DefaultValueConstantId))]
+        public virtual TrackerConstant? DefaultValueConstant { get; set; }
+
+        // When set, the field is hidden from the create-entry form unless VisibilityFieldId's live
+        // value matches VisibilityOperator/VisibilityValue. Nulled when the target field is
+        // deleted, leaving the field always visible instead of destroying the schema around it.
+        public string? VisibilityFieldId { get; set; }
+        [ForeignKey(nameof(VisibilityFieldId))]
+        public virtual Field? VisibilityField { get; set; }
+        public string? VisibilityOperator { get; set; }
+        public string? VisibilityValue { get; set; }
+
         public string TrackerId { get; set; } = string.Empty;
         [ForeignKey(nameof(TrackerId))]
         public virtual Tracker Tracker { get; set; } = null!;

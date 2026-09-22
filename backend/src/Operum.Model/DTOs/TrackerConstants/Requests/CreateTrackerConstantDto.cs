@@ -1,5 +1,7 @@
 ﻿using FluentValidation;
+using Operum.Model.Constants;
 using Operum.Model.Constants.Fields;
+using Operum.Model.Converters;
 using System.Globalization;
 
 namespace Operum.Model.DTOs.TrackerConstants.Requests
@@ -22,14 +24,14 @@ namespace Operum.Model.DTOs.TrackerConstants.Requests
 
             RuleFor(x => x.Type)
                 .NotEmpty().WithMessage("Constant type is required.")
-                .Must(DataTypes.CalculatedCompatible.Contains)
-                .WithMessage("Constant type must be number, bool, or timespan.");
+                .Must(DataTypes.ConstantCompatible.Contains)
+                .WithMessage("Constant type must be string, number, date, datetime, timespan, or bool.");
 
             RuleFor(x => x.Value)
                 .NotEmpty().WithMessage("Constant value is required.");
 
             RuleFor(x => x.Value)
-                .Must(v => double.TryParse(v, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out _))
+                .Must(v => double.TryParse(v, NumberStyles.Any, CultureInfo.InvariantCulture, out _))
                 .WithMessage("Value must be a valid number.")
                 .When(x => x.Type == DataTypes.Number);
 
@@ -42,6 +44,11 @@ namespace Operum.Model.DTOs.TrackerConstants.Requests
                 .Must(v => TimeSpan.TryParse(v, CultureInfo.InvariantCulture, out _))
                 .WithMessage("Value must be a valid timespan (e.g. 01:30:00).")
                 .When(x => x.Type == DataTypes.TimeSpan);
+
+            RuleFor(x => x.Value)
+                .Must(v => DynamicDateTokens.IsValid(v) || DataFormatters.StringToDateTime(v) != null)
+                .WithMessage("Value must be a valid date or a relative date token (e.g. today, start_of_month:-1).")
+                .When(x => x.Type == DataTypes.Date || x.Type == DataTypes.DateTime);
         }
     }
 }

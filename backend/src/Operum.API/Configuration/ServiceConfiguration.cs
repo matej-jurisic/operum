@@ -13,6 +13,7 @@ using Operum.Service.Mappings.Profiles;
 using Operum.Service.Services.Analytics;
 using Operum.Service.Services.Authentication;
 using Operum.Service.Services.Authorization;
+using Operum.Service.Services.CorrelationInsights;
 using Operum.Service.Services.Entries;
 using Operum.Service.Services.Fields;
 using Operum.Service.Services.Roles;
@@ -71,6 +72,10 @@ namespace Operum.API.Configuration
             {
                 services.AddHostedService<NotificationEvaluatorService>();
             }
+
+            services.AddScoped<ICorrelationInsightEvaluator, CorrelationInsightEvaluator>();
+            services.AddScoped<ICorrelationInsightService, CorrelationInsightService>();
+            services.AddHostedService<CorrelationInsightBackgroundService>();
 
             services.RegisterIntegrationProviders(configuration);
 

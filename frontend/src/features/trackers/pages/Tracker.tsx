@@ -44,7 +44,7 @@ export default function Tracker() {
     const rawTab = urlParts[0] || "entries";
     // Queries no longer have their own tab; redirect to the Views tab's Queries sub-tab.
     const requestedTab = rawTab === "queries" ? "views" : rawTab;
-    // Analytics moved to the Widget Library; notifications may be disabled by feature flag.
+    // Analytics moved to dashboard widgets; notifications may be disabled by feature flag.
     const activeTab =
         (requestedTab === "notifications" && !areNotificationsEnabled) ||
         requestedTab === "analytics"

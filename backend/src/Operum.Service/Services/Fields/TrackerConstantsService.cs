@@ -3,6 +3,7 @@ using Operum.Model;
 using Operum.Model.Common;
 using Operum.Model.Constants;
 using Operum.Model.Constants.Fields;
+using Operum.Model.Converters;
 using Operum.Model.DTOs.TrackerConstants;
 using Operum.Model.DTOs.TrackerConstants.Requests;
 using Operum.Model.Enums;
@@ -206,9 +207,11 @@ namespace Operum.Service.Services.Fields
 
                 var valueIsValid = constantType switch
                 {
+                    DataTypes.String => true,
                     DataTypes.Number => double.TryParse(v.Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out _),
                     DataTypes.Bool => bool.TryParse(v.Value, out _),
                     DataTypes.TimeSpan => TimeSpan.TryParse(v.Value, CultureInfo.InvariantCulture, out _),
+                    DataTypes.Date or DataTypes.DateTime => DynamicDateTokens.IsValid(v.Value) || DataFormatters.StringToDateTime(v.Value) != null,
                     _ => false
                 };
                 if (!valueIsValid)

@@ -14,13 +14,17 @@ A tracker is a container for one kind of data: a reading list, workout log, bug 
 
 Supported field types: `string`, `number`, `bool`, `date`, `datetime`, `timespan`, `reference`. Each field has a name, an optional description, can be marked required, and `string` fields can carry a fixed list of select options. Which fields show, and in what order, is decided per view.
 
+**Default values** — a field can default to a fixed value, or (for `date`/`datetime` fields) a relative value like "today" or "start of month". It can also default to a constant instead, in which case it live-updates as related fields change while a new entry is being filled in, up until you edit it yourself, after which your value sticks for the rest of that entry.
+
+**Conditional visibility** — a field can be linked to a `bool` constant that hides it from the create-entry form whenever the constant resolves to false, live-updating as related fields change (e.g. hide "Refund reason" unless "Status" is "Refunded"). Only affects creating a new entry; a field already on an existing entry stays visible when editing.
+
 **Reference fields** — a `reference` field links each entry to one entry in another tracker, picked from a search box. Configure which tracker it points at and which of that tracker's fields to show as the label. The label is kept in sync when the linked entry changes, and the cell clears if the linked entry is deleted. Filtering a view by a reference field matches on that label.
 
 **Extract to a new tracker** — select one or more of a tracker's fields and pull them out into a new tracker. The new tracker gets a copy of each field and one row per distinct combination of their values, and the original tracker keeps a single reference field in their place, linked to the matching row on every existing entry. Useful for normalizing imported or already-logged data where the same values repeat across rows.
 
 **Calculated fields** — any `number`, `bool`, or `timespan` field can be marked as calculated. Write a formula using `{FieldName}` syntax and Operum evaluates it automatically on every create or update. TimeSpan fields support unit access via `{Field.hours}`, `{Field.minutes}`, and `{Field.seconds}`. Calculated fields are hidden from the entry form. Select a group of entries and force-recalculate them on demand when a formula changes after data already exists.
 
-**Constants** — define named reusable values (`number`, `bool`, `timespan`) and reference them in formulas by name. Each constant can have up to 6 conditional values: each conditional value has a priority and filter conditions, and the evaluator picks the lowest-priority match for the current entry, falling back to the base value if none match. This lets a single constant behave differently depending on what's in the entry.
+**Constants** — define named reusable values of any type except `reference` and reference them in formulas by name (formulas themselves are still limited to `number`, `bool`, and `timespan` constants, since they evaluate numerically). A `date`/`datetime` constant can hold a relative value such as `now`, `today`, `start of month`, or `end of year`, the same as a dynamic view filter. Each constant can have up to 6 conditional values: each conditional value has a priority and filter conditions, and the evaluator picks the lowest-priority match for the current entry, falling back to the base value if none match. This lets a single constant behave differently depending on what's in the entry, including as a field's default value.
 
 ### Entries
 
@@ -38,19 +42,19 @@ Build any number of dashboards, each with its own name, color, and icon, and set
 
 | Widget | What it does |
 |---|---|
-| Chart | A saved chart definition from the Widget Library, placed by reference |
-| Entries table | A saved table showing a tracker's most recent rows, with chosen columns |
+| Chart | A chart built for this dashboard |
+| Entries table | A table showing a tracker's most recent rows, with chosen columns |
 | Quick-add button | Opens a tracker's quick-add entry dialog straight from the dashboard |
 | Filter | Live controls that narrow the chart and table widgets linked to it |
 | Header / Divider / Note | Layout and annotation |
 | Container | A panel holding a sub-grid of other widgets, so a group can be moved, resized, and titled as one. Nesting is one level deep |
 | Tabs container | A container whose body is split into named tabs, each holding its own sub-grid; only the active tab's widgets show |
 
-The **Widget Library** holds chart and table definitions independently of any dashboard. Build one once, place it on as many dashboards as you want, edit or delete it in one place. A filter widget can offer dashboard-level saved filter sets as one-tap presets, and each followed widget picks which of its tracker's fields the filter runs against. Adding a chart or table to a dashboard with existing filter widgets offers a checklist to follow them right away, so the new widget doesn't load unfiltered.
+Adding a widget opens a picker organized into Charts, Tables, Controls, and Layout, each showing the options you can add; charts and tables are built fresh for that dashboard placement. A filter widget can offer dashboard-level saved filter sets as one-tap presets, and each followed widget picks which of its tracker's fields the filter runs against. Adding a chart or table to a dashboard with existing filter widgets offers a checklist to follow them right away, so the new widget doesn't load unfiltered.
 
 ### Analytics
 
-Charts are built in the Widget Library and calculated at query time. Each chart reads from one or more sources; a source is a tracker plus a field mapping, and can be scoped to a fixed tracker view. Line and bar charts can combine several sources onto one shared axis to compare trackers side by side, a calendar unions several trackers' events, and a scatter chart's correlation calculation pairs two trackers on a shared field to plot one against the other; other chart types read from a single tracker.
+Charts are calculated at query time. Each chart reads from one or more sources; a source is a tracker plus a field mapping, and can be scoped to a fixed tracker view. Line and bar charts can combine several sources onto one shared axis to compare trackers side by side, a calendar unions several trackers' events, and a scatter chart's correlation calculation pairs two trackers on a shared field to plot one against the other; other chart types read from a single tracker.
 
 | Type | Variants | Description |
 |---|---|---|
@@ -66,7 +70,7 @@ Each chart only exposes fields that are compatible with the role being configure
 
 ### Explore
 
-A scratchpad for calculations that don't need a home on a dashboard. Pick a chart type, grouping, and calculation, map one or more trackers, add inline filter clauses or reuse a saved view, and run it. The whole setup lives in the URL, so a useful exploration can be bookmarked or shared. When a result is worth keeping, promote it in place: save it to the Widget Library, or drop it straight onto a dashboard. Inline filters become a saved view on their tracker on the way.
+A scratchpad for calculations that don't need a home on a dashboard. Pick a chart type, grouping, and calculation, map one or more trackers, add inline filter clauses or reuse a saved view, and run it. The whole setup lives in the URL, so a useful exploration can be bookmarked or shared. When a result is worth keeping, promote it in place by dropping it straight onto a dashboard. Inline filters become a saved view on their tracker on the way.
 
 ### Integrations
 

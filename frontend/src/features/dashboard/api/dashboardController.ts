@@ -11,8 +11,6 @@ import {
     DashboardItemDto,
     DashboardViewDto,
     DashboardWidgetDto,
-    PlaceEntriesWidgetDto,
-    PlaceWidgetDto,
     ReorderDashboardViewsDto,
     SaveDashboardViewDto,
     SaveFilterItemDto,
@@ -66,13 +64,6 @@ export const dashboardController = {
         dto: CreateAndPlaceWidgetDto
     ): Promise<ApiResponse<DashboardItemDto>> => {
         return await api.post(`/dashboard/${dashboardId}/items`, dto);
-    },
-
-    placeWidget: async (
-        dashboardId: string,
-        dto: PlaceWidgetDto
-    ): Promise<ApiResponse<DashboardItemDto>> => {
-        return await api.post(`/dashboard/${dashboardId}/items/place-widget`, dto);
     },
 
     addQuickAddItem: async (
@@ -129,13 +120,6 @@ export const dashboardController = {
         dto: CreateAndPlaceEntriesWidgetDto
     ): Promise<ApiResponse<DashboardItemDto>> => {
         return await api.post(`/dashboard/${dashboardId}/items/entries`, dto);
-    },
-
-    placeEntriesWidget: async (
-        dashboardId: string,
-        dto: PlaceEntriesWidgetDto
-    ): Promise<ApiResponse<DashboardItemDto>> => {
-        return await api.post(`/dashboard/${dashboardId}/items/place-entries-widget`, dto);
     },
 
     addHeaderItem: async (

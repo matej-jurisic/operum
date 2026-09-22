@@ -12,5 +12,10 @@
         public string? Formula { get; set; }
         public string? ReferencedTrackerId { get; set; }
         public string? ReferencedDisplayFieldId { get; set; }
+        public string? DefaultValue { get; set; }
+        public string? DefaultValueConstantId { get; set; }
+        public string? VisibilityFieldId { get; set; }
+        public string? VisibilityOperator { get; set; }
+        public string? VisibilityValue { get; set; }
     }
 }

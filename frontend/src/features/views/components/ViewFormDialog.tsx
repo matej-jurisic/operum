@@ -253,6 +253,9 @@ export default function ViewFormDialog({
             title={viewId ? "Edit view" : "Create view"}
             size="lg"
             fullScreen={isMobile}
+            // The template modal below owns scroll-lock/focus-trap while it's open, so this one doesn't fight it.
+            lockScroll={!templateModalOpen}
+            trapFocus={!templateModalOpen}
         >
             <form onSubmit={form.onSubmit(handleSubmit)}>
                 <Stack gap="lg">

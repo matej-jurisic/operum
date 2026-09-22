@@ -4,6 +4,7 @@ import { entriesController } from "../api/entriesController";
 import FieldValueInput from "../../fields/components/FieldValueInput";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { GetStringValue } from "./EntryFormDialog";
+import { useDefaultValueResolution } from "../hooks/useDefaultValueResolution";
 
 interface Props {
     tracker: TrackerDto;
@@ -16,6 +17,16 @@ export default function QuickAddEntryDialog({ tracker, onClose, onCreated }: Pro
     const inputtableFields = tracker.fields.filter((f) => !f.isCalculated);
 
     const form = useForm<{ [key: string]: unknown }>({ initialValues: {} });
+
+    const { hiddenFieldNames } = useDefaultValueResolution(
+        tracker.id,
+        tracker.fields,
+        form,
+        true,
+    );
+    const visibleFields = inputtableFields.filter(
+        (field) => !hiddenFieldNames.has(field.name),
+    );
 
     const handleSubmit = async (values: Record<string, unknown>) => {
         const fieldValues: Record<string, string> = {};
@@ -37,7 +48,7 @@ export default function QuickAddEntryDialog({ tracker, onClose, onCreated }: Pro
         >
             <form onSubmit={form.onSubmit(handleSubmit)}>
                 <Stack>
-                    {inputtableFields.map((field) => (
+                    {visibleFields.map((field) => (
                         <FieldValueInput key={field.id} field={field} form={form} />
                     ))}
                     <Group justify="flex-end">

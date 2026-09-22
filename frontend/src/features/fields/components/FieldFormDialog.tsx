@@ -13,13 +13,40 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useEffect, useMemo, useState } from "react";
-import { calculatedFieldTypes, fieldTypes } from "../../../shared/constants/DataTypesForSelect";
+import DynamicDateValueInput from "../../../shared/components/DynamicDateValueInput";
+import {
+    calculatedFieldTypes,
+    fieldTypes,
+    operatorsForFieldType,
+} from "../../../shared/constants/DataTypesForSelect";
+import { isDynamicDateToken } from "../../../shared/constants/dynamicDateTokens";
 import { useTrackerOperations } from "../../../shared/hooks/useTrackerOperations";
+import { useConstants } from "../../constants/context/ConstantsContext";
+import { GetStringValue } from "../../entries/components/EntryFormDialog";
 import { trackersController } from "../../trackers/api/trackersController";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
+import { useFields } from "../context/FieldsContext";
 import { CreateFieldDto } from "../types/CreateFieldDto";
 import { FieldDto } from "../types/FieldDto";
 import { UpdateFieldDto } from "../types/UpdateFieldDto";
+import FieldValueInput from "./FieldValueInput";
+
+/** Mirrors the server's DataTypes.AreCompatible: date/datetime are interchangeable, everything else needs an exact match. */
+function isCompatibleConstantType(constantType: string, fieldType: string): boolean {
+    if (constantType === fieldType) return true;
+    const dateTypes = ["date", "datetime"];
+    return dateTypes.includes(constantType) && dateTypes.includes(fieldType);
+}
+
+type DefaultValueMode = "none" | "static" | "constant";
+
+type FormValues = Omit<
+    CreateFieldDto & UpdateFieldDto,
+    "defaultValue" | "visibilityValue"
+> & {
+    defaultValue?: string | number | Date;
+    visibilityValue?: string | number | Date;
+};
 
 interface FieldFormDialogProps {
     tracker: TrackerDto;
@@ -31,6 +58,8 @@ interface FieldFormDialogProps {
 export function FieldFormDialog(props: FieldFormDialogProps) {
     const { createField, updateField } = useTrackerOperations();
     const [trackers, setTrackers] = useState<TrackerDto[]>([]);
+    const { constants, refreshConstantsIfDirty } = useConstants();
+    const { fields } = useFields();
 
     useEffect(() => {
         trackersController
@@ -39,7 +68,20 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
             .catch(() => setTrackers([]));
     }, []);
 
-    const form = useForm<CreateFieldDto & UpdateFieldDto>({
+    useEffect(() => {
+        refreshConstantsIfDirty();
+    }, [refreshConstantsIfDirty]);
+
+    const [defaultValueMode, setDefaultValueMode] = useState<DefaultValueMode>(
+        props.initialValues?.defaultValueConstantId
+            ? "constant"
+            : props.initialValues?.defaultValue !== undefined &&
+                props.initialValues.defaultValue !== ""
+              ? "static"
+              : "none",
+    );
+
+    const form = useForm<FormValues>({
         initialValues: props.initialValues
             ? {
                   name: props.initialValues.name,
@@ -52,6 +94,15 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
                   referencedTrackerId: props.initialValues.referencedTrackerId || "",
                   referencedDisplayFieldId:
                       props.initialValues.referencedDisplayFieldId || "",
+                  defaultValue: props.initialValues.defaultValue || "",
+                  defaultValueConstantId:
+                      props.initialValues.defaultValueConstantId || "",
+                  visibilityFieldId:
+                      props.initialValues.visibilityFieldId || "",
+                  visibilityOperator:
+                      props.initialValues.visibilityOperator || "",
+                  visibilityValue:
+                      props.initialValues.visibilityValue || "",
               }
             : {
                   name: "",
@@ -63,6 +114,11 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
                   formula: "",
                   referencedTrackerId: "",
                   referencedDisplayFieldId: "",
+                  defaultValue: "",
+                  defaultValueConstantId: "",
+                  visibilityFieldId: "",
+                  visibilityOperator: "",
+                  visibilityValue: "",
               },
 
         validate: {
@@ -95,6 +151,26 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
     });
 
     const isReference = form.values.type === "reference";
+    const isDateType = form.values.type === "date" || form.values.type === "datetime";
+    const canHaveDefault = !isReference && !form.values.isCalculated;
+
+    const compatibleConstants = useMemo(
+        () => constants.filter((c) => isCompatibleConstantType(c.type, form.values.type)),
+        [constants, form.values.type],
+    );
+
+    const visibilityFieldOptions = useMemo(
+        () =>
+            fields
+                .filter((f) => !f.isCalculated && f.id !== props.fieldId)
+                .map((f) => ({ value: f.id, label: f.name })),
+        [fields, props.fieldId],
+    );
+
+    const visibilityTargetField = useMemo(
+        () => fields.find((f) => f.id === form.values.visibilityFieldId),
+        [fields, form.values.visibilityFieldId],
+    );
 
     const referencedTracker = useMemo(
         () => trackers.find((t) => t.id === form.values.referencedTrackerId),
@@ -109,11 +185,21 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
         [referencedTracker],
     );
 
+    const clearDefault = () => {
+        setDefaultValueMode("none");
+        form.setFieldValue("defaultValue", "");
+        form.setFieldValue("defaultValueConstantId", "");
+    };
+
     const handleModeChange = (value: string) => {
         const isCalc = value === "calculated";
         form.setFieldValue("isCalculated", isCalc);
         if (isCalc) {
             form.setFieldValue("required", false);
+            clearDefault();
+            form.setFieldValue("visibilityFieldId", "");
+            form.setFieldValue("visibilityOperator", "");
+            form.setFieldValue("visibilityValue", "");
             const calcTypes = calculatedFieldTypes.map((t) => t.value);
             if (!calcTypes.includes(form.values.type)) {
                 form.setFieldValue("type", "number");
@@ -124,6 +210,8 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
     const handleTypeChange = (value: string | null) => {
         const next = value ?? "string";
         form.setFieldValue("type", next);
+        // Existing default is invalid for the new type.
+        clearDefault();
         if (next === "reference") {
             form.setFieldValue("isCalculated", false);
             form.setFieldValue("selectOptions", []);
@@ -133,9 +221,49 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
         }
     };
 
-    const handleSubmit = async (values: CreateFieldDto & UpdateFieldDto) => {
+    /** Converts a typed value field's live form state (string, number, Date, or a relative token) to the raw string the API expects. */
+    const toSubmitTypedValue = (
+        type: string,
+        value: string | number | Date | undefined,
+    ): string | undefined => {
+        if (value === undefined || value === "") return undefined;
+        if (type === "date" || type === "datetime") {
+            if (typeof value === "string" && isDynamicDateToken(value))
+                return value;
+            return GetStringValue(type, value) || undefined;
+        }
+        return String(value);
+    };
+
+    const handleSubmit = async (values: FormValues) => {
+        const defaultValue =
+            defaultValueMode === "static" && canHaveDefault
+                ? toSubmitTypedValue(values.type, values.defaultValue)
+                : undefined;
+        const defaultValueConstantId =
+            defaultValueMode === "constant" && canHaveDefault
+                ? values.defaultValueConstantId || undefined
+                : undefined;
+        const visibilityFieldId = values.isCalculated
+            ? undefined
+            : values.visibilityFieldId || undefined;
+        const visibilityOperator = visibilityFieldId
+            ? values.visibilityOperator || undefined
+            : undefined;
+        const visibilityValue = visibilityFieldId
+            ? toSubmitTypedValue(
+                  visibilityTargetField?.type ?? "string",
+                  values.visibilityValue,
+              )
+            : undefined;
+
         const payload = {
             ...values,
+            defaultValue,
+            defaultValueConstantId,
+            visibilityFieldId,
+            visibilityOperator,
+            visibilityValue,
             formula: values.isCalculated ? values.formula : undefined,
             referencedTrackerId:
                 values.type === "reference"
@@ -239,6 +367,138 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
                             <Text size="xs" c="dimmed">
                                 Reference fields and constants as {"{Name}"}, with + - * / %. Timespans also take {"{Name.hours}"}, {"{Name.minutes}"} and {"{Name.seconds}"}.
                             </Text>
+                        </Stack>
+                    )}
+
+                    {canHaveDefault && (
+                        <Stack gap="xs">
+                            <Text size="sm" fw={500}>
+                                Default value
+                            </Text>
+                            <SegmentedControl
+                                size="xs"
+                                fullWidth
+                                data={[
+                                    { label: "None", value: "none" },
+                                    { label: "Static value", value: "static" },
+                                    { label: "From constant", value: "constant" },
+                                ]}
+                                value={defaultValueMode}
+                                onChange={(v) => {
+                                    setDefaultValueMode(v as DefaultValueMode);
+                                    form.setFieldValue("defaultValue", "");
+                                    form.setFieldValue(
+                                        "defaultValueConstantId",
+                                        "",
+                                    );
+                                }}
+                            />
+                            {defaultValueMode === "static" &&
+                                (isDateType ? (
+                                    <DynamicDateValueInput
+                                        isDateType
+                                        value={form.values.defaultValue}
+                                        onChange={(v) =>
+                                            form.setFieldValue(
+                                                "defaultValue",
+                                                v ?? "",
+                                            )
+                                        }
+                                        field={{
+                                            id: "defaultValue",
+                                            name: "Default value",
+                                            type: form.values.type,
+                                            required: false,
+                                            isCalculated: false,
+                                        }}
+                                        form={form}
+                                        fieldPath="defaultValue"
+                                        label="Default value"
+                                    />
+                                ) : (
+                                    <FieldValueInput
+                                        field={{
+                                            id: "defaultValue",
+                                            name: "Default value",
+                                            type: form.values.type,
+                                            required: false,
+                                            isCalculated: false,
+                                            selectOptions:
+                                                form.values.selectOptions,
+                                        }}
+                                        form={form}
+                                        fieldPath="defaultValue"
+                                    />
+                                ))}
+                            {defaultValueMode === "constant" && (
+                                <Select
+                                    placeholder="Select constant"
+                                    data={compatibleConstants.map((c) => ({
+                                        value: c.id,
+                                        label: c.name,
+                                    }))}
+                                    {...form.getInputProps(
+                                        "defaultValueConstantId",
+                                    )}
+                                />
+                            )}
+                        </Stack>
+                    )}
+
+                    {!isCalculated && (
+                        <Stack gap="xs">
+                            <Select
+                                label="Hide unless"
+                                description="Only applies to the create-entry form, not editing."
+                                placeholder="Always show"
+                                clearable
+                                data={visibilityFieldOptions}
+                                {...form.getInputProps("visibilityFieldId")}
+                                onChange={(value) => {
+                                    form.setFieldValue(
+                                        "visibilityFieldId",
+                                        value ?? "",
+                                    );
+                                    form.setFieldValue("visibilityOperator", "");
+                                    form.setFieldValue("visibilityValue", "");
+                                }}
+                            />
+                            {visibilityTargetField && (
+                                <>
+                                    <Select
+                                        allowDeselect={false}
+                                        label="Operator"
+                                        placeholder="Select operator"
+                                        data={operatorsForFieldType(
+                                            visibilityTargetField.type,
+                                        )}
+                                        value={form.values.visibilityOperator || null}
+                                        onChange={(value) =>
+                                            form.setFieldValue(
+                                                "visibilityOperator",
+                                                value ?? "",
+                                            )
+                                        }
+                                    />
+                                    <DynamicDateValueInput
+                                        isDateType={
+                                            visibilityTargetField.type === "date" ||
+                                            visibilityTargetField.type === "datetime"
+                                        }
+                                        value={form.values.visibilityValue}
+                                        onChange={(v) =>
+                                            form.setFieldValue(
+                                                "visibilityValue",
+                                                v ?? "",
+                                            )
+                                        }
+                                        field={visibilityTargetField}
+                                        form={form}
+                                        fieldPath="visibilityValue"
+                                        label="Value"
+                                    />
+                                </>
+                            )}
                         </Stack>
                     )}
 

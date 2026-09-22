@@ -26,7 +26,6 @@ interface Props {
     ) => Promise<void>;
 }
 
-/** Defines a new Widget Library Entries table and places it on this board in one step. */
 export function EntriesWidgetForm({ onBack, onAdd }: Props) {
     const { widgets } = useDashboard();
     const filterCandidates = useMemo(() => filterCandidatesFor(widgets), [widgets]);
@@ -94,7 +93,6 @@ export function EntriesWidgetForm({ onBack, onAdd }: Props) {
 
             <TextInput
                 label="Name"
-                description="Shown in the Widget Library"
                 placeholder="Optional"
                 maxLength={100}
                 value={name}

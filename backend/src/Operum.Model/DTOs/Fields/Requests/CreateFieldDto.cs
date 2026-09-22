@@ -1,6 +1,7 @@
 ﻿using FluentValidation;
 using Operum.Model.Constants;
 using Operum.Model.Constants.Fields;
+using Operum.Model.Converters;
 using System.Globalization;
 
 namespace Operum.Model.DTOs.Fields.Requests
@@ -16,6 +17,11 @@ namespace Operum.Model.DTOs.Fields.Requests
         public string? Formula { get; set; }
         public string? ReferencedTrackerId { get; set; }
         public string? ReferencedDisplayFieldId { get; set; }
+        public string? DefaultValue { get; set; }
+        public string? DefaultValueConstantId { get; set; }
+        public string? VisibilityFieldId { get; set; }
+        public string? VisibilityOperator { get; set; }
+        public string? VisibilityValue { get; set; }
     }
 
     public class CreateFieldDtoValidator : AbstractValidator<CreateFieldDto>
@@ -72,6 +78,54 @@ namespace Operum.Model.DTOs.Fields.Requests
             RuleFor(x => x.SelectOptions)
                 .Empty().WithMessage("Reference fields cannot have suggested options.")
                 .When(x => x.Type == DataTypes.Reference);
+
+            RuleFor(x => x.DefaultValue)
+                .Empty().WithMessage("A field can have a static default or a constant default, not both.")
+                .When(x => x.DefaultValueConstantId != null);
+
+            RuleFor(x => x.DefaultValue)
+                .Empty().WithMessage("Reference fields cannot have a default value.")
+                .When(x => x.Type == DataTypes.Reference);
+
+            RuleFor(x => x.DefaultValueConstantId)
+                .Empty().WithMessage("Reference fields cannot have a default value.")
+                .When(x => x.Type == DataTypes.Reference);
+
+            RuleFor(x => x.DefaultValue)
+                .Empty().WithMessage("Calculated fields cannot have a default value.")
+                .When(x => x.IsCalculated);
+
+            RuleFor(x => x.DefaultValueConstantId)
+                .Empty().WithMessage("Calculated fields cannot have a default value.")
+                .When(x => x.IsCalculated);
+
+            RuleFor(x => x.DefaultValue)
+                .Must(v => double.TryParse(v, NumberStyles.Any, CultureInfo.InvariantCulture, out _))
+                .WithMessage("Default value must be a valid number.")
+                .When(x => x.Type == DataTypes.Number && !string.IsNullOrEmpty(x.DefaultValue));
+
+            RuleFor(x => x.DefaultValue)
+                .Must(v => bool.TryParse(v, out _))
+                .WithMessage("Default value must be 'true' or 'false'.")
+                .When(x => x.Type == DataTypes.Bool && !string.IsNullOrEmpty(x.DefaultValue));
+
+            RuleFor(x => x.DefaultValue)
+                .Must(v => TimeSpan.TryParse(v, CultureInfo.InvariantCulture, out _))
+                .WithMessage("Default value must be a valid timespan (e.g. 01:30:00).")
+                .When(x => x.Type == DataTypes.TimeSpan && !string.IsNullOrEmpty(x.DefaultValue));
+
+            RuleFor(x => x.DefaultValue)
+                .Must(v => DynamicDateTokens.IsValid(v!) || DataFormatters.StringToDateTime(v!) != null)
+                .WithMessage("Default value must be a valid date or a relative date token (e.g. today, start_of_month:-1).")
+                .When(x => (x.Type == DataTypes.Date || x.Type == DataTypes.DateTime) && !string.IsNullOrEmpty(x.DefaultValue));
+
+            RuleFor(x => x.VisibilityFieldId)
+                .Empty().WithMessage("Calculated fields cannot have a visibility condition.")
+                .When(x => x.IsCalculated);
+
+            RuleFor(x => x.VisibilityOperator)
+                .NotEmpty().WithMessage("Select an operator for the visibility condition.")
+                .When(x => !string.IsNullOrEmpty(x.VisibilityFieldId));
         }
     }
 }

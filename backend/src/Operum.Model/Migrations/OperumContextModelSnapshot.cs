@@ -416,6 +416,12 @@ namespace Operum.Model.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("text");
 
+                    b.Property<string>("DefaultValue")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DefaultValueConstantId")
+                        .HasColumnType("text");
+
                     b.Property<string>("Description")
                         .HasColumnType("text");
 
@@ -452,10 +458,21 @@ namespace Operum.Model.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("VisibilityFieldId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("VisibilityOperator")
+                        .HasColumnType("text");
+
+                    b.Property<string>("VisibilityValue")
+                        .HasColumnType("text");
+
                     b.Property<bool>("Visible")
                         .HasColumnType("boolean");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DefaultValueConstantId");
 
                     b.HasIndex("ReferencedDisplayFieldId");
 
@@ -463,7 +480,74 @@ namespace Operum.Model.Migrations
 
                     b.HasIndex("TrackerId");
 
+                    b.HasIndex("VisibilityFieldId");
+
                     b.ToTable("Fields");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.FieldCorrelationInsight", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<double>("Coefficient")
+                        .HasColumnType("double precision");
+
+                    b.Property<DateTime>("ComputedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Dismissed")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("MatchFieldAId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("MatchFieldBId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("SampleSize")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TrackerAId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TrackerBId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ValueFieldAId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ValueFieldBId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MatchFieldAId");
+
+                    b.HasIndex("MatchFieldBId");
+
+                    b.HasIndex("TrackerAId");
+
+                    b.HasIndex("TrackerBId");
+
+                    b.HasIndex("ValueFieldAId");
+
+                    b.HasIndex("ValueFieldBId");
+
+                    b.HasIndex("UserId", "ValueFieldAId", "ValueFieldBId")
+                        .IsUnique();
+
+                    b.ToTable("FieldCorrelationInsights");
                 });
 
             modelBuilder.Entity("Operum.Model.Models.FieldValue", b =>
@@ -1582,6 +1666,11 @@ namespace Operum.Model.Migrations
 
             modelBuilder.Entity("Operum.Model.Models.Field", b =>
                 {
+                    b.HasOne("Operum.Model.Models.TrackerConstant", "DefaultValueConstant")
+                        .WithMany()
+                        .HasForeignKey("DefaultValueConstantId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Operum.Model.Models.Field", "ReferencedDisplayField")
                         .WithMany()
                         .HasForeignKey("ReferencedDisplayFieldId")
@@ -1598,11 +1687,79 @@ namespace Operum.Model.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Operum.Model.Models.Field", "VisibilityField")
+                        .WithMany()
+                        .HasForeignKey("VisibilityFieldId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("DefaultValueConstant");
+
                     b.Navigation("ReferencedDisplayField");
 
                     b.Navigation("ReferencedTracker");
 
                     b.Navigation("Tracker");
+
+                    b.Navigation("VisibilityField");
+                });
+
+            modelBuilder.Entity("Operum.Model.Models.FieldCorrelationInsight", b =>
+                {
+                    b.HasOne("Operum.Model.Models.Field", "MatchFieldA")
+                        .WithMany()
+                        .HasForeignKey("MatchFieldAId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Operum.Model.Models.Field", "MatchFieldB")
+                        .WithMany()
+                        .HasForeignKey("MatchFieldBId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Operum.Model.Models.Tracker", "TrackerA")
+                        .WithMany()
+                        .HasForeignKey("TrackerAId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Operum.Model.Models.Tracker", "TrackerB")
+                        .WithMany()
+                        .HasForeignKey("TrackerBId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Operum.Model.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Operum.Model.Models.Field", "ValueFieldA")
+                        .WithMany()
+                        .HasForeignKey("ValueFieldAId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Operum.Model.Models.Field", "ValueFieldB")
+                        .WithMany()
+                        .HasForeignKey("ValueFieldBId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MatchFieldA");
+
+                    b.Navigation("MatchFieldB");
+
+                    b.Navigation("TrackerA");
+
+                    b.Navigation("TrackerB");
+
+                    b.Navigation("User");
+
+                    b.Navigation("ValueFieldA");
+
+                    b.Navigation("ValueFieldB");
                 });
 
             modelBuilder.Entity("Operum.Model.Models.FieldValue", b =>

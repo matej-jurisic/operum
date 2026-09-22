@@ -15,10 +15,12 @@ import { TimePicker } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import { FiPlus } from "react-icons/fi";
 import { MdDelete } from "react-icons/md";
+import DynamicDateValueInput from "../../../shared/components/DynamicDateValueInput";
 import {
-    calculatedFieldTypes,
+    constantTypes,
     operatorTypes,
 } from "../../../shared/constants/DataTypesForSelect";
+import { isDynamicDateToken } from "../../../shared/constants/dynamicDateTokens";
 import { GetStringValue } from "../../entries/components/EntryFormDialog";
 import FieldValueInput from "../../fields/components/FieldValueInput";
 import { useFields } from "../../fields/context/FieldsContext";
@@ -54,24 +56,34 @@ type FilterRow = {
 };
 type ConditionalValueRow = {
     priority: number;
-    value: string;
+    value: string | number | Date;
     filters: FilterRow[];
 };
 type FormValues = {
     name: string;
     type: string;
-    value: string;
+    value: string | number | Date;
     values: ConditionalValueRow[];
 };
 
-function validateValueForType(value: string, type: string): string | null {
-    if (!value.trim()) return "Value is required";
-    if (type === "number" && isNaN(Number(value)))
+const isDateType = (type: string) => type === "date" || type === "datetime";
+
+function validateValueForType(
+    value: string | number | Date,
+    type: string,
+): string | null {
+    if (value === "" || value === undefined || value === null)
+        return "Value is required";
+    if (isDateType(type)) return null;
+
+    const strValue = String(value);
+    if (!strValue.trim()) return "Value is required";
+    if (type === "number" && isNaN(Number(strValue)))
         return "Value must be a valid number";
-    if (type === "bool" && value !== "true" && value !== "false")
+    if (type === "bool" && strValue !== "true" && strValue !== "false")
         return "Value must be 'true' or 'false'";
     if (type === "timespan") {
-        const parts = value.split(":");
+        const parts = strValue.split(":");
         if (
             parts.length < 2 ||
             parts.length > 3 ||
@@ -80,6 +92,21 @@ function validateValueForType(value: string, type: string): string | null {
             return "Value must be a valid timespan (e.g. 01:30:00)";
     }
     return null;
+}
+
+/** Converts a value field's live form state (string, number, Date, or a relative token) to the raw string the API expects. */
+function toSubmitValue(type: string, value: string | number | Date): string {
+    if (isDateType(type)) {
+        if (typeof value === "string" && isDynamicDateToken(value))
+            return value;
+        return GetStringValue(type, value);
+    }
+    return String(value);
+}
+
+/** A synthetic field for the constant's own value input, which isn't tied to a real tracker field. */
+function syntheticValueField(type: string, name: string): FieldDto {
+    return { id: "value", name, type, required: false, isCalculated: false };
 }
 
 interface ConstantValueInputProps {
@@ -268,11 +295,11 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
         const dto: CreateTrackerConstantDto = {
             name: values.name,
             type: values.type,
-            value: values.value,
+            value: toSubmitValue(values.type, values.value),
             values: values.values.map(
                 (cv): CreateTrackerConstantValueDto => ({
                     priority: cv.priority,
-                    value: cv.value,
+                    value: toSubmitValue(values.type, cv.value),
                     filters: cv.filters.map(
                         (f): CreateTrackerConstantValueFilterDto => {
                             const field = getFieldById(f.fieldId);
@@ -322,7 +349,7 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                         allowDeselect={false}
                         label="Type"
                         placeholder="Select type"
-                        data={calculatedFieldTypes}
+                        data={constantTypes}
                         required
                         {...form.getInputProps("type")}
                         onChange={(val) => {
@@ -339,14 +366,31 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                         }}
                     />
 
-                    <ConstantValueInput
-                        type={form.values.type}
-                        label="Base value"
-                        description="Used when no conditional value matches"
-                        value={form.values.value}
-                        error={form.errors.value}
-                        onChange={(v) => form.setFieldValue("value", v)}
-                    />
+                    {isDateType(form.values.type) ? (
+                        <DynamicDateValueInput
+                            isDateType
+                            value={form.values.value}
+                            onChange={(v) =>
+                                form.setFieldValue("value", v ?? "")
+                            }
+                            field={syntheticValueField(
+                                form.values.type,
+                                "Base value",
+                            )}
+                            form={form}
+                            fieldPath="value"
+                            label="Base value"
+                        />
+                    ) : (
+                        <ConstantValueInput
+                            type={form.values.type}
+                            label="Base value"
+                            description="Used when no conditional value matches"
+                            value={String(form.values.value)}
+                            error={form.errors.value}
+                            onChange={(v) => form.setFieldValue("value", v)}
+                        />
+                    )}
 
                     <Stack gap="sm">
                         <Group justify="space-between" align="center">
@@ -402,23 +446,47 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                                                         `values.${vi}.priority`,
                                                     )}
                                                 />
-                                                <ConstantValueInput
-                                                    type={form.values.type}
-                                                    label="Value"
-                                                    value={cv.value}
-                                                    error={
-                                                        form.errors[
-                                                            `values.${vi}.value`
-                                                        ]
-                                                    }
-                                                    onChange={(v) =>
-                                                        form.setFieldValue(
-                                                            `values.${vi}.value`,
-                                                            v,
-                                                        )
-                                                    }
-                                                    style={{ flex: 1 }}
-                                                />
+                                                {isDateType(
+                                                    form.values.type,
+                                                ) ? (
+                                                    <DynamicDateValueInput
+                                                        isDateType
+                                                        value={cv.value}
+                                                        onChange={(v) =>
+                                                            form.setFieldValue(
+                                                                `values.${vi}.value`,
+                                                                v ?? "",
+                                                            )
+                                                        }
+                                                        field={syntheticValueField(
+                                                            form.values.type,
+                                                            "Value",
+                                                        )}
+                                                        form={form}
+                                                        fieldPath={`values.${vi}.value`}
+                                                        label="Value"
+                                                    />
+                                                ) : (
+                                                    <ConstantValueInput
+                                                        type={form.values.type}
+                                                        label="Value"
+                                                        value={String(
+                                                            cv.value,
+                                                        )}
+                                                        error={
+                                                            form.errors[
+                                                                `values.${vi}.value`
+                                                            ]
+                                                        }
+                                                        onChange={(v) =>
+                                                            form.setFieldValue(
+                                                                `values.${vi}.value`,
+                                                                v,
+                                                            )
+                                                        }
+                                                        style={{ flex: 1 }}
+                                                    />
+                                                )}
                                                 <ActionIcon
                                                     color="red"
                                                     variant="outline"
