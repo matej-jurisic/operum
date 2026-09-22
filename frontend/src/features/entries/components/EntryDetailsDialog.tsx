@@ -1,5 +1,6 @@
 import {
     Badge,
+    Button,
     Divider,
     Group,
     Modal,
@@ -12,6 +13,7 @@ import { formatDateTimeFromDate } from "../../../shared/utils/formatters/TypeFor
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
 import { entriesController } from "../api/entriesController";
+import EntryHistoryDialog from "./EntryHistoryDialog";
 import { EntryDto } from "../types/EntryDto";
 
 interface EntryDetailsDialogProps {
@@ -31,6 +33,7 @@ export default function EntryDetailsDialog({
     tracker,
 }: EntryDetailsDialogProps) {
     const [entry, setEntry] = useState<EntryDto>();
+    const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
 
     useEffect(() => {
         const fetchEntry = async () => {
@@ -45,54 +48,70 @@ export default function EntryDetailsDialog({
     if (!entry) return null;
 
     return (
-        <Modal
-            opened
-            centered
-            onClose={onClose}
-            title={
-                <Group justify="space-between" wrap="nowrap" mr={"xs"}>
-                    <Title order={4} className="wrapped-text" lineClamp={3}>
-                        {tracker.name}
-                    </Title>
-                    <Badge
-                        color={tracker.color}
-                        variant="filled"
-                        miw="max-content"
-                    >
-                        Entry details
-                    </Badge>
-                </Group>
-            }
-        >
-            <Stack gap="sm">
-                <Divider label="Data" />
-                {entry.fieldValues.map((fieldValue) => (
-                    <Group
-                        key={fieldValue.fieldId}
-                        justify="space-between"
-                        wrap="nowrap"
-                    >
-                        <Text fw={500} maw={"50%"} className="wrapped-text">
-                            {fieldValue.fieldName}
+        <>
+            <Modal
+                opened
+                centered
+                onClose={onClose}
+                title={
+                    <Group justify="space-between" wrap="nowrap" mr={"xs"}>
+                        <Title order={4} className="wrapped-text" lineClamp={3}>
+                            {tracker.name}
+                        </Title>
+                        <Badge
+                            color={tracker.color}
+                            variant="filled"
+                            miw="max-content"
+                        >
+                            Entry details
+                        </Badge>
+                    </Group>
+                }
+            >
+                <Stack gap="sm">
+                    <Divider label="Data" />
+                    {entry.fieldValues.map((fieldValue) => (
+                        <Group
+                            key={fieldValue.fieldId}
+                            justify="space-between"
+                            wrap="nowrap"
+                        >
+                            <Text fw={500} maw={"50%"} className="wrapped-text">
+                                {fieldValue.fieldName}
+                            </Text>
+                            <Text w={"50%"} className="wrapped-text">
+                                {renderValue(
+                                    fieldValue.fieldType,
+                                    fieldValue.value
+                                )}
+                            </Text>
+                        </Group>
+                    ))}
+                    <Divider label="Information" />
+                    <Group justify="space-between">
+                        <Text maw={"50%"} className="wrapped-text">
+                            Created at
                         </Text>
-                        <Text w={"50%"} className="wrapped-text">
-                            {renderValue(
-                                fieldValue.fieldType,
-                                fieldValue.value
-                            )}
+                        <Text className="wrapped-text">
+                            {formatDateTimeFromDate(new Date(entry.createdAt))}
                         </Text>
                     </Group>
-                ))}
-                <Divider label="Information" />
-                <Group justify="space-between">
-                    <Text maw={"50%"} className="wrapped-text">
-                        Created at
-                    </Text>
-                    <Text className="wrapped-text">
-                        {formatDateTimeFromDate(new Date(entry.createdAt))}
-                    </Text>
-                </Group>
-            </Stack>
-        </Modal>
+                    <Button
+                        variant="subtle"
+                        size="xs"
+                        onClick={() => setHistoryDialogOpen(true)}
+                    >
+                        View history
+                    </Button>
+                </Stack>
+            </Modal>
+            {historyDialogOpen && (
+                <EntryHistoryDialog
+                    entryId={entryId}
+                    tracker={tracker}
+                    onClose={() => setHistoryDialogOpen(false)}
+                />
+            )}
+        </>
     );
 }

@@ -3,6 +3,7 @@ import api, { LONG_REQUEST_TIMEOUT_MS } from "../../../shared/api/api";
 import { ApiResponse } from "../../../shared/types/ApiResponse";
 import { PagedResult } from "../../../shared/types/PagedResult";
 import { EntryDto } from "../types/EntryDto";
+import { EntryRevisionDto } from "../types/EntryRevisionDto";
 import { EntrySelection } from "../types/EntrySelection";
 
 export const entriesController = {
@@ -23,6 +24,12 @@ export const entriesController = {
         entryId: string
     ): Promise<ApiResponse<EntryDto>> => {
         return await api.get(`/trackers/${trackerId}/entries/${entryId}`);
+    },
+    getEntryHistory: async (
+        trackerId: string,
+        entryId: string
+    ): Promise<ApiResponse<EntryRevisionDto[]>> => {
+        return await api.get(`/trackers/${trackerId}/entries/${entryId}/history`);
     },
     getEntryOptions: async (
         trackerId: string,

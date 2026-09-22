@@ -11,6 +11,7 @@ namespace Operum.Service.Interfaces
         public Task<Result<EntryDto>> CreateEntry(string trackerId, CreateEntryDto entry);
         public Task<Result<PagedResult<EntryDto>>> GetEntries(string trackerId, string? viewId, int page, int pageSize);
         public Task<Result<EntryDto>> GetEntry(string trackerId, string entryId);
+        public Task<Result<List<EntryRevisionDto>>> GetEntryHistory(string trackerId, string entryId);
         public Task<Result<EntryDto>> UpdateEntry(string trackerId, string entryId, UpdateEntryDto updateEntry);
         public Task<Result> DeleteEntry(string trackerId, string entryId);
         public Task<Result> DeleteEntries(string trackerId, EntrySelectionDto selection);

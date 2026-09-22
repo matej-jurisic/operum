@@ -485,6 +485,17 @@ namespace Operum.Model
                 .WithMany()
                 .HasForeignKey(fv => fv.ReferencedEntryId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            // Deleting the user degrades the revision to anonymous instead of destroying the
+            // tracker's history; ChangedByUserName keeps it attributable either way.
+            builder.Entity<EntryRevision>()
+                .HasOne(r => r.ChangedByUser)
+                .WithMany()
+                .HasForeignKey(r => r.ChangedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<EntryRevision>()
+                .HasIndex(r => new { r.EntryId, r.ChangedAt });
         }
 
         public override DbSet<User> Users { get; set; }
@@ -493,6 +504,7 @@ namespace Operum.Model
         public DbSet<Field> Fields { get; set; }
         public DbSet<Entry> Entries { get; set; }
         public DbSet<FieldValue> FieldValues { get; set; }
+        public DbSet<EntryRevision> EntryRevisions { get; set; }
         public DbSet<View> Views { get; set; }
         public DbSet<ViewQuery> ViewQueries { get; set; }
         public DbSet<Query> Queries { get; set; }

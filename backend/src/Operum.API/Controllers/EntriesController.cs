@@ -31,6 +31,12 @@ namespace Operum.API.Controllers
             return GetApiResponse(await entriesService.GetEntry(trackerId, entryId));
         }
 
+        [HttpGet("{entryId}/history")]
+        public async Task<IActionResult> GetEntryHistory([FromRoute] string trackerId, [FromRoute] string entryId)
+        {
+            return GetApiResponse(await entriesService.GetEntryHistory(trackerId, entryId));
+        }
+
         [HttpGet("options")]
         public async Task<IActionResult> GetEntryOptions(
             [FromRoute] string trackerId,

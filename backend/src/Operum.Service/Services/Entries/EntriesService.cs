@@ -17,6 +17,7 @@ using Operum.Service.Domain.Views;
 using Operum.Service.Interfaces;
 using Operum.Service.Mappings.Mapper;
 using System.Globalization;
+using System.Text.Json;
 
 namespace Operum.Service.Services.Entries
 {
@@ -79,6 +80,8 @@ namespace Operum.Service.Services.Entries
                 trackerId, newEntry.Id, entryFieldValues, fields);
 
             await SyncEntryReferences(newEntry.Id, entryFieldValues, fields);
+
+            await RecordEntryRevision(newEntry.Id, EntryRevisionChangeTypes.Create, user);
 
             var created = await GetEntry(trackerId, newEntry.Id);
 
@@ -156,6 +159,76 @@ namespace Operum.Service.Services.Entries
             }
 
             return Result.Success(mapper.Map<Entry, EntryDto>(entry));
+        }
+
+        public async Task<Result<List<EntryRevisionDto>>> GetEntryHistory(string trackerId, string entryId)
+        {
+            var user = currentUserService.GetCurrentUser();
+            var tracker = await db.Trackers
+                .Include(x => x.ApplicationUserTrackers)
+                .FirstOrDefaultAsync(x => x.Id == trackerId);
+
+            var hasAccess = tracker != null && (tracker.OwnerId == user.Id || tracker.ApplicationUserTrackers.Any(x => x.ApplicationUserId == user.Id));
+
+            if (tracker == null || !hasAccess)
+            {
+                return Result.Failure(ResultStatusCodes.Forbidden);
+            }
+
+            var entryExists = await db.Entries.AnyAsync(x => x.Id == entryId && x.TrackerId == trackerId);
+            if (!entryExists)
+            {
+                return Result.Failure(ResultStatusCodes.NotFound);
+            }
+
+            var revisions = await db.EntryRevisions
+                .Where(r => r.EntryId == entryId)
+                .OrderBy(r => r.ChangedAt)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var result = new List<EntryRevisionDto>();
+            Dictionary<string, EntryRevisionFieldSnapshot> previous = [];
+
+            foreach (var revision in revisions)
+            {
+                var current = (JsonSerializer.Deserialize<List<EntryRevisionFieldSnapshot>>(revision.Snapshot) ?? [])
+                    .ToDictionary(f => f.FieldId);
+
+                var changes = new List<EntryRevisionFieldChangeDto>();
+                foreach (var fieldId in previous.Keys.Union(current.Keys))
+                {
+                    previous.TryGetValue(fieldId, out var oldField);
+                    current.TryGetValue(fieldId, out var newField);
+
+                    if (oldField?.Value == newField?.Value)
+                        continue;
+
+                    var reference = newField ?? oldField!;
+                    changes.Add(new EntryRevisionFieldChangeDto
+                    {
+                        FieldId = fieldId,
+                        FieldName = reference.FieldName,
+                        FieldType = reference.FieldType,
+                        OldValue = oldField?.Value,
+                        NewValue = newField?.Value,
+                    });
+                }
+
+                result.Add(new EntryRevisionDto
+                {
+                    Id = revision.Id,
+                    ChangeType = revision.ChangeType,
+                    ChangedAt = revision.ChangedAt,
+                    ChangedByUserName = revision.ChangedByUserName,
+                    Changes = changes,
+                });
+
+                previous = current;
+            }
+
+            result.Reverse();
+            return Result.Success(result);
         }
 
         public async Task<Result<List<EntryOptionDto>>> GetEntryOptions(string trackerId, string? displayFieldId, string? search, int limit)
@@ -242,6 +315,20 @@ namespace Operum.Service.Services.Entries
                 .AsTracking()
                 .ToListAsync();
 
+            // Backfills a Create revision for entries that predate revision history, so their
+            // first edit diffs against real prior values instead of looking like everything
+            // was just added.
+            var isFirstRecordedChange = !await db.EntryRevisions.AnyAsync(r => r.EntryId == entryId);
+            var pristineSnapshot = isFirstRecordedChange
+                ? fieldValues.Select(fv => new EntryRevisionFieldSnapshot
+                {
+                    FieldId = fv.FieldId,
+                    FieldName = fv.Field.Name,
+                    FieldType = fv.Field.Type,
+                    Value = fv.GetValueAsString(),
+                }).ToList()
+                : null;
+
             var fieldValuesDict = fieldValues.ToDictionary(x => x.FieldId);
 
             var allFields = await db.Fields
@@ -294,6 +381,20 @@ namespace Operum.Service.Services.Entries
                 trackerId, entryId, allCurrentValues, allFields);
 
             await SyncEntryReferences(entryId, allCurrentValues, allFields);
+
+            if (pristineSnapshot != null)
+            {
+                await db.EntryRevisions.AddAsync(new EntryRevision
+                {
+                    EntryId = entryId,
+                    ChangeType = EntryRevisionChangeTypes.Create,
+                    ChangedAt = entry.CreatedAt,
+                    Snapshot = JsonSerializer.Serialize(pristineSnapshot),
+                });
+                await db.SaveChangesAsync();
+            }
+
+            await RecordEntryRevision(entryId, EntryRevisionChangeTypes.Update, user);
 
             var updatedEntry = await GetEntry(trackerId, entryId);
             return Result.Success(updatedEntry.Data);
@@ -784,6 +885,36 @@ namespace Operum.Service.Services.Entries
         {
             await referenceLabelService.ResolveEntryReferences(entryId, currentFieldValues, allFields);
             await referenceLabelService.RefreshReferencesToEntry(entryId);
+        }
+
+        // Snapshots the entry's current display values, not the values passed in by the
+        // caller, so calculated fields and resolved reference labels are captured as they end
+        // up rather than as they were mid-save.
+        private async Task RecordEntryRevision(string entryId, string changeType, User user)
+        {
+            var currentValues = await db.FieldValues
+                .Include(fv => fv.Field)
+                .Where(fv => fv.EntryId == entryId)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var snapshot = currentValues.Select(fv => new EntryRevisionFieldSnapshot
+            {
+                FieldId = fv.FieldId,
+                FieldName = fv.Field.Name,
+                FieldType = fv.Field.Type,
+                Value = fv.GetValueAsString(),
+            }).ToList();
+
+            await db.EntryRevisions.AddAsync(new EntryRevision
+            {
+                EntryId = entryId,
+                ChangeType = changeType,
+                ChangedByUserId = user.Id,
+                ChangedByUserName = user.UserName ?? string.Empty,
+                Snapshot = JsonSerializer.Serialize(snapshot),
+            });
+            await db.SaveChangesAsync();
         }
 
         // A referenced tracker's entries keyed by display label, for resolving CSV cells.
