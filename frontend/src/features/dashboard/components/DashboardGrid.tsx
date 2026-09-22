@@ -192,6 +192,10 @@ function FlatBoard({
     >
       {shown.map((widget) => (
         <div key={widget.id} className="dashboard-widget">
+          <SizeDebugBadge
+            w={widget.mobileLayout.w}
+            h={widget.mobileLayout.h}
+          />
           {isConfiguring && config.dragHandle && (
             <div className={DRAG_HANDLE_CLASS} aria-hidden="true">
               <MdDragIndicator size={18} />
@@ -485,6 +489,8 @@ export function BoardSubGrid({
           id={widget.id}
           group={group}
           isConfiguring={isConfiguring}
+          w={widget.layout.w}
+          h={widget.layout.h}
         >
           {(handleRef) => renderContent(widget, handleRef)}
         </BoardTile>
@@ -498,11 +504,15 @@ function BoardTile({
   id,
   group,
   isConfiguring,
+  w,
+  h,
   children,
 }: {
   id: string;
   group: string;
   isConfiguring: boolean;
+  w: number;
+  h: number;
   children: (handleRef: (element: Element | null) => void) => ReactNode;
 }) {
   const { ref, handleRef, style, isDragging } = useGridItem({ id, group });
@@ -513,9 +523,37 @@ function BoardTile({
       style={style}
       className={`snapgrid-item${isDragging ? " is-dragging" : ""}`}
     >
-      <div className="dashboard-widget">{children(handleRef)}</div>
+      <div className="dashboard-widget">
+        <SizeDebugBadge w={w} h={h} />
+        {children(handleRef)}
+      </div>
       {isConfiguring && <ResizeHandle id={id} group={group} />}
     </div>
+  );
+}
+
+// TEMP DEBUG: remove once default widget sizes are settled.
+function SizeDebugBadge({ w, h }: { w: number; h: number }) {
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        position: "absolute",
+        top: 2,
+        right: 2,
+        zIndex: 10,
+        padding: "1px 5px",
+        borderRadius: 4,
+        background: "rgba(0,0,0,0.65)",
+        color: "#fff",
+        fontSize: 10,
+        fontFamily: "monospace",
+        lineHeight: "14px",
+        pointerEvents: "none",
+      }}
+    >
+      {w}×{h}
+    </span>
   );
 }
 

@@ -155,7 +155,6 @@ export default function TrackerFormDialog(props: TrackerFormDialogProps) {
                             renderOption={renderTemplateOption}
                             {...form.getInputProps("templateTrackerId")}
                             value={form.values.templateTrackerId}
-                            comboboxProps={{ withinPortal: false }}
                         />
                     )}
                     <TextInput
@@ -193,7 +192,6 @@ export default function TrackerFormDialog(props: TrackerFormDialogProps) {
                             allowDeselect={false}
                             {...form.getInputProps("trackerTypeId")}
                             value={form.values.trackerTypeId?.toString()}
-                            comboboxProps={{ withinPortal: false }}
                         />
                     )}
                     <Group justify="flex-end">

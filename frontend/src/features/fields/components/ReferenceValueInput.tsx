@@ -106,7 +106,6 @@ export default function ReferenceValueInput({
             clearable
             nothingFoundMessage={loading ? "Searching..." : "No matches"}
             style={styles}
-            comboboxProps={{ withinPortal: false }}
             data={data}
             searchValue={search}
             onSearchChange={setSearch}

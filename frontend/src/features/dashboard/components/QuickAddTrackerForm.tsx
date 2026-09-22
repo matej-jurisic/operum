@@ -47,7 +47,6 @@ export function QuickAddTrackerForm({ onBack, onAdd }: Props) {
                 onChange={setTrackerId}
                 disabled={isLoading}
                 searchable
-                comboboxProps={{ withinPortal: false }}
             />
 
             {hasNoTrackers && (

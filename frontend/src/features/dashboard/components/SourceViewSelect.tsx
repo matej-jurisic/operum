@@ -32,7 +32,6 @@ export function SourceViewSelect({
             onChange={(viewId) => onChange({ viewId })}
             disabled={disabled}
             clearable
-            comboboxProps={{ withinPortal: false }}
         />
     );
 }

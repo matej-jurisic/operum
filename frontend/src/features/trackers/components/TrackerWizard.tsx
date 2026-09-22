@@ -346,7 +346,6 @@ export default function TrackerWizard({ onClose, onConfirm }: Props) {
                                                 allowDeselect={false}
                                                 w={130}
                                                 size="sm"
-                                                comboboxProps={{ withinPortal: false }}
                                             />
                                             <ActionIcon
                                                 variant="outline"

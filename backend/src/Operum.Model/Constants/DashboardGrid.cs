@@ -23,27 +23,26 @@ namespace Operum.Model.Constants
         public static (int Width, int Height) DefaultSizeFor(string resultType) => resultType switch
         {
             AnalyticTypes.SingleValue => (6, 8),
-            AnalyticTypes.Goal => (7, 11),
-            AnalyticTypes.Donut => (8, 18),
-            AnalyticTypes.Calendar => (8, 18),
-            _ => (12, 20)
+            AnalyticTypes.Goal => (6, 7),
+            AnalyticTypes.Donut => (5, 20),
+            AnalyticTypes.Calendar => (5, 20),
+            _ => (8, 16)
         };
 
-        public static readonly (int Width, int Height) QuickAddSize = (6, 7);
+        public static readonly (int Width, int Height) QuickAddSize = (3, 6);
 
-        public static readonly (int Width, int Height) FilterSize = (6, 7);
+        public static readonly (int Width, int Height) FilterSize = (7, 3);
 
         public static readonly (int Width, int Height) EntriesSize = (12, 24);
 
-        public static readonly (int Width, int Height) HeaderSize = (Columns, 5);
+        public static readonly (int Width, int Height) HeaderSize = (Columns, 3);
 
         public static readonly (int Width, int Height) DividerSize = (Columns, 3);
 
         public static readonly (int Width, int Height) NoteSize = (8, 12);
 
-        // A nested widget's placement uses the same Columns as a top-level one.
-        public static readonly (int Width, int Height) ContainerSize = (Columns, 30);
+        public static readonly (int Width, int Height) ContainerSize = (10, 24);
 
-        public static readonly (int Width, int Height) TabsContainerSize = (Columns, 34);
+        public static readonly (int Width, int Height) TabsContainerSize = (10, 24);
     }
 }

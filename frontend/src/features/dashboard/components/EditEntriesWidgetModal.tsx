@@ -90,7 +90,6 @@ export function EditEntriesWidgetModal({ itemId, color, onClose, onSave }: Props
                         onChange={setColumnFieldIds}
                         searchable
                         clearable
-                        comboboxProps={{ withinPortal: false }}
                     />
 
                     <WidgetDisplayModeFields

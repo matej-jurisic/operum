@@ -46,7 +46,6 @@ export default function FieldValueInput({
                     {...baseProps}
                     style={styles}
                     data={field.selectOptions}
-                    comboboxProps={{ withinPortal: false }}
                 />
             ) : (
                 <Textarea key={key} {...baseProps} style={styles} autosize />
@@ -59,7 +58,6 @@ export default function FieldValueInput({
                     {...baseProps}
                     style={styles}
                     data={field.selectOptions}
-                    comboboxProps={{ withinPortal: false }}
                 />
             ) : (
                 <NumberInput key={key} {...baseProps} style={styles} />
@@ -82,7 +80,6 @@ export default function FieldValueInput({
                     ]}
                     clearable
                     style={styles}
-                    comboboxProps={{ withinPortal: false }}
                     {...form.getInputProps(path)}
                     value={stringValue}
                 />

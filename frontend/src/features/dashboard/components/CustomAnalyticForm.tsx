@@ -429,7 +429,6 @@ export function CustomAnalyticForm({ onBack, onAdd, presetResultType }: Props) {
                     data={resultTypeOptions}
                     value={resultType}
                     onChange={handleResultTypeChange}
-                    comboboxProps={{ withinPortal: false }}
                 />
             )}
             {typeUsesGrouping && (
@@ -440,7 +439,6 @@ export function CustomAnalyticForm({ onBack, onAdd, presetResultType }: Props) {
                     value={grouping}
                     onChange={handleGroupingChange}
                     disabled={!resultType}
-                    comboboxProps={{ withinPortal: false }}
                 />
             )}
             <Select
@@ -450,7 +448,6 @@ export function CustomAnalyticForm({ onBack, onAdd, presetResultType }: Props) {
                 value={code}
                 onChange={handleCodeChange}
                 disabled={!resultType || (typeUsesGrouping && !grouping)}
-                comboboxProps={{ withinPortal: false }}
             />
 
             <TextInput
@@ -490,7 +487,6 @@ export function CustomAnalyticForm({ onBack, onAdd, presetResultType }: Props) {
                                 value={row.trackerId}
                                 onChange={(value) => handleTrackerChange(index, value)}
                                 searchable
-                                comboboxProps={{ withinPortal: false }}
                             />
 
                             {calculationChosen && purposes.map((purpose) => (
@@ -525,7 +521,6 @@ export function CustomAnalyticForm({ onBack, onAdd, presetResultType }: Props) {
                                                 : `Limited to ${narrowType} fields so both trackers share one axis.`
                                             : purposeHint(purpose)
                                     }
-                                    comboboxProps={{ withinPortal: false }}
                                 />
                             ))}
 

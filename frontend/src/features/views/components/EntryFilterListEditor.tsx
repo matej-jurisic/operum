@@ -27,9 +27,6 @@ interface Props {
     filtersPath?: string;
     color?: string;
     maxFilters?: number;
-    /** False when an ancestor Mantine Modal is mounted: keeps the dropdown out of the
-        portal so it doesn't fight the modal's own fixed-position layer on mobile. */
-    withinPortal?: boolean;
 }
 
 export default function EntryFilterListEditor({
@@ -38,7 +35,6 @@ export default function EntryFilterListEditor({
     filtersPath = "filters",
     color,
     maxFilters = 6,
-    withinPortal = true,
 }: Props) {
     const [showTemplateModal, setShowTemplateModal] = useState(false);
     const [selectedFieldForTemplate, setSelectedFieldForTemplate] = useState("");
@@ -162,7 +158,6 @@ export default function EntryFilterListEditor({
                                                     },
                                                 );
                                             }}
-                                            comboboxProps={{ withinPortal }}
                                         />
                                         <Select
                                             allowDeselect={false}
@@ -174,7 +169,6 @@ export default function EntryFilterListEditor({
                                                 `${filtersPath}.${index}.operator`,
                                             )}
                                             value={filter.operator || null}
-                                            comboboxProps={{ withinPortal }}
                                         />
                                     </Group>
                                     <Group
@@ -247,7 +241,6 @@ export default function EntryFilterListEditor({
                                 setSelectedFieldForTemplate(value || "")
                             }
                             clearable
-                            comboboxProps={{ withinPortal: false }}
                         />
                         {selectedFieldForTemplate && (
                             <>

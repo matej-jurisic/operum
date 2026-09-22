@@ -318,7 +318,6 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
                         required
                         {...form.getInputProps("type")}
                         onChange={handleTypeChange}
-                        comboboxProps={{ withinPortal: false }}
                     />
 
                     {isReference && (
@@ -342,7 +341,6 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
                                         "",
                                     );
                                 }}
-                                comboboxProps={{ withinPortal: false }}
                             />
                             <Select
                                 label="Display field"
@@ -352,7 +350,6 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
                                 disabled={!referencedTracker}
                                 data={displayFieldOptions}
                                 {...form.getInputProps("referencedDisplayFieldId")}
-                                comboboxProps={{ withinPortal: false }}
                             />
                         </>
                     )}
@@ -443,7 +440,6 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
                                     {...form.getInputProps(
                                         "defaultValueConstantId",
                                     )}
-                                    comboboxProps={{ withinPortal: false }}
                                 />
                             )}
                         </Stack>
@@ -466,7 +462,6 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
                                     form.setFieldValue("visibilityOperator", "");
                                     form.setFieldValue("visibilityValue", "");
                                 }}
-                                comboboxProps={{ withinPortal: false }}
                             />
                             {visibilityTargetField && (
                                 <>
@@ -484,7 +479,6 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
                                                 value ?? "",
                                             )
                                         }
-                                        comboboxProps={{ withinPortal: false }}
                                     />
                                     <DynamicDateValueInput
                                         isDateType={
@@ -520,7 +514,6 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
                             label="Suggested options"
                             placeholder="Type and press Enter to add options"
                             {...form.getInputProps("selectOptions")}
-                            comboboxProps={{ withinPortal: false }}
                         />
                     )}
 

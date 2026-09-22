@@ -1,4 +1,22 @@
-import { createTheme, MantineColorsTuple, rem } from "@mantine/core";
+import {
+    Autocomplete,
+    createTheme,
+    MantineColorsTuple,
+    MultiSelect,
+    rem,
+    Select,
+    TagsInput,
+} from "@mantine/core";
+import { DateInput, DatePickerInput, DateTimePicker, TimePicker } from "@mantine/dates";
+
+// Portaled + fixed so dropdowns never clip against a modal's own overflow or
+// transform, and z-index 500 clears every modal in the app (the highest is 400,
+// used by nested "add from template" dialogs).
+const floatingDefaults = {
+    withinPortal: true,
+    floatingStrategy: "fixed" as const,
+    zIndex: 500,
+};
 
 // Tailwind's indigo ramp; index 6 is the filled/primary shade Mantine expects.
 const brand: MantineColorsTuple = [
@@ -44,5 +62,32 @@ export const theme = createTheme({
         md: "0 8px 24px rgba(17, 20, 38, 0.1), 0 3px 8px rgba(17, 20, 38, 0.07)",
         lg: "0 14px 36px rgba(17, 20, 38, 0.13), 0 5px 12px rgba(17, 20, 38, 0.08)",
         xl: "0 24px 52px rgba(17, 20, 38, 0.17), 0 9px 20px rgba(17, 20, 38, 0.1)",
+    },
+
+    components: {
+        Select: Select.extend({
+            defaultProps: { comboboxProps: floatingDefaults },
+        }),
+        MultiSelect: MultiSelect.extend({
+            defaultProps: { comboboxProps: floatingDefaults },
+        }),
+        TagsInput: TagsInput.extend({
+            defaultProps: { comboboxProps: floatingDefaults },
+        }),
+        Autocomplete: Autocomplete.extend({
+            defaultProps: { comboboxProps: floatingDefaults },
+        }),
+        DatePickerInput: DatePickerInput.extend({
+            defaultProps: { popoverProps: floatingDefaults },
+        }),
+        DateInput: DateInput.extend({
+            defaultProps: { popoverProps: floatingDefaults },
+        }),
+        DateTimePicker: DateTimePicker.extend({
+            defaultProps: { popoverProps: floatingDefaults },
+        }),
+        TimePicker: TimePicker.extend({
+            defaultProps: { popoverProps: floatingDefaults },
+        }),
     },
 });

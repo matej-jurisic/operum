@@ -212,7 +212,6 @@ export default function AbstractClauseListEditor({
                                                 value: undefined,
                                             })
                                         }
-                                        comboboxProps={{ withinPortal: false }}
                                     />
                                     <Select
                                         flex={1}
@@ -226,7 +225,6 @@ export default function AbstractClauseListEditor({
                                             `${path}.${index}.operator`,
                                         )}
                                         value={row.operator || null}
-                                        comboboxProps={{ withinPortal: false }}
                                     />
                                     <ActionIcon
                                         color="red"
@@ -300,7 +298,6 @@ export default function AbstractClauseListEditor({
                                                 value: undefined,
                                             })
                                         }
-                                        comboboxProps={{ withinPortal: false }}
                                     />
                                     {row.kind === QueryKinds.Filter ? (
                                         <Select
@@ -315,7 +312,6 @@ export default function AbstractClauseListEditor({
                                                 `${path}.${index}.operator`,
                                             )}
                                             value={row.operator || null}
-                                            comboboxProps={{ withinPortal: false }}
                                         />
                                     ) : (
                                         <SegmentedControl
@@ -394,7 +390,6 @@ export default function AbstractClauseListEditor({
                         data={templateTypeOptions}
                         value={templateDataType}
                         onChange={setTemplateDataType}
-                        comboboxProps={{ withinPortal: false }}
                     />
 
                     {templateDataType && (

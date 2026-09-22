@@ -120,7 +120,6 @@ export default function DynamicDateValueInput({
                                 );
                             }}
                             allowDeselect={false}
-                            comboboxProps={{ zIndex: 500 }}
                         />
                         {!isNow && (
                             <NumberInput
