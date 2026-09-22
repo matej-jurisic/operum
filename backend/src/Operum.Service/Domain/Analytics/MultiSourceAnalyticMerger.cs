@@ -1,3 +1,4 @@
+using System.Globalization;
 using Operum.Model.Constants.Analytics;
 using Operum.Model.Constants.Fields;
 using Operum.Model.DTOs.Analytics;
@@ -149,8 +150,8 @@ namespace Operum.Service.Domain.Analytics
             result.YField = AxisField(yLine.YField, ySource);
             result.Name = $"{result.XField.Name} vs {result.YField.Name}";
 
-            var xByKey = AverageByMatchKey(xLine.Points);
-            var yByKey = AverageByMatchKey(yLine.Points);
+            var xByKey = AverageByMatchKey(xLine.Points, xLine.XField.Type);
+            var yByKey = AverageByMatchKey(yLine.Points, yLine.XField.Type);
 
             result.Points = xByKey.Keys
                 .Where(yByKey.ContainsKey)
@@ -167,11 +168,24 @@ namespace Operum.Service.Domain.Analytics
             return result;
         }
 
-        private static Dictionary<string, double> AverageByMatchKey(List<LineChartPointDto> points) =>
-            points
+        // A Date match key is always midnight while a DateTime one keeps its time of day, so
+        // joining a Date tracker against a DateTime tracker needs both collapsed to the same
+        // calendar day; the key here is only used to join, never displayed.
+        private static Dictionary<string, double> AverageByMatchKey(List<LineChartPointDto> points, string xFieldType)
+        {
+            var collapseToDay = xFieldType.Equals(DataTypes.Date, StringComparison.OrdinalIgnoreCase)
+                || xFieldType.Equals(DataTypes.DateTime, StringComparison.OrdinalIgnoreCase);
+
+            return points
                 .Where(p => p.X != null && p.Y.HasValue)
-                .GroupBy(p => p.X!)
+                .GroupBy(p => collapseToDay ? CalendarDayKey(p.X!) : p.X!)
                 .ToDictionary(g => g.Key, g => g.Average(p => p.Y!.Value));
+        }
+
+        private static string CalendarDayKey(string isoValue) =>
+            DateTime.TryParse(isoValue, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dt)
+                ? dt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                : isoValue;
 
         private static FieldDto AxisField(FieldDto valueField, MergeSource source) => new()
         {
