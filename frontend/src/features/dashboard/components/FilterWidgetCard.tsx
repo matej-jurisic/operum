@@ -212,10 +212,7 @@ export function FilterWidgetCard({
                                 onChange={(value) =>
                                     value && applyPreset(value)
                                 }
-                                comboboxProps={{
-                                    withinPortal: true,
-                                    zIndex: 500,
-                                }}
+                                comboboxProps={{ withinPortal: false }}
                             />
                         )}
                         <ScrollArea.Autosize mah="60vh">

@@ -95,6 +95,7 @@ export function ExtractFieldsDialog(props: ExtractFieldsDialogProps) {
                             label: f.name,
                         }))}
                         {...form.getInputProps("displayFieldId")}
+                        comboboxProps={{ withinPortal: false }}
                     />
 
                     <Alert

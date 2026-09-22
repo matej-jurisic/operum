@@ -248,7 +248,7 @@ export default function TargetFormDialog({
                     })
                 }
                 allowDeselect={false}
-                comboboxProps={{ withinPortal: true }}
+                comboboxProps={{ withinPortal: false }}
             />
         );
     };
@@ -293,7 +293,7 @@ export default function TargetFormDialog({
             }
             searchable
             clearable
-            comboboxProps={{ withinPortal: true }}
+            comboboxProps={{ withinPortal: false }}
         />
     );
 
@@ -337,6 +337,7 @@ export default function TargetFormDialog({
                             // The server refuses to move a target to a different tracker.
                             disabled={isEdit}
                             searchable
+                            comboboxProps={{ withinPortal: false }}
                         />
                         <Select
                             label="Data"
@@ -350,6 +351,7 @@ export default function TargetFormDialog({
                                 setMappings([]);
                             }}
                             disabled={isEdit || provider.resources.length <= 1}
+                            comboboxProps={{ withinPortal: false }}
                         />
                     </SimpleGrid>
 
@@ -367,6 +369,7 @@ export default function TargetFormDialog({
                             }
                             maxDate={new Date()}
                             clearable={false}
+                            popoverProps={{ withinPortal: false }}
                         />
                     )}
                 </Stack>

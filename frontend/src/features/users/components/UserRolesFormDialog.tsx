@@ -64,6 +64,7 @@ export default function UserRolesFormDialog(props: Props) {
                         data={allRoles}
                         required
                         {...form.getInputProps("roleName")}
+                        comboboxProps={{ withinPortal: false }}
                     />
                     <Group justify="flex-end">
                         <Button variant="default" onClick={props.onClose}>

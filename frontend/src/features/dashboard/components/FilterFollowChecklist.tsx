@@ -100,6 +100,7 @@ export function FilterFollowChecklist({ fields, filters, links, onLinksChange }:
                                                 },
                                             })
                                         }
+                                        comboboxProps={{ withinPortal: false }}
                                     />
                                 ))}
                             </Group>

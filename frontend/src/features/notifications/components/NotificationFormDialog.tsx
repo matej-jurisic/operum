@@ -409,6 +409,7 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
                                     value={form.values.analyticCode || null}
                                     onChange={handleCodeChange}
                                     searchable
+                                    comboboxProps={{ withinPortal: false }}
                                 />
                                 {analyticPurposes.map((purpose) => (
                                     <Select
@@ -422,6 +423,7 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
                                             form.setFieldValue("filters", []);
                                         }}
                                         clearable
+                                        comboboxProps={{ withinPortal: false }}
                                     />
                                 ))}
                             </Stack>
@@ -434,7 +436,12 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
                         <Text fw={600} size="sm">Condition</Text>
 
                         {isEntry ? (
-                            <EntryFilterListEditor fields={fields} form={form} color={tracker.color} />
+                            <EntryFilterListEditor
+                                fields={fields}
+                                form={form}
+                                color={tracker.color}
+                                withinPortal={false}
+                            />
                         ) : (
                             <Stack gap="md">
                                 {form.values.filters.length === 0 && (
@@ -454,6 +461,7 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
                                                 value={filter.operator || null}
                                                 onChange={(v) => form.setFieldValue(`filters.${i}.operator`, v ?? "")}
                                                 style={{ flex: 1 }}
+                                                comboboxProps={{ withinPortal: false }}
                                             />
                                             <DynamicDateValueInput
                                                 isDateType={isDateFilter}
@@ -567,6 +575,7 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
                                             label="Days of week"
                                             data={DAYS_OF_WEEK}
                                             {...form.getInputProps("daysOfWeek")}
+                                            comboboxProps={{ withinPortal: false }}
                                         />
                                     </Stack>
                                 )}
@@ -610,6 +619,7 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
                             data={fields.map((f) => ({ value: f.id, label: f.name }))}
                             {...form.getInputProps("displayFieldIds")}
                             clearable
+                            comboboxProps={{ withinPortal: false }}
                         />
                     )}
 
@@ -629,6 +639,7 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
                         data={views.map((v) => ({ value: v.id, label: v.name }))}
                         {...form.getInputProps("viewId")}
                         clearable
+                        comboboxProps={{ withinPortal: false }}
                     />
 
                     <Group justify="flex-end">

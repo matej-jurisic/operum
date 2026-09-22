@@ -166,6 +166,7 @@ export function PromoteControls({
                         value={dashboardId}
                         onChange={setDashboardId}
                         searchable
+                        comboboxProps={{ withinPortal: false }}
                     />
                     <TextInput
                         label="Name"

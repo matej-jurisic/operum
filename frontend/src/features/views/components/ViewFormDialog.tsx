@@ -430,6 +430,7 @@ export default function ViewFormDialog({
                                                                 undefined,
                                                             );
                                                         }}
+                                                        comboboxProps={{ withinPortal: false }}
                                                     />
                                                     {row.kind ===
                                                     QueryKinds.Filter ? (
@@ -449,6 +450,7 @@ export default function ViewFormDialog({
                                                                 row.operator ||
                                                                 null
                                                             }
+                                                            comboboxProps={{ withinPortal: false }}
                                                         />
                                                     ) : (
                                                         <SegmentedControl
@@ -568,6 +570,7 @@ export default function ViewFormDialog({
                             }
                             searchable
                             clearable
+                            comboboxProps={{ withinPortal: false }}
                         />
                     </Stack>
 
@@ -604,6 +607,7 @@ export default function ViewFormDialog({
                     }))}
                     value={templateFieldId}
                     onChange={setTemplateFieldId}
+                    comboboxProps={{ withinPortal: false }}
                 />
 
                 {templateField && (

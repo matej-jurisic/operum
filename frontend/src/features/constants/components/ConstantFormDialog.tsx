@@ -153,6 +153,7 @@ function ConstantValueInput({
                 value={value}
                 error={error}
                 onChange={(v) => onChange(v ?? "")}
+                comboboxProps={{ withinPortal: false }}
                 {...rest}
             />
         );
@@ -351,6 +352,7 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                         placeholder="Select type"
                         data={constantTypes}
                         required
+                        comboboxProps={{ withinPortal: false }}
                         {...form.getInputProps("type")}
                         onChange={(val) => {
                             form.setFieldValue("type", val ?? "");
@@ -562,6 +564,9 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                                                                         data={
                                                                             fieldOptions
                                                                         }
+                                                                        comboboxProps={{
+                                                                            withinPortal: false,
+                                                                        }}
                                                                         {...form.getInputProps(
                                                                             `values.${vi}.filters.${fi}.fieldId`,
                                                                         )}
@@ -591,6 +596,9 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                                                                         data={
                                                                             operatorTypes
                                                                         }
+                                                                        comboboxProps={{
+                                                                            withinPortal: false,
+                                                                        }}
                                                                         {...form.getInputProps(
                                                                             `values.${vi}.filters.${fi}.operator`,
                                                                         )}

@@ -85,6 +85,7 @@ export default function UserTrackerFormDialog(props: Props) {
                             form.setFieldValue("username", val ?? "");
                         }}
                         error={form.errors.username}
+                        comboboxProps={{ withinPortal: false }}
                     />
                     <Checkbox
                         label="Can edit data (add, edit, delete entries)"

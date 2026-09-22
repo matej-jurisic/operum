@@ -89,6 +89,7 @@ export function EntriesWidgetForm({ onBack, onAdd }: Props) {
                 value={trackerId}
                 onChange={handleTrackerChange}
                 searchable
+                comboboxProps={{ withinPortal: false }}
             />
 
             <TextInput
@@ -115,6 +116,7 @@ export function EntriesWidgetForm({ onBack, onAdd }: Props) {
                 disabled={!trackerId || isLoadingTracker}
                 searchable
                 clearable
+                comboboxProps={{ withinPortal: false }}
             />
 
             {trackerId && !isLoadingTracker && (

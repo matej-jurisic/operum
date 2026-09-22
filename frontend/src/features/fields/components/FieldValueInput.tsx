@@ -41,14 +41,26 @@ export default function FieldValueInput({
     switch (field.type) {
         case "string":
             return field.selectOptions?.length ? (
-                <Autocomplete key={key} {...baseProps} style={styles} data={field.selectOptions} />
+                <Autocomplete
+                    key={key}
+                    {...baseProps}
+                    style={styles}
+                    data={field.selectOptions}
+                    comboboxProps={{ withinPortal: false }}
+                />
             ) : (
                 <Textarea key={key} {...baseProps} style={styles} autosize />
             );
 
         case "number":
             return field.selectOptions?.length ? (
-                <Autocomplete key={key} {...baseProps} style={styles} data={field.selectOptions} />
+                <Autocomplete
+                    key={key}
+                    {...baseProps}
+                    style={styles}
+                    data={field.selectOptions}
+                    comboboxProps={{ withinPortal: false }}
+                />
             ) : (
                 <NumberInput key={key} {...baseProps} style={styles} />
             );
@@ -70,6 +82,7 @@ export default function FieldValueInput({
                     ]}
                     clearable
                     style={styles}
+                    comboboxProps={{ withinPortal: false }}
                     {...form.getInputProps(path)}
                     value={stringValue}
                 />

@@ -159,6 +159,7 @@ export function FollowedWidgetsSection({
                                                 },
                                             })
                                         }
+                                        comboboxProps={{ withinPortal: false }}
                                     />
                                 ))}
                             </Group>
