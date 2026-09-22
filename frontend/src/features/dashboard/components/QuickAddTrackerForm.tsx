@@ -1,5 +1,4 @@
 import { Alert, Button, Group, Select, Stack } from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
 import { useEffect, useState } from "react";
 import { trackersController } from "../../trackers/api/trackersController";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
@@ -17,9 +16,6 @@ const hasInputtableFields = (t: TrackerDto) => t.fields.some((f) => !f.isCalcula
 
 /** Nothing to configure beyond the tracker: the dialog itself is QuickAddEntryDialog. */
 export function QuickAddTrackerForm({ onBack, onAdd }: Props) {
-    // Searchable turns the field into a text input, which pulls up the mobile keyboard and
-    // fights the fullscreen modal's viewport-relative layout as it resizes. Skip it there.
-    const isMobile = useMediaQuery("(max-width: 48em)");
     const [trackers, setTrackers] = useState<TrackerDto[]>([]);
     const [trackerId, setTrackerId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -50,7 +46,8 @@ export function QuickAddTrackerForm({ onBack, onAdd }: Props) {
                 value={trackerId}
                 onChange={setTrackerId}
                 disabled={isLoading}
-                searchable={!isMobile}
+                searchable
+                comboboxProps={{ withinPortal: false }}
             />
 
             {hasNoTrackers && (
