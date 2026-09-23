@@ -11,7 +11,11 @@ import { Calendar } from "@mantine/dates";
 import { useMemo, useState } from "react";
 import { MdArrowBack, MdLink } from "react-icons/md";
 import { renderValue } from "../../../shared/utils/formatters/ValueRenderer";
-import { CalendarAnalyticDto } from "../types/AnalyticDto";
+import {
+    CalendarAnalyticDto,
+    CalendarStartMonth,
+    CalendarStartMonths,
+} from "../types/AnalyticDto";
 import { cardBodyProps, chartHeight, useCardLayout } from "./cardSizing";
 import { WidgetShell } from "./WidgetShell";
 
@@ -33,6 +37,44 @@ const getDateKey = (date: Date): string => {
     return `${year}-${month}-${day}`;
 };
 
+const getStartDate = (
+    points: CalendarAnalyticDto["points"],
+    startMonth: CalendarStartMonth | undefined,
+): Date => {
+    const now = new Date();
+    const times = points
+        .map((event) => new Date(event.date).getTime())
+        .filter((time) => !isNaN(time));
+    const past = times.filter((time) => time < now.getTime());
+    const upcoming = times.filter((time) => time >= now.getTime());
+    const pick = (candidates: number[], choose: (...t: number[]) => number) =>
+        candidates.length > 0 ? new Date(choose(...candidates)) : undefined;
+
+    switch (startMonth) {
+        case CalendarStartMonths.Current:
+            return now;
+        case CalendarStartMonths.LatestPast:
+            return pick(past, Math.max) ?? now;
+        case CalendarStartMonths.EarliestPast:
+            return pick(past, Math.min) ?? now;
+        case CalendarStartMonths.NextUpcoming:
+            return pick(upcoming, Math.min) ?? now;
+        case CalendarStartMonths.LatestUpcoming:
+            return pick(upcoming, Math.max) ?? now;
+        default: {
+            const hasEntryThisMonth = times.some((time) => {
+                const date = new Date(time);
+                return (
+                    date.getFullYear() === now.getFullYear() &&
+                    date.getMonth() === now.getMonth()
+                );
+            });
+            if (hasEntryThisMonth) return now;
+            return pick(upcoming, Math.min) ?? pick(past, Math.max) ?? now;
+        }
+    }
+};
+
 export function CalendarCard({
     analytic,
     color,
@@ -44,7 +86,14 @@ export function CalendarCard({
 }: CalendarCardProps) {
     const layout = useCardLayout(fillHeight);
     const [selectedDate, setSelectedDate] = useState<Date | undefined>();
-    const [viewDate, setViewDate] = useState<Date>(new Date());
+    const [viewDate, setViewDate] = useState<Date>(() =>
+        getStartDate(analytic.points, analytic.startMonth),
+    );
+    const [appliedStartMonth, setAppliedStartMonth] = useState(analytic.startMonth);
+    if (appliedStartMonth !== analytic.startMonth) {
+        setAppliedStartMonth(analytic.startMonth);
+        setViewDate(getStartDate(analytic.points, analytic.startMonth));
+    }
 
     const events = useMemo(() => {
         const eventsByDate = new Map<string, typeof analytic.points>();

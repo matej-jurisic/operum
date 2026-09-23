@@ -1,5 +1,6 @@
 using FluentValidation;
 using Operum.Model.Constants;
+using Operum.Model.Constants.Analytics;
 using Operum.Model.Enums;
 using System.ComponentModel.DataAnnotations;
 
@@ -36,6 +37,9 @@ namespace Operum.Model.DTOs.Dashboard.Requests
         // Single-source SingleValue/Goal widgets only.
         public bool ShowTrend { get; set; } = true;
 
+        // Calendar widgets only: a CalendarStartMonths value, null for automatic.
+        public string? CalendarStartMonth { get; set; }
+
         // Whole-list replace: a source's Label/ViewId left out means "cleared", not "unchanged".
         [Required, MinLength(1)]
         public List<UpdateDashboardItemSourceDto> Sources { get; set; } = [];
@@ -70,6 +74,10 @@ namespace Operum.Model.DTOs.Dashboard.Requests
             RuleFor(x => x.Color)
                 .MaximumLength(50).WithMessage("Color cannot exceed 50 characters.")
                 .When(x => !string.IsNullOrEmpty(x.Color));
+
+            RuleFor(x => x.CalendarStartMonth)
+                .Must(v => string.IsNullOrEmpty(v) || CalendarStartMonths.IsValid(v))
+                .WithMessage(x => Messages.Invalid("calendar start month"));
 
             RuleForEach(x => x.Sources)
                 .SetValidator(new UpdateDashboardItemSourceDtoValidator());

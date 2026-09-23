@@ -59,6 +59,7 @@ import {
 import { WidgetDisplayModeFields } from "./WidgetDisplayModeFields";
 import { SourceViewSelect } from "./SourceViewSelect";
 import { YAxisScaleOption } from "./YAxisScaleOption";
+import { CalendarStartMonthOption } from "./CalendarStartMonthOption";
 
 interface Props {
     /** Steps back to the widget type picker. */
@@ -123,6 +124,7 @@ export function CustomAnalyticForm({ onBack, onAdd, presetResultType }: Props) {
     const [rows, setRows] = useState<TrackerRow[]>([makeEmptyRow()]);
     const [matchedValuesOnly, setMatchedValuesOnly] = useState(false);
     const [yAxisFromZero, setYAxisFromZero] = useState(true);
+    const [calendarStartMonth, setCalendarStartMonth] = useState<string | null>(null);
     // Goal widgets only: the target the value is shown as progress toward.
     const [goalTarget, setGoalTarget] = useState("");
     // Goal widgets only: whether more or less is the goal -- a cap/budget is LowerIsBetter.
@@ -195,6 +197,7 @@ export function CustomAnalyticForm({ onBack, onAdd, presetResultType }: Props) {
         isPairedCode ||
         (!!resultType && COMBINABLE_TYPES.includes(resultType));
     const isLineChart = resultType === AnalyticResultTypeEnum.LineChart;
+    const isCalendar = resultType === AnalyticResultTypeEnum.Calendar;
     const isGoal = resultType === AnalyticResultTypeEnum.Goal;
     const isSingleValue = resultType === AnalyticResultTypeEnum.SingleValue;
     const isCombined = rows.length > 1;
@@ -379,6 +382,8 @@ export function CustomAnalyticForm({ onBack, onAdd, presetResultType }: Props) {
                 goalTarget: isGoal ? goalTarget.trim() : undefined,
                 goalDirection: isGoal ? goalDirection : undefined,
                 yAxisFromZero: isLineChart ? yAxisFromZero : undefined,
+                calendarStartMonth:
+                    isCalendar && calendarStartMonth ? calendarStartMonth : undefined,
                 color: !isCombined && colorOverride ? colorOverride : undefined,
                 showTrend: canShowTrend ? showTrend : undefined,
                 displayMode,
@@ -615,6 +620,13 @@ export function CustomAnalyticForm({ onBack, onAdd, presetResultType }: Props) {
                 >
                     Add another tracker
                 </Button>
+            )}
+
+            {isCalendar && (
+                <CalendarStartMonthOption
+                    value={calendarStartMonth}
+                    onChange={setCalendarStartMonth}
+                />
             )}
 
             {isLineChart && (

@@ -403,6 +403,8 @@ export interface DashboardItemDto {
     /** SingleValue/Goal widgets only: whether the trend sparkline is shown when this
         placement follows a date-bounded filter clause. */
     showTrend: boolean;
+    /** Calendar widgets only: a CalendarStartMonths value, or absent for automatic. */
+    calendarStartMonth?: string;
     /** Goal widgets only: the shared widget's direction (see GoalDirections). */
     goalDirection?: string;
     sources: DashboardItemSourceDto[];
@@ -448,6 +450,8 @@ export interface CreateAndPlaceWidgetDto {
     color?: string;
     /** SingleValue/Goal widgets only; defaults to true server-side when omitted. */
     showTrend?: boolean;
+    /** Calendar widgets only. Left unset behaves as automatic. */
+    calendarStartMonth?: string;
     sources: CreateAndPlaceWidgetSourceDto[];
 }
 
@@ -494,6 +498,8 @@ export interface UpdateDashboardItemDto {
     color?: string | null;
     /** SingleValue/Goal widgets only: whether the trend sparkline is shown. */
     showTrend: boolean;
+    /** Calendar widgets only. Null clears it back to automatic. */
+    calendarStartMonth?: string | null;
     sources: UpdateDashboardItemSourceDto[];
 }
 

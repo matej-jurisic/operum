@@ -2074,6 +2074,58 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.False(Analytic(widgets[0]).GetProperty("yAxisFromZero").GetBoolean());
         }
 
+        [Fact]
+        public async Task UpdateDashboardItem_CalendarStartMonth_IsStampedOnTheCalendar()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("itemcalstart");
+
+            var tracker = await CreateCapableTracker(client, "Workouts");
+            var dashboardId = await CreateDashboard(client);
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
+            {
+                ResultType = AnalyticTypes.Calendar,
+                Code = AnalyticCodes.Calendar,
+                Sources = [CalendarSource(tracker)]
+            });
+            Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
+            var itemId = (await Data(addResponse)).GetProperty("id").GetString()!;
+
+            var placed = await Widgets(client, dashboardId);
+            Assert.True(!Analytic(placed[0]).TryGetProperty("startMonth", out var initial)
+                || initial.ValueKind == JsonValueKind.Null);
+
+            var sourceId = await SingleSourceId(client, dashboardId, itemId);
+            var updateResponse = await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{itemId}", new UpdateDashboardItemDto
+            {
+                CalendarStartMonth = CalendarStartMonths.NextUpcoming,
+                Sources = [new UpdateDashboardItemSourceDto { SourceId = sourceId }]
+            });
+            Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+
+            var widgets = await Widgets(client, dashboardId);
+            Assert.Equal(CalendarStartMonths.NextUpcoming, Analytic(widgets[0]).GetProperty("startMonth").GetString());
+        }
+
+        [Fact]
+        public async Task UpdateDashboardItem_UnknownCalendarStartMonth_IsRejected()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("itemcalbad");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await AddLineItem(client, dashboardId, tracker);
+            var sourceId = await SingleSourceId(client, dashboardId, itemId);
+
+            var updateResponse = await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{itemId}", new UpdateDashboardItemDto
+            {
+                CalendarStartMonth = "Sometime",
+                Sources = [new UpdateDashboardItemSourceDto { SourceId = sourceId }]
+            });
+            Assert.Equal(HttpStatusCode.BadRequest, updateResponse.StatusCode);
+        }
+
         // A blank label falls back to the definition's name, same as no label at all.
         [Fact]
         public async Task UpdateDashboardItem_BlankLabel_FallsBackToTheDefinitionsLabel()

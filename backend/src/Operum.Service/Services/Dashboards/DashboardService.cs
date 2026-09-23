@@ -469,11 +469,13 @@ namespace Operum.Service.Services.Dashboards
                 itemResult.Id = item.Id;
                 itemResult.Order = item.Order;
 
-                // Y-axis anchoring is a placement choice, stamped on here rather than threaded through the analytic pipeline.
+                // Y-axis anchoring and a calendar's start month are placement choices, stamped on here rather than threaded through the analytic pipeline.
                 if (itemResult is LineChartAnalyticDto lineResult)
                     lineResult.YAxisFromZero = item.YAxisFromZero;
                 else if (itemResult is ComposedChartAnalyticDto composedResult)
                     composedResult.YAxisFromZero = item.YAxisFromZero;
+                else if (itemResult is CalendarAnalyticDto calendarResult)
+                    calendarResult.StartMonth = item.CalendarStartMonth;
 
                 // A widget combining more than one tracker falls back to the dashboard's own color client-side.
                 var distinctTrackerIds = resolvedSources.Select(r => r.Source.WidgetSource!.TrackerId).Distinct().ToList();
@@ -591,6 +593,7 @@ namespace Operum.Service.Services.Dashboards
                 YAxisFromZero = dto.YAxisFromZero,
                 Color = dto.Color,
                 ShowTrend = dto.ShowTrend,
+                CalendarStartMonth = dto.CalendarStartMonth,
                 SourceOverrides = overrides
             });
         }
@@ -678,6 +681,7 @@ namespace Operum.Service.Services.Dashboards
                 YAxisFromZero = item.YAxisFromZero,
                 Color = item.Color,
                 ShowTrend = item.ShowTrend,
+                CalendarStartMonth = item.CalendarStartMonth,
                 Sources = sourceDtos
             });
         }
@@ -726,6 +730,7 @@ namespace Operum.Service.Services.Dashboards
                 YAxisFromZero = dto.YAxisFromZero,
                 Color = string.IsNullOrEmpty(dto.Color) ? null : dto.Color,
                 ShowTrend = dto.ShowTrend,
+                CalendarStartMonth = string.IsNullOrEmpty(dto.CalendarStartMonth) ? null : dto.CalendarStartMonth,
                 Sources = sources
             };
         }
@@ -1487,6 +1492,7 @@ namespace Operum.Service.Services.Dashboards
             item.GoalConditionalTargets = conditionalTargetsJson;
             item.Color = string.IsNullOrEmpty(dto.Color) ? null : dto.Color;
             item.ShowTrend = dto.ShowTrend;
+            item.CalendarStartMonth = string.IsNullOrEmpty(dto.CalendarStartMonth) ? null : dto.CalendarStartMonth;
 
             await db.SaveChangesAsync();
 
@@ -1896,6 +1902,7 @@ namespace Operum.Service.Services.Dashboards
             GoalConditionalTargets = ParseGoalConditionalTargets(item.GoalConditionalTargets),
             Color = item.Color,
             ShowTrend = item.ShowTrend,
+            CalendarStartMonth = item.CalendarStartMonth,
             GoalDirection = item.Widget?.GoalDirection,
             Sources = item.Sources.OrderBy(s => s.Order).Select(s => MapSourceToDto(item, s)).ToList()
         };

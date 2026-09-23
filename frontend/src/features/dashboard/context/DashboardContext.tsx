@@ -135,6 +135,7 @@ export const DashboardProvider: React.FC<{
             goalConditionalTargets,
             color: item.color,
             showTrend: item.showTrend,
+            calendarStartMonth: item.calendarStartMonth ?? null,
             sources: item.sources.map((s) => ({
                 sourceId: s.id,
                 label: s.label ?? null,

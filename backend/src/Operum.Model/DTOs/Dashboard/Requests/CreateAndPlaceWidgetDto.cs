@@ -56,6 +56,9 @@ namespace Operum.Model.DTOs.Dashboard.Requests
         // Single-source SingleValue/Goal widgets only.
         public bool ShowTrend { get; set; } = true;
 
+        // Calendar widgets only: a CalendarStartMonths value, null for automatic.
+        public string? CalendarStartMonth { get; set; }
+
         [Required, MinLength(1)]
         public List<CreateAndPlaceWidgetSourceDto> Sources { get; set; } = [];
     }
@@ -108,6 +111,10 @@ namespace Operum.Model.DTOs.Dashboard.Requests
             RuleFor(x => x.Color)
                 .MaximumLength(50).WithMessage("Color cannot exceed 50 characters.")
                 .When(x => !string.IsNullOrEmpty(x.Color));
+
+            RuleFor(x => x.CalendarStartMonth)
+                .Must(v => string.IsNullOrEmpty(v) || CalendarStartMonths.IsValid(v))
+                .WithMessage(x => Messages.Invalid("calendar start month"));
 
             RuleForEach(x => x.Sources)
                 .SetValidator(new CreateAndPlaceWidgetSourceDtoValidator());

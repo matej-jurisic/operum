@@ -51,6 +51,9 @@ namespace Operum.Model.Models
         // Single-source SingleValue/Goal placements only.
         public bool ShowTrend { get; set; } = true;
 
+        // Calendar placements only; a CalendarStartMonths value, null for automatic.
+        public string? CalendarStartMonth { get; set; }
+
         public string DashboardId { get; set; } = string.Empty;
         [ForeignKey(nameof(DashboardId))]
         public virtual Dashboard Dashboard { get; set; } = null!;

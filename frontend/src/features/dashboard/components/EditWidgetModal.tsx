@@ -27,6 +27,7 @@ import {
 import { WidgetDisplayModeFields } from "./WidgetDisplayModeFields";
 import { SourceViewSelect } from "./SourceViewSelect";
 import { YAxisScaleOption } from "./YAxisScaleOption";
+import { CalendarStartMonthOption } from "./CalendarStartMonthOption";
 import { DATE_TYPES } from "./filterClauseInput";
 import { ConnectedClause } from "./filterLinkUtils";
 import { GoalConditionalTargetsEditor } from "./GoalConditionalTargetsEditor";
@@ -66,6 +67,9 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
   >([]);
   const [colorOverride, setColorOverride] = useState<string | null>(null);
   const [showTrend, setShowTrend] = useState(true);
+  const [calendarStartMonth, setCalendarStartMonth] = useState<string | null>(
+    null,
+  );
   const [trendValueFieldType, setTrendValueFieldType] = useState<string | undefined>(
     undefined,
   );
@@ -157,6 +161,7 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
       setConditionalTargets(item.goalConditionalTargets ?? []);
       setColorOverride(item.color ?? null);
       setShowTrend(item.showTrend);
+      setCalendarStartMonth(item.calendarStartMonth ?? null);
     };
 
     load();
@@ -182,6 +187,7 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
         goalConditionalTargets: isGoal ? conditionalTargets : [],
         color: isCombined ? null : colorOverride,
         showTrend,
+        calendarStartMonth: isCalendar ? calendarStartMonth : null,
         sources: rows.map((row) => ({
           sourceId: row.source.id,
           label: row.label.trim() || null,
@@ -282,6 +288,13 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
               label="Show trend"
               checked={showTrend}
               onChange={(event) => setShowTrend(event.currentTarget.checked)}
+            />
+          )}
+
+          {isCalendar && (
+            <CalendarStartMonthOption
+              value={calendarStartMonth}
+              onChange={setCalendarStartMonth}
             />
           )}
 

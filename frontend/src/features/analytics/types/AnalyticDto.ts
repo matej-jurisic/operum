@@ -88,7 +88,20 @@ export interface CalendarAnalyticDto extends AnalyticDto {
         trackerName?: string;
         color?: string;
     }[];
+    /** A CalendarStartMonths value, or absent for automatic. */
+    startMonth?: CalendarStartMonth;
 }
+
+export const CalendarStartMonths = {
+    Current: "Current",
+    LatestPast: "LatestPast",
+    EarliestPast: "EarliestPast",
+    NextUpcoming: "NextUpcoming",
+    LatestUpcoming: "LatestUpcoming",
+} as const;
+
+export type CalendarStartMonth =
+    (typeof CalendarStartMonths)[keyof typeof CalendarStartMonths];
 
 export interface BarChartAnalyticDto extends AnalyticDto {
     /** Undefined when the configured category field was deleted; nothing can be plotted in that case. */

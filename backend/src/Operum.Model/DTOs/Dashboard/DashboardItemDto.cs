@@ -30,6 +30,8 @@ namespace Operum.Model.DTOs.Dashboard
         // Null for "Auto" (the tracker/dashboard default).
         public string? Color { get; set; }
         public bool ShowTrend { get; set; } = true;
+        // Calendar widgets only. Null for automatic.
+        public string? CalendarStartMonth { get; set; }
         // Goal widgets only. Included here, not just on WidgetDto, so the edit form doesn't
         // need a second fetch to the Widget Library.
         public string? GoalDirection { get; set; }
