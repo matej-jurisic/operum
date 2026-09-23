@@ -32,9 +32,10 @@ export function GoalCard({
     const hasProgress =
         analytic.progress !== undefined && analytic.progress !== null;
     const percent = hasProgress ? Math.round(analytic.progress! * 100) : null;
-    // Backend already inverts the ratio for LowerIsBetter, so "goal met" is progress >= 1 either way.
-    const achieved = hasProgress && analytic.progress! >= 1;
     const isLowerIsBetter = analytic.direction === GoalDirections.LowerIsBetter;
+    // Progress is always value/target, so LowerIsBetter goals (e.g. a cap) are achieved at or under 1.
+    const achieved =
+        hasProgress && (isLowerIsBetter ? analytic.progress! <= 1 : analytic.progress! >= 1);
     const statusColor = hasProgress && isLowerIsBetter && !achieved ? "red" : color;
 
     return (

@@ -5,7 +5,7 @@ namespace Operum.Model.Constants.Analytics
         // Progress = value/target; achieved once value >= target.
         public const string HigherIsBetter = "HigherIsBetter";
 
-        // Progress = target/value; achieved while value <= target.
+        // Progress = value/target; achieved while value <= target (e.g. staying under a cap).
         public const string LowerIsBetter = "LowerIsBetter";
 
         public static readonly HashSet<string> All = [HigherIsBetter, LowerIsBetter];

@@ -44,7 +44,7 @@ export interface GoalAnalyticDto extends AnalyticDto {
     value: string;
     /** The target, same format as value. */
     target: string;
-    /** value / target, or target / value under LowerIsBetter; can exceed 1, null when target isn't a positive number. */
+    /** value / target; can exceed 1, null when target isn't a positive number. Under LowerIsBetter, over 1 means over the cap. */
     progress?: number;
     valueField?: FieldDto;
     /** A cap/budget widget is LowerIsBetter. */

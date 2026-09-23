@@ -241,7 +241,7 @@ namespace Operum.Tests.Tests.Dashboards
         }
 
         [Fact]
-        public async Task CreateAndPlaceWidget_GoalLowerIsBetter_InvertsProgressTowardTheCap()
+        public async Task CreateAndPlaceWidget_GoalLowerIsBetter_RendersPercentOfCapUsed()
         {
             await _factory.SeedDatabaseAsync();
             var client = await _factory.NewUserClient("goallowerisbetter");
@@ -269,15 +269,15 @@ namespace Operum.Tests.Tests.Dashboards
             });
             Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
 
-            // LowerIsBetter's inverted ratio (target / value) reads well past 1 for the same
-            // numbers a HigherIsBetter goal would call "half done".
+            // LowerIsBetter uses the same value/target ratio as HigherIsBetter; the direction
+            // only changes whether being at or under 1 counts as "achieved".
             var analytic = Analytic((await Widgets(client, dashboardId))[0]);
             Assert.Equal(GoalDirections.LowerIsBetter, analytic.GetProperty("direction").GetString());
-            Assert.Equal(2.0, analytic.GetProperty("progress").GetDouble(), 3);
+            Assert.Equal(0.5, analytic.GetProperty("progress").GetDouble(), 3);
         }
 
         [Fact]
-        public async Task CreateAndPlaceWidget_GoalLowerIsBetter_OverTheCapReadsAsUnderOne()
+        public async Task CreateAndPlaceWidget_GoalLowerIsBetter_OverTheCapReadsAboveOne()
         {
             await _factory.SeedDatabaseAsync();
             var client = await _factory.NewUserClient("goallowerisbetterover");
@@ -305,11 +305,11 @@ namespace Operum.Tests.Tests.Dashboards
             });
             Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
 
-            // Over budget: the ratio drops under 1, the same as HigherIsBetter falling under 1
-            // for not having reached its target yet.
+            // Over budget: the ratio rises above 1, unlike HigherIsBetter where above 1 means
+            // the target was exceeded in a good way. The frontend flips "achieved" for this direction.
             var analytic = Analytic((await Widgets(client, dashboardId))[0]);
             var progress = analytic.GetProperty("progress").GetDouble();
-            Assert.True(progress < 1, $"Expected progress under 1 once over the cap, got {progress}");
+            Assert.True(progress > 1, $"Expected progress above 1 once over the cap, got {progress}");
         }
 
         [Fact]
