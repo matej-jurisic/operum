@@ -57,16 +57,19 @@ namespace Operum.Service.Domain.Analytics.Builders
             });
         }
 
-        // LowerIsBetter inverts the ratio to target/value so 100% still means "at the line".
+        // Both value and target are reduced to magnitudes (absolute values) so goals
+        // expressed with negative numbers (e.g. a sum of negative expense entries) work
+        // the same as positive ones. LowerIsBetter inverts the ratio to target/value so
+        // 100% still means "at the line".
         private static double? ComputeProgress(string? type, string? value, string? target, string direction)
         {
             if (!TryParseMagnitude(type, value, out var current) ||
                 !TryParseMagnitude(type, target, out var goal) ||
-                goal <= 0)
+                goal == 0)
                 return null;
 
             if (direction == GoalDirections.LowerIsBetter)
-                return current <= 0 ? 1 : goal / current;
+                return current == 0 ? 1 : goal / current;
 
             return current / goal;
         }
@@ -81,13 +84,17 @@ namespace Operum.Service.Domain.Analytics.Builders
             {
                 if (TimeSpan.TryParse(raw, CultureInfo.InvariantCulture, out var ts))
                 {
-                    magnitude = ts.TotalSeconds;
+                    magnitude = Math.Abs(ts.TotalSeconds);
                     return true;
                 }
                 return false;
             }
 
-            return double.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out magnitude);
+            if (!double.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed))
+                return false;
+
+            magnitude = Math.Abs(parsed);
+            return true;
         }
     }
 }

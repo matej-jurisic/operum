@@ -30,7 +30,7 @@ export function DividerWidgetCard({
             compactHeader
             accent
             padding={0}
-            bodyProps={{ justify: "center", h: "100%", px: "md", gap: 0 }}
+            bodyProps={{ justify: "center", h: "100%", gap: 0 }}
         >
             <Divider color={color} />
         </WidgetShell>
