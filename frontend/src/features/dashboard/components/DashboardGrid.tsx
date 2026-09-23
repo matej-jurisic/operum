@@ -192,10 +192,12 @@ function FlatBoard({
     >
       {shown.map((widget) => (
         <div key={widget.id} className="dashboard-widget">
-          <SizeDebugBadge
-            w={widget.mobileLayout.w}
-            h={widget.mobileLayout.h}
-          />
+          {isConfiguring && (
+            <SizeDebugBadge
+              w={widget.mobileLayout.w}
+              h={widget.mobileLayout.h}
+            />
+          )}
           {isConfiguring && config.dragHandle && (
             <div className={DRAG_HANDLE_CLASS} aria-hidden="true">
               <MdDragIndicator size={18} />
@@ -524,7 +526,7 @@ function BoardTile({
       className={`snapgrid-item${isDragging ? " is-dragging" : ""}`}
     >
       <div className="dashboard-widget">
-        <SizeDebugBadge w={w} h={h} />
+        {isConfiguring && <SizeDebugBadge w={w} h={h} />}
         {children(handleRef)}
       </div>
       {isConfiguring && <ResizeHandle id={id} group={group} />}
