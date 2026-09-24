@@ -7,7 +7,7 @@
 }
 
 [data-mantine-color-scheme="dark"] {
-    --widget-border: rgba(255, 255, 255, 0.08);
+    --widget-border: rgba(255, 255, 255, 0.15);
 }
 
 .widget-shell[data-read-mode] {
