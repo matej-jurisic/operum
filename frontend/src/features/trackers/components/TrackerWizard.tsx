@@ -18,6 +18,7 @@ import {
     UnstyledButton,
     useMantineTheme,
 } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { createElement, useState } from "react";
 import { FaCircle } from "react-icons/fa";
 import { MdAdd, MdCheck, MdDelete } from "react-icons/md";
@@ -195,6 +196,8 @@ export default function TrackerWizard({ onClose, onConfirm }: Props) {
 
     const goBack = () => setStep((s) => s - 1);
 
+    const isMobile = useMediaQuery("(max-width: 48em)");
+
     const accentColor = theme.colors[color]?.[6] ?? theme.colors.indigo[6];
 
     return (
@@ -206,7 +209,12 @@ export default function TrackerWizard({ onClose, onConfirm }: Props) {
             centered
         >
             <Stack gap="xl">
-                <Stepper active={step} color={color} size="sm">
+                <Stepper
+                    active={step}
+                    color={color}
+                    size={isMobile ? "xs" : "sm"}
+                    iconSize={isMobile ? 24 : undefined}
+                >
                     <Stepper.Step label="Basics" />
                     <Stepper.Step label="Fields" />
                     <Stepper.Step label="Review" />
