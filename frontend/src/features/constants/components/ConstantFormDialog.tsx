@@ -305,8 +305,10 @@ export function ConstantFormDialog(props: ConstantFormDialogProps) {
                             const field = getFieldById(f.fieldId);
                             const strValue =
                                 f.value !== undefined && field
-                                    ? GetStringValue(field.type, f.value) ||
-                                      null
+                                    ? isDynamicDateToken(f.value)
+                                        ? f.value
+                                        : GetStringValue(field.type, f.value) ||
+                                          null
                                     : null;
                             return {
                                 fieldId: f.fieldId,

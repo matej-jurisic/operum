@@ -297,7 +297,11 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
                 return {
                     fieldId: f.fieldId || null,
                     operator: f.operator,
-                    value: field ? GetStringValue(field.type, f.value) : String(f.value ?? ""),
+                    value: isDynamicDateToken(f.value)
+                        ? f.value
+                        : field
+                          ? GetStringValue(field.type, f.value)
+                          : String(f.value ?? ""),
                 };
             }
             // Analytic mode

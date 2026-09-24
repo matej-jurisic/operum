@@ -3,6 +3,7 @@ import {
     Badge,
     Button,
     Card,
+    Flex,
     Group,
     ScrollArea,
     Stack,
@@ -73,18 +74,35 @@ export default function Constants(props: ConstantsProps) {
                                     withBorder
                                 >
                                     <Stack gap="xs">
-                                        <Group
+                                        <Flex
+                                            direction={{
+                                                base: "column",
+                                                sm: "row",
+                                            }}
+                                            align={{
+                                                base: "stretch",
+                                                sm: "flex-start",
+                                            }}
                                             justify="space-between"
-                                            wrap="nowrap"
+                                            gap="sm"
                                         >
                                             <Title
                                                 order={4}
                                                 lineClamp={1}
-                                                style={{ minWidth: 0 }}
+                                                className="wrapped-text"
+                                                flex={1}
+                                                miw={0}
                                             >
                                                 {constant.name}
                                             </Title>
-                                            <Group gap="xs" wrap="nowrap">
+                                            <Flex
+                                                gap="xs"
+                                                wrap="nowrap"
+                                                justify={{
+                                                    base: "flex-end",
+                                                    sm: "flex-start",
+                                                }}
+                                            >
                                                 <ActionIcon
                                                     variant="outline"
                                                     color={props.tracker.color}
@@ -133,8 +151,8 @@ export default function Constants(props: ConstantsProps) {
                                                 >
                                                     <MdDelete size={16} />
                                                 </ActionIcon>
-                                            </Group>
-                                        </Group>
+                                            </Flex>
+                                        </Flex>
                                         <Text
                                             size="sm"
                                             c="dimmed"

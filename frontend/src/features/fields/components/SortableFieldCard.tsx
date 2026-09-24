@@ -5,6 +5,7 @@ import {
     Badge,
     Card,
     Checkbox,
+    Flex,
     Group,
     Stack,
     Text,
@@ -74,73 +75,84 @@ export default function SortableFieldCard({
             withBorder
             onClick={handleCardClick}
         >
-            <Group align="flex-start" justify="space-between" wrap="nowrap">
-                {isSelecting && (
-                    <Tooltip
-                        label={selectableReason}
-                        disabled={!disabledSelect}
-                        multiline
-                        w={220}
-                    >
-                        <Checkbox
-                            checked={!!selected}
-                            disabled={disabledSelect}
-                            onChange={() => onToggleSelect?.(field)}
-                            onClick={(e) => e.stopPropagation()}
+            <Flex
+                direction={{ base: "column", sm: "row" }}
+                align={{ base: "stretch", sm: "flex-start" }}
+                justify="space-between"
+                gap="sm"
+            >
+                <Group align="flex-start" wrap="nowrap" flex={1} miw={0}>
+                    {isSelecting && (
+                        <Tooltip
+                            label={selectableReason}
+                            disabled={!disabledSelect}
+                            multiline
+                            w={220}
+                        >
+                            <Checkbox
+                                checked={!!selected}
+                                disabled={disabledSelect}
+                                onChange={() => onToggleSelect?.(field)}
+                                onClick={(e) => e.stopPropagation()}
+                                color={color}
+                                style={{ alignSelf: "center" }}
+                                aria-label={`Select field ${field.name}`}
+                            />
+                        </Tooltip>
+                    )}
+                    {isReordering && (
+                        <ActionIcon
+                            variant="outline"
                             color={color}
-                            style={{ alignSelf: "center" }}
-                            aria-label={`Select field ${field.name}`}
-                        />
-                    </Tooltip>
-                )}
-                {isReordering && (
-                    <ActionIcon
-                        variant="outline"
-                        color={color}
-                        size="xl"
-                        {...attributes}
-                        {...listeners}
-                        style={{
-                            cursor: "grab",
-                            alignSelf: "center",
-                            touchAction: "none",
-                        }}
-                        aria-label={`Drag to reorder field ${field.name}`}
-                    >
-                        <MdDragHandle size={25} />
-                    </ActionIcon>
-                )}
-                <Stack gap="xs" flex={1}>
-                    <Title order={4} lineClamp={1} className="wrapped-text">
-                        {field.name}
-                    </Title>
-                    <Text
-                        c="dimmed"
-                        size="sm"
-                        lineClamp={3}
-                        className="wrapped-text"
-                    >
-                        {field.description || "No description"}
-                    </Text>
-                    <Group wrap="wrap">
-                        {field.required && (
-                            <Badge variant="light" color="red" size="sm">
-                                Required
+                            size="xl"
+                            {...attributes}
+                            {...listeners}
+                            style={{
+                                cursor: "grab",
+                                alignSelf: "center",
+                                touchAction: "none",
+                            }}
+                            aria-label={`Drag to reorder field ${field.name}`}
+                        >
+                            <MdDragHandle size={25} />
+                        </ActionIcon>
+                    )}
+                    <Stack gap="xs" flex={1} miw={0}>
+                        <Title order={4} lineClamp={1} className="wrapped-text">
+                            {field.name}
+                        </Title>
+                        <Text
+                            c="dimmed"
+                            size="sm"
+                            lineClamp={3}
+                            className="wrapped-text"
+                        >
+                            {field.description || "No description"}
+                        </Text>
+                        <Group wrap="wrap">
+                            {field.required && (
+                                <Badge variant="light" color="red" size="sm">
+                                    Required
+                                </Badge>
+                            )}
+                            {field.isCalculated && (
+                                <Badge variant="light" color="violet" size="sm">
+                                    Calculated
+                                </Badge>
+                            )}
+                            <Badge variant="light" color="blue" size="sm">
+                                {field.type}
                             </Badge>
-                        )}
-                        {field.isCalculated && (
-                            <Badge variant="light" color="violet" size="sm">
-                                Calculated
-                            </Badge>
-                        )}
-                        <Badge variant="light" color="blue" size="sm">
-                            {field.type}
-                        </Badge>
-                    </Group>
-                </Stack>
+                        </Group>
+                    </Stack>
+                </Group>
 
                 {canEditSchema && !isSelecting && (
-                    <Group gap="xs" wrap="nowrap">
+                    <Flex
+                        gap="xs"
+                        wrap="nowrap"
+                        justify={{ base: "flex-end", sm: "flex-start" }}
+                    >
                         <ActionIcon
                             variant="outline"
                             color="green"
@@ -159,9 +171,9 @@ export default function SortableFieldCard({
                         >
                             <MdDelete size={16} />
                         </ActionIcon>
-                    </Group>
+                    </Flex>
                 )}
-            </Group>
+            </Flex>
         </Card>
     );
 }
