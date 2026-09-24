@@ -4,11 +4,11 @@ import { MdDelete, MdEdit } from "react-icons/md";
 import type { Layout } from "@snapgridjs/react";
 import {
   DashboardWidgetDto,
-  LayoutVariants,
+  LayoutVariant,
   parseTextWidgetConfig,
 } from "../types/DashboardDto";
 import {
-  DASHBOARD_GRID_COLUMNS,
+  COLS,
   DashboardTileCallbacks,
   ROW_HEIGHT,
   VARIANTS,
@@ -22,15 +22,18 @@ import "./DashboardGroupOverlay.css";
 const HUG_CORNER_RADIUS = 10;
 
 interface GeometryProps {
-  /** This group's members' own entries from the ROOT grid's layout -- not recomputed here.
+  /** This group's members' own entries from the grid's own layout -- not recomputed here.
       Re-running compaction on just the members in isolation would pack them as if nothing
-      else on the board existed, drifting from where they actually render (see NestedBoard,
-      which computes one shared layout for all of topWidgets and slices each group's out of
-      it). */
+      else on the board existed, drifting from where they actually render (see NestedBoard/
+      FlatBoard, which each compute one shared layout for every top-level widget and slice
+      each group's members out of it). */
   layout: Layout;
-  /** The root grid's measured width -- members render on it directly now, so this overlay
+  /** The grid's measured width -- members render on it directly now, so this overlay
       shares its coordinate space instead of measuring one of its own. */
   width: number;
+  /** Which grid this group is rendered on: its column count and margin (desktop's root
+      grid vs. the mobile flat board) come from this. */
+  variant: LayoutVariant;
 }
 
 function boundingCorner(rects: ShapeRect[]): { x: number; y: number } | null {
@@ -43,24 +46,28 @@ function boundingCorner(rects: ShapeRect[]): { x: number; y: number } | null {
 
 /** The pixel geometry shared by a group's shape and its header: computed once so drawing
     the hull and anchoring the header to its corner never drift apart. */
-function useGroupHugGeometry({ layout, width }: GeometryProps) {
+function useGroupHugGeometry({ layout, width, variant }: GeometryProps) {
+  const margin = VARIANTS[variant].margin;
+
   const rects = useMemo(() => {
     if (width <= 0) return [];
     return [
       ...layoutToPixelRects(
         layout,
         width,
-        DASHBOARD_GRID_COLUMNS,
+        COLS[variant],
         ROW_HEIGHT,
-        VARIANTS[LayoutVariants.Desktop].margin,
+        margin,
         [0, 0],
       ).values(),
     ];
-  }, [layout, width]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- margin is derived from variant
+  }, [layout, width, variant]);
 
   const hugPath = useMemo(
-    () => huggingShapePath(rects, VARIANTS[LayoutVariants.Desktop].margin[0] / 2, HUG_CORNER_RADIUS),
-    [rects],
+    () => huggingShapePath(rects, margin[0] / 2, HUG_CORNER_RADIUS),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- margin is derived from variant
+    [rects, variant],
   );
 
   const corner = useMemo(() => boundingCorner(rects), [rects]);
@@ -69,10 +76,10 @@ function useGroupHugGeometry({ layout, width }: GeometryProps) {
 }
 
 /** The shape that hugs a group's members (see containerShape.ts): rendered *before* the
-    root grid's tiles in DOM order, so it paints behind them rather than covering their
+    grid's own tiles in DOM order, so it paints behind them rather than covering their
     content (an opaque SVG fill painted after its siblings would otherwise sit on top). */
-export function DashboardGroupHug({ layout, width }: GeometryProps) {
-  const { hugPath } = useGroupHugGeometry({ layout, width });
+export function DashboardGroupHug({ layout, width, variant }: GeometryProps) {
+  const { hugPath } = useGroupHugGeometry({ layout, width, variant });
   if (!hugPath) return null;
 
   return (
@@ -88,18 +95,20 @@ interface HeaderProps extends DashboardTileCallbacks {
   group: DashboardWidgetDto;
   layout: Layout;
   width: number;
+  variant: LayoutVariant;
   isConfiguring: boolean;
   color: string | undefined;
 }
 
 /** The floating name/edit/remove header, anchored above the group's top-left corner:
-    rendered *after* the root grid's tiles, so it (and its clickable buttons) sit above
-    them, unlike the hug shape. Renaming and membership are both handled by the edit
-    dialog `onEdit` opens (EditGroupModal), not here. */
+    rendered *after* the grid's tiles, so it (and its clickable buttons) sit above them,
+    unlike the hug shape. Renaming and membership are both handled by the edit dialog
+    `onEdit` opens (EditGroupModal), not here. */
 export function DashboardGroupHeader({
   group,
   layout,
   width,
+  variant,
   isConfiguring,
   color,
   ...callbacks
@@ -108,7 +117,7 @@ export function DashboardGroupHeader({
   const hasName = name.length > 0;
   const showHeader = hasName || isConfiguring;
 
-  const { corner } = useGroupHugGeometry({ layout, width });
+  const { corner } = useGroupHugGeometry({ layout, width, variant });
   if (!showHeader || !corner) return null;
 
   return (

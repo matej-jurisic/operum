@@ -125,11 +125,15 @@ export function compactLayout(items: Layout, cols: number): Layout {
   });
 }
 
-/** The packed grid-unit layout for a set of widgets, exactly as the desktop sub-grid
-    that renders them computes it. */
-export const layoutFor = (widgets: DashboardWidgetDto[], cols: number): Layout =>
+/** The packed grid-unit layout for a set of widgets, exactly as the grid that renders
+    them computes it (desktop's root grid or the mobile flat board). */
+export const layoutFor = (
+  widgets: DashboardWidgetDto[],
+  variant: LayoutVariant,
+  cols: number,
+): Layout =>
   compactLayout(
-    widgets.map((widget, index) => toLayoutItem(widget, index, LayoutVariants.Desktop, cols)),
+    widgets.map((widget, index) => toLayoutItem(widget, index, variant, cols)),
     cols,
   );
 

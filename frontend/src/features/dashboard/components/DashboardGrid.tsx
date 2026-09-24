@@ -114,7 +114,11 @@ interface BoardProps extends DashboardTileCallbacks {
 }
 
 // -- The narrow grid --------------------------------------------------------------------
-// A phone flattens containers away: every widget sits on one four-column grid in reading order.
+// A phone flattens containers away: every widget sits on one four-column grid in reading
+// order. A TabsContainer's tab structure has no flat equivalent, so its children just join
+// the flow with no trace of the tabs left. A Container is different: it owns no placement
+// of its own on any grid, so its members already flow here independently via their own
+// mobileLayout -- only the hug shape around them is drawn in, the same grouping tag as desktop.
 
 function FlatBoard({
   widgets,
@@ -127,8 +131,8 @@ function FlatBoard({
   const config = VARIANTS[LayoutVariants.Mobile];
   const cols = COLS[LayoutVariants.Mobile];
 
-  // Containers are flattened away (children join the flow); Hidden widgets are dropped
-  // (reachable from the board's hidden-widgets list instead).
+  // Containers and tabs containers are flattened away (children join the flow); Hidden
+  // widgets are dropped (reachable from the board's hidden-widgets list instead).
   const shown = useMemo(
     () =>
       widgets.filter(
@@ -153,57 +157,111 @@ function FlatBoard({
     [shown, cols],
   );
 
+  const groupIds = useMemo(
+    () =>
+      new Set(
+        widgets.filter((w) => w.type === WidgetTypes.Container).map((w) => w.id),
+      ),
+    [widgets],
+  );
+
+  const { groups, childrenByGroup, groupMemberIds } = useMemo(() => {
+    const groupList = widgets.filter((w) => w.type === WidgetTypes.Container);
+    const byGroup = new Map<string, DashboardWidgetDto[]>();
+    const memberIds = new Set<string>();
+    for (const w of shown) {
+      if (!w.parentItemId || !groupIds.has(w.parentItemId)) continue;
+      const list = byGroup.get(w.parentItemId) ?? [];
+      list.push(w);
+      byGroup.set(w.parentItemId, list);
+      memberIds.add(w.id);
+    }
+    return { groups: groupList, childrenByGroup: byGroup, groupMemberIds: memberIds };
+  }, [widgets, shown, groupIds]);
+
+  const layoutById = useMemo(
+    () => new Map(layout.map((item) => [item.i, item])),
+    [layout],
+  );
+  const layoutForGroup = (groupId: string): Layout =>
+    (childrenByGroup.get(groupId) ?? [])
+      .map((member) => layoutById.get(member.id))
+      .filter((item): item is LayoutItem => item != null);
+
   const handleArranged = (newLayout: Layout) => {
     if (!isConfiguring) return;
     onLayoutSave(LayoutVariants.Mobile, toLayoutDto(newLayout, null));
   };
 
   return (
-    <GridLayout
-      className={`dashboard-grid${isConfiguring ? " is-editing" : ""}`}
-      width={width}
-      layout={layout}
-      gridConfig={{
-        cols,
-        rowHeight: ROW_HEIGHT,
-        margin: config.margin,
-        containerPadding: [0, 0],
-      }}
-      compactor={verticalCompactor}
-      isDraggable={isConfiguring}
-      isResizable={isConfiguring}
-      dragConfig={{
-        enabled: isConfiguring,
-        bounded: true,
-        handle: config.dragHandle,
-        cancel: DRAG_CANCEL_SELECTOR,
-      }}
-      resizeConfig={{ enabled: isConfiguring }}
-      onLayoutChange={handleArranged}
-    >
-      {shown.map((widget) => (
-        <div key={widget.id} className="dashboard-widget">
-          {isConfiguring && (
-            <SizeDebugBadge
-              w={widget.mobileLayout.w}
-              h={widget.mobileLayout.h}
-            />
-          )}
-          {isConfiguring && config.dragHandle && (
-            <div className={DRAG_HANDLE_CLASS} aria-hidden="true">
-              <MdDragIndicator size={18} />
-            </div>
-          )}
-          <DashboardWidget
-            widget={widget}
-            variant={LayoutVariants.Mobile}
-            color={color}
-            isConfiguring={isConfiguring}
-            {...callbacks}
-          />
-        </div>
+    <div className="dashboard-root-grid">
+      {groups.map((group) => (
+        <DashboardGroupHug
+          key={group.id}
+          layout={layoutForGroup(group.id)}
+          width={width}
+          variant={LayoutVariants.Mobile}
+        />
       ))}
-    </GridLayout>
+      <GridLayout
+        className={`dashboard-grid${isConfiguring ? " is-editing" : ""}`}
+        width={width}
+        layout={layout}
+        gridConfig={{
+          cols,
+          rowHeight: ROW_HEIGHT,
+          margin: config.margin,
+          containerPadding: [0, 0],
+        }}
+        compactor={verticalCompactor}
+        isDraggable={isConfiguring}
+        isResizable={isConfiguring}
+        dragConfig={{
+          enabled: isConfiguring,
+          bounded: true,
+          handle: config.dragHandle,
+          cancel: DRAG_CANCEL_SELECTOR,
+        }}
+        resizeConfig={{ enabled: isConfiguring }}
+        onLayoutChange={handleArranged}
+      >
+        {shown.map((widget) => (
+          <div key={widget.id} className="dashboard-widget">
+            {isConfiguring && (
+              <SizeDebugBadge
+                w={widget.mobileLayout.w}
+                h={widget.mobileLayout.h}
+              />
+            )}
+            {isConfiguring && config.dragHandle && (
+              <div className={DRAG_HANDLE_CLASS} aria-hidden="true">
+                <MdDragIndicator size={18} />
+              </div>
+            )}
+            <DashboardWidget
+              widget={widget}
+              variant={LayoutVariants.Mobile}
+              color={color}
+              isConfiguring={isConfiguring}
+              flat={groupMemberIds.has(widget.id)}
+              {...callbacks}
+            />
+          </div>
+        ))}
+      </GridLayout>
+      {groups.map((group) => (
+        <DashboardGroupHeader
+          key={group.id}
+          group={group}
+          layout={layoutForGroup(group.id)}
+          width={width}
+          variant={LayoutVariants.Mobile}
+          isConfiguring={isConfiguring}
+          color={color}
+          {...callbacks}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -320,7 +378,7 @@ function NestedBoard({
   // else on the board existed, drifting from where BoardSubGrid actually renders them
   // alongside every other top-level widget.
   const rootLayout = useMemo(
-    () => layoutFor(topWidgets, DASHBOARD_GRID_COLUMNS),
+    () => layoutFor(topWidgets, LayoutVariants.Desktop, DASHBOARD_GRID_COLUMNS),
     [topWidgets],
   );
   const rootLayoutById = useMemo(
@@ -438,6 +496,7 @@ function NestedBoard({
             key={group.id}
             layout={layoutForGroup(group.id)}
             width={width}
+            variant={LayoutVariants.Desktop}
           />
         ))}
         <BoardSubGrid
@@ -483,6 +542,7 @@ function NestedBoard({
             group={group}
             layout={layoutForGroup(group.id)}
             width={width}
+            variant={LayoutVariants.Desktop}
             isConfiguring={isConfiguring}
             color={color}
             {...callbacks}
