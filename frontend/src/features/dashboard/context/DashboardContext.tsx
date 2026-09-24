@@ -23,10 +23,12 @@ import {
     GoalConditionalTargetDto,
     LayoutVariant,
     LayoutVariants,
+    parseFilterWidgetConfig,
     SaveFilterItemDto,
     SaveTabsContainerDto,
     UpdateDashboardEntriesItemDto,
     UpdateDashboardItemDto,
+    WidgetTypes,
 } from "../types/DashboardDto";
 
 type DashboardContextType = {
@@ -61,6 +63,10 @@ type DashboardContextType = {
         values: Record<string, string | null>
     ) => Promise<void>;
     updateFilterItem: (itemId: string, dto: SaveFilterItemDto) => Promise<void>;
+    /** Replaces every filter-follow link this item holds, across every filter widget on the
+        board, with exactly what `sources` describes now -- including dropping a link to a
+        filter no longer followed. See FilterFollowChecklist. */
+    syncFilterFollows: (itemId: string, sources: FilterFollowLinks[]) => Promise<void>;
     setTextContent: (itemId: string, text: string) => Promise<void>;
     removeItem: (itemId: string) => Promise<void>;
     saveLayout: (
@@ -96,7 +102,10 @@ export const DashboardProvider: React.FC<{
     }, []);
 
     // Resubmits each affected filter widget once, even when more than one source follows it.
-    const applyFilterFollows = async (itemId: string, sources: FilterFollowLinks[]) => {
+    // A full resync rather than an append: also touches a filter the item used to follow but
+    // isn't in `sources` anymore, so an edit can drop a follow, not just add one. At creation
+    // there's nothing to drop yet, so this behaves like a plain append there.
+    const syncFilterFollows = async (itemId: string, sources: FilterFollowLinks[]) => {
         const byFilter = new Map<
             string,
             { trackerId: string; fieldBySlotId: Record<string, string> }[]
@@ -109,16 +118,23 @@ export const DashboardProvider: React.FC<{
                 byFilter.set(filterItemId, list);
             }
         }
-        for (const [filterItemId, followers] of byFilter) {
-            const widget = widgets.find((w) => w.id === filterItemId);
-            if (!widget) continue;
+
+        for (const widget of widgets) {
+            if (widget.type !== WidgetTypes.Filter) continue;
+            const hadLink = (parseFilterWidgetConfig(widget.config)?.links ?? []).some(
+                (l) => l.itemId === itemId,
+            );
+            const followers = byFilter.get(widget.id) ?? [];
+            if (!hadLink && followers.length === 0) continue;
+
             const indexBySlotId = filterWidgetIndexBySlotId(widget);
             const dto = filterWidgetToSaveDto(widget);
             dto.links = [
-                ...dto.links,
+                ...dto.links.filter((l) => l.itemId !== itemId),
                 ...followers.map((f) => toFollowerLink(indexBySlotId, { itemId, ...f })),
             ];
-            await dashboardController.updateFilterItem(dashboardId, filterItemId, dto);
+            const res = await dashboardController.updateFilterItem(dashboardId, widget.id, dto);
+            patchWidgets(res.data);
         }
     };
 
@@ -129,9 +145,16 @@ export const DashboardProvider: React.FC<{
         goalConditionalTargets: GoalConditionalTargetDto[],
     ) => {
         await dashboardController.updateDashboardItem(dashboardId, item.id, {
+            // Name and matchedValuesOnly are whole-value replaces on this endpoint (see
+            // UpdateDashboardItemDto), so the item's current values must ride along here too,
+            // or this follow-up call would blank them right after creation set them.
+            name: item.rawName ?? "",
             displayMode: item.layout.displayMode,
             mobileDisplayMode: item.mobileLayout.displayMode,
             yAxisFromZero: item.yAxisFromZero,
+            matchedValuesOnly: item.matchedValuesOnly,
+            goalTarget: item.goalTarget,
+            goalDirection: item.goalDirection,
             goalConditionalTargets,
             color: item.color,
             showTrend: item.showTrend,
@@ -151,7 +174,7 @@ export const DashboardProvider: React.FC<{
     ) => {
         const res = await dashboardController.createAndPlaceWidget(dashboardId, dto);
         if (res.data && followFilters?.length) {
-            await applyFilterFollows(res.data.id, followFilters);
+            await syncFilterFollows(res.data.id, followFilters);
         }
         if (res.data && goalConditionalTargets?.length) {
             await saveGoalConditionalTargets(res.data, goalConditionalTargets);
@@ -176,7 +199,7 @@ export const DashboardProvider: React.FC<{
     ) => {
         const res = await dashboardController.createAndPlaceEntriesWidget(dashboardId, dto);
         if (res.data && followFilters) {
-            await applyFilterFollows(res.data.id, [followFilters]);
+            await syncFilterFollows(res.data.id, [followFilters]);
         }
         await refreshWidgets();
         return res.data;
@@ -327,6 +350,7 @@ export const DashboardProvider: React.FC<{
                 updateEntriesItem,
                 setFilterValues,
                 updateFilterItem,
+                syncFilterFollows,
                 setTextContent,
                 removeItem,
                 saveLayout,

@@ -1,13 +1,16 @@
-import { Button, Group, Modal, MultiSelect, Stack } from "@mantine/core";
-import { useEffect, useState } from "react";
+import { Button, Group, Modal, MultiSelect, Stack, TextInput } from "@mantine/core";
+import { useEffect, useMemo, useState } from "react";
 import { fieldsController } from "../../fields/api/fieldsController";
 import { FieldDto } from "../../fields/types/FieldDto";
 import { useDashboard } from "../context/DashboardContext";
 import {
     DashboardItemDisplayMode,
+    parseFilterWidgetConfig,
     UpdateDashboardEntriesItemDto,
     WidgetTypes,
 } from "../types/DashboardDto";
+import { FilterFollowChecklist } from "./FilterFollowChecklist";
+import { filterCandidatesFor, followLinksComplete } from "./filterLinkUtils";
 import { WidgetDisplayModeFields } from "./WidgetDisplayModeFields";
 
 interface Props {
@@ -34,11 +37,13 @@ function parseEntriesConfig(config: string | undefined): EntriesWidgetConfig | n
 
 /** The tracker is fixed at add time; filtering comes only from linked View Selector widgets. */
 export function EditEntriesWidgetModal({ itemId, color, onClose, onSave }: Props) {
-    const { widgets } = useDashboard();
+    const { widgets, syncFilterFollows } = useDashboard();
     const widget = widgets.find((w) => w.id === itemId);
     const config = widget?.type === WidgetTypes.Entries ? parseEntriesConfig(widget.config) : null;
+    const filterCandidates = useMemo(() => filterCandidatesFor(widgets), [widgets]);
 
     const [fields, setFields] = useState<FieldDto[] | null>(null);
+    const [name, setName] = useState(widget?.entriesWidget?.rawName ?? "");
     const [columnFieldIds, setColumnFieldIds] = useState<string[]>(
         config?.columnFieldIds ?? [],
     );
@@ -53,6 +58,22 @@ export function EditEntriesWidgetModal({ itemId, color, onClose, onSave }: Props
     const trackerId =
         widget?.type === WidgetTypes.Entries ? widget.entriesWidget?.trackerId : undefined;
 
+    // Reconstructed from the board's filter widgets, whose config already keys fieldByQuery
+    // by clause slot id -- exactly what FilterFollowChecklist expects.
+    const [filterLinks, setFilterLinks] = useState<Record<string, Record<string, string>>>(
+        () => {
+            const out: Record<string, Record<string, string>> = {};
+            for (const w of widgets) {
+                if (w.type !== WidgetTypes.Filter) continue;
+                const link = parseFilterWidgetConfig(w.config)?.links.find(
+                    (l) => l.itemId === itemId && l.trackerId === trackerId,
+                );
+                if (link) out[w.id] = link.fieldByQuery;
+            }
+            return out;
+        },
+    );
+
     useEffect(() => {
         if (!trackerId) {
             onClose();
@@ -61,10 +82,18 @@ export function EditEntriesWidgetModal({ itemId, color, onClose, onSave }: Props
         fieldsController.getFields(trackerId).then((res) => setFields(res.data ?? []));
     }, [trackerId, onClose]);
 
+    const canSubmit =
+        !!fields && followLinksComplete(filterLinks, filterCandidates, fields);
+
     const handleSubmit = async () => {
         setIsSubmitting(true);
         try {
+            if (trackerId) {
+                // Applied first: this table's follow links must land before the field/column save.
+                await syncFilterFollows(itemId, [{ trackerId, links: filterLinks }]);
+            }
             await onSave(itemId, {
+                name: name.trim(),
                 columnFieldIds: columnFieldIds.length ? columnFieldIds : undefined,
                 displayMode,
                 mobileDisplayMode,
@@ -81,6 +110,14 @@ export function EditEntriesWidgetModal({ itemId, color, onClose, onSave }: Props
             {/* Global request loader already covers the fetch above. */}
             {fields && (
                 <Stack gap="md">
+                    <TextInput
+                        label="Name"
+                        placeholder={widget?.entriesWidget?.trackerName ?? "Optional"}
+                        maxLength={100}
+                        value={name}
+                        onChange={(event) => setName(event.currentTarget.value)}
+                    />
+
                     <MultiSelect
                         label="Columns"
                         description="Leave empty to show every field"
@@ -90,6 +127,13 @@ export function EditEntriesWidgetModal({ itemId, color, onClose, onSave }: Props
                         onChange={setColumnFieldIds}
                         searchable
                         clearable
+                    />
+
+                    <FilterFollowChecklist
+                        fields={fields}
+                        filters={filterCandidates}
+                        links={filterLinks}
+                        onLinksChange={setFilterLinks}
                     />
 
                     <WidgetDisplayModeFields
@@ -105,6 +149,7 @@ export function EditEntriesWidgetModal({ itemId, color, onClose, onSave }: Props
                         </Button>
                         <Button
                             color={color}
+                            disabled={!canSubmit}
                             loading={isSubmitting}
                             onClick={handleSubmit}
                         >

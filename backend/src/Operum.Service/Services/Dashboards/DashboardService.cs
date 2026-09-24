@@ -1480,6 +1480,31 @@ namespace Operum.Service.Services.Dashboards
                 source.ViewId = string.IsNullOrEmpty(sourceDto.ViewId) ? null : sourceDto.ViewId;
             }
 
+            // These live on the shared Widget rather than this placement, mirroring
+            // WidgetsService.UpdateWidget -- editing them here touches every board the widget
+            // is placed on, same as editing its result type or sources would if that were allowed.
+            item.Widget!.Name = dto.Name?.Trim() ?? string.Empty;
+            item.Widget.MatchedValuesOnly = dto.MatchedValuesOnly;
+
+            if (item.Widget.ResultType == AnalyticTypes.Goal)
+            {
+                if (!string.IsNullOrEmpty(dto.GoalTarget))
+                {
+                    var target = dto.GoalTarget.Trim();
+                    var valueFieldType = item.Sources
+                        .SelectMany(s => s.WidgetSource?.Fields ?? [])
+                        .FirstOrDefault(f => f.Purpose == AnalyticPurposes.Value)?.Field?.Type;
+
+                    if (!GoalTargets.IsParseable(target) || !GoalTargets.MatchesFieldType(item.Widget.Code, valueFieldType, target))
+                        return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("goal target for this field's type"));
+
+                    item.Widget.GoalTarget = target;
+                }
+
+                if (!string.IsNullOrEmpty(dto.GoalDirection))
+                    item.Widget.GoalDirection = dto.GoalDirection;
+            }
+
             var targets = ValidateGoalConditionalTargets(dashboard, item, dto.GoalConditionalTargets);
             if (targets.IsFailure)
                 return Result.Failure(targets.StatusCode, targets.Messages);
@@ -1555,6 +1580,9 @@ namespace Operum.Service.Services.Dashboards
             var columns = await ResolveEntriesColumns(item.EntriesWidget.TrackerId, dto.ColumnFieldIds);
             if (columns.IsFailure)
                 return Result.Failure(columns.StatusCode, columns.Messages);
+
+            // Lives on the shared EntriesWidget, not this placement -- see UpdateDashboardItem.
+            item.EntriesWidget.Name = dto.Name?.Trim() ?? string.Empty;
 
             item.Config = JsonSerializer.Serialize(new EntriesWidgetConfigDto
             {
@@ -1893,6 +1921,7 @@ namespace Operum.Service.Services.Dashboards
             MobileLayout = MapToMobileLayoutDto(item),
             Config = item.Config,
             Name = ResolveItemName(item),
+            RawName = ResolveRawName(item),
             TrackerIds = ResolveItemTrackerIds(item),
             ResultType = item.Widget?.ResultType ?? string.Empty,
             Code = item.Widget?.Code ?? string.Empty,
@@ -1904,8 +1933,15 @@ namespace Operum.Service.Services.Dashboards
             ShowTrend = item.ShowTrend,
             CalendarStartMonth = item.CalendarStartMonth,
             GoalDirection = item.Widget?.GoalDirection,
+            GoalTarget = item.Widget?.GoalTarget,
             Sources = item.Sources.OrderBy(s => s.Order).Select(s => MapSourceToDto(item, s)).ToList()
         };
+
+        private static string? ResolveRawName(DashboardItem item)
+        {
+            var raw = item.Type == DashboardWidgetTypes.Entries ? item.EntriesWidget?.Name : item.Widget?.Name;
+            return string.IsNullOrWhiteSpace(raw) ? null : raw;
+        }
 
         private static string ResolveItemName(DashboardItem item)
         {
@@ -2221,6 +2257,7 @@ namespace Operum.Service.Services.Dashboards
 
             return new EntriesWidgetDto
             {
+                RawName = string.IsNullOrWhiteSpace(entriesWidget.Name) ? null : entriesWidget.Name,
                 TrackerId = entriesWidget.TrackerId,
                 TrackerName = entriesWidget.Tracker.Name,
                 Color = entriesWidget.Tracker.Color,

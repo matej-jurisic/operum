@@ -15,6 +15,10 @@ namespace Operum.Model.DTOs.Dashboard
         // Empty for kinds with no name (View/QuickAdd/Header/Divider/Note). Lets a form label
         // this item without a second fetch; see ViewWidgetForm.
         public string Name { get; set; } = string.Empty;
+        // The Widget/EntriesWidget's own name, before the auto-generated fallback above is
+        // applied. Null when never set, so an edit form can leave its field blank rather than
+        // filling in the computed fallback.
+        public string? RawName { get; set; }
         // Lets a caller find which widgets a View selector for a given tracker could link.
         public List<string> TrackerIds { get; set; } = [];
         public string ResultType { get; set; } = string.Empty;
@@ -35,6 +39,8 @@ namespace Operum.Model.DTOs.Dashboard
         // Goal widgets only. Included here, not just on WidgetDto, so the edit form doesn't
         // need a second fetch to the Widget Library.
         public string? GoalDirection { get; set; }
+        // Goal widgets only: the target the value is shown as progress toward.
+        public string? GoalTarget { get; set; }
         public List<DashboardItemSourceDto> Sources { get; set; } = [];
     }
 }

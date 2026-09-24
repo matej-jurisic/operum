@@ -264,6 +264,8 @@ export interface SetFilterValuesDto {
     this placement follows and capped to the most recent handful. The card renders these
     directly rather than fetching its own. */
 export interface EntriesWidgetDto {
+    /** The widget's own name; absent when never set (the card falls back to trackerName). */
+    rawName?: string | null;
     trackerId: string;
     trackerName: string;
     color?: string;
@@ -387,6 +389,9 @@ export interface DashboardItemDto {
     mobileLayout: DashboardWidgetLayoutDto;
     config?: string;
     name: string;
+    /** The widget's own name, before the auto-generated fallback in `name` is applied. Null
+        when never set; an edit form should show this, not `name`, so it can stay blank. */
+    rawName?: string | null;
     trackerIds: string[];
     resultType: string;
     code: string;
@@ -407,6 +412,8 @@ export interface DashboardItemDto {
     calendarStartMonth?: string;
     /** Goal widgets only: the shared widget's direction (see GoalDirections). */
     goalDirection?: string;
+    /** Goal widgets only: the target the value is shown as progress toward. */
+    goalTarget?: string;
     sources: DashboardItemSourceDto[];
 }
 
@@ -487,10 +494,20 @@ export interface UpdateDashboardItemSourceDto {
 }
 
 export interface UpdateDashboardItemDto {
+    /** Lives on the shared Widget, not this placement -- editing it touches every board this
+        widget is placed on. Cleared when left blank, same as at creation. */
+    name?: string;
     displayMode: DashboardItemDisplayMode;
     mobileDisplayMode: DashboardItemDisplayMode;
     /** Line charts only: whether the Y axis starts at zero or is fitted to the data range. */
     yAxisFromZero: boolean;
+    /** Combined Line/Bar charts only; ignored otherwise. Also shared-Widget-scoped. */
+    matchedValuesOnly: boolean;
+    /** Goal widgets only: a number or an hh:mm:ss duration. Left blank, the existing target
+        is kept. */
+    goalTarget?: string;
+    /** Goal widgets only: a GoalDirection value. Left blank, the existing direction is kept. */
+    goalDirection?: string;
     /** Goal widgets only: the whole conditional-target list. An empty list clears them. */
     goalConditionalTargets: GoalConditionalTargetDto[];
     /** Overrides this placement's color. Null clears it back to "Auto". Ignored server-side
@@ -504,6 +521,9 @@ export interface UpdateDashboardItemDto {
 }
 
 export interface UpdateDashboardEntriesItemDto {
+    /** Lives on the shared EntriesWidget, not this placement. Cleared when left blank, same
+        as at creation. */
+    name?: string;
     /** Tracker fields to show as columns, in order. Empty/omitted shows every field. */
     columnFieldIds?: string[];
     displayMode: DashboardItemDisplayMode;

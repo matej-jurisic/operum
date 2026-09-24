@@ -3,14 +3,18 @@ import {
   Checkbox,
   Group,
   Modal,
+  NumberInput,
   Paper,
+  SegmentedControl,
   Stack,
   Text,
   TextInput,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
+import { TimePicker } from "@mantine/dates";
 import { useEffect, useMemo, useState } from "react";
 import { fieldsController } from "../../fields/api/fieldsController";
+import { FieldDto } from "../../fields/types/FieldDto";
 import { viewsController } from "../../views/api/viewsController";
 import { ViewDto } from "../../views/types/ViewDto";
 import { ColorSwatchPicker } from "../../../shared/components/ColorSwatchPicker";
@@ -29,9 +33,15 @@ import { SourceViewSelect } from "./SourceViewSelect";
 import { YAxisScaleOption } from "./YAxisScaleOption";
 import { CalendarStartMonthOption } from "./CalendarStartMonthOption";
 import { DATE_TYPES } from "./filterClauseInput";
-import { ConnectedClause } from "./filterLinkUtils";
+import { FilterFollowChecklist } from "./FilterFollowChecklist";
+import {
+  connectedClausesFromLinks,
+  filterCandidatesFor,
+  followLinksComplete,
+} from "./filterLinkUtils";
 import { GoalConditionalTargetsEditor } from "./GoalConditionalTargetsEditor";
 import { AnalyticResultTypeEnum } from "../../analytics/enums/AnalyticResultTypeEnum";
+import { GoalDirection, GoalDirections } from "../../analytics/types/AnalyticDto";
 
 interface Props {
   itemId: string;
@@ -46,22 +56,45 @@ interface SourceRow {
   label: string;
   viewId: string | null;
   views: ViewDto[];
+  fields: FieldDto[];
+  // filterItemId -> (that filter's clause slot id -> field of this source's tracker it maps to).
+  filterLinks: Record<string, Record<string, string>>;
 }
+
+// Goal calculations that always come out as a plain number, whatever the field type. Mirrors
+// CustomAnalyticForm's copy of the same list.
+const GOAL_COUNTING_CODES = [
+  "Count",
+  "Count Distinct",
+  "True Count",
+  "False Count",
+  "True Percentage",
+];
 
 /** The chart drawn is the definition it was added with; changing it means adding a new widget. */
 export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
-  const { dashboardId, widgets } = useDashboard();
+  const { dashboardId, widgets, syncFilterFollows } = useDashboard();
   const isMobile = useMediaQuery("(max-width: 48em)");
+  const filterCandidates = useMemo(() => filterCandidatesFor(widgets), [widgets]);
   const [rows, setRows] = useState<SourceRow[] | null>(null);
+  const [name, setName] = useState("");
+  const [nameFallback, setNameFallback] = useState("");
+  const [code, setCode] = useState("");
   const [displayMode, setDisplayMode] = useState(DashboardItemDisplayMode.Full);
   const [mobileDisplayMode, setMobileDisplayMode] = useState(
     DashboardItemDisplayMode.Full,
   );
   const [isLineChart, setIsLineChart] = useState(false);
+  const [isBarChart, setIsBarChart] = useState(false);
   const [isCalendar, setIsCalendar] = useState(false);
   const [isGoal, setIsGoal] = useState(false);
   const [isSingleValue, setIsSingleValue] = useState(false);
   const [yAxisFromZero, setYAxisFromZero] = useState(true);
+  const [matchedValuesOnly, setMatchedValuesOnly] = useState(false);
+  const [goalTarget, setGoalTarget] = useState("");
+  const [goalDirection, setGoalDirection] = useState<GoalDirection>(
+    GoalDirections.HigherIsBetter,
+  );
   const [conditionalTargets, setConditionalTargets] = useState<
     GoalConditionalTargetDto[]
   >([]);
@@ -78,32 +111,27 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // The only clauses a conditional target may key off: read from filter widgets whose
-  // config links name this item and the field each clause runs against here.
-  const connectedClauses = useMemo<ConnectedClause[]>(() => {
-    const out: ConnectedClause[] = [];
-    const seen = new Set<string>();
-    for (const w of widgets) {
-      if (w.type !== WidgetTypes.Filter || !w.filter) continue;
-      const config = parseFilterWidgetConfig(w.config);
-      if (!config) continue;
-      const fieldBySlot: Record<string, string> = {};
-      for (const l of config.links)
-        if (l.itemId === itemId) Object.assign(fieldBySlot, l.fieldByQuery);
-      for (const clause of w.filter.clauses) {
-        if (fieldBySlot[clause.slotId] && !seen.has(clause.slotId)) {
-          seen.add(clause.slotId);
-          out.push({
-            slotId: clause.slotId,
-            dataType: clause.dataType,
-            operator: clause.operator,
-            fieldName: fieldNameById[fieldBySlot[clause.slotId]],
-          });
-        }
-      }
-    }
-    return out;
-  }, [widgets, itemId, fieldNameById]);
+  // The Value field's type, already resolved for the trend checkbox above -- a Goal's
+  // target is a duration input only when that field is one and the calculation isn't a
+  // plain count (which always comes out as a number regardless of field type).
+  const goalTargetIsDuration =
+    trendValueFieldType === "timespan" && !GOAL_COUNTING_CODES.includes(code);
+  const goalTargetValid = goalTargetIsDuration
+    ? /^\d+:[0-5]\d:[0-5]\d$/.test(goalTarget.trim())
+    : goalTarget.trim() !== "" && Number.isFinite(Number(goalTarget.trim()));
+
+  // The only clauses a conditional target may key off: derived live from the row's
+  // in-progress filter-follow selection, same as CustomAnalyticForm does at creation --
+  // so unchecking a follow here immediately drops any conditional target that relied on it.
+  const connectedClauses = useMemo(
+    () =>
+      connectedClausesFromLinks(
+        rows?.[0]?.filterLinks ?? {},
+        filterCandidates,
+        fieldNameById,
+      ),
+    [rows, filterCandidates, fieldNameById],
+  );
 
   // The render endpoint carries calculated charts, not definitions, so read from dashboard itself.
   useEffect(() => {
@@ -118,6 +146,7 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
 
       const sources = [...item.sources].sort((a, b) => a.order - b.order);
       const viewsByTracker = new Map<string, ViewDto[]>();
+      const fieldsByTracker = new Map<string, FieldDto[]>();
 
       const fieldNames: Record<string, string> = {};
       const fieldTypes: Record<string, string> = {};
@@ -129,6 +158,7 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
             fieldsController.getFields(trackerId),
           ]);
           viewsByTracker.set(trackerId, views.data ?? []);
+          fieldsByTracker.set(trackerId, fields.data ?? []);
           for (const f of fields.data ?? []) {
             fieldNames[f.id] = f.name;
             fieldTypes[f.id] = f.type;
@@ -143,21 +173,47 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
       const valueFieldId = sources[0]?.fields.find((f) => f.purpose === "Value")?.fieldId;
       setTrendValueFieldType(valueFieldId ? fieldTypes[valueFieldId] : undefined);
 
+      // Reconstructs each source's current "follow filters" selection from the board's filter
+      // widgets, whose config already keys fieldByQuery by clause slot id -- exactly what
+      // FilterFollowChecklist expects, no translation needed.
+      const filterLinksFor = (trackerId: string) => {
+        const out: Record<string, Record<string, string>> = {};
+        for (const w of widgets) {
+          if (w.type !== WidgetTypes.Filter) continue;
+          const link = parseFilterWidgetConfig(w.config)?.links.find(
+            (l) => l.itemId === itemId && l.trackerId === trackerId,
+          );
+          if (link) out[w.id] = link.fieldByQuery;
+        }
+        return out;
+      };
+
       setRows(
         sources.map((source) => ({
           source,
           label: source.label ?? "",
           viewId: source.viewId ?? null,
           views: viewsByTracker.get(source.trackerId) ?? [],
+          fields: fieldsByTracker.get(source.trackerId) ?? [],
+          filterLinks: filterLinksFor(source.trackerId),
         })),
       );
+      setName(item.rawName ?? "");
+      setNameFallback(item.name);
+      setCode(item.code);
       setDisplayMode(item.layout.displayMode);
       setMobileDisplayMode(item.mobileLayout.displayMode);
       setIsLineChart(item.resultType === AnalyticResultTypeEnum.LineChart);
+      setIsBarChart(item.resultType === AnalyticResultTypeEnum.BarChart);
       setIsCalendar(item.resultType === AnalyticResultTypeEnum.Calendar);
       setIsGoal(item.resultType === AnalyticResultTypeEnum.Goal);
       setIsSingleValue(item.resultType === AnalyticResultTypeEnum.SingleValue);
       setYAxisFromZero(item.yAxisFromZero);
+      setMatchedValuesOnly(item.matchedValuesOnly);
+      setGoalTarget(item.goalTarget ?? "");
+      setGoalDirection(
+        (item.goalDirection as GoalDirection | undefined) ?? GoalDirections.HigherIsBetter,
+      );
       setConditionalTargets(item.goalConditionalTargets ?? []);
       setColorOverride(item.color ?? null);
       setShowTrend(item.showTrend);
@@ -165,6 +221,9 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
     };
 
     load();
+    // widgets is read once per open to seed each row's current filter-follow links; it isn't
+    // meant to re-run this fetch on every board update while the modal is sitting open.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dashboardId, itemId, onClose]);
 
   const updateRow = (index: number, changes: Partial<SourceRow>) =>
@@ -179,11 +238,21 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
 
     setIsSubmitting(true);
     try {
+      // Applied first: a widget's own goal-conditional-targets validate against whichever
+      // filters it currently follows, so the follow links must land before that check runs.
+      await syncFilterFollows(
+        itemId,
+        rows.map((row) => ({ trackerId: row.source.trackerId, links: row.filterLinks })),
+      );
       // Sends every source every time: a cleared name/view must arrive as cleared, not missing.
       await onSave(itemId, {
+        name: name.trim(),
         displayMode,
         mobileDisplayMode,
         yAxisFromZero,
+        matchedValuesOnly,
+        goalTarget: isGoal ? goalTarget.trim() : undefined,
+        goalDirection: isGoal ? goalDirection : undefined,
         goalConditionalTargets: isGoal ? conditionalTargets : [],
         color: isCombined ? null : colorOverride,
         showTrend,
@@ -205,6 +274,10 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
   const canShowTrend =
     (isGoal || isSingleValue) &&
     (!trendValueFieldType || !DATE_TYPES.includes(trendValueFieldType));
+  const canShowMatchedValuesOnly = isCombined && (isLineChart || isBarChart);
+  const linksComplete =
+    !!rows && rows.every((row) => followLinksComplete(row.filterLinks, filterCandidates, row.fields));
+  const canSubmit = linksComplete && (!isGoal || goalTargetValid);
 
   return (
     <Modal
@@ -219,6 +292,14 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
       {/* Global request loader already covers the fetch above. */}
       {rows && (
         <Stack gap="md">
+          <TextInput
+            label="Name"
+            placeholder={nameFallback}
+            maxLength={100}
+            value={name}
+            onChange={(event) => setName(event.currentTarget.value)}
+          />
+
           {rows.map((row, index) => {
             const nameInput = (
               <TextInput
@@ -270,10 +351,45 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
                   )}
                   {nameInput}
                   {viewSelect}
+                  <FilterFollowChecklist
+                    fields={row.fields}
+                    filters={filterCandidates}
+                    links={row.filterLinks}
+                    onLinksChange={(filterLinks) => updateRow(index, { filterLinks })}
+                  />
                 </Stack>
               </Paper>
             );
           })}
+
+          {isGoal &&
+            (goalTargetIsDuration ? (
+              <TimePicker
+                label="Target (hh:mm:ss)"
+                withSeconds
+                format="24h"
+                value={goalTarget}
+                onChange={setGoalTarget}
+              />
+            ) : (
+              <NumberInput
+                label="Target"
+                placeholder="Goal value"
+                value={goalTarget === "" ? "" : Number(goalTarget)}
+                onChange={(value) => setGoalTarget(value === "" ? "" : String(value))}
+              />
+            ))}
+
+          {isGoal && (
+            <SegmentedControl
+              value={goalDirection}
+              onChange={(value) => setGoalDirection(value as GoalDirection)}
+              data={[
+                { label: "Higher is better", value: GoalDirections.HigherIsBetter },
+                { label: "Lower is better", value: GoalDirections.LowerIsBetter },
+              ]}
+            />
+          )}
 
           {isGoal && connectedClauses.length > 0 && (
             <GoalConditionalTargetsEditor
@@ -288,6 +404,15 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
               label="Show trend"
               checked={showTrend}
               onChange={(event) => setShowTrend(event.currentTarget.checked)}
+            />
+          )}
+
+          {canShowMatchedValuesOnly && (
+            <Checkbox
+              label="Show only matched values"
+              description="Plot only the x-axis values every tracker has data for, so the series cover the same range."
+              checked={matchedValuesOnly}
+              onChange={(event) => setMatchedValuesOnly(event.currentTarget.checked)}
             />
           )}
 
@@ -325,7 +450,12 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
             <Button variant="default" onClick={onClose}>
               Cancel
             </Button>
-            <Button color={color} loading={isSubmitting} onClick={handleSubmit}>
+            <Button
+              color={color}
+              disabled={!canSubmit}
+              loading={isSubmitting}
+              onClick={handleSubmit}
+            >
               Save
             </Button>
           </Group>

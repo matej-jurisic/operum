@@ -54,6 +54,8 @@ namespace Operum.Model.DTOs.Dashboard
     // capped to the most recent handful; the card does not fetch its own rows.
     public class EntriesWidgetDto
     {
+        // The widget's own name; null when never set (the card falls back to TrackerName).
+        public string? RawName { get; set; }
         public string TrackerId { get; set; } = string.Empty;
         public string TrackerName { get; set; } = string.Empty;
         public string? Color { get; set; }
