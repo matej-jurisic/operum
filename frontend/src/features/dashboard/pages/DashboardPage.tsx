@@ -12,12 +12,13 @@ import { useDocumentTitle } from "../../../shared/hooks/useDocumentTitle";
 import { useMediaQuery } from "@mantine/hooks";
 import { observer } from "mobx-react";
 import { createElement, useCallback, useEffect, useState } from "react";
-import { FiCheck, FiPlus } from "react-icons/fi";
+import { FiCheck, FiPlus, FiZap } from "react-icons/fi";
 import {
     TbDeviceDesktop,
     TbDeviceMobile,
     TbEyeOff,
     TbLayoutDashboard,
+    TbLayoutGrid,
 } from "react-icons/tb";
 import { useNavigate, useParams } from "react-router-dom";
 import ConfirmationDialog from "../../../shared/components/ConfirmationDialog";
@@ -386,6 +387,7 @@ const DashboardPage = observer(function DashboardPage() {
 
     // AppLayout kicks off the initial load of navigationStore.dashboards; this just waits for it.
     const boards = navigationStore.dashboards;
+    const hasTrackers = navigationStore.trackers.length > 0;
     const isLoadingBoards = !navigationStore.loaded;
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
@@ -478,6 +480,9 @@ const DashboardPage = observer(function DashboardPage() {
     if (boards.length === 0) {
         return (
             <Stack h="100%" gap="md">
+                <Group>
+                    <SidebarBurger />
+                </Group>
                 <Stack align="center" gap="md" py={80}>
                     <ThemeIcon
                         size={72}
@@ -485,14 +490,28 @@ const DashboardPage = observer(function DashboardPage() {
                         variant="light"
                         color={theme.primaryColor}
                     >
-                        <TbLayoutDashboard size={36} />
+                        {hasTrackers ? (
+                            <TbLayoutDashboard size={36} />
+                        ) : (
+                            <TbLayoutGrid size={36} />
+                        )}
                     </ThemeIcon>
                     <Text fw={700} size="xl">
-                        No dashboards yet
+                        {hasTrackers ? "No dashboards yet" : "No trackers yet"}
                     </Text>
                     <Button
-                        leftSection={<FiPlus size={16} />}
-                        onClick={() => setIsCreateOpen(true)}
+                        leftSection={
+                            hasTrackers ? (
+                                <FiPlus size={16} />
+                            ) : (
+                                <FiZap size={16} />
+                            )
+                        }
+                        onClick={() =>
+                            hasTrackers
+                                ? setIsCreateOpen(true)
+                                : navigationStore.startTrackerCreate("wizard")
+                        }
                     >
                         Get started
                     </Button>
