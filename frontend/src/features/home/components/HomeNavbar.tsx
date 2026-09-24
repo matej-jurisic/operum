@@ -35,7 +35,7 @@ const HomeNavbar = observer(({ scrolled, scrollTo, color }: Props) => {
                 top: 0,
                 left: 0,
                 right: 0,
-                zIndex: 1000,
+                zIndex: 100,
                 backdropFilter: scrolled ? "blur(14px)" : "none",
                 WebkitBackdropFilter: scrolled ? "blur(14px)" : "none",
                 background: scrolled
