@@ -449,35 +449,38 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
                                     const isDateFilter = returnType === "date" || returnType === "datetime";
 
                                     return (
-                                        <Group key={i} align="flex-end" gap="xs" wrap="nowrap">
-                                            <Select
-                                                label="Operator"
-                                                placeholder="Op"
-                                                allowDeselect={false}
-                                                data={operatorTypes}
-                                                value={filter.operator || null}
-                                                onChange={(v) => form.setFieldValue(`filters.${i}.operator`, v ?? "")}
-                                                style={{ flex: 1 }}
-                                            />
-                                            <DynamicDateValueInput
-                                                isDateType={isDateFilter}
-                                                value={form.values.filters[i]?.value}
-                                                onChange={(v) => form.setFieldValue(`filters.${i}.value`, v)}
-                                                field={{ ...virtualField, type: returnType }}
-                                                form={form}
-                                                fieldPath={`filters.${i}.value`}
-                                                label="Value"
-                                            />
-                                            <ActionIcon
-                                                color="red"
-                                                variant="outline"
-                                                onClick={() => form.removeListItem("filters", i)}
-                                                mt="lg"
-                                                aria-label="Remove condition"
-                                            >
-                                                <MdDelete size={16} />
-                                            </ActionIcon>
-                                        </Group>
+                                        <Stack key={i} gap="xs">
+                                            <Group align="flex-end" gap="xs" wrap="nowrap">
+                                                <Select
+                                                    label="Operator"
+                                                    placeholder="Op"
+                                                    allowDeselect={false}
+                                                    data={operatorTypes}
+                                                    value={filter.operator || null}
+                                                    onChange={(v) => form.setFieldValue(`filters.${i}.operator`, v ?? "")}
+                                                    style={{ flex: 1 }}
+                                                />
+                                                <DynamicDateValueInput
+                                                    isDateType={isDateFilter}
+                                                    value={form.values.filters[i]?.value}
+                                                    onChange={(v) => form.setFieldValue(`filters.${i}.value`, v)}
+                                                    field={{ ...virtualField, type: returnType }}
+                                                    form={form}
+                                                    fieldPath={`filters.${i}.value`}
+                                                    label="Value"
+                                                />
+                                            </Group>
+                                            <Group justify="flex-end">
+                                                <ActionIcon
+                                                    color="red"
+                                                    variant="outline"
+                                                    onClick={() => form.removeListItem("filters", i)}
+                                                    aria-label="Remove condition"
+                                                >
+                                                    <MdDelete size={16} />
+                                                </ActionIcon>
+                                            </Group>
+                                        </Stack>
                                     );
                                 })}
 

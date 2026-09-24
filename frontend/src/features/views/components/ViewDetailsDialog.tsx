@@ -63,8 +63,8 @@ export default function ViewDetailsDialog(props: Props) {
                 ) : (
                     view.queries.map((query, index) => (
                         <Paper key={index} p="sm" withBorder>
-                            <Group justify="space-between" wrap="nowrap">
-                                <Group gap="xs" wrap="nowrap">
+                            <Stack gap="xs">
+                                <Group justify="space-between" wrap="nowrap">
                                     <Badge
                                         variant="light"
                                         color={QueryKindColor[query.kind]}
@@ -72,18 +72,22 @@ export default function ViewDetailsDialog(props: Props) {
                                     >
                                         {QueryKindLabel[query.kind]}
                                     </Badge>
-                                    <Text
-                                        fw={500}
-                                        size="sm"
-                                        className="wrapped-text"
+                                    <Badge
+                                        variant="outline"
+                                        color="gray"
+                                        size="xs"
                                     >
-                                        {describeClause(query)}
-                                    </Text>
+                                        precedence {index + 1}
+                                    </Badge>
                                 </Group>
-                                <Badge variant="outline" color="gray" size="xs">
-                                    precedence {index + 1}
-                                </Badge>
-                            </Group>
+                                <Text
+                                    fw={500}
+                                    size="sm"
+                                    className="wrapped-text"
+                                >
+                                    {describeClause(query)}
+                                </Text>
+                            </Stack>
                         </Paper>
                     ))
                 )}

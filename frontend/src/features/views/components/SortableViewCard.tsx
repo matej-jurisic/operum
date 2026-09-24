@@ -4,6 +4,7 @@ import {
     ActionIcon,
     Badge,
     Card,
+    Flex,
     Group,
     Stack,
     Text,
@@ -60,60 +61,71 @@ export default function SortableViewCard({
 
     return (
         <Card ref={setNodeRef} style={style} p="md" radius="md" withBorder>
-            <Group align="flex-start" justify="space-between" wrap="nowrap">
-                {isReordering && (
-                    <ActionIcon
-                        variant="outline"
-                        color={color}
-                        size="xl"
-                        {...attributes}
-                        {...listeners}
-                        style={{
-                            cursor: "grab",
-                            alignSelf: "center",
-                            touchAction: "none",
-                        }}
-                        aria-label={`Drag to reorder view ${view.name}`}
-                    >
-                        <MdDragHandle size={25} />
-                    </ActionIcon>
-                )}
-                <Stack gap="xs" flex={1}>
-                    <Title order={4} lineClamp={1} className="wrapped-text">
-                        {view.name}
-                    </Title>
-                    <Text
-                        c="dimmed"
-                        size="sm"
-                        lineClamp={3}
-                        className="wrapped-text"
-                    >
-                        {view.description || "No description"}
-                    </Text>
-                    {view.queries.length > 0 && (
-                        <Group wrap="wrap">
-                            {filterCount > 0 && (
-                                <Badge variant="light" color="blue" size="sm">
-                                    {filterCount}{" "}
-                                    {filterCount === 1 ? "filter" : "filters"}
-                                </Badge>
-                            )}
-                            {sortCount > 0 && (
-                                <Badge variant="light" color="teal" size="sm">
-                                    {sortCount}{" "}
-                                    {sortCount === 1 ? "sort" : "sorts"}
-                                </Badge>
-                            )}
-                            {columnCount > 0 && (
-                                <Badge variant="light" color="grape" size="sm">
-                                    {columnCount}{" "}
-                                    {columnCount === 1 ? "column" : "columns"}
-                                </Badge>
-                            )}
-                        </Group>
+            <Flex
+                direction={{ base: "column", sm: "row" }}
+                align={{ base: "stretch", sm: "flex-start" }}
+                justify="space-between"
+                gap="sm"
+            >
+                <Group align="flex-start" wrap="nowrap" flex={1} miw={0}>
+                    {isReordering && (
+                        <ActionIcon
+                            variant="outline"
+                            color={color}
+                            size="xl"
+                            {...attributes}
+                            {...listeners}
+                            style={{
+                                cursor: "grab",
+                                alignSelf: "center",
+                                touchAction: "none",
+                            }}
+                            aria-label={`Drag to reorder view ${view.name}`}
+                        >
+                            <MdDragHandle size={25} />
+                        </ActionIcon>
                     )}
-                </Stack>
-                <Group gap="xs" wrap="nowrap">
+                    <Stack gap="xs" flex={1} miw={0}>
+                        <Title order={4} lineClamp={1} className="wrapped-text">
+                            {view.name}
+                        </Title>
+                        <Text
+                            c="dimmed"
+                            size="sm"
+                            lineClamp={3}
+                            className="wrapped-text"
+                        >
+                            {view.description || "No description"}
+                        </Text>
+                        {view.queries.length > 0 && (
+                            <Group wrap="wrap">
+                                {filterCount > 0 && (
+                                    <Badge variant="light" color="blue" size="sm">
+                                        {filterCount}{" "}
+                                        {filterCount === 1 ? "filter" : "filters"}
+                                    </Badge>
+                                )}
+                                {sortCount > 0 && (
+                                    <Badge variant="light" color="teal" size="sm">
+                                        {sortCount}{" "}
+                                        {sortCount === 1 ? "sort" : "sorts"}
+                                    </Badge>
+                                )}
+                                {columnCount > 0 && (
+                                    <Badge variant="light" color="grape" size="sm">
+                                        {columnCount}{" "}
+                                        {columnCount === 1 ? "column" : "columns"}
+                                    </Badge>
+                                )}
+                            </Group>
+                        )}
+                    </Stack>
+                </Group>
+                <Flex
+                    gap="xs"
+                    wrap="nowrap"
+                    justify={{ base: "flex-end", sm: "flex-start" }}
+                >
                     <ActionIcon
                         variant="outline"
                         color={color}
@@ -145,8 +157,8 @@ export default function SortableViewCard({
                             </ActionIcon>
                         </>
                     )}
-                </Group>
-            </Group>
+                </Flex>
+            </Flex>
         </Card>
     );
 }

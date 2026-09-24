@@ -2,6 +2,7 @@ import {
     ActionIcon,
     Badge,
     Card,
+    Flex,
     Group,
     Stack,
     Switch,
@@ -80,8 +81,13 @@ export default function NotificationCard({
 
     return (
         <Card p="md" radius="md" withBorder>
-            <Group align="flex-start" justify="space-between" wrap="nowrap">
-                <Stack gap="xs" flex={1}>
+            <Flex
+                direction={{ base: "column", sm: "row" }}
+                align={{ base: "stretch", sm: "flex-start" }}
+                justify="space-between"
+                gap="sm"
+            >
+                <Stack gap="xs" flex={1} miw={0}>
                     <Title order={4} lineClamp={1} className="wrapped-text">
                         {notification.name}
                     </Title>
@@ -111,7 +117,12 @@ export default function NotificationCard({
                     )}
                 </Stack>
 
-                <Group gap="xs" wrap="nowrap" align="flex-start">
+                <Flex
+                    gap="xs"
+                    wrap="nowrap"
+                    align="flex-start"
+                    justify={{ base: "flex-end", sm: "flex-start" }}
+                >
                     <Switch
                         checked={notification.isEnabled}
                         color={color}
@@ -155,8 +166,8 @@ export default function NotificationCard({
                             </ActionIcon>
                         </>
                     )}
-                </Group>
-            </Group>
+                </Flex>
+            </Flex>
         </Card>
     );
 }

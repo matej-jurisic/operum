@@ -16,7 +16,6 @@ import {
     TextInput,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { useMediaQuery } from "@mantine/hooks";
 import { useState } from "react";
 import { CiFilter } from "react-icons/ci";
 import { FiPlus, FiPlusSquare } from "react-icons/fi";
@@ -82,7 +81,6 @@ export default function ViewFormDialog({
 }: Props) {
     const { fields } = useFields();
     const { createView, updateView } = useTrackerOperations();
-    const isMobile = useMediaQuery("(max-width: 48em)");
     const [templateModalOpen, setTemplateModalOpen] = useState(false);
     const [templateFieldId, setTemplateFieldId] = useState<string | null>(null);
 
@@ -252,7 +250,6 @@ export default function ViewFormDialog({
             onClose={onClose}
             title={viewId ? "Edit view" : "Create view"}
             size="lg"
-            fullScreen={isMobile}
             // The template modal below owns scroll-lock/focus-trap while it's open, so this one doesn't fight it.
             lockScroll={!templateModalOpen}
             trapFocus={!templateModalOpen}
@@ -589,7 +586,6 @@ export default function ViewFormDialog({
             onClose={closeTemplateModal}
             title="Add from a template"
             size="md"
-            fullScreen={isMobile}
             zIndex={300}
         >
             <Stack gap="md">
