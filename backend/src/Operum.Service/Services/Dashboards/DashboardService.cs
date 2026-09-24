@@ -1266,23 +1266,6 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success(MapToItemDto(item));
         }
 
-        public async Task<Result<DashboardItemDto>> AddContainerItem(string dashboardId)
-        {
-            var dashboard = await GetUserDashboard(dashboardId);
-            if (dashboard == null)
-                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
-
-            if (dashboard.Items.Count >= DataLimits.MaxDashboardItemCount)
-                return Result.Failure(ResultStatusCodes.Conflict, Messages.MaxNumberReached("dashboard items", DataLimits.MaxDashboardItemCount));
-
-            var item = BuildLayoutItem(dashboard, dashboardId, DashboardWidgetTypes.Container, DashboardGrid.ContainerSize, config: null);
-
-            db.DashboardItems.Add(item);
-            await db.SaveChangesAsync();
-
-            return Result.Success(MapToItemDto(item));
-        }
-
         public async Task<Result<DashboardItemDto>> AddTabsContainerItem(string dashboardId)
         {
             var dashboard = await GetUserDashboard(dashboardId);
@@ -1303,6 +1286,62 @@ namespace Operum.Service.Services.Dashboards
             await db.SaveChangesAsync();
 
             return Result.Success(MapToItemDto(item));
+        }
+
+        // Creates a Container and tags every named item as its member, atomically: a
+        // separate "place an empty container, then reparent onto it" pair of calls could
+        // leave an orphaned empty container behind if the second one failed. A Container
+        // owns no placement of its own (X=Y=W=H=0) -- members keep whatever board-relative
+        // X/Y they already had, so no coordinate translation happens.
+        public async Task<Result<List<DashboardWidgetDto>>> GroupItems(string dashboardId, GroupDashboardItemsDto dto)
+        {
+            var dashboard = await GetUserDashboard(dashboardId);
+            if (dashboard == null)
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
+
+            if (dashboard.Items.Count >= DataLimits.MaxDashboardItemCount)
+                return Result.Failure(ResultStatusCodes.Conflict, Messages.MaxNumberReached("dashboard items", DataLimits.MaxDashboardItemCount));
+
+            var targets = dashboard.Items.Where(i => dto.ItemIds.Contains(i.Id)).ToList();
+            if (targets.Count != dto.ItemIds.Distinct().Count())
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard item"));
+
+            // A group can't itself be grouped -- no nesting, matching the rule already
+            // enforced for ParentItemId in UpdateDashboardLayout.
+            if (targets.Any(i => DashboardWidgetTypes.IsContainer(i.Type)))
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.NotAllowed("grouping a container"));
+
+            var container = new DashboardItem
+            {
+                DashboardId = dashboardId,
+                Order = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.Order) + 1 : 0,
+                Type = DashboardWidgetTypes.Container,
+                Config = null,
+                X = 0,
+                Y = 0,
+                W = 0,
+                H = 0,
+                MobileX = 0,
+                MobileY = 0,
+                MobileW = 0,
+                MobileH = 0
+            };
+            db.DashboardItems.Add(container);
+            dashboard.Items.Add(container);
+
+            foreach (var item in targets)
+            {
+                item.ParentItemId = container.Id;
+                item.ParentTabId = null;
+            }
+
+            await db.SaveChangesAsync();
+
+            var scope = new HashSet<string> { container.Id };
+            foreach (var item in targets)
+                scope.Add(item.Id);
+
+            return Result.Success(await BuildWidgets(dashboard, scope));
         }
 
         // A tab dropped from the list has its children repointed to the first surviving tab.
@@ -1598,14 +1637,21 @@ namespace Operum.Service.Services.Dashboards
                 return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard item"));
 
             // A container's children move onto the board rather than being deleted with it.
+            // A TabsContainer's children are still relative to its own origin, so deleting it
+            // re-baselines them onto the board. A Container's children already carry ordinary
+            // board-relative X/Y (a Container owns no placement of its own), so nothing needs
+            // translating -- this is the entire "ungroup, keep widgets where they are" action.
             if (DashboardWidgetTypes.IsContainer(item.Type))
             {
                 foreach (var child in dashboard.Items.Where(i => i.ParentItemId == item.Id).ToList())
                 {
                     child.ParentItemId = null;
                     child.ParentTabId = null;
-                    child.Y += item.Y;
-                    child.X = Math.Min(child.X, Math.Max(0, DashboardGrid.Columns - child.W));
+                    if (item.Type == DashboardWidgetTypes.TabsContainer)
+                    {
+                        child.Y += item.Y;
+                        child.X = Math.Min(child.X, Math.Max(0, DashboardGrid.Columns - child.W));
+                    }
                 }
             }
 
@@ -1696,8 +1742,13 @@ namespace Operum.Service.Services.Dashboards
                     ? tabIds.IndexOf(c.ParentTabId)
                     : 0;
 
-            var childrenByParent = dashboard.Items
-                .Where(i => i.ParentItemId != null)
+            // A TabsContainer's children are still blocked in right after their tab-container
+            // (its own X/Y is a real board position, and a child's X/Y is relative to it,
+            // meaningless on its own). A Container's children carry ordinary board-relative
+            // X/Y like any other top-level item now, so they sort alongside everything else
+            // by their own coordinates instead of being pulled into a block.
+            var tabsChildrenByParent = dashboard.Items
+                .Where(i => i.ParentItemId != null && tabOrderByContainer.ContainsKey(i.ParentItemId))
                 .GroupBy(i => i.ParentItemId!)
                 .ToDictionary(
                     g => g.Key,
@@ -1705,11 +1756,11 @@ namespace Operum.Service.Services.Dashboards
 
             var order = 0;
             foreach (var item in dashboard.Items
-                .Where(i => i.ParentItemId == null)
+                .Where(i => i.ParentItemId == null || !tabOrderByContainer.ContainsKey(i.ParentItemId))
                 .OrderBy(i => i.Y).ThenBy(i => i.X))
             {
                 item.Order = order++;
-                if (childrenByParent.TryGetValue(item.Id, out var children))
+                if (tabsChildrenByParent.TryGetValue(item.Id, out var children))
                     foreach (var child in children)
                         child.Order = order++;
             }

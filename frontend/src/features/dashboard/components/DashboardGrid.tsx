@@ -30,13 +30,15 @@ import {
   ROOT_KEY,
   ROW_HEIGHT,
   VARIANTS,
+  compactLayout,
+  layoutFor,
   toLayoutDto,
   toLayoutItem,
   variantForWidth,
 } from "./dashboardGridLayout";
 import "./DashboardGrid.css";
 import { DashboardWidget } from "./DashboardWidget";
-import { DashboardContainerTile } from "./DashboardContainerTile";
+import { DashboardGroupHeader, DashboardGroupHug } from "./DashboardGroupOverlay";
 import { TabsContainerTile } from "./TabsContainerTile";
 
 interface Props extends DashboardTileCallbacks {
@@ -98,17 +100,6 @@ export function DashboardGrid({
   ) : (
     board
   );
-}
-
-/** The stored layout is never recompacted server-side, so gaps from deleted/hidden/moved
-    widgets are closed here on the way in. minW/minH aren't carried through the compactor,
-    so re-attach them. */
-function compactLayout(items: Layout, cols: number): Layout {
-  const constraintsById = new Map(items.map((it) => [it.i, it]));
-  return verticalCompactor.compact(items, cols).map((it) => {
-    const src = constraintsById.get(it.i);
-    return src ? { ...it, minW: src.minW, minH: src.minH } : it;
-  });
 }
 
 interface BoardProps extends DashboardTileCallbacks {
@@ -228,52 +219,118 @@ function NestedBoard({
   onLayoutSave,
   ...callbacks
 }: BoardProps) {
-  const containerIds = useMemo(
+  // A TabsContainer still owns its own nested per-tab grids -- a real tile with real
+  // coordinate space, unlike a Container (see below).
+  const tabsContainerIds = useMemo(
     () =>
       new Set(
         widgets
-          .filter(
-            (w) =>
-              w.type === WidgetTypes.Container ||
-              w.type === WidgetTypes.TabsContainer,
-          )
+          .filter((w) => w.type === WidgetTypes.TabsContainer)
           .map((w) => w.id),
       ),
     [widgets],
   );
 
-  const { topWidgets, childrenByContainer, parentById } = useMemo(() => {
-    // A stale parent (container deleted out from under it) falls back to the board.
-    const parentOf = (w: DashboardWidgetDto) =>
-      w.parentItemId && containerIds.has(w.parentItemId)
+  // A Container owns no tile or coordinate space of its own anymore: it's a grouping tag
+  // on widgets that render directly on the root grid, drawn as a hug-shape overlay behind
+  // them (DashboardGroupOverlay) instead of a bordered tile around a nested sub-grid.
+  const groupIds = useMemo(
+    () =>
+      new Set(
+        widgets.filter((w) => w.type === WidgetTypes.Container).map((w) => w.id),
+      ),
+    [widgets],
+  );
+
+  const {
+    topWidgets,
+    groups,
+    childrenByTabsContainer,
+    childrenByGroup,
+    groupMemberIds,
+    groupOf,
+    parentById,
+  } = useMemo(() => {
+    // A stale tabs-container parent (deleted out from under it) falls back to the board.
+    const tabsParentOf = (w: DashboardWidgetDto) =>
+      w.parentItemId && tabsContainerIds.has(w.parentItemId)
         ? w.parentItemId
         : null;
 
     const top: DashboardWidgetDto[] = [];
-    const byContainer = new Map<string, DashboardWidgetDto[]>();
+    const groupList: DashboardWidgetDto[] = [];
+    const byTabsContainer = new Map<string, DashboardWidgetDto[]>();
+    const byGroup = new Map<string, DashboardWidgetDto[]>();
+    const memberIds = new Set<string>();
+    // A root-grid item's current group tag, so an ordinary arrange save (which reports the
+    // grid's whole layout, not just the moved item) can carry every item's tag forward
+    // unchanged instead of the save's own single parentItemId clobbering all of them.
+    const groupById = new Map<string, string | null>();
     // Read just before a drop, to tell a widget that changed grids apart from one that
-    // only moved within its own.
+    // only moved within its own. Only ever a TabsContainer id now -- a Container tag never
+    // changes which grid a widget is on, so it needs no rescale bookkeeping.
     const byId = new Map<string, string | null>();
+
     for (const w of widgets) {
-      byId.set(w.id, parentOf(w));
+      // A Container owns no tile of its own -- drawn as an overlay instead, never a grid item.
+      if (w.type === WidgetTypes.Container) {
+        groupList.push(w);
+        continue;
+      }
+
+      const tabsParent = tabsParentOf(w);
+      byId.set(w.id, tabsParent);
+
       // Hidden widgets are dropped entirely; reached from the board's hidden-widgets list.
       if (w.layout.displayMode === DashboardItemDisplayMode.Hidden) continue;
 
-      const parent = parentOf(w);
-      if (parent === null) {
-        top.push(w);
+      if (tabsParent !== null) {
+        const list = byTabsContainer.get(tabsParent) ?? [];
+        list.push(w);
+        byTabsContainer.set(tabsParent, list);
         continue;
       }
-      const list = byContainer.get(parent) ?? [];
-      list.push(w);
-      byContainer.set(parent, list);
+
+      // Not inside a TabsContainer -- a real root-grid tile, whether or not it also
+      // carries a Container group tag (the tag never changes which grid it's on).
+      top.push(w);
+      const group = w.parentItemId && groupIds.has(w.parentItemId) ? w.parentItemId : null;
+      groupById.set(w.id, group);
+      if (group) {
+        const list = byGroup.get(group) ?? [];
+        list.push(w);
+        byGroup.set(group, list);
+        memberIds.add(w.id);
+      }
     }
     return {
       topWidgets: top,
-      childrenByContainer: byContainer,
+      groups: groupList,
+      childrenByTabsContainer: byTabsContainer,
+      childrenByGroup: byGroup,
+      groupMemberIds: memberIds,
+      groupOf: groupById,
       parentById: byId,
     };
-  }, [widgets, containerIds]);
+  }, [widgets, tabsContainerIds, groupIds]);
+
+  // The root grid's own packed layout, computed exactly once here and reused for every
+  // group's hug shape below -- recomputing a group's geometry from just its members in
+  // isolation (as DASHBOARD_GRID_COLUMNS-wide compaction) would pack them as if nothing
+  // else on the board existed, drifting from where BoardSubGrid actually renders them
+  // alongside every other top-level widget.
+  const rootLayout = useMemo(
+    () => layoutFor(topWidgets, DASHBOARD_GRID_COLUMNS),
+    [topWidgets],
+  );
+  const rootLayoutById = useMemo(
+    () => new Map(rootLayout.map((item) => [item.i, item])),
+    [rootLayout],
+  );
+  const layoutForGroup = (groupId: string): Layout =>
+    (childrenByGroup.get(groupId) ?? [])
+      .map((member) => rootLayoutById.get(member.id))
+      .filter((item): item is LayoutItem => item != null);
 
   // Each grid's measured inner width, so a widget crossing grids can be rescaled to keep
   // its on-screen size. Board width is known directly; containers report on mount.
@@ -338,11 +395,29 @@ function NestedBoard({
     queueMicrotask(() => {
       flushQueued.current = false;
       const items: DashboardLayoutItemDto[] = [];
-      for (const { parentItemId, parentTabId, layout } of pending.current.values()) {
+      for (const [gridKey, { parentItemId, parentTabId, layout }] of pending.current) {
         const sized = layout.map((item) =>
           keepSizeAcrossMove(item, parentById.get(item.i) ?? null, parentItemId),
         );
-        items.push(...toLayoutDto(sized, parentItemId, parentTabId));
+        if (gridKey === ROOT_KEY) {
+          // The root grid's own arrange reports its whole layout, not just the item that
+          // moved -- Container members live here too now, so this must carry each item's
+          // existing group tag forward untouched rather than stamping one shared
+          // parentItemId (null) over every item and silently ungrouping them all.
+          items.push(
+            ...sized.map((item) => ({
+              itemId: item.i,
+              parentItemId: groupOf.get(item.i) ?? null,
+              parentTabId: null,
+              x: item.x,
+              y: item.y,
+              w: item.w,
+              h: item.h,
+            })),
+          );
+        } else {
+          items.push(...toLayoutDto(sized, parentItemId, parentTabId));
+        }
       }
       pending.current.clear();
       if (items.length > 0) onLayoutSave(LayoutVariants.Desktop, items);
@@ -351,54 +426,69 @@ function NestedBoard({
 
   return (
     <DragDropProvider>
-      <BoardSubGrid
-        gridKey={ROOT_KEY}
-        width={width}
-        widgets={topWidgets}
-        margin={VARIANTS[LayoutVariants.Desktop].margin}
-        isConfiguring={isConfiguring}
-        onArranged={(layout) => queueSave(ROOT_KEY, layout)}
-        renderContent={(widget, handleRef) =>
-          widget.type === WidgetTypes.Container ? (
-            <DashboardContainerTile
-              widget={widget}
-              handleRef={handleRef}
-              childWidgets={childrenByContainer.get(widget.id) ?? []}
-              color={color}
-              isConfiguring={isConfiguring}
-              onChildrenArranged={(layout) =>
-                queueSave(widget.id, layout, widget.id)
-              }
-              onBodyWidth={(w) => reportGridWidth(widget.id, w)}
-              {...callbacks}
-            />
-          ) : widget.type === WidgetTypes.TabsContainer ? (
-            <TabsContainerTile
-              widget={widget}
-              handleRef={handleRef}
-              childWidgets={childrenByContainer.get(widget.id) ?? []}
-              color={color}
-              isConfiguring={isConfiguring}
-              onChildrenArranged={(tabId, layout) =>
-                queueSave(`${widget.id}:${tabId}`, layout, widget.id, tabId)
-              }
-              onBodyWidth={(w) => reportGridWidth(widget.id, w)}
-              onSaveTabs={(dto) =>
-                callbacks.onSaveTabsContainer?.(widget.id, dto)
-              }
-              {...callbacks}
-            />
-          ) : (
-            <DashboardWidget
-              widget={widget}
-              variant={LayoutVariants.Desktop}
-              color={color}
-              isConfiguring={isConfiguring}
-              {...callbacks}
-            />
-          )
-        }
-      />
+      {/* DragDropProvider renders no DOM element of its own, so this wrapper is what the
+          group overlays position themselves against -- it sizes to exactly the root
+          grid's own box (no fixed height), same coordinate space the pixel rects below
+          are computed in. */}
+      <div className="dashboard-root-grid">
+        {/* Painted before the grid's own tiles, so an opaque hug shape sits behind their
+            content instead of covering it (DOM order is paint order here). */}
+        {groups.map((group) => (
+          <DashboardGroupHug
+            key={group.id}
+            layout={layoutForGroup(group.id)}
+            width={width}
+          />
+        ))}
+        <BoardSubGrid
+          gridKey={ROOT_KEY}
+          width={width}
+          widgets={topWidgets}
+          margin={VARIANTS[LayoutVariants.Desktop].margin}
+          isConfiguring={isConfiguring}
+          onArranged={(layout) => queueSave(ROOT_KEY, layout)}
+          renderContent={(widget, handleRef) =>
+            widget.type === WidgetTypes.TabsContainer ? (
+              <TabsContainerTile
+                widget={widget}
+                handleRef={handleRef}
+                childWidgets={childrenByTabsContainer.get(widget.id) ?? []}
+                color={color}
+                isConfiguring={isConfiguring}
+                onChildrenArranged={(tabId, layout) =>
+                  queueSave(`${widget.id}:${tabId}`, layout, widget.id, tabId)
+                }
+                onBodyWidth={(w) => reportGridWidth(widget.id, w)}
+                onSaveTabs={(dto) =>
+                  callbacks.onSaveTabsContainer?.(widget.id, dto)
+                }
+                {...callbacks}
+              />
+            ) : (
+              <DashboardWidget
+                widget={widget}
+                variant={LayoutVariants.Desktop}
+                color={color}
+                isConfiguring={isConfiguring}
+                flat={groupMemberIds.has(widget.id)}
+                {...callbacks}
+              />
+            )
+          }
+        />
+        {/* Painted after the tiles, so its buttons sit clickable above their content. */}
+        {groups.map((group) => (
+          <DashboardGroupHeader
+            key={group.id}
+            group={group}
+            layout={layoutForGroup(group.id)}
+            width={width}
+            isConfiguring={isConfiguring}
+            color={color}
+            {...callbacks}
+          />
+        ))}
+      </div>
     </DragDropProvider>
   );
 }
@@ -424,6 +514,10 @@ interface BoardSubGridProps {
   /** Grid's own padding, not CSS padding on the wrapper, so measured width matches the
       box it renders into. */
   containerPadding?: [number, number];
+  /** Rendered as the grid's first child, so it shares the same positioned box the tiles
+      lay out into (and paints behind them, tiles being later in the DOM). Used to draw a
+      container's shape behind its widgets. */
+  background?: ReactNode;
 }
 
 export function BoardSubGrid({
@@ -436,20 +530,15 @@ export function BoardSubGrid({
   renderContent,
   minHeight,
   containerPadding = [0, 0],
+  background,
 }: BoardSubGridProps) {
   const layout = useMemo(
-    () =>
-      compactLayout(
-        widgets.map((widget, index) =>
-          toLayoutItem(
-            widget,
-            index,
-            LayoutVariants.Desktop,
-            DASHBOARD_GRID_COLUMNS,
-          ),
-        ),
-        DASHBOARD_GRID_COLUMNS,
+    () => compactLayout(
+      widgets.map((widget, index) =>
+        toLayoutItem(widget, index, LayoutVariants.Desktop, DASHBOARD_GRID_COLUMNS),
       ),
+      DASHBOARD_GRID_COLUMNS,
+    ),
     [widgets],
   );
 
@@ -485,6 +574,7 @@ export function BoardSubGrid({
       }
       className={`dashboard-grid${isConfiguring ? " is-editing" : ""}`}
     >
+      {background}
       {widgets.map((widget) => (
         <BoardTile
           key={widget.id}

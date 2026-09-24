@@ -126,10 +126,11 @@ namespace Operum.API.Controllers
             return GetApiResponse(await dashboardService.AddNoteItem(dashboardId, dto));
         }
 
-        [HttpPost("{dashboardId}/items/container")]
-        public async Task<IActionResult> AddContainerItem([FromRoute] string dashboardId)
+        // Creates a container and tags the named items as its members in one atomic step.
+        [HttpPost("{dashboardId}/items/container/group")]
+        public async Task<IActionResult> GroupItems([FromRoute] string dashboardId, [FromBody] GroupDashboardItemsDto dto)
         {
-            return GetApiResponse(await dashboardService.AddContainerItem(dashboardId));
+            return GetApiResponse(await dashboardService.GroupItems(dashboardId, dto));
         }
 
         [HttpPost("{dashboardId}/items/tabs-container")]

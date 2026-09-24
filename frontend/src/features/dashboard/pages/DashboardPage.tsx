@@ -30,6 +30,7 @@ import BoardActions from "../components/BoardActions";
 import BoardFormModal from "../components/BoardFormModal";
 import { DashboardGrid } from "../components/DashboardGrid";
 import { EditEntriesWidgetModal } from "../components/EditEntriesWidgetModal";
+import { EditGroupModal } from "../components/EditGroupModal";
 import { EditTextWidgetModal } from "../components/EditTextWidgetModal";
 import { EditFilterModal } from "../components/EditFilterModal";
 import { EditWidgetModal } from "../components/EditWidgetModal";
@@ -288,13 +289,12 @@ function DashboardContent({
             )}
 
             {editingItemId && editingWidget && editingWidget.type === WidgetTypes.Container && (
-                <EditTextWidgetModal
-                    itemId={editingItemId}
-                    kind="container"
-                    initialText={parseTextWidgetConfig(editingWidget.config)?.text ?? ""}
+                <EditGroupModal
+                    groupId={editingItemId}
+                    initialName={parseTextWidgetConfig(editingWidget.config)?.text ?? ""}
+                    widgets={widgets}
                     color={color}
                     onClose={closeEditing}
-                    onSave={setTextContent}
                 />
             )}
 

@@ -35,6 +35,7 @@ interface Props {
         and the board's. */
   colorOverride?: string | null;
   isConfiguring: boolean;
+  flat?: boolean;
   onRemove?: (itemId: string) => void;
 }
 
@@ -46,6 +47,7 @@ export function QuickAddWidgetCard({
   color,
   colorOverride,
   isConfiguring,
+  flat,
   onRemove,
 }: Props) {
   const layout = useCardLayout(true);
@@ -75,6 +77,7 @@ export function QuickAddWidgetCard({
     <WidgetShell
       layout={layout}
       fillHeight
+      flat={flat}
       isConfiguring={isConfiguring}
       color={trackerColor}
       itemId={widgetId}

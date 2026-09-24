@@ -20,7 +20,11 @@ namespace Operum.Model.Models
         public string? Config { get; set; }
 
         // In DashboardGrid.Columns columns. A zero width means the item predates layouts and
-        // the client places it itself.
+        // the client places it itself -- also true, permanently, of a Container: it owns no
+        // placement of its own (X=Y=W=H=0), just a ParentItemId tag on its members, who carry
+        // ordinary board-relative coordinates like any other top-level item. A TabsContainer is
+        // still a real positioned tile whose children's X/Y are relative to ITS origin, not the
+        // board's -- the one place left where that distinction matters.
         public int X { get; set; }
         public int Y { get; set; }
         public int W { get; set; }

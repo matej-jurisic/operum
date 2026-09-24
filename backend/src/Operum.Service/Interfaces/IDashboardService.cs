@@ -19,7 +19,7 @@ namespace Operum.Service.Interfaces
         Task<Result<DashboardItemDto>> CreateAndPlaceEntriesWidget(string dashboardId, CreateAndPlaceEntriesWidgetDto dto);
         Task<Result<DashboardItemDto>> AddHeaderItem(string dashboardId, AddDashboardHeaderItemDto dto);
         Task<Result<DashboardItemDto>> AddDividerItem(string dashboardId);
-        Task<Result<DashboardItemDto>> AddContainerItem(string dashboardId);
+        Task<Result<List<DashboardWidgetDto>>> GroupItems(string dashboardId, GroupDashboardItemsDto dto);
         Task<Result<DashboardItemDto>> AddTabsContainerItem(string dashboardId);
         Task<Result<List<DashboardWidgetDto>>> SaveTabsContainer(string dashboardId, string itemId, SaveTabsContainerDto dto);
         Task<Result<DashboardItemDto>> AddNoteItem(string dashboardId, AddDashboardNoteItemDto dto);

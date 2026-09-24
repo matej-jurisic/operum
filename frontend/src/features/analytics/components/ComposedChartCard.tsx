@@ -24,6 +24,7 @@ interface Props {
     onEdit?: (analyticId: string) => void;
     /** Stretch to fill the height of the container instead of using a fixed one. */
     fillHeight?: boolean;
+    flat?: boolean;
 }
 
 // Fallback for a series with no tracker color; index 0 is reserved for the board color.
@@ -45,6 +46,7 @@ export function ComposedChartCard({
     onRemove,
     onEdit,
     fillHeight,
+    flat,
 }: Props) {
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
     const layout = useCardLayout(fillHeight);
@@ -93,6 +95,7 @@ export function ComposedChartCard({
         <WidgetShell
             layout={layout}
             fillHeight={fillHeight}
+            flat={flat}
             isConfiguring={isConfiguring}
             color={color}
             itemId={analytic.id}

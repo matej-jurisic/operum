@@ -11,6 +11,7 @@ import {
     DashboardItemDto,
     DashboardViewDto,
     DashboardWidgetDto,
+    GroupDashboardItemsDto,
     ReorderDashboardViewsDto,
     SaveDashboardViewDto,
     SaveFilterItemDto,
@@ -142,16 +143,17 @@ export const dashboardController = {
         return await api.post(`/dashboard/${dashboardId}/items/note`, dto);
     },
 
-    addContainerItem: async (
-        dashboardId: string
-    ): Promise<ApiResponse<DashboardItemDto>> => {
-        return await api.post(`/dashboard/${dashboardId}/items/container`);
-    },
-
     addTabsContainerItem: async (
         dashboardId: string
     ): Promise<ApiResponse<DashboardItemDto>> => {
         return await api.post(`/dashboard/${dashboardId}/items/tabs-container`);
+    },
+
+    groupItems: async (
+        dashboardId: string,
+        dto: GroupDashboardItemsDto
+    ): Promise<ApiResponse<DashboardWidgetDto[]>> => {
+        return await api.post(`/dashboard/${dashboardId}/items/container/group`, dto);
     },
 
     saveTabsContainer: async (

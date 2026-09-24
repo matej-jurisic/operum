@@ -6,6 +6,7 @@ interface Props {
     widgetId: string;
     color: string | undefined;
     isConfiguring: boolean;
+    flat?: boolean;
     onRemove?: (itemId: string) => void;
 }
 
@@ -14,6 +15,7 @@ export function DividerWidgetCard({
     widgetId,
     color,
     isConfiguring,
+    flat,
     onRemove,
 }: Props) {
     const layout = useCardLayout(true);
@@ -22,6 +24,7 @@ export function DividerWidgetCard({
         <WidgetShell
             layout={layout}
             fillHeight
+            flat={flat}
             isConfiguring={isConfiguring}
             color={color}
             itemId={widgetId}

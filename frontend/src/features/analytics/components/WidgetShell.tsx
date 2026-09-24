@@ -23,6 +23,9 @@ interface Props {
 
     /** For a layout accent (Divider, Header, shortcut) rather than data: no surface while read, a border only while arranged. */
     accent?: boolean;
+    /** Inside a container tile: sheds this card's own border/background while read, since
+        the container's own shape already reads as the group's border. */
+    flat?: boolean;
     /** Defaults to `layout.padding`; pass 0 for cards that pad their own body instead. */
     padding?: PaperProps["p"];
     bodyProps?: StackProps;
@@ -44,14 +47,18 @@ export function WidgetShell({
     headerActions,
     titleAdornment,
     accent,
+    flat,
     padding,
     bodyProps,
     children,
     after,
 }: Props) {
     const readMode = !!fillHeight && !isConfiguring;
-    // A data widget keeps a lifted panel in read mode (drawn by WidgetShell.css via data-read-mode); an accent sheds its surface entirely.
-    const softPanel = readMode && !accent;
+    // A data widget keeps a lifted panel in read mode (drawn by WidgetShell.css via
+    // data-read-mode); an accent sheds its surface entirely, and so does a widget nested in
+    // a container, whose own traced shape is the surface instead.
+    const noSurface = readMode && (accent || flat);
+    const softPanel = readMode && !accent && !flat;
 
     return (
         <Paper
@@ -60,7 +67,7 @@ export function WidgetShell({
             data-read-mode={softPanel || undefined}
             withBorder={!readMode}
             bg={
-                accent && readMode
+                noSurface
                     ? "transparent"
                     : softPanel
                       ? "var(--widget-surface)"

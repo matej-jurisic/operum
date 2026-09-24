@@ -19,6 +19,7 @@ interface LineChartCardProps {
     onEdit?: (analyticId: string) => void;
     /** Stretch to fill the height of the container instead of using a fixed one. */
     fillHeight?: boolean;
+    flat?: boolean;
 }
 
 export function LineChartCard({
@@ -28,6 +29,7 @@ export function LineChartCard({
     onRemove,
     onEdit,
     fillHeight,
+    flat,
 }: LineChartCardProps) {
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
     const layout = useCardLayout(fillHeight);
@@ -39,6 +41,7 @@ export function LineChartCard({
         <WidgetShell
             layout={layout}
             fillHeight={fillHeight}
+            flat={flat}
             isConfiguring={isConfiguring}
             color={color}
             itemId={analytic.id}

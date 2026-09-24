@@ -53,7 +53,8 @@ type DashboardContextType = {
     addHeaderItem: (dto: AddDashboardHeaderItemDto) => Promise<void>;
     addDividerItem: () => Promise<void>;
     addNoteItem: (dto: AddDashboardNoteItemDto) => Promise<void>;
-    addContainerItem: () => Promise<void>;
+    /** Creates a container and tags every named widget as its member in one step. */
+    groupItems: (itemIds: string[]) => Promise<void>;
     addTabsContainerItem: () => Promise<void>;
     saveTabsContainer: (itemId: string, dto: SaveTabsContainerDto) => Promise<void>;
     updateItem: (itemId: string, dto: UpdateDashboardItemDto) => Promise<void>;
@@ -73,6 +74,8 @@ type DashboardContextType = {
         variant: LayoutVariant,
         layout: DashboardLayoutItemDto[]
     ) => Promise<void>;
+    /** Reconciles an existing group's membership to exactly this set of widget ids. */
+    updateGroupMembers: (groupId: string, memberIds: string[]) => Promise<void>;
 };
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -93,12 +96,19 @@ export const DashboardProvider: React.FC<{
 
     // Every write below hands back only the widgets it could have changed (see
     // DashboardService.BuildWidgets), so its response is patched in by id: a widget the write
-    // did not touch keeps the data it already has and never re-renders.
+    // did not touch keeps the data it already has and never re-renders. An item not already
+    // in state (a brand new one, e.g. the container GroupItems creates) is appended rather
+    // than dropped.
     const patchWidgets = useCallback((changed: DashboardWidgetDto[] | undefined) => {
         if (!changed?.length) return;
 
         const byId = new Map(changed.map((w) => [w.id, w]));
-        setWidgets((current) => current.map((w) => byId.get(w.id) ?? w));
+        setWidgets((current) => {
+            const currentIds = new Set(current.map((w) => w.id));
+            const next = current.map((w) => byId.get(w.id) ?? w);
+            const added = changed.filter((w) => !currentIds.has(w.id));
+            return added.length > 0 ? [...next, ...added] : next;
+        });
     }, []);
 
     // Resubmits each affected filter widget once, even when more than one source follows it.
@@ -220,9 +230,9 @@ export const DashboardProvider: React.FC<{
         await refreshWidgets();
     };
 
-    const addContainerItem = async () => {
-        await dashboardController.addContainerItem(dashboardId);
-        await refreshWidgets();
+    const groupItems = async (itemIds: string[]) => {
+        const res = await dashboardController.groupItems(dashboardId, { itemIds });
+        patchWidgets(res.data);
     };
 
     const addTabsContainerItem = async () => {
@@ -329,6 +339,32 @@ export const DashboardProvider: React.FC<{
         });
     };
 
+    // Reconciles an existing group's membership to exactly `memberIds`: added widgets are
+    // tagged with the group, dropped ones are cleared -- everyone keeps their own x/y/w/h,
+    // the same layout-save path a normal drag commits through, just batched into one call.
+    const updateGroupMembers = async (groupId: string, memberIds: string[]) => {
+        const wantSet = new Set(memberIds);
+        const currentMembers = widgets.filter((w) => w.parentItemId === groupId);
+        const currentIds = new Set(currentMembers.map((w) => w.id));
+        const toAdd = memberIds
+            .filter((id) => !currentIds.has(id))
+            .map((id) => widgets.find((w) => w.id === id))
+            .filter((w): w is DashboardWidgetDto => w != null);
+        const toRemove = currentMembers.filter((w) => !wantSet.has(w.id));
+
+        const items = [...toAdd, ...toRemove].map((widget) => ({
+            itemId: widget.id,
+            parentItemId: toAdd.includes(widget) ? groupId : null,
+            parentTabId: null,
+            x: widget.layout.x,
+            y: widget.layout.y,
+            w: widget.layout.w,
+            h: widget.layout.h,
+        }));
+        if (items.length === 0) return;
+        await saveLayout(LayoutVariants.Desktop, items);
+    };
+
     return (
         <DashboardContext.Provider
             value={{
@@ -343,7 +379,7 @@ export const DashboardProvider: React.FC<{
                 addHeaderItem,
                 addDividerItem,
                 addNoteItem,
-                addContainerItem,
+                groupItems,
                 addTabsContainerItem,
                 saveTabsContainer,
                 updateItem,
@@ -354,6 +390,7 @@ export const DashboardProvider: React.FC<{
                 setTextContent,
                 removeItem,
                 saveLayout,
+                updateGroupMembers,
             }}
         >
             {children}

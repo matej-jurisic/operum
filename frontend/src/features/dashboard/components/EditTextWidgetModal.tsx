@@ -3,19 +3,17 @@ import { useState } from "react";
 
 interface Props {
     itemId: string;
-    kind: "header" | "note" | "container" | "tabsContainer";
+    kind: "header" | "note" | "tabsContainer";
     initialText: string;
     color: string;
     onClose: () => void;
     onSave: (itemId: string, text: string) => Promise<void>;
 }
 
-// Kept in step with DataLimits.MaxHeaderTextLength / MaxNoteTextLength on the backend. A
-// container title shares the header's cap.
+// Kept in step with DataLimits.MaxHeaderTextLength / MaxNoteTextLength on the backend.
 const MAX_LENGTH: Record<Props["kind"], number> = {
     header: 100,
     note: 500,
-    container: 100,
     tabsContainer: 100,
 };
 
@@ -26,7 +24,6 @@ const COPY: Record<Props["kind"], { title: string; label: string; placeholder: s
         label: "Text",
         placeholder: "Anything worth keeping on the dashboard",
     },
-    container: { title: "Rename container", label: "Name", placeholder: "Container" },
     tabsContainer: {
         title: "Rename tabs container",
         label: "Name",

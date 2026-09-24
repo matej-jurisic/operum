@@ -112,6 +112,12 @@
     overflow: auto;
 }
 
+/* Same fix as DashboardContainerTile.css: without this, the sub-grid only claims the
+   height its widgets need, and the empty space below them silently refuses drops. */
+.tabs-container-body .dashboard-grid {
+    min-height: 100%;
+}
+
 /* Centered over the empty sub-grid, and never in the way of a drop onto it. */
 .tabs-container-hint {
     position: absolute;

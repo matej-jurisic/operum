@@ -17,6 +17,7 @@ interface Props {
     config: TextWidgetConfig | null;
     color: string | undefined;
     isConfiguring: boolean;
+    flat?: boolean;
     onRemove?: (itemId: string) => void;
     onEdit?: (itemId: string) => void;
 }
@@ -28,6 +29,7 @@ export function NoteWidgetCard({
     config,
     color,
     isConfiguring,
+    flat,
     onRemove,
     onEdit,
 }: Props) {
@@ -93,6 +95,7 @@ export function NoteWidgetCard({
         <WidgetShell
             layout={layout}
             fillHeight
+            flat={flat}
             isConfiguring={isConfiguring}
             color={color}
             itemId={widgetId}

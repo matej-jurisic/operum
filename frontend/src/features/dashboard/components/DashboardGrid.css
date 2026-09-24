@@ -26,6 +26,14 @@
     background: var(--mantine-color-body);
 }
 
+/* DragDropProvider renders no DOM element of its own; this is what a group's hug-shape
+   overlay (DashboardGroupOverlay) positions itself against, so it shares the root grid's
+   own box exactly. No fixed size here on purpose -- it wraps to whatever the grid inside
+   it measures. */
+.dashboard-root-grid {
+    position: relative;
+}
+
 .dashboard-grid .dashboard-widget {
     height: 100%;
     overflow: hidden;

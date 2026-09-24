@@ -35,6 +35,8 @@ interface AnalyticCardProps {
     isConfiguring: boolean;
     /** Stretch to fill the container instead of rendering at a fixed height. */
     fillHeight?: boolean;
+    /** Inside a container tile: sheds this card's own border/background. */
+    flat?: boolean;
     onRemove?: (analyticId: string) => void;
     onEdit?: (analyticId: string) => void;
     onEntryClick?: (entryId: string) => void;
@@ -46,6 +48,7 @@ export function AnalyticCard({
     color,
     isConfiguring,
     fillHeight,
+    flat,
     onRemove,
     onEdit,
     onEntryClick,
@@ -58,6 +61,7 @@ export function AnalyticCard({
                     color={color}
                     isConfiguring={isConfiguring}
                     fillHeight={fillHeight}
+                    flat={flat}
                     onRemove={onRemove}
                     onEdit={onEdit}
                     onEntryClick={onEntryClick}
@@ -70,6 +74,7 @@ export function AnalyticCard({
                     color={color}
                     isConfiguring={isConfiguring}
                     fillHeight={fillHeight}
+                    flat={flat}
                     onRemove={onRemove}
                     onEdit={onEdit}
                 />
@@ -81,6 +86,7 @@ export function AnalyticCard({
                     color={color}
                     isConfiguring={isConfiguring}
                     fillHeight={fillHeight}
+                    flat={flat}
                     onRemove={onRemove}
                     onEdit={onEdit}
                 />
@@ -92,6 +98,7 @@ export function AnalyticCard({
                     color={color}
                     isConfiguring={isConfiguring}
                     fillHeight={fillHeight}
+                    flat={flat}
                     onRemove={onRemove}
                     onEdit={onEdit}
                 />
@@ -103,6 +110,7 @@ export function AnalyticCard({
                     color={color}
                     isConfiguring={isConfiguring}
                     fillHeight={fillHeight}
+                    flat={flat}
                     onRemove={onRemove}
                     onEdit={onEdit}
                     onEntryClick={onEntryClick}
@@ -115,6 +123,7 @@ export function AnalyticCard({
                     color={color}
                     isConfiguring={isConfiguring}
                     fillHeight={fillHeight}
+                    flat={flat}
                     onRemove={onRemove}
                     onEdit={onEdit}
                 />
@@ -126,6 +135,7 @@ export function AnalyticCard({
                     color={color}
                     isConfiguring={isConfiguring}
                     fillHeight={fillHeight}
+                    flat={flat}
                     onRemove={onRemove}
                     onEdit={onEdit}
                 />
@@ -137,6 +147,7 @@ export function AnalyticCard({
                     color={color}
                     isConfiguring={isConfiguring}
                     fillHeight={fillHeight}
+                    flat={flat}
                     onRemove={onRemove}
                     onEdit={onEdit}
                 />

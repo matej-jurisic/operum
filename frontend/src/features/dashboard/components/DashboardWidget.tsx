@@ -25,6 +25,9 @@ interface Props {
     variant: LayoutVariant;
     color: string | undefined;
     isConfiguring: boolean;
+    /** Inside a container, whose own shape already reads as the group's border: sheds
+        the widget's own border/background in read mode so the two don't double up. */
+    flat?: boolean;
     onRemove?: (itemId: string) => void;
     /** QuickAdd's tracker is fixed at add time and Divider has nothing to edit, so neither
         uses this. */
@@ -62,6 +65,7 @@ export function DashboardWidget({
     variant,
     color,
     isConfiguring,
+    flat,
     onRemove,
     onEdit,
     onEntryClick,
@@ -89,6 +93,7 @@ export function DashboardWidget({
                         icon={TbChartHistogram}
                         color={chartColor}
                         isConfiguring={isConfiguring}
+                        flat={flat}
                         onRemove={onRemove}
                         onEdit={onEdit}
                         renderExpanded={() => (
@@ -109,6 +114,7 @@ export function DashboardWidget({
                     color={chartColor}
                     isConfiguring={isConfiguring}
                     fillHeight
+                    flat={flat}
                     onRemove={onRemove}
                     onEdit={onEdit}
                     onEntryClick={onEntryClick}
@@ -125,6 +131,7 @@ export function DashboardWidget({
                     color={color}
                     colorOverride={widget.color}
                     isConfiguring={isConfiguring}
+                    flat={flat}
                     onRemove={onRemove}
                 />
             ) : null;
@@ -136,6 +143,7 @@ export function DashboardWidget({
                     filter={widget.filter}
                     color={color}
                     isConfiguring={isConfiguring}
+                    flat={flat}
                     onRemove={onRemove}
                     onEdit={onEdit}
                     onSetValues={onFilterSetValues ?? (() => {})}
@@ -158,6 +166,7 @@ export function DashboardWidget({
                         icon={TbTable}
                         color={entriesColor}
                         isConfiguring={isConfiguring}
+                        flat={flat}
                         onRemove={onRemove}
                         onEdit={onEdit}
                         renderExpanded={() => (
@@ -182,6 +191,7 @@ export function DashboardWidget({
                     entriesWidget={widget.entriesWidget}
                     color={color}
                     isConfiguring={isConfiguring}
+                    flat={flat}
                     onRemove={onRemove}
                     onEdit={onEdit}
                 />
@@ -194,6 +204,7 @@ export function DashboardWidget({
                     config={parseTextWidgetConfig(widget.config)}
                     color={color}
                     isConfiguring={isConfiguring}
+                    flat={flat}
                     onRemove={onRemove}
                     onEdit={onEdit}
                 />
@@ -204,12 +215,14 @@ export function DashboardWidget({
                     widgetId={widget.id}
                     color={color}
                     isConfiguring={isConfiguring}
+                    flat={flat}
                     onRemove={onRemove}
                 />
             );
         case WidgetTypes.Container:
         case WidgetTypes.TabsContainer:
-            // Drawn by DashboardContainerTile / TabsContainerTile instead, in place of this card.
+            // Container: drawn as a DashboardGroupOverlay behind its members instead of a
+            // tile of its own. TabsContainer: drawn by TabsContainerTile instead.
             return null;
         case WidgetTypes.Note:
             return (
@@ -218,6 +231,7 @@ export function DashboardWidget({
                     config={parseTextWidgetConfig(widget.config)}
                     color={color}
                     isConfiguring={isConfiguring}
+                    flat={flat}
                     onRemove={onRemove}
                     onEdit={onEdit}
                 />
@@ -228,6 +242,7 @@ export function DashboardWidget({
                     widgetId={widget.id}
                     color={color}
                     isConfiguring={isConfiguring}
+                    flat={flat}
                     onRemove={onRemove}
                 />
             );

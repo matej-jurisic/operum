@@ -28,6 +28,7 @@ interface CalendarCardProps {
     onEntryClick?: (entryId: string) => void;
     /** Stretch to fill the height of the container instead of using a fixed one. */
     fillHeight?: boolean;
+    flat?: boolean;
 }
 
 const getDateKey = (date: Date): string => {
@@ -83,6 +84,7 @@ export function CalendarCard({
     onEdit,
     onEntryClick,
     fillHeight,
+    flat,
 }: CalendarCardProps) {
     const layout = useCardLayout(fillHeight);
     const [selectedDate, setSelectedDate] = useState<Date | undefined>();
@@ -142,6 +144,7 @@ export function CalendarCard({
         <WidgetShell
             layout={layout}
             fillHeight={fillHeight}
+            flat={flat}
             isConfiguring={isConfiguring}
             color={color}
             itemId={analytic.id}

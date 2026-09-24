@@ -328,6 +328,12 @@ export interface DashboardWidgetDto {
     color?: string;
 }
 
+/** Creates a Container and tags every named item as its member in one step. A Container
+    owns no placement of its own; members keep whatever board-relative x/y they already had. */
+export interface GroupDashboardItemsDto {
+    itemIds: string[];
+}
+
 export interface DashboardLayoutItemDto extends WidgetLayoutDto {
     itemId: string;
     /** The container this placement is inside, or null for a spot on the board itself.

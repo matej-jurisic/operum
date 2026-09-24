@@ -23,6 +23,7 @@ interface ScatterChartCardProps {
     onEdit?: (analyticId: string) => void;
     /** Stretch to fill the height of the container instead of using a fixed one. */
     fillHeight?: boolean;
+    flat?: boolean;
 }
 
 export function ScatterChartCard({
@@ -32,6 +33,7 @@ export function ScatterChartCard({
     onRemove,
     onEdit,
     fillHeight,
+    flat,
 }: ScatterChartCardProps) {
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
     const layout = useCardLayout(fillHeight);
@@ -44,6 +46,7 @@ export function ScatterChartCard({
         <WidgetShell
             layout={layout}
             fillHeight={fillHeight}
+            flat={flat}
             isConfiguring={isConfiguring}
             color={color}
             itemId={analytic.id}

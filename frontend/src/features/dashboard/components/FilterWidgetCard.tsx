@@ -35,6 +35,7 @@ interface Props {
     filter: FilterWidgetDto | undefined;
     color: string | undefined;
     isConfiguring: boolean;
+    flat?: boolean;
     onRemove?: (itemId: string) => void;
     /** Opens the widget's edit dialog: its clauses, its presets, and which widgets follow
         it. */
@@ -52,6 +53,7 @@ export function FilterWidgetCard({
     filter,
     color,
     isConfiguring,
+    flat,
     onRemove,
     onEdit,
     onSetValues,
@@ -182,6 +184,7 @@ export function FilterWidgetCard({
         <WidgetShell
             layout={layout}
             fillHeight
+            flat={flat}
             isConfiguring={isConfiguring}
             color={color}
             itemId={widgetId}

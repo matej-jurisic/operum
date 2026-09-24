@@ -39,6 +39,7 @@ import { AnalyticResultTypeEnum } from "../../analytics/enums/AnalyticResultType
 import { AnalyticConfigDto } from "../../analytics/types/AnalyticConfigDto";
 import { CustomAnalyticForm } from "../../dashboard/components/CustomAnalyticForm";
 import { EntriesWidgetForm } from "../../dashboard/components/EntriesWidgetForm";
+import { GroupWidgetsForm } from "../../dashboard/components/GroupWidgetsForm";
 import { HeaderWidgetForm } from "../../dashboard/components/HeaderWidgetForm";
 import { NoteWidgetForm } from "../../dashboard/components/NoteWidgetForm";
 import { QuickAddTrackerForm } from "../../dashboard/components/QuickAddTrackerForm";
@@ -62,7 +63,8 @@ type Panel =
     | {
           kind: "config";
           widgetKind: "quickAdd" | "filter" | "header" | "note";
-      };
+      }
+    | { kind: "group" };
 
 const TAB_META: { value: TabValue; label: string; icon: IconType }[] = [
     { value: "charts", label: "Charts", icon: TbChartHistogram },
@@ -90,7 +92,7 @@ interface InstantOption {
         | "header"
         | "divider"
         | "note"
-        | "container"
+        | "group"
         | "tabsContainer";
     title: string;
     icon: IconType;
@@ -105,7 +107,7 @@ const LAYOUT_OPTIONS = [
     { key: "header", title: "Header", icon: TbHeading },
     { key: "divider", title: "Divider", icon: MdOutlineHorizontalRule },
     { key: "note", title: "Note", icon: TbNote },
-    { key: "container", title: "Container", icon: TbLayoutBoardSplit },
+    { key: "group", title: "Group", icon: TbLayoutBoardSplit },
     { key: "tabsContainer", title: "Tabs container", icon: TbLayoutNavbar },
 ] satisfies InstantOption[];
 
@@ -125,6 +127,8 @@ function panelTitle(panel: Panel): string {
                 : panel.widgetKind === "header"
                 ? "Add a header"
                 : "Add a note";
+        case "group":
+            return "Group widgets";
     }
 }
 
@@ -132,6 +136,7 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
     const theme = useMantineTheme();
     const isMobile = useMediaQuery("(max-width: 48em)");
     const {
+        widgets,
         createAndPlaceWidget,
         createAndPlaceEntriesWidget,
         addQuickAddItem,
@@ -139,7 +144,7 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
         addHeaderItem,
         addDividerItem,
         addNoteItem,
-        addContainerItem,
+        groupItems,
         addTabsContainerItem,
     } = useDashboard();
 
@@ -236,18 +241,18 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
 
     const pickInstant = async (key: InstantOption["key"]) => {
         // These carry no configuration to fill in first, so they're placed straight away.
-        if (key === "divider" || key === "container" || key === "tabsContainer") {
+        if (key === "divider" || key === "tabsContainer") {
             setAddingInstantKey(key);
             try {
-                await (key === "container"
-                    ? addContainerItem()
-                    : key === "tabsContainer"
-                    ? addTabsContainerItem()
-                    : addDividerItem());
+                await (key === "tabsContainer" ? addTabsContainerItem() : addDividerItem());
                 onClose();
             } finally {
                 setAddingInstantKey(null);
             }
+            return;
+        }
+        if (key === "group") {
+            setPanel({ kind: "group" });
             return;
         }
         setPanel({ kind: "config", widgetKind: key });
@@ -272,6 +277,7 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
     const isWideSub =
         subPanel.kind === "new-chart" ||
         subPanel.kind === "new-table" ||
+        subPanel.kind === "group" ||
         (subPanel.kind === "config" && subPanel.widgetKind === "filter");
 
     // The toolbar stays pinned at the top of the tab; only the rows below it scroll.
@@ -484,6 +490,15 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
 
                 {subPanel.kind === "config" && subPanel.widgetKind === "note" && (
                     <NoteWidgetForm onBack={backToList} onAdd={closeAfter(addNoteItem)} />
+                )}
+
+                {subPanel.kind === "group" && (
+                    <GroupWidgetsForm
+                        widgets={widgets}
+                        color={color}
+                        onBack={backToList}
+                        onAdd={closeAfter(groupItems)}
+                    />
                 )}
             </Modal>
         </>

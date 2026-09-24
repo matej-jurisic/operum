@@ -6,6 +6,8 @@ import {
   SaveTabsContainerDto,
 } from "../types/DashboardDto";
 import type { Layout, LayoutItem } from "@snapgridjs/react";
+import { verticalCompactor } from "@snapgridjs/react";
+import type { ShapeRect } from "./containerShape";
 
 /** Kept in step with DashboardGrid.Columns on the backend: a stored x/w is in these. */
 export const DASHBOARD_GRID_COLUMNS = 24;
@@ -110,6 +112,49 @@ export const toLayoutItem = (
     minW: Math.min(MIN_WIDTH, cols),
     minH: MIN_HEIGHT,
   };
+};
+
+/** The stored layout is never recompacted server-side, so gaps from deleted/hidden/moved
+    widgets are closed here on the way in. minW/minH aren't carried through the compactor,
+    so re-attach them. */
+export function compactLayout(items: Layout, cols: number): Layout {
+  const constraintsById = new Map(items.map((it) => [it.i, it]));
+  return verticalCompactor.compact(items, cols).map((it) => {
+    const src = constraintsById.get(it.i);
+    return src ? { ...it, minW: src.minW, minH: src.minH } : it;
+  });
+}
+
+/** The packed grid-unit layout for a set of widgets, exactly as the desktop sub-grid
+    that renders them computes it. */
+export const layoutFor = (widgets: DashboardWidgetDto[], cols: number): Layout =>
+  compactLayout(
+    widgets.map((widget, index) => toLayoutItem(widget, index, LayoutVariants.Desktop, cols)),
+    cols,
+  );
+
+/** Mirrors react-grid-layout's own item-positioning math (colWidth from the container
+    width, then each item's top/left/width/height from its grid units) so the pixel rects
+    line up exactly with what the grid actually renders. Kept in sync with
+    calcGridItemPosition in react-grid-layout/core, which @snapgridjs builds on. */
+export const layoutToPixelRects = (
+  layout: Layout,
+  containerWidth: number,
+  cols: number,
+  rowHeight: number,
+  margin: [number, number],
+  containerPadding: [number, number],
+): Map<string, ShapeRect> => {
+  const colWidth = (containerWidth - margin[0] * (cols - 1) - containerPadding[0] * 2) / cols;
+  const map = new Map<string, ShapeRect>();
+  for (const item of layout) {
+    const x = Math.round((colWidth + margin[0]) * item.x + containerPadding[0]);
+    const y = Math.round((rowHeight + margin[1]) * item.y + containerPadding[1]);
+    const w = Math.round(colWidth * item.w + Math.max(0, item.w - 1) * margin[0]);
+    const h = Math.round(rowHeight * item.h + Math.max(0, item.h - 1) * margin[1]);
+    map.set(item.i, { x, y, w, h });
+  }
+  return map;
 };
 
 export const toLayoutDto = (

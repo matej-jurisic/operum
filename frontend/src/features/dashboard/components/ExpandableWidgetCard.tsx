@@ -11,6 +11,7 @@ interface Props {
     icon: IconType;
     color: string | undefined;
     isConfiguring: boolean;
+    flat?: boolean;
     onRemove?: (itemId: string) => void;
     /** Analytic widgets only: an Entries widget has nothing else to edit today. */
     onEdit?: (itemId: string) => void;
@@ -24,6 +25,7 @@ export function ExpandableWidgetCard({
     icon,
     color,
     isConfiguring,
+    flat,
     onRemove,
     onEdit,
     renderExpanded,
@@ -36,6 +38,7 @@ export function ExpandableWidgetCard({
         <WidgetShell
             layout={layout}
             fillHeight
+            flat={flat}
             isConfiguring={isConfiguring}
             color={color}
             itemId={widgetId}

@@ -14,6 +14,7 @@ interface Props {
     onEdit?: (analyticId: string) => void;
     /** Stretch to fill the height of the container instead of using a fixed one. */
     fillHeight?: boolean;
+    flat?: boolean;
 }
 
 export function GoalCard({
@@ -23,6 +24,7 @@ export function GoalCard({
     onRemove,
     onEdit,
     fillHeight,
+    flat,
 }: Props) {
     const layout = useCardLayout(fillHeight);
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
@@ -42,6 +44,7 @@ export function GoalCard({
         <WidgetShell
             layout={layout}
             fillHeight={fillHeight}
+            flat={flat}
             isConfiguring={isConfiguring}
             color={color}
             itemId={analytic.id}

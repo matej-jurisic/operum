@@ -41,8 +41,6 @@ namespace Operum.Model.Constants
 
         public static readonly (int Width, int Height) NoteSize = (8, 12);
 
-        public static readonly (int Width, int Height) ContainerSize = (10, 24);
-
         public static readonly (int Width, int Height) TabsContainerSize = (10, 24);
     }
 }

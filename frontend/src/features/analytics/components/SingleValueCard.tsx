@@ -16,6 +16,7 @@ interface Props {
     onEntryClick?: (entryId: string) => void;
     /** Stretch to fill the height of the container instead of using a fixed one. */
     fillHeight?: boolean;
+    flat?: boolean;
 }
 
 const MIN_VALUE_FONT = 18;
@@ -33,6 +34,7 @@ export function SingleValueCard({
     onEdit,
     onEntryClick,
     fillHeight,
+    flat,
 }: Props) {
     const layout = useCardLayout(fillHeight);
     const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
@@ -66,6 +68,7 @@ export function SingleValueCard({
         <WidgetShell
             layout={layout}
             fillHeight={fillHeight}
+            flat={flat}
             isConfiguring={isConfiguring}
             color={color}
             itemId={analytic.id}
