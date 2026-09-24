@@ -164,23 +164,60 @@ function roundedLoopPath(points: Point[], radius: number): string {
     return `${d} Z`;
 }
 
-/** SVG path data for the shape a container draws around `rects`: each rect grown
-    by `pad` on every side (so widgets a standard grid gap apart merge into one
-    outline, and only a real gap in the layout splits it into more than one),
-    unioned, and corner-rounded to `radius`. Null when there's nothing to draw. */
+/** Two rects a normal grid gap apart don't touch or overlap, so tracing their union
+    outright leaves them as separate loops. For every pair up to `maxGap` apart (edge to
+    edge, with their perpendicular extents overlapping), this fills the gap with a
+    connecting rect spanning exactly that channel -- widgets a standard grid gap apart
+    merge into one outline this way, with no added padding anywhere else, so the traced
+    border ends up flush against every widget's own edge instead of floating past it. */
+function bridgeRects(rects: ShapeRect[], maxGap: number): ShapeRect[] {
+    const bridges: ShapeRect[] = [];
+    for (let i = 0; i < rects.length; i++) {
+        for (let j = i + 1; j < rects.length; j++) {
+            const a = rects[i];
+            const b = rects[j];
+
+            const horizGap = a.x < b.x ? b.x - (a.x + a.w) : a.x - (b.x + b.w);
+            const left = a.x < b.x ? a : b;
+            const vOverlapStart = Math.max(a.y, b.y);
+            const vOverlapEnd = Math.min(a.y + a.h, b.y + b.h);
+            if (horizGap > 0 && horizGap <= maxGap && vOverlapEnd > vOverlapStart) {
+                bridges.push({
+                    x: left.x + left.w,
+                    y: vOverlapStart,
+                    w: horizGap,
+                    h: vOverlapEnd - vOverlapStart,
+                });
+            }
+
+            const vertGap = a.y < b.y ? b.y - (a.y + a.h) : a.y - (b.y + b.h);
+            const top = a.y < b.y ? a : b;
+            const hOverlapStart = Math.max(a.x, b.x);
+            const hOverlapEnd = Math.min(a.x + a.w, b.x + b.w);
+            if (vertGap > 0 && vertGap <= maxGap && hOverlapEnd > hOverlapStart) {
+                bridges.push({
+                    x: hOverlapStart,
+                    y: top.y + top.h,
+                    w: hOverlapEnd - hOverlapStart,
+                    h: vertGap,
+                });
+            }
+        }
+    }
+    return bridges;
+}
+
+/** SVG path data for the shape a container draws around `rects`: widgets up to `maxGap`
+    apart are bridged into one outline (see bridgeRects), everyone else stays a separate
+    loop, and the result is corner-rounded to `radius`. Null when there's nothing to draw. */
 export function huggingShapePath(
     rects: ShapeRect[],
-    pad: number,
+    maxGap: number,
     radius: number,
 ): string | null {
     if (rects.length === 0) return null;
-    const padded = rects.map((r) => ({
-        x: r.x - pad,
-        y: r.y - pad,
-        w: r.w + pad * 2,
-        h: r.h + pad * 2,
-    }));
-    const loops = traceUnionOutline(padded);
+    const bridges = bridgeRects(rects, maxGap);
+    const loops = traceUnionOutline([...rects, ...bridges]);
     if (loops.length === 0) return null;
     const path = loops.map((loop) => roundedLoopPath(loop, radius)).filter(Boolean).join(" ");
     return path || null;

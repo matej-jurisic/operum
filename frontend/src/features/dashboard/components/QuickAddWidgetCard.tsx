@@ -73,6 +73,12 @@ export function QuickAddWidgetCard({
     setDialogTracker(res.data);
   };
 
+  // The shell's own border already disappears for an accent widget like this one in read
+  // mode, but the button underneath always drew its own outline regardless -- inside a
+  // group that outline just sits on top of the group's shared background instead of
+  // blending into it. Arranging still gets the normal outline, matching every other widget.
+  const flatRead = flat && !isConfiguring;
+
   return (
     <WidgetShell
       layout={layout}
@@ -109,7 +115,7 @@ export function QuickAddWidgetCard({
           <Button
             color={trackerColor}
             disabled={isConfiguring}
-            variant="outline"
+            variant={flatRead ? "subtle" : "outline"}
             radius="md"
             w={"100%"}
             h={"100%"}

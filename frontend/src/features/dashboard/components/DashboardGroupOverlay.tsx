@@ -65,7 +65,9 @@ function useGroupHugGeometry({ layout, width, variant }: GeometryProps) {
   }, [layout, width, variant]);
 
   const hugPath = useMemo(
-    () => huggingShapePath(rects, margin[0] / 2, HUG_CORNER_RADIUS),
+    // +2px slack absorbs layoutToPixelRects's own Math.round, so two widgets exactly one
+    // grid gap apart still bridge even if rounding nudged their edges a pixel closer.
+    () => huggingShapePath(rects, margin[0] + 2, HUG_CORNER_RADIUS),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- margin is derived from variant
     [rects, variant],
   );
