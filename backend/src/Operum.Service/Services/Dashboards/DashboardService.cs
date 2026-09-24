@@ -541,8 +541,8 @@ namespace Operum.Service.Services.Dashboards
             return Result.Success();
         }
 
-        // Defines a new Widget Library chart via WidgetsService and places it in the same call.
-        // Board capacity is checked first so a request that won't fit doesn't spend a Library slot.
+        // Builds this placement's backing Widget via WidgetsService and places it in the same
+        // call. Board capacity is checked first so a request that won't fit doesn't spend a slot.
         public async Task<Result<DashboardItemDto>> CreateAndPlaceWidget(string dashboardId, CreateAndPlaceWidgetDto dto)
         {
             var dashboard = await GetUserDashboard(dashboardId);
@@ -598,30 +598,8 @@ namespace Operum.Service.Services.Dashboards
             });
         }
 
-        // Places an existing Widget Library chart by reference; editing the widget afterwards changes this placement too.
-        public async Task<Result<DashboardItemDto>> PlaceWidget(string dashboardId, PlaceWidgetDto dto)
-        {
-            var dashboard = await GetUserDashboard(dashboardId);
-            if (dashboard == null)
-                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
-
-            if (dashboard.Items.Count >= DataLimits.MaxDashboardItemCount)
-                return Result.Failure(ResultStatusCodes.Conflict, Messages.MaxNumberReached("dashboard items", DataLimits.MaxDashboardItemCount));
-
-            var user = currentUserService.GetCurrentUser();
-            var widget = await db.Widgets
-                .Include(w => w.Sources).ThenInclude(s => s.Tracker)
-                .Include(w => w.Sources).ThenInclude(s => s.Fields).ThenInclude(f => f.Field)
-                .FirstOrDefaultAsync(w => w.Id == dto.WidgetId && w.OwnerId == user.Id);
-
-            if (widget == null)
-                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("widget"));
-
-            return await PlaceWidgetOnDashboard(dashboard, widget, dto);
-        }
-
-        // Shared by CreateAndPlaceWidget and PlaceWidget: inserts one DashboardItem +
-        // one DashboardItemSource per WidgetSource, referencing the shared definition.
+        // Inserts one DashboardItem + one DashboardItemSource per WidgetSource, referencing
+        // the Widget that CreateAndPlaceWidget just built for this placement alone.
         private async Task<Result<DashboardItemDto>> PlaceWidgetOnDashboard(Dashboard dashboard, Widget widget, PlaceWidgetDto dto)
         {
             var widgetSourceIds = widget.Sources.Select(s => s.Id).ToHashSet();
@@ -1220,24 +1198,8 @@ namespace Operum.Service.Services.Dashboards
             });
         }
 
-        // The Entries equivalent of PlaceWidget.
-        public async Task<Result<DashboardItemDto>> PlaceEntriesWidget(string dashboardId, PlaceEntriesWidgetDto dto)
-        {
-            var dashboard = await GetUserDashboard(dashboardId);
-            if (dashboard == null)
-                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("dashboard"));
-
-            if (dashboard.Items.Count >= DataLimits.MaxDashboardItemCount)
-                return Result.Failure(ResultStatusCodes.Conflict, Messages.MaxNumberReached("dashboard items", DataLimits.MaxDashboardItemCount));
-
-            var user = currentUserService.GetCurrentUser();
-            var entriesWidget = await db.EntriesWidgets.FirstOrDefaultAsync(w => w.Id == dto.EntriesWidgetId && w.OwnerId == user.Id);
-            if (entriesWidget == null)
-                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("entries widget"));
-
-            return await PlaceEntriesWidgetOnDashboard(dashboard, entriesWidget, dto);
-        }
-
+        // Inserts one Entries DashboardItem referencing the EntriesWidget that
+        // CreateAndPlaceEntriesWidget just built for this placement alone.
         private async Task<Result<DashboardItemDto>> PlaceEntriesWidgetOnDashboard(Dashboard dashboard, EntriesWidget entriesWidget, PlaceEntriesWidgetDto dto)
         {
             var columns = await ResolveEntriesColumns(entriesWidget.TrackerId, dto.ColumnFieldIds);
@@ -1441,7 +1403,9 @@ namespace Operum.Service.Services.Dashboards
             };
         }
 
-        // Only edits placement-level fields (label, view); the shared definition lives on the Widget and is edited via the Widget Library.
+        // Most fields here are placement-level (display mode, color, per-source label/view),
+        // but Name/GoalTarget/GoalDirection/MatchedValuesOnly live on the backing Widget --
+        // fine to edit directly since it's this one placement's own, never shared.
         public async Task<Result<List<DashboardWidgetDto>>> UpdateDashboardItem(string dashboardId, string itemId, UpdateDashboardItemDto dto)
         {
             var dashboard = await GetUserDashboard(dashboardId);
@@ -1656,7 +1620,10 @@ namespace Operum.Service.Services.Dashboards
                 filterItem.Config = JsonSerializer.Serialize(filterConfig, ConfigJsonOptions);
             }
 
-            // The shared Widget/EntriesWidget, if any, is untouched and keeps rendering elsewhere.
+            // A Widget/EntriesWidget belongs exclusively to the one placement that created it
+            // (there's no reuse across dashboards), so it must go with the item or it leaks forever.
+            if (item.Widget != null) db.Widgets.Remove(item.Widget);
+            if (item.EntriesWidget != null) db.EntriesWidgets.Remove(item.EntriesWidget);
             db.DashboardItems.Remove(item);
             await db.SaveChangesAsync();
             return Result.Success();

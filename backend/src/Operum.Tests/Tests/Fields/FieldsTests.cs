@@ -2,8 +2,8 @@ using Operum.Model.Constants;
 using Operum.Model.Constants.Analytics;
 using Operum.Model.Constants.Fields;
 using Operum.Model.DTOs.Analytics.Requests;
+using Operum.Model.DTOs.Dashboard.Requests;
 using Operum.Model.DTOs.Fields.Requests;
-using Operum.Model.DTOs.Widgets.Requests;
 using Operum.Tests.Util;
 using System.Net;
 using System.Net.Http.Json;
@@ -312,16 +312,17 @@ namespace Operum.Tests.Tests.Fields
             var trackerId = await TestApi.CreateTracker(client, "Delete field of a widget");
             var amountId = await TestApi.CreateField(client, trackerId, "Amount", DataTypes.Number);
 
-            var widgetId = await TestApi.IdOf(await client.PostAsJsonAsync("widgets", new CreateWidgetDto
+            var dashboardId = await TestApi.IdOf(await client.PostAsJsonAsync("dashboard", new CreateDashboardDto { Name = "My board" }));
+            var itemId = await TestApi.IdOf(await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
             {
                 ResultType = AnalyticTypes.SingleValue,
                 Code = AnalyticCodes.Average,
                 Sources =
                 [
-                    new CreateWidgetSourceRequestDto
+                    new CreateAndPlaceWidgetSourceDto
                     {
                         TrackerId = trackerId,
-                        Fields = [new CreateAnalyticFieldDto { FieldId = amountId, Purpose = AnalyticPurposes.Value }]
+                        AnalyticFields = [new CreateAnalyticFieldDto { FieldId = amountId, Purpose = AnalyticPurposes.Value }]
                     }
                 ]
             }));
@@ -331,8 +332,9 @@ namespace Operum.Tests.Tests.Fields
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Empty(await FieldNames(client, trackerId));
 
-            var widget = await TestApi.Data(await client.GetAsync($"widgets/{widgetId}"));
-            Assert.Empty(widget.GetProperty("sources")[0].GetProperty("fields").EnumerateArray());
+            var dashboard = await TestApi.Data(await client.GetAsync($"dashboard/{dashboardId}"));
+            var item = dashboard.GetProperty("items").EnumerateArray().Single(i => i.GetProperty("id").GetString() == itemId);
+            Assert.Empty(item.GetProperty("sources")[0].GetProperty("fields").EnumerateArray());
         }
 
         [Fact]

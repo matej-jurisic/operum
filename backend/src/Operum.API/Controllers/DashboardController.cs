@@ -60,13 +60,6 @@ namespace Operum.API.Controllers
             return GetApiResponse(await dashboardService.CreateAndPlaceWidget(dashboardId, dto));
         }
 
-        // Places an existing Widget Library chart by reference (see PlaceWidgetDto); it keeps rendering here if edited or deleted from the Library, unlike the old copy-on-add path this replaces.
-        [HttpPost("{dashboardId}/items/place-widget")]
-        public async Task<IActionResult> PlaceWidget([FromRoute] string dashboardId, [FromBody] PlaceWidgetDto dto)
-        {
-            return GetApiResponse(await dashboardService.PlaceWidget(dashboardId, dto));
-        }
-
         [HttpPost("{dashboardId}/items/quick-add")]
         public async Task<IActionResult> AddQuickAddItem([FromRoute] string dashboardId, [FromBody] AddDashboardQuickAddItemDto dto)
         {
@@ -113,13 +106,6 @@ namespace Operum.API.Controllers
         public async Task<IActionResult> CreateAndPlaceEntriesWidget([FromRoute] string dashboardId, [FromBody] CreateAndPlaceEntriesWidgetDto dto)
         {
             return GetApiResponse(await dashboardService.CreateAndPlaceEntriesWidget(dashboardId, dto));
-        }
-
-        // Places an existing Widget Library Entries table by reference, see PlaceEntriesWidgetDto.
-        [HttpPost("{dashboardId}/items/place-entries-widget")]
-        public async Task<IActionResult> PlaceEntriesWidget([FromRoute] string dashboardId, [FromBody] PlaceEntriesWidgetDto dto)
-        {
-            return GetApiResponse(await dashboardService.PlaceEntriesWidget(dashboardId, dto));
         }
 
         [HttpPost("{dashboardId}/items/header")]

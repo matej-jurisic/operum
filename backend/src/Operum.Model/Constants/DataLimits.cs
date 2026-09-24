@@ -10,8 +10,8 @@
         public const int MaxTrackerCount = 30;
         public const int MaxIntegrationCount = 10;
         public const int MaxIntegrationTargetCount = 10;
-        // Shared across the Widget Library (charts + Entries widgets); replaces the old
-        // per-tracker MaxAnalyticCount now that a widget can serve many dashboards.
+        // Shared across both widget kinds (charts + Entries widgets), counted per owner
+        // rather than per tracker like the old MaxAnalyticCount it replaced.
         public const int MaxWidgetCount = 100;
         public const int MaxConstantCount = 25;
         public const int MaxConstantValueCount = 6;

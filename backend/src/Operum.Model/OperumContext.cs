@@ -178,9 +178,10 @@ namespace Operum.Model
                 .HasForeignKey(w => w.OwnerId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // A placement can't render without its shared definition, so deleting the
-            // Widget/EntriesWidget takes every placement down too -- the sharpest edge of
-            // the reuse model, surfaced to the user before deleting from the library.
+            // A placement can't render without its Widget/EntriesWidget, so deleting one takes
+            // its one placement down too. In practice DashboardService always deletes them
+            // together the other way (removing the item deletes its widget), since neither is
+            // ever shared with another placement.
             builder.Entity<DashboardItem>()
                 .HasOne(i => i.Widget)
                 .WithMany()

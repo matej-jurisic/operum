@@ -18,7 +18,7 @@ namespace Operum.Model.DTOs.Widgets
         public int Order { get; set; }
     }
 
-    // Not scoped to any one dashboard; see DashboardWidgetDto for a placement's rendering.
+    // Returned by CreateWidget; DashboardWidgetDto is what a placement actually renders as.
     public class WidgetDto
     {
         public string Id { get; set; } = string.Empty;

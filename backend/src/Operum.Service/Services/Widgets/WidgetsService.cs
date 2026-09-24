@@ -12,34 +12,11 @@ using Operum.Service.Interfaces;
 
 namespace Operum.Service.Services.Widgets
 {
-    // CRUD for the Widget Library: reusable chart (Widget) and Entries table
-    // (EntriesWidget) definitions, owned by a user rather than a tracker or a dashboard.
-    // Placing one on a board -- and rendering it there -- is DashboardService's job (see
-    // DashboardService.BuildWidgets, rewired to read through these in Phase B3); this
-    // service only manages the definitions themselves.
+    // Builds the Widget/EntriesWidget backing a single dashboard placement -- see
+    // IWidgetsService. Rendering a placement is DashboardService's job; this only
+    // constructs and validates the definition each one carries.
     public class WidgetsService(ICurrentUserService currentUserService, OperumContext db) : IWidgetsService
     {
-        public async Task<Result<List<WidgetDto>>> GetWidgets(string? trackerId)
-        {
-            var user = currentUserService.GetCurrentUser();
-            var query = WithSourceGraph(db.Widgets).Where(w => w.OwnerId == user.Id);
-
-            if (!string.IsNullOrEmpty(trackerId))
-                query = query.Where(w => w.Sources.Any(s => s.TrackerId == trackerId));
-
-            var widgets = await query.ToListAsync();
-            return Result.Success(widgets.Select(MapToDto).ToList());
-        }
-
-        public async Task<Result<WidgetDto>> GetWidget(string widgetId)
-        {
-            var widget = await GetOwnedWidget(widgetId);
-            if (widget == null)
-                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("widget"));
-
-            return Result.Success(MapToDto(widget));
-        }
-
         public async Task<Result<WidgetDto>> CreateWidget(CreateWidgetDto dto)
         {
             var user = currentUserService.GetCurrentUser();
@@ -139,81 +116,6 @@ namespace Operum.Service.Services.Widgets
             return Result.Success(MapToDto(saved!));
         }
 
-        public async Task<Result<WidgetDto>> UpdateWidget(string widgetId, UpdateWidgetDto dto)
-        {
-            var widget = await GetOwnedWidget(widgetId);
-            if (widget == null)
-                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("widget"));
-
-            widget.Name = dto.Name?.Trim() ?? string.Empty;
-            widget.Description = dto.Description?.Trim() ?? string.Empty;
-
-            // Only a Goal has a target, and only when the caller sends a new one. Its type
-            // has to line up with the value field the same way it did at creation.
-            if (widget.ResultType == AnalyticTypes.Goal && dto.GoalTarget != null)
-            {
-                var target = dto.GoalTarget.Trim();
-                var valueFieldId = widget.Sources
-                    .SelectMany(s => s.Fields)
-                    .FirstOrDefault(f => f.Purpose == AnalyticPurposes.Value)?.FieldId;
-                var valueField = valueFieldId != null
-                    ? await db.Fields.FirstOrDefaultAsync(f => f.Id == valueFieldId)
-                    : null;
-
-                if (!GoalTargets.IsParseable(target) || !GoalTargets.MatchesFieldType(widget.Code, valueField?.Type, target))
-                    return Result.Failure(ResultStatusCodes.BadRequest, Messages.Invalid("goal target for this field's type"));
-
-                widget.GoalTarget = target;
-            }
-
-            if (widget.ResultType == AnalyticTypes.Goal && !string.IsNullOrEmpty(dto.GoalDirection))
-                widget.GoalDirection = dto.GoalDirection;
-
-            // The DbContext defaults to QueryTrackingBehavior.NoTracking (see
-            // DatabaseConfiguration), so the mutation above is invisible to SaveChangesAsync
-            // unless the entity is explicitly re-attached as Modified.
-            db.Widgets.Update(widget);
-            await db.SaveChangesAsync();
-
-            return Result.Success(MapToDto(widget));
-        }
-
-        public async Task<Result> DeleteWidget(string widgetId)
-        {
-            var widget = await GetOwnedWidget(widgetId);
-            if (widget == null)
-                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("widget"));
-
-            // Cascades to every DashboardItem placing this widget (see OperumContext) -- it
-            // disappears from every dashboard it was on, not just the library. The caller is
-            // expected to have warned the user before getting here.
-            db.Widgets.Remove(widget);
-            await db.SaveChangesAsync();
-
-            return Result.Success();
-        }
-
-        public async Task<Result<List<EntriesWidgetDefinitionDto>>> GetEntriesWidgets(string? trackerId)
-        {
-            var user = currentUserService.GetCurrentUser();
-            var query = db.EntriesWidgets.Include(w => w.Tracker).Where(w => w.OwnerId == user.Id);
-
-            if (!string.IsNullOrEmpty(trackerId))
-                query = query.Where(w => w.TrackerId == trackerId);
-
-            var widgets = await query.ToListAsync();
-            return Result.Success(widgets.Select(w => MapToDto(w)).ToList());
-        }
-
-        public async Task<Result<EntriesWidgetDefinitionDto>> GetEntriesWidget(string entriesWidgetId)
-        {
-            var widget = await GetOwnedEntriesWidget(entriesWidgetId);
-            if (widget == null)
-                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("entries widget"));
-
-            return Result.Success(MapToDto(widget));
-        }
-
         public async Task<Result<EntriesWidgetDefinitionDto>> CreateEntriesWidget(CreateEntriesWidgetDto dto)
         {
             var user = currentUserService.GetCurrentUser();
@@ -246,35 +148,10 @@ namespace Operum.Service.Services.Widgets
             return Result.Success(MapToDto(widget, tracker.Name));
         }
 
-        public async Task<Result<EntriesWidgetDefinitionDto>> UpdateEntriesWidget(string entriesWidgetId, UpdateEntriesWidgetDto dto)
-        {
-            var widget = await GetOwnedEntriesWidget(entriesWidgetId);
-            if (widget == null)
-                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("entries widget"));
-
-            widget.Name = dto.Name?.Trim() ?? string.Empty;
-            db.EntriesWidgets.Update(widget);
-            await db.SaveChangesAsync();
-
-            return Result.Success(MapToDto(widget));
-        }
-
-        public async Task<Result> DeleteEntriesWidget(string entriesWidgetId)
-        {
-            var widget = await GetOwnedEntriesWidget(entriesWidgetId);
-            if (widget == null)
-                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("entries widget"));
-
-            db.EntriesWidgets.Remove(widget);
-            await db.SaveChangesAsync();
-
-            return Result.Success();
-        }
-
         // Validates the field mapping a source supplies against the widget's definition and,
         // if it holds up, fills source.Fields. Mirrors DashboardService.BuildSourceFields --
         // kept separate rather than shared because the two operate on different entity types
-        // (WidgetSource vs DashboardItemSource) until Phase B3 unifies the placement path.
+        // (WidgetSource vs DashboardItemSource).
         private async Task<Result> BuildSourceFields(string resultType, string code, string? grouping, CreateWidgetSourceRequestDto dto, WidgetSource source)
         {
             var requiredPurposes = AnalyticDefinitionList.GetRequiredPurposes(resultType, code, grouping);
@@ -322,15 +199,6 @@ namespace Operum.Service.Services.Widgets
                 // both of which need this tracked under the context-wide NoTracking default.
                 .AsTracking()
                 .FirstOrDefaultAsync(w => w.Id == widgetId && w.OwnerId == user.Id);
-        }
-
-        private async Task<EntriesWidget?> GetOwnedEntriesWidget(string entriesWidgetId)
-        {
-            var user = currentUserService.GetCurrentUser();
-            return await db.EntriesWidgets
-                .Include(w => w.Tracker)
-                .AsTracking()
-                .FirstOrDefaultAsync(w => w.Id == entriesWidgetId && w.OwnerId == user.Id);
         }
 
         // A widget named nothing falls back to its definition's own label (e.g. "Count"),

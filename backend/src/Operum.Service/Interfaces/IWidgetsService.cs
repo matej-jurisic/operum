@@ -4,18 +4,12 @@ using Operum.Model.DTOs.Widgets.Requests;
 
 namespace Operum.Service.Interfaces
 {
+    // Builds the Widget/EntriesWidget backing a single placement; called only from
+    // DashboardService.CreateAndPlaceWidget/CreateAndPlaceEntriesWidget. There's no reuse
+    // across dashboards, so nothing else needs to fetch, update, or delete one independently.
     public interface IWidgetsService
     {
-        Task<Result<List<WidgetDto>>> GetWidgets(string? trackerId);
-        Task<Result<WidgetDto>> GetWidget(string widgetId);
         Task<Result<WidgetDto>> CreateWidget(CreateWidgetDto dto);
-        Task<Result<WidgetDto>> UpdateWidget(string widgetId, UpdateWidgetDto dto);
-        Task<Result> DeleteWidget(string widgetId);
-
-        Task<Result<List<EntriesWidgetDefinitionDto>>> GetEntriesWidgets(string? trackerId);
-        Task<Result<EntriesWidgetDefinitionDto>> GetEntriesWidget(string entriesWidgetId);
         Task<Result<EntriesWidgetDefinitionDto>> CreateEntriesWidget(CreateEntriesWidgetDto dto);
-        Task<Result<EntriesWidgetDefinitionDto>> UpdateEntriesWidget(string entriesWidgetId, UpdateEntriesWidgetDto dto);
-        Task<Result> DeleteEntriesWidget(string entriesWidgetId);
     }
 }

@@ -3,10 +3,9 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Operum.Model.Models
 {
-    // A reusable chart definition: the calculation (ResultType/Code) plus the tracker
-    // source(s) that feed it. Not owned by any one dashboard or tracker -- it can be
-    // placed on any number of dashboards via DashboardItem.WidgetId, and editing it here
-    // is what every one of those placements shows.
+    // A chart's definition: the calculation (ResultType/Code) plus the tracker source(s)
+    // that feed it. Owned by the single DashboardItem placing it (DashboardItem.WidgetId) --
+    // there's no reuse across dashboards, so this row's lifetime matches that one placement's.
     public class Widget
     {
         [Key]

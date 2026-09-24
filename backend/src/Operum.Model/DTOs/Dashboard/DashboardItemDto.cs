@@ -36,8 +36,7 @@ namespace Operum.Model.DTOs.Dashboard
         public bool ShowTrend { get; set; } = true;
         // Calendar widgets only. Null for automatic.
         public string? CalendarStartMonth { get; set; }
-        // Goal widgets only. Included here, not just on WidgetDto, so the edit form doesn't
-        // need a second fetch to the Widget Library.
+        // Goal widgets only. Lets the edit form preload it without a second fetch.
         public string? GoalDirection { get; set; }
         // Goal widgets only: the target the value is shown as progress toward.
         public string? GoalTarget { get; set; }

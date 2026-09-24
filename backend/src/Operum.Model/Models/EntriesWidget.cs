@@ -3,7 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Operum.Model.Models
 {
-    // Not owned by any one dashboard; placed via DashboardItem.EntriesWidgetId.
+    // Owned by the single DashboardItem placing it (DashboardItem.EntriesWidgetId); no reuse
+    // across dashboards.
     public class EntriesWidget
     {
         [Key]
