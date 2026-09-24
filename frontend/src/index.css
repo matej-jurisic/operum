@@ -17,15 +17,10 @@ body {
     width: 100%;
 }
 
-/* The fill behind a dashboard widget in read mode, where it carries no border. Light
-   mode matches the page and leans on the shadow; dark mode lifts a step off the canvas,
-   since a shadow barely registers there. */
+/* The fill behind a dashboard widget in read mode: matches the page background in both
+   themes, relying on WidgetShell's hairline border and shadow for separation. */
 :root {
-    --widget-surface: var(--mantine-color-white);
-}
-
-[data-mantine-color-scheme="dark"] {
-    --widget-surface: var(--mantine-color-dark-6);
+    --widget-surface: var(--mantine-color-body);
 }
 
 .truncated-text {

@@ -523,6 +523,7 @@ export function FilterWidgetCard({
                                 flex: 1,
                                 minWidth: 0,
                                 overflowX: "auto",
+                                overflowY: "hidden",
                             }}
                         >
                             {liveRows.map((row) => (
