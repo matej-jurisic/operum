@@ -106,7 +106,7 @@ namespace Operum.Service.Services.Notifications
 
                 try
                 {
-                    await pushService.SendToTrackerUsersAsync(notification.TrackerId, title, body, url, ct);
+                    await pushService.SendToTrackerUsersAsync(notification.TrackerId, body, title, url, ct);
                 }
                 catch (Exception ex)
                 {
