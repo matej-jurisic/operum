@@ -1,16 +1,18 @@
 import {
     ActionIcon,
     Button,
+    Divider,
     Group,
     Indicator,
     Loader,
     Modal,
     ScrollArea,
     Stack,
+    Text,
     Tooltip,
 } from "@mantine/core";
 import { observer } from "mobx-react";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { TbBell } from "react-icons/tb";
 import EmptyState from "../../../shared/components/EmptyState";
 import inboxStore from "../../../shared/stores/InboxStore";
@@ -71,10 +73,13 @@ const InboxBell = observer(({ collapsed }: Props) => {
             >
                 <Stack gap="sm">
                     {count > 0 && (
-                        <Group justify="flex-end">
+                        <Group justify="space-between">
+                            <Text size="sm" c="dimmed">
+                                {count} unread
+                            </Text>
                             <Button
                                 variant="subtle"
-                                size="compact-xs"
+                                size="compact-sm"
                                 onClick={() => inboxStore.markAllRead()}
                             >
                                 Mark all read
@@ -99,12 +104,15 @@ const InboxBell = observer(({ collapsed }: Props) => {
                                 gap={0}
                                 mx="calc(var(--mantine-spacing-md) * -1)"
                             >
+                                <Divider />
                                 {inboxStore.items.map((item) => (
-                                    <InboxItem
-                                        key={item.id}
-                                        item={item}
-                                        onNavigate={close}
-                                    />
+                                    <Fragment key={item.id}>
+                                        <InboxItem
+                                            item={item}
+                                            onNavigate={close}
+                                        />
+                                        <Divider />
+                                    </Fragment>
                                 ))}
                             </Stack>
                             {inboxStore.hasMore && (

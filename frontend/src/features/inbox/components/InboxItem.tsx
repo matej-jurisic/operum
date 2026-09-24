@@ -25,8 +25,8 @@ const InboxItem = observer(({ item, onNavigate }: Props) => {
             gap="xs"
             wrap="nowrap"
             align="flex-start"
-            px="sm"
-            py="xs"
+            px="md"
+            py="sm"
             onClick={open}
             style={{
                 cursor: "pointer",
@@ -38,7 +38,7 @@ const InboxItem = observer(({ item, onNavigate }: Props) => {
             <Box
                 w={8}
                 h={8}
-                mt={6}
+                mt={7}
                 style={{
                     flex: "0 0 auto",
                     borderRadius: "50%",
@@ -47,15 +47,20 @@ const InboxItem = observer(({ item, onNavigate }: Props) => {
                         : "transparent",
                 }}
             />
-            <Stack gap={2} flex={1} miw={0}>
-                <Text size="sm" fw={unread ? 600 : 400} lineClamp={1}>
-                    {item.title}
+            <Stack gap={4} flex={1} miw={0}>
+                <Text size="sm" fw={unread ? 600 : 500} lineClamp={1}>
+                    {item.notificationName ?? item.title}
                 </Text>
-                <Text size="xs" c="dimmed" lineClamp={2}>
+                <Text
+                    size="sm"
+                    c="dimmed"
+                    lineClamp={3}
+                    style={{ whiteSpace: "pre-line" }}
+                >
                     {item.body}
                 </Text>
                 <Text size="xs" c="dimmed">
-                    {relativeTime(item.createdAt)}
+                    {item.trackerName} · {relativeTime(item.createdAt)}
                 </Text>
             </Stack>
             <CloseButton

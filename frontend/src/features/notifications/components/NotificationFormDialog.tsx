@@ -349,13 +349,32 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
         form.insertListItem("filters", { fieldId: "", operator: "", value: "" });
     };
 
-    const messagePlaceholder = isEntry
-        ? "e.g. \"{count} entries need review:\\n{fieldValueList}\" (defaults to \"{count} new entries match\")"
-        : "e.g. \"Amount is now {value}\" (defaults to \"Condition met\")";
+    const messageRef = useRef<HTMLTextAreaElement>(null);
 
-    const messageHint = isEntry
-        ? "Available: {count}, {tracker}, {notification}, {fieldValueList}."
-        : "Available: {value}, {tracker}, {notification}.";
+    const messageTokens = useMemo(() => {
+        const base = isEntry ? ["count", "tracker", "notification"] : ["value", "tracker", "notification"];
+        const fieldTokens = isEntry
+            ? [...new Set(fields.map((f) => f.name))].filter((n) => !base.includes(n.toLowerCase()))
+            : [];
+        return { base, fieldTokens };
+    }, [isEntry, fields]);
+
+    const insertToken = (token: string) => {
+        const el = messageRef.current;
+        const text = `{${token}}`;
+        const current = form.values.messageTemplate;
+        const start = el?.selectionStart ?? current.length;
+        const end = el?.selectionEnd ?? current.length;
+        form.setFieldValue("messageTemplate", current.slice(0, start) + text + current.slice(end));
+        requestAnimationFrame(() => {
+            el?.focus();
+            el?.setSelectionRange(start + text.length, start + text.length);
+        });
+    };
+
+    const messagePlaceholder = isEntry
+        ? "e.g. \"{Name} is overdue\" (defaults to \"{count} new entries match\")"
+        : "e.g. \"Amount is now {value}\" (defaults to \"Condition met\")";
 
     return (
         <Modal
@@ -613,26 +632,34 @@ export default function NotificationFormDialog({ onClose, initialNotification }:
 
                     <Divider />
 
-                    {isEntry && (
-                        <MultiSelect
-                            label="Fields to list"
-                            description="Used by the {fieldValueList} token below, one line per entry."
-                            placeholder="Select fields"
-                            data={fields.map((f) => ({ value: f.id, label: f.name }))}
-                            {...form.getInputProps("displayFieldIds")}
-                            clearable
+                    <Stack gap="xs">
+                        <Textarea
+                            ref={messageRef}
+                            label="Custom message"
+                            placeholder={messagePlaceholder}
+                            autosize
+                            minRows={2}
+                            maxLength={200}
+                            {...form.getInputProps("messageTemplate")}
                         />
-                    )}
-
-                    <Textarea
-                        label="Custom message"
-                        placeholder={messagePlaceholder}
-                        description={messageHint}
-                        autosize
-                        minRows={2}
-                        maxLength={200}
-                        {...form.getInputProps("messageTemplate")}
-                    />
+                        <Group gap={6}>
+                            {messageTokens.base.map((t) => (
+                                <Button key={t} size="compact-xs" variant="light" color="gray" onClick={() => insertToken(t)}>
+                                    {t}
+                                </Button>
+                            ))}
+                            {messageTokens.fieldTokens.map((t) => (
+                                <Button key={t} size="compact-xs" variant="light" color={tracker.color} onClick={() => insertToken(t)}>
+                                    {t}
+                                </Button>
+                            ))}
+                        </Group>
+                        {isEntry && (
+                            <Text c="dimmed" size="xs">
+                                Field names repeat the message for each entry.
+                            </Text>
+                        )}
+                    </Stack>
 
                     <Select
                         label="Scope to view"

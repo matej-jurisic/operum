@@ -92,7 +92,7 @@ namespace Operum.Service.Services.Notifications
 
             foreach (var (notification, body) in pushQueue)
             {
-                var title = $"{notification.Tracker.Name} - {notification.Name}";
+                var title = notification.Name;
                 var url = $"/trackers/{notification.TrackerId}";
 
                 try
@@ -200,9 +200,40 @@ namespace Operum.Service.Services.Notifications
                     ["notification"] = notification.Name,
                     ["fieldValueList"] = await BuildFieldValueListAsync(db, notification, newlyMatched, ct),
                 };
-                var body = NotificationMessageBuilder.Build(notification.MessageTemplate, fallback, tokens);
+                var (entries, fieldNames) = await LoadEntriesForMessageAsync(db, notification, newlyMatched, ct);
+                var body = NotificationMessageBuilder.BuildForEntries(
+                    notification.MessageTemplate, fallback, tokens, entries, newlyMatched.Count, fieldNames);
                 pushQueue.Add((notification, body));
             }
+        }
+
+        private static async Task<(List<Entry> Entries, List<string> FieldNames)> LoadEntriesForMessageAsync(
+            OperumContext db,
+            TrackerNotification notification,
+            List<string> newlyMatchedEntryIds,
+            CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(notification.MessageTemplate))
+                return ([], []);
+
+            var fieldNames = await db.Fields
+                .Where(f => f.TrackerId == notification.TrackerId)
+                .Select(f => f.Name)
+                .ToListAsync(ct);
+
+            var ids = newlyMatchedEntryIds.Take(NotificationMessageBuilder.MaxEntries).ToList();
+            var entriesById = await db.Entries
+                .Where(e => ids.Contains(e.Id))
+                .Include(e => e.FieldValues)
+                    .ThenInclude(fv => fv.Field)
+                .ToDictionaryAsync(e => e.Id, ct);
+
+            var ordered = ids
+                .Select(id => entriesById.GetValueOrDefault(id))
+                .OfType<Entry>()
+                .ToList();
+
+            return (ordered, fieldNames);
         }
 
         private static async Task<string> BuildFieldValueListAsync(
