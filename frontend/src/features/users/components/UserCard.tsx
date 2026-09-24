@@ -9,15 +9,16 @@ import {
     Title,
     useMantineTheme,
 } from "@mantine/core";
-import { CiMail, CiUser } from "react-icons/ci";
+import { CiMail, CiTrash, CiUser } from "react-icons/ci";
 import { UserDto } from "../../auth/types/UserDto";
 
 interface Props {
     user: UserDto;
-    /** Admins can edit anyone's roles but their own, so the button is dropped here. */
+    /** Admins can edit or delete anyone but themselves, so those buttons are dropped here. */
     isCurrentUser: boolean;
     onEditRoles: (user: UserDto) => void;
     onConfirmMail: (user: UserDto) => void;
+    onDelete: (user: UserDto) => void;
 }
 
 const initialsOf = (userName: string) =>
@@ -38,6 +39,7 @@ export default function UserCard({
     isCurrentUser,
     onEditRoles,
     onConfirmMail,
+    onDelete,
 }: Props) {
     const theme = useMantineTheme();
 
@@ -116,6 +118,17 @@ export default function UserCard({
                             aria-label={`Confirm mail for ${user.userName}`}
                         >
                             <CiMail size={18} />
+                        </ActionIcon>
+                    )}
+                    {!isCurrentUser && (
+                        <ActionIcon
+                            size="lg"
+                            variant="outline"
+                            color="red"
+                            onClick={() => onDelete(user)}
+                            aria-label={`Delete ${user.userName}`}
+                        >
+                            <CiTrash size={18} />
                         </ActionIcon>
                     )}
                 </Group>

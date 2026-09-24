@@ -57,6 +57,13 @@ namespace Operum.API.Controllers
             return GetApiResponse(await usersService.ConfirmUserEmail(userId));
         }
 
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("{userId}")]
+        public async Task<IActionResult> DeleteUser([FromRoute] string userId)
+        {
+            return GetApiResponse(await usersService.DeleteUser(userId));
+        }
+
         [HttpGet("me/stats")]
         public async Task<IActionResult> GetProfileStats()
         {

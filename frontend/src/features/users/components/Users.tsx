@@ -11,6 +11,7 @@ import UserRolesFormDialog from "./UserRolesFormDialog";
 enum OpenDialogType {
     EditRoles,
     ConfirmMail,
+    Delete,
 }
 
 export default function Users() {
@@ -39,6 +40,11 @@ export default function Users() {
         setOpenDialogType(OpenDialogType.ConfirmMail);
     };
 
+    const handleDelete = (user: UserDto) => {
+        setSelectedUser(user);
+        setOpenDialogType(OpenDialogType.Delete);
+    };
+
     const closeDialog = () => {
         setSelectedUser(undefined);
         setOpenDialogType(undefined);
@@ -65,6 +71,7 @@ export default function Users() {
                                 }
                                 onEditRoles={handleEditRoles}
                                 onConfirmMail={handleConfirmMail}
+                                onDelete={handleDelete}
                             />
                         ))}
                     </Stack>
@@ -89,6 +96,21 @@ export default function Users() {
                     }}
                     title="Confirm mail"
                     message={`Set mail as confirmed for user ${selectedUser.userName}?`}
+                />
+            )}
+            {openDialogType === OpenDialogType.Delete && selectedUser && (
+                <ConfirmationDialog
+                    isOpen
+                    severity="warning"
+                    onClose={closeDialog}
+                    onConfirm={async () => {
+                        await usersController.deleteUser(selectedUser.id);
+                        await load();
+                        closeDialog();
+                    }}
+                    title="Delete user"
+                    confirmLabel="Delete user"
+                    message={`Permanently delete ${selectedUser.userName} and every tracker they own? This cannot be undone.`}
                 />
             )}
         </>

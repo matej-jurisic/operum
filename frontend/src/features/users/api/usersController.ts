@@ -19,4 +19,7 @@ export const usersController = {
     cnofirmEmail: async (userId: string): Promise<ApiResponse> => {
         return api.post(`/users/${userId}/confirm-email`);
     },
+    deleteUser: async (userId: string): Promise<ApiResponse> => {
+        return await api.delete(`/users/${userId}`);
+    },
 };

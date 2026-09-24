@@ -250,6 +250,50 @@ namespace Operum.Tests.Tests.Users
         }
 
         [Fact]
+        public async Task DeleteUser_AsAnAdmin_RemovesTheUserAndTheirTrackers()
+        {
+            var admin = await AdminClient();
+            var (user, userName) = await _factory.AuthenticatedClientForNewUser("removed");
+            var userId = (await TestApi.Data(await user.GetAsync("users/me"))).GetProperty("id").GetString();
+            await TestApi.CreateTracker(user, "Goes with the user");
+
+            Assert.Equal(HttpStatusCode.OK, (await admin.DeleteAsync($"users/{userId}")).StatusCode);
+
+            var remaining = (await TestApi.Data(await admin.GetAsync("users/all")))
+                .EnumerateArray().Select(u => u.GetProperty("userName").GetString());
+            Assert.DoesNotContain(userName, remaining);
+        }
+
+        [Fact]
+        public async Task DeleteUser_AsANormalUser_ReturnsForbidden()
+        {
+            var client = await _factory.NewUserClient("nodelete");
+
+            Assert.Equal(HttpStatusCode.Forbidden, (await client.DeleteAsync($"users/{Guid.NewGuid()}")).StatusCode);
+        }
+
+        [Fact]
+        public async Task DeleteUser_ForYourOwnAccount_ReturnsBadRequest()
+        {
+            var admin = await AdminClient();
+            var adminId = (await TestApi.Data(await admin.GetAsync("users/me"))).GetProperty("id").GetString();
+
+            var response = await admin.DeleteAsync($"users/{adminId}");
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task DeleteUser_UnknownUser_ReturnsNotFound()
+        {
+            var admin = await AdminClient();
+
+            var response = await admin.DeleteAsync($"users/{Guid.NewGuid()}");
+
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        }
+
+        [Fact]
         public async Task AdminOnlyEndpoints_AsANormalUser_ReturnForbidden()
         {
             var client = await _factory.NewUserClient("notadmin");

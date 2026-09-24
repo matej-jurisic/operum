@@ -40,24 +40,14 @@ export default function AdminTrackerCard({ tracker }: Props) {
                     })}
                 </ThemeIcon>
                 <Stack gap={4} flex={1} style={{ minWidth: 0 }}>
-                    <Group
-                        justify="space-between"
-                        align="center"
-                        wrap="nowrap"
-                        gap="xs"
+                    <Title
+                        order={4}
+                        lineClamp={1}
+                        className="wrapped-text"
+                        style={{ minWidth: 0 }}
                     >
-                        <Title
-                            order={4}
-                            lineClamp={1}
-                            className="wrapped-text"
-                            style={{ minWidth: 0 }}
-                        >
-                            {tracker.name}
-                        </Title>
-                        <Badge variant="outline" style={{ flexShrink: 0 }}>
-                            Owned by: {tracker.ownerName}
-                        </Badge>
-                    </Group>
+                        {tracker.name}
+                    </Title>
                     <Text
                         c="dimmed"
                         size="sm"
@@ -79,6 +69,13 @@ export default function AdminTrackerCard({ tracker }: Props) {
                                 tracker.lastEntryAt,
                             )}`}
                     </Text>
+                    <Badge
+                        variant="outline"
+                        maw="100%"
+                        style={{ alignSelf: "flex-start" }}
+                    >
+                        Owned by: {tracker.ownerName}
+                    </Badge>
                 </Stack>
             </Group>
         </Card>

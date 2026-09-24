@@ -126,7 +126,21 @@ namespace Operum.Service.Services.Users
 
         public async Task<Result> DeleteAccount()
         {
-            var userId = currentUserService.GetCurrentUser().Id;
+            return await DeleteUserById(currentUserService.GetCurrentUser().Id);
+        }
+
+        public async Task<Result> DeleteUser(string userId)
+        {
+            if (currentUserService.GetCurrentUser().Id == userId)
+            {
+                return Result.Failure(ResultStatusCodes.BadRequest);
+            }
+
+            return await DeleteUserById(userId);
+        }
+
+        private async Task<Result> DeleteUserById(string userId)
+        {
             var user = await userManager.FindByIdAsync(userId);
             if (user == null) return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("user"));
 

@@ -106,7 +106,7 @@ Permissions can be changed at any time. Tracker metadata, the default view, and 
 
 ### Accounts and administration
 
-Authentication supports email/password with confirmation and Google OAuth. Two roles: **User** and **Admin**. The admin panel adds a platform overview, user management, tracker oversight, and template publishing, admins publish tracker templates that any user can clone as a starting point.
+Authentication supports email/password with confirmation and Google OAuth. Two roles: **User** and **Admin**. The admin panel adds a platform overview, user management (including deleting accounts), tracker oversight, and template publishing, admins publish tracker templates that any user can clone as a starting point.
 
 A command palette (`Ctrl`/`Cmd` + `K`) jumps to any tracker or dashboard and runs common actions (new tracker, new dashboard, open Explore, toggle theme) from anywhere.
 
