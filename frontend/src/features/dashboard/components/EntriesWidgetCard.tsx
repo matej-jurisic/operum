@@ -74,7 +74,7 @@ export function EntriesWidgetCard({
                                         <Table.Th key={field.id}>
                                             <Text
                                                 fw={600}
-                                                size="xs"
+                                                fz={{ base: 10, sm: "xs" }}
                                                 truncate="end"
                                             >
                                                 {field.name}
@@ -98,7 +98,7 @@ export function EntriesWidgetCard({
                                                     maw={200}
                                                 >
                                                     <Text
-                                                        size="xs"
+                                                        fz={{ base: 10, sm: "xs" }}
                                                         truncate="end"
                                                     >
                                                         {renderValue(
