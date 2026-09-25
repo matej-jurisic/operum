@@ -1,5 +1,4 @@
 import { Modal } from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
 import { QueryKinds } from "../../../shared/constants/QueryKinds";
 import { useDashboard } from "../context/DashboardContext";
 import {
@@ -20,7 +19,6 @@ interface Props {
 
 export function EditFilterModal({ itemId, color, onClose, onSave }: Props) {
     const { widgets } = useDashboard();
-    const isMobile = useMediaQuery("(max-width: 48em)");
     const widget = widgets.find((w) => w.id === itemId);
     const isFilter = widget?.type === WidgetTypes.Filter;
     const config = isFilter ? parseFilterWidgetConfig(widget.config) : null;
@@ -57,7 +55,6 @@ export function EditFilterModal({ itemId, color, onClose, onSave }: Props) {
             title="Edit filter widget"
             size="lg"
             centered
-            fullScreen={isMobile}
         >
             <FilterForm
                 initial={{

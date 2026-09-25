@@ -1,5 +1,4 @@
 import { Button, Center, Modal } from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
 import { createElement, ReactNode, useState } from "react";
 import { IconType } from "react-icons";
 import { useCardLayout } from "../../analytics/components/cardSizing";
@@ -32,7 +31,6 @@ export function ExpandableWidgetCard({
 }: Props) {
     const layout = useCardLayout(true);
     const [opened, setOpened] = useState(false);
-    const isMobile = useMediaQuery("(max-width: 48em)");
 
     return (
         <WidgetShell
@@ -60,8 +58,7 @@ export function ExpandableWidgetCard({
                         onClose={() => setOpened(false)}
                         title={title}
                         size="xl"
-                        fullScreen={isMobile}
-                        centered={!isMobile}
+                        centered
                     >
                         {renderExpanded()}
                     </Modal>

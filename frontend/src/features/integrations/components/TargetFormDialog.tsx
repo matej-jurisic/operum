@@ -317,7 +317,6 @@ export default function TargetFormDialog({
             title={isEdit ? "Edit mapping" : `Import from ${provider.displayName}`}
             size="lg"
             centered
-            fullScreen={isMobile}
         >
             <Stack gap="lg">
                 <Stack gap="md">

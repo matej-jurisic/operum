@@ -10,7 +10,6 @@ import {
     TextInput,
     useMantineTheme,
 } from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
 import { useEffect, useState } from "react";
 import { MdInfoOutline } from "react-icons/md";
 import { ProviderDto } from "../types/IntegrationDto";
@@ -30,7 +29,6 @@ export default function ConnectProviderDialog({
     onConnect,
 }: ConnectProviderDialogProps) {
     const theme = useMantineTheme();
-    const isMobile = useMediaQuery("(max-width: 48em)");
 
     const [providerKey, setProviderKey] = useState(providers[0]?.key ?? "");
     const [credential, setCredential] = useState("");
@@ -73,7 +71,6 @@ export default function ConnectProviderDialog({
             onClose={onClose}
             title="Connect an integration"
             centered
-            fullScreen={isMobile}
         >
             <Stack gap="lg">
                 <Stack gap="md">

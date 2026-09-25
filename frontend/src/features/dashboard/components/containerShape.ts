@@ -204,7 +204,41 @@ function bridgeRects(rects: ShapeRect[], maxGap: number): ShapeRect[] {
             }
         }
     }
-    return bridges;
+
+    // Where four widgets meet, the gap-by-gap intersection square isn't covered by any
+    // bridge and would trace as a tiny hole. Fill it once every side of it is occupied.
+    const covered = (px: number, py: number) =>
+        [...rects, ...bridges].some(
+            (r) => px > r.x && px < r.x + r.w && py > r.y && py < r.y + r.h,
+        );
+    const probe = 3;
+    const corners: ShapeRect[] = [];
+    for (let i = 0; i < rects.length; i++) {
+        for (let j = i + 1; j < rects.length; j++) {
+            const a = rects[i];
+            const b = rects[j];
+            const left = a.x < b.x ? a : b;
+            const right = left === a ? b : a;
+            const top = a.y < b.y ? a : b;
+            const bottom = top === a ? b : a;
+            const w = right.x - (left.x + left.w);
+            const h = bottom.y - (top.y + top.h);
+            if (w <= 0 || w > maxGap || h <= 0 || h > maxGap) continue;
+            const x = left.x + left.w;
+            const y = top.y + top.h;
+            const cx = x + w / 2;
+            const cy = y + h / 2;
+            if (
+                covered(x - probe, cy) &&
+                covered(x + w + probe, cy) &&
+                covered(cx, y - probe) &&
+                covered(cx, y + h + probe)
+            ) {
+                corners.push({ x, y, w, h });
+            }
+        }
+    }
+    return [...bridges, ...corners];
 }
 
 /** SVG path data for the shape a container draws around `rects`: widgets up to `maxGap`

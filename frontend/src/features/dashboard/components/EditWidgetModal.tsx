@@ -10,7 +10,6 @@ import {
   Text,
   TextInput,
 } from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
 import { TimePicker } from "@mantine/dates";
 import { useEffect, useMemo, useState } from "react";
 import { fieldsController } from "../../fields/api/fieldsController";
@@ -74,7 +73,6 @@ const GOAL_COUNTING_CODES = [
 /** The chart drawn is the definition it was added with; changing it means adding a new widget. */
 export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
   const { dashboardId, widgets, syncFilterFollows } = useDashboard();
-  const isMobile = useMediaQuery("(max-width: 48em)");
   const filterCandidates = useMemo(() => filterCandidatesFor(widgets), [widgets]);
   const [rows, setRows] = useState<SourceRow[] | null>(null);
   const [name, setName] = useState("");
@@ -286,7 +284,6 @@ export function EditWidgetModal({ itemId, color, onClose, onSave }: Props) {
       title="Edit widget"
       size="lg"
       centered
-      fullScreen={isMobile}
       overlayProps={{ backgroundOpacity: 0.35 }}
     >
       {/* Global request loader already covers the fetch above. */}

@@ -13,7 +13,6 @@ import {
     Tooltip,
     useMantineTheme,
 } from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
 import { useState } from "react";
 import { MdCheck, MdContentCopy, MdWarning } from "react-icons/md";
 import { IntegrationTargetDto, ProviderDto } from "../types/IntegrationDto";
@@ -35,7 +34,6 @@ export default function WebhookSetupPanel({
     onSaveSecret,
 }: WebhookSetupPanelProps) {
     const theme = useMantineTheme();
-    const isMobile = useMediaQuery("(max-width: 48em)");
 
     const providerSupplied = provider.providerSuppliesSecret;
 
@@ -59,7 +57,6 @@ export default function WebhookSetupPanel({
             title={`Finish setting up ${provider.displayName}`}
             size="lg"
             centered
-            fullScreen={isMobile}
         >
             <Stack gap="lg">
                 {providerSupplied ? (

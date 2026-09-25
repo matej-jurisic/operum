@@ -325,14 +325,13 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
                 title="Widgets"
                 size={960}
                 centered
-                fullScreen={isMobile}
                 // The sub-panel modal below owns scroll-lock/focus-trap while it's open, so this one doesn't fight it.
                 lockScroll={isList}
                 trapFocus={isList}
                 styles={{
                     // Fixed height so the modal doesn't jump around as filtered results change row count.
                     content: {
-                        height: isMobile ? "100%" : "min(92vh, 840px)",
+                        height: "min(92vh, 840px)",
                         display: "flex",
                         flexDirection: "column",
                     },
@@ -453,7 +452,6 @@ export function WidgetLibraryModal({ color, onClose }: Props) {
                 title={panelTitle(subPanel)}
                 size={isWideSub ? "lg" : "md"}
                 centered
-                fullScreen={isMobile}
                 // Lighter overlay avoids stacking two full-strength scrims over the library.
                 overlayProps={{ backgroundOpacity: 0.35 }}
             >
