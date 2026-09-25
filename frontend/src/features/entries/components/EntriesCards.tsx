@@ -106,7 +106,11 @@ export function EntriesCards({
                                                     fieldValue.fieldId,
                                                 )}
                                             </Text>
-                                            <Text w={"100%"} size="sm" truncate>
+                                            <Text
+                                                w={"100%"}
+                                                fz={{ base: "xs", sm: "sm" }}
+                                                truncate
+                                            >
                                                 {renderValue(
                                                     fieldValue.fieldType,
                                                     fieldValue.value,
