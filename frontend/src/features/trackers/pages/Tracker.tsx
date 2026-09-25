@@ -79,6 +79,13 @@ export default function Tracker() {
         navigate(readDefaultPage(), { replace: true });
     };
 
+    const handleCopy = async () => {
+        if (!trackerId) return;
+        const response = await trackersController.copyTracker(trackerId);
+        await navigationStore.refreshTrackers();
+        navigate(`/trackers/${response.data.id}`);
+    };
+
     const isMobile = useMediaQuery("(max-width: 48em)");
     useDocumentTitle(tracker?.name);
 
@@ -123,6 +130,11 @@ export default function Tracker() {
                                 color={tracker.color}
                                 isMobile={!!isMobile}
                                 onEdit={() => setEditOpen(true)}
+                                onCopy={
+                                    tracker.trackerTypeId
+                                        ? undefined
+                                        : handleCopy
+                                }
                                 onDelete={() => setDeleteOpen(true)}
                             />
                         )}

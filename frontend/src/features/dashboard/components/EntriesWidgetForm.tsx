@@ -4,6 +4,8 @@ import { fieldsController } from "../../fields/api/fieldsController";
 import { FieldDto } from "../../fields/types/FieldDto";
 import { trackersController } from "../../trackers/api/trackersController";
 import { TrackerDto } from "../../trackers/types/TrackerDto";
+import { viewsController } from "../../views/api/viewsController";
+import { ViewDto } from "../../views/types/ViewDto";
 import { useDashboard } from "../context/DashboardContext";
 import {
     CreateAndPlaceEntriesWidgetDto,
@@ -15,6 +17,7 @@ import {
     filterCandidatesFor,
     followLinksComplete,
 } from "./filterLinkUtils";
+import { SourceViewSelect } from "./SourceViewSelect";
 import { WidgetDisplayModeFields } from "./WidgetDisplayModeFields";
 
 interface Props {
@@ -34,6 +37,8 @@ export function EntriesWidgetForm({ onBack, onAdd }: Props) {
     const [name, setName] = useState("");
     const [fields, setFields] = useState<FieldDto[]>([]);
     const [columnFieldIds, setColumnFieldIds] = useState<string[]>([]);
+    const [views, setViews] = useState<ViewDto[]>([]);
+    const [viewId, setViewId] = useState<string | null>(null);
     const [filterLinks, setFilterLinks] = useState<Record<string, Record<string, string>>>({});
     const [displayMode, setDisplayMode] = useState(DashboardItemDisplayMode.Full);
     const [mobileDisplayMode, setMobileDisplayMode] = useState(
@@ -52,12 +57,18 @@ export function EntriesWidgetForm({ onBack, onAdd }: Props) {
         setTrackerId(value);
         setColumnFieldIds([]);
         setFields([]);
+        setViews([]);
+        setViewId(null);
         setFilterLinks({});
         if (!value) return;
 
         setIsLoadingTracker(true);
-        const res = await fieldsController.getFields(value);
-        setFields(res.data ?? []);
+        const [fieldsRes, viewsRes] = await Promise.all([
+            fieldsController.getFields(value),
+            viewsController.getViewList(value),
+        ]);
+        setFields(fieldsRes.data ?? []);
+        setViews(viewsRes.data ?? []);
         setIsLoadingTracker(false);
     };
 
@@ -72,6 +83,7 @@ export function EntriesWidgetForm({ onBack, onAdd }: Props) {
                 trackerId,
                 name: name.trim() || undefined,
                 columnFieldIds: columnFieldIds.length ? columnFieldIds : undefined,
+                viewId,
                 displayMode,
                 mobileDisplayMode,
             },
@@ -115,6 +127,13 @@ export function EntriesWidgetForm({ onBack, onAdd }: Props) {
                 disabled={!trackerId || isLoadingTracker}
                 searchable
                 clearable
+            />
+
+            <SourceViewSelect
+                views={views}
+                value={{ viewId }}
+                onChange={(selection) => setViewId(selection.viewId)}
+                disabled={!trackerId || isLoadingTracker}
             />
 
             {trackerId && !isLoadingTracker && (

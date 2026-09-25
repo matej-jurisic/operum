@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Operum.Model;
 using Operum.Model.Common;
 using Operum.Model.Constants;
@@ -24,10 +24,7 @@ namespace Operum.Service.Services.Trackers
         public async Task<Result<TrackerDto>> CreateTracker(CreateTrackerDto tracker)
         {
             var user = currentUserService.GetCurrentUser();
-            // Templates (non-null TrackerTypeId) don't count against a user's personal cap, the
-            // same exclusion the list queries make.
-            var trackerCount = await db.Trackers.Where(x => x.OwnerId == user.Id && x.TrackerTypeId == null).CountAsync();
-            if (trackerCount >= DataLimits.MaxTrackerCount)
+            if (await IsAtTrackerLimit(user.Id))
             {
                 return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("trackers", DataLimits.MaxTrackerCount));
             }
@@ -41,12 +38,17 @@ namespace Operum.Service.Services.Trackers
             if (tracker.TemplateTrackerId != null)
             {
                 templateTracker = await db.Trackers
+                    .AsSplitQuery()
                     .Include(t => t.Fields)
+                    .Include(t => t.TrackerConstants)
+                        .ThenInclude(c => c.Values)
+                            .ThenInclude(v => v.Filters)
+                    .Include(t => t.Views)
+                        .ThenInclude(v => v.ViewColumns)
                     .Include(t => t.Views)
                         .ThenInclude(v => v.ViewQueries.OrderBy(vq => vq.Order))
                             .ThenInclude(vq => vq.Query)
                     .FirstOrDefaultAsync(t => t.Id == tracker.TemplateTrackerId);
-                // ViewQuery.FieldId is a plain column read directly below, so it needs no Include.
 
                 if (templateTracker == null || templateTracker.TrackerTypeId != (int)PublicityEnum.Public)
                 {
@@ -63,73 +65,221 @@ namespace Operum.Service.Services.Trackers
 
             if (templateTracker != null)
             {
-                await CopyTemplateData(templateTracker, trackerModel);
+                await CopyTrackerSchema(templateTracker, trackerModel, keepExternalReferences: false);
             }
 
             var created = await GetTracker(trackerModel.Id);
             return Result.Success(created.Data);
         }
 
-        private async Task CopyTemplateData(Tracker templateTracker, Tracker newTracker)
+        public async Task<Result<TrackerDto>> CopyTracker(string trackerId)
         {
-            var fieldIdMapping = new Dictionary<string, string>();
-            foreach (var templateField in templateTracker.Fields)
+            var user = currentUserService.GetCurrentUser();
+
+            var source = await db.Trackers
+                .AsSplitQuery()
+                .Include(t => t.Fields)
+                .Include(t => t.TrackerConstants)
+                    .ThenInclude(c => c.Values)
+                        .ThenInclude(v => v.Filters)
+                .Include(t => t.Views)
+                    .ThenInclude(v => v.ViewColumns)
+                .Include(t => t.Views)
+                    .ThenInclude(v => v.ViewQueries)
+                        .ThenInclude(vq => vq.Query)
+                .FirstOrDefaultAsync(t => t.Id == trackerId);
+
+            if (source == null || source.OwnerId != user.Id || source.TrackerTypeId != null)
             {
+                return Result.Failure(ResultStatusCodes.NotFound);
+            }
+
+            if (await IsAtTrackerLimit(user.Id))
+            {
+                return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("trackers", DataLimits.MaxTrackerCount));
+            }
+
+            const string suffix = " (copy)";
+            const int maxNameLength = 100;
+            var baseName = source.Name.Length + suffix.Length > maxNameLength
+                ? source.Name[..(maxNameLength - suffix.Length)]
+                : source.Name;
+
+            var copy = new Tracker
+            {
+                Name = baseName + suffix,
+                Description = source.Description,
+                Color = source.Color,
+                Icon = source.Icon,
+                OwnerId = user.Id,
+            };
+
+            await db.Trackers.AddAsync(copy);
+            await db.SaveChangesAsync();
+
+            await CopyTrackerSchema(source, copy, keepExternalReferences: true);
+
+            var created = await GetTracker(copy.Id);
+            return Result.Success(created.Data);
+        }
+
+        // Templates (non-null TrackerTypeId) don't count against a user's personal cap, the
+        // same exclusion the list queries make.
+        private async Task<bool> IsAtTrackerLimit(string userId) =>
+            await db.Trackers.CountAsync(x => x.OwnerId == userId && x.TrackerTypeId == null) >= DataLimits.MaxTrackerCount;
+
+        // Copies fields, constants and views (with their filters, sorts and columns) but no
+        // entries. External reference targets are kept only when keepExternalReferences is set, so
+        // a public template never points a new tracker at trackers it didn't come with.
+        private async Task CopyTrackerSchema(Tracker source, Tracker target, bool keepExternalReferences)
+        {
+            var constantIdMapping = new Dictionary<string, string>();
+            foreach (var constant in source.TrackerConstants)
+            {
+                var newConstant = new TrackerConstant
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Name = constant.Name,
+                    Type = constant.Type,
+                    Value = constant.Value,
+                    TrackerId = target.Id,
+                };
+                constantIdMapping[constant.Id] = newConstant.Id;
+                await db.TrackerConstants.AddAsync(newConstant);
+            }
+
+            var fieldIdMapping = new Dictionary<string, string>();
+            var newFields = new Dictionary<string, Field>();
+            foreach (var sourceField in source.Fields)
+            {
+                var referencesSelf = sourceField.ReferencedTrackerId == source.Id;
+                string? newDefaultConstantId = null;
+                if (sourceField.DefaultValueConstantId != null)
+                    constantIdMapping.TryGetValue(sourceField.DefaultValueConstantId, out newDefaultConstantId);
+
                 var newField = new Field
                 {
                     Id = Guid.NewGuid().ToString(),
-                    Name = templateField.Name,
-                    Description = templateField.Description,
-                    Type = templateField.Type,
-                    Required = templateField.Required,
-                    Visible = templateField.Visible,
-                    Order = templateField.Order,
-                    TrackerId = newTracker.Id,
+                    Name = sourceField.Name,
+                    Description = sourceField.Description,
+                    Type = sourceField.Type,
+                    Required = sourceField.Required,
+                    Visible = sourceField.Visible,
+                    Order = sourceField.Order,
+                    SelectOptions = sourceField.SelectOptions,
+                    IsCalculated = sourceField.IsCalculated,
+                    Formula = sourceField.Formula,
+                    ReferencedTrackerId = referencesSelf
+                        ? target.Id
+                        : keepExternalReferences ? sourceField.ReferencedTrackerId : null,
+                    DefaultValue = sourceField.DefaultValue,
+                    DefaultValueConstantId = newDefaultConstantId,
+                    TrackerId = target.Id,
                 };
-                fieldIdMapping[templateField.Id] = newField.Id;
+                fieldIdMapping[sourceField.Id] = newField.Id;
+                newFields[sourceField.Id] = newField;
                 await db.Fields.AddAsync(newField);
             }
-            // Save fields first so they exist for view/query references.
+
+            foreach (var constant in source.TrackerConstants)
+            {
+                foreach (var value in constant.Values)
+                {
+                    var newValue = new TrackerConstantValue
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        TrackerConstantId = constantIdMapping[constant.Id],
+                        Priority = value.Priority,
+                        Value = value.Value,
+                    };
+                    await db.TrackerConstantValues.AddAsync(newValue);
+
+                    foreach (var filter in value.Filters)
+                    {
+                        if (!fieldIdMapping.TryGetValue(filter.FieldId, out var newFilterFieldId))
+                            continue;
+
+                        await db.TrackerConstantValueFilters.AddAsync(new TrackerConstantValueFilter
+                        {
+                            Id = Guid.NewGuid().ToString(),
+                            TrackerConstantValueId = newValue.Id,
+                            FieldId = newFilterFieldId,
+                            Operator = filter.Operator,
+                            Value = filter.Value,
+                        });
+                    }
+                }
+            }
+
+            // Save fields first so they exist for the field-to-field links, views and queries below.
             await db.SaveChangesAsync();
+
+            foreach (var sourceField in source.Fields)
+            {
+                var newField = newFields[sourceField.Id];
+
+                if (sourceField.VisibilityFieldId != null
+                    && fieldIdMapping.TryGetValue(sourceField.VisibilityFieldId, out var newVisibilityFieldId))
+                {
+                    newField.VisibilityFieldId = newVisibilityFieldId;
+                    newField.VisibilityOperator = sourceField.VisibilityOperator;
+                    newField.VisibilityValue = sourceField.VisibilityValue;
+                }
+
+                if (sourceField.ReferencedDisplayFieldId != null)
+                {
+                    if (sourceField.ReferencedTrackerId == source.Id)
+                    {
+                        newField.ReferencedDisplayFieldId = fieldIdMapping.GetValueOrDefault(sourceField.ReferencedDisplayFieldId);
+                    }
+                    else if (keepExternalReferences)
+                    {
+                        newField.ReferencedDisplayFieldId = sourceField.ReferencedDisplayFieldId;
+                    }
+                }
+            }
+            await db.SaveChangesAsync();
+
             var viewIdMapping = new Dictionary<string, string>();
             // Copy view shells only; their Queries are copied and linked below.
-            foreach (var templateView in templateTracker.Views)
+            foreach (var sourceView in source.Views)
             {
                 var newView = new View
                 {
                     Id = Guid.NewGuid().ToString(),
-                    Name = templateView.Name,
-                    Description = templateView.Description,
-                    TrackerId = newTracker.Id
+                    Name = sourceView.Name,
+                    Description = sourceView.Description,
+                    Order = sourceView.Order,
+                    TrackerId = target.Id
                 };
-                viewIdMapping[templateView.Id] = newView.Id;
+                viewIdMapping[sourceView.Id] = newView.Id;
                 await db.Views.AddAsync(newView);
             }
 
             // Save the view shells first so they exist for the link references below.
             await db.SaveChangesAsync();
 
-            // Re-link each template ViewQuery: its clause is field-agnostic and pooled under the
+            // Re-link each source ViewQuery: its clause is field-agnostic and pooled under the
             // new tracker's owner, then bound to the copied field. A link whose field was not
             // copied is dropped whole.
-            foreach (var templateView in templateTracker.Views)
+            foreach (var sourceView in source.Views)
             {
-                if (!viewIdMapping.TryGetValue(templateView.Id, out var newViewId))
+                if (!viewIdMapping.TryGetValue(sourceView.Id, out var newViewId))
                     continue;
 
-                foreach (var templateViewQuery in templateView.ViewQueries)
+                foreach (var sourceViewQuery in sourceView.ViewQueries)
                 {
-                    if (!fieldIdMapping.TryGetValue(templateViewQuery.FieldId, out var newFieldId))
+                    if (!fieldIdMapping.TryGetValue(sourceViewQuery.FieldId, out var newFieldId))
                         continue;
 
-                    var tq = templateViewQuery.Query;
-                    var pooled = await QueryPool.GetOrCreate(db, newTracker.OwnerId, new ClauseDto
+                    var sq = sourceViewQuery.Query;
+                    var pooled = await QueryPool.GetOrCreate(db, target.OwnerId, new ClauseDto
                     {
-                        Kind = tq.Kind,
-                        DataType = tq.DataType,
-                        Operator = tq.Operator,
-                        Value = tq.Value,
-                        Descending = tq.Descending,
+                        Kind = sq.Kind,
+                        DataType = sq.DataType,
+                        Operator = sq.Operator,
+                        Value = sq.Value,
+                        Descending = sq.Descending,
                     });
 
                     await db.ViewQueries.AddAsync(new ViewQuery
@@ -138,13 +288,32 @@ namespace Operum.Service.Services.Trackers
                         ViewId = newViewId,
                         QueryId = pooled.Id,
                         FieldId = newFieldId,
-                        Order = templateViewQuery.Order
+                        Order = sourceViewQuery.Order
+                    });
+                }
+
+                foreach (var sourceColumn in sourceView.ViewColumns)
+                {
+                    if (!fieldIdMapping.TryGetValue(sourceColumn.FieldId, out var newColumnFieldId))
+                        continue;
+
+                    await db.ViewColumns.AddAsync(new ViewColumn
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        ViewId = newViewId,
+                        FieldId = newColumnFieldId,
+                        Order = sourceColumn.Order
                     });
                 }
             }
 
-            // Widgets aren't tracker-owned any more, so a tracker created from a template simply
-            // starts with none, the same as one created from scratch.
+            if (source.DefaultViewId != null && viewIdMapping.TryGetValue(source.DefaultViewId, out var newDefaultViewId))
+            {
+                target.DefaultViewId = newDefaultViewId;
+            }
+
+            // Widgets aren't tracker-owned any more, so the copy simply starts with none, the
+            // same as a tracker created from scratch.
             await db.SaveChangesAsync();
         }
 

@@ -479,6 +479,8 @@ export interface CreateAndPlaceEntriesWidgetDto {
     name?: string;
     /** Tracker fields to show as columns, in order. Empty/omitted shows every field. */
     columnFieldIds?: string[];
+    /** A view of the tracker whose filters and sorting the table reads through. */
+    viewId?: string | null;
     displayMode?: DashboardItemDisplayMode;
     mobileDisplayMode?: DashboardItemDisplayMode;
 }
@@ -532,6 +534,8 @@ export interface UpdateDashboardEntriesItemDto {
     name?: string;
     /** Tracker fields to show as columns, in order. Empty/omitted shows every field. */
     columnFieldIds?: string[];
+    /** Null clears the view. */
+    viewId?: string | null;
     displayMode: DashboardItemDisplayMode;
     mobileDisplayMode: DashboardItemDisplayMode;
 }

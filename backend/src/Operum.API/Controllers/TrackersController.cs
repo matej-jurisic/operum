@@ -48,6 +48,12 @@ namespace Operum.API.Controllers
             return GetApiResponse(await trackerService.CreateTracker(tracker));
         }
 
+        [HttpPost("{trackerId}/copy")]
+        public async Task<IActionResult> CopyTracker([FromRoute] string trackerId)
+        {
+            return GetApiResponse(await trackerService.CopyTracker(trackerId));
+        }
+
         [HttpPut("{trackerId}")]
         public async Task<IActionResult> UpdateTracker([FromRoute] string trackerId, UpdateTrackerDto tracker)
         {

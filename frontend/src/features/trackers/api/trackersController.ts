@@ -22,6 +22,9 @@ export const trackersController = {
     createTracker: async (values: CreateTrackerDto): Promise<ApiResponse<TrackerDto>> => {
         return await api.post("/trackers", values);
     },
+    copyTracker: async (trackerId: string): Promise<ApiResponse<TrackerDto>> => {
+        return await api.post(`/trackers/${trackerId}/copy`);
+    },
     updateTracker: async (
         trackerId: string,
         values: UpdateTrackerDto

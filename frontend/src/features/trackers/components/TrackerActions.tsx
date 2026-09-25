@@ -1,11 +1,12 @@
 import { Button, Menu } from "@mantine/core";
 import { CiSettings } from "react-icons/ci";
-import { MdDelete, MdEdit } from "react-icons/md";
+import { MdContentCopy, MdDelete, MdEdit } from "react-icons/md";
 
 interface Props {
     color?: string;
     isMobile: boolean;
     onEdit: () => void;
+    onCopy?: () => void;
     onDelete: () => void;
 }
 
@@ -14,6 +15,7 @@ export default function TrackerActions({
     color,
     isMobile,
     onEdit,
+    onCopy,
     onDelete,
 }: Props) {
     return (
@@ -33,6 +35,14 @@ export default function TrackerActions({
                 <Menu.Item leftSection={<MdEdit size={16} />} onClick={onEdit}>
                     Edit tracker
                 </Menu.Item>
+                {onCopy && (
+                    <Menu.Item
+                        leftSection={<MdContentCopy size={16} />}
+                        onClick={onCopy}
+                    >
+                        Copy tracker
+                    </Menu.Item>
+                )}
                 <Menu.Item
                     color="red"
                     leftSection={<MdDelete size={16} />}

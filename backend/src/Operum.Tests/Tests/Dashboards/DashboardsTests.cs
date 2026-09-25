@@ -2947,6 +2947,45 @@ namespace Operum.Tests.Tests.Dashboards
         }
 
         [Fact]
+        public async Task UpdateEntriesItem_ViewId_AppliesTheViewAndCanBeCleared()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("entriesupdateview");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var viewId = await CreateStrengthOnlyView(client, tracker);
+            var dashboardId = await CreateDashboard(client);
+            var itemId = await PlaceEntriesTable(client, dashboardId, tracker);
+
+            var withView = await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{itemId}/entries",
+                new UpdateDashboardEntriesItemDto { ViewId = viewId });
+            Assert.Equal(HttpStatusCode.OK, withView.StatusCode);
+            Assert.Equal(0, EntriesRowCount(await Widgets(client, dashboardId), itemId));
+
+            var cleared = await client.PutAsJsonAsync($"dashboard/{dashboardId}/items/{itemId}/entries",
+                new UpdateDashboardEntriesItemDto { ViewId = null });
+            Assert.Equal(HttpStatusCode.OK, cleared.StatusCode);
+            Assert.Equal(1, EntriesRowCount(await Widgets(client, dashboardId), itemId));
+        }
+
+        [Fact]
+        public async Task CreateAndPlaceEntriesWidget_ViewOfAnotherTracker_ReturnsNotFound()
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient("entriesforeignview");
+
+            var tracker = await CreateCapableTracker(client, "Weight");
+            var other = await CreateCapableTracker(client, "Other");
+            var otherViewId = await CreateStrengthOnlyView(client, other);
+            var dashboardId = await CreateDashboard(client);
+
+            var response = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items/entries",
+                new CreateAndPlaceEntriesWidgetDto { TrackerId = tracker.Id, ViewId = otherViewId });
+
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        }
+
+        [Fact]
         public async Task EntriesWidget_ColumnFieldDeletedAfterPick_FallsBackGracefully()
         {
             await _factory.SeedDatabaseAsync();

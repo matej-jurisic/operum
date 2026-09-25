@@ -9,6 +9,7 @@ namespace Operum.Service.Interfaces
     public interface ITrackersService
     {
         public Task<Result<TrackerDto>> CreateTracker(CreateTrackerDto tracker);
+        public Task<Result<TrackerDto>> CopyTracker(string trackerId);
         public Task<Result<TrackerDto>> GetTracker(string id);
         public Task<Result<List<TrackerDto>>> GetTrackerList(string filter);
         public Task<Result<List<TrackerSchemaDto>>> GetTrackerSchema();

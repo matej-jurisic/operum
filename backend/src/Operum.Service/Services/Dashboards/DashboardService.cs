@@ -251,11 +251,12 @@ namespace Operum.Service.Services.Dashboards
                 ? await db.Fields.Where(f => selectorFieldIds.Contains(f.Id)).ToDictionaryAsync(f => f.Id)
                 : new Dictionary<string, Field>();
 
-            // The fixed view every analytic source reads through, loaded in one query rather
-            // than one per source inside the loop below.
+            // The fixed view every analytic source and Entries table reads through, loaded in
+            // one query rather than one per widget inside the loop below.
             var sourceViewIds = items
                 .SelectMany(i => i.Sources)
                 .Select(s => s.ViewId)
+                .Concat(entriesConfigsByItemId.Values.Select(c => c.ViewId))
                 .Where(id => !string.IsNullOrEmpty(id))
                 .Select(id => id!)
                 .Distinct()
@@ -346,7 +347,7 @@ namespace Operum.Service.Services.Dashboards
                             filterConfigsByItemId.Values,
                             filterQueriesById, selectorFieldsById,
                             entriesFieldsByTrackerId.GetValueOrDefault(item.EntriesWidget.TrackerId, []),
-                            entryCache);
+                            entryCache, sourceViewsById);
                     }
 
                     results.Add(MapToWidgetDto(item, null, quickAddTracker,
@@ -1193,6 +1194,7 @@ namespace Operum.Service.Services.Dashboards
             {
                 EntriesWidgetId = entriesWidget.Id,
                 ColumnFieldIds = dto.ColumnFieldIds,
+                ViewId = dto.ViewId,
                 DisplayMode = dto.DisplayMode,
                 MobileDisplayMode = dto.MobileDisplayMode
             });
@@ -1205,6 +1207,10 @@ namespace Operum.Service.Services.Dashboards
             var columns = await ResolveEntriesColumns(entriesWidget.TrackerId, dto.ColumnFieldIds);
             if (columns.IsFailure)
                 return Result.Failure(columns.StatusCode, columns.Messages);
+
+            var view = await ResolveEntriesView(entriesWidget.TrackerId, dto.ViewId);
+            if (view.IsFailure)
+                return Result.Failure(view.StatusCode, view.Messages);
 
             var nextOrder = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.Order) + 1 : 0;
             var nextRow = dashboard.Items.Count > 0 ? dashboard.Items.Max(i => i.Y + i.H) : 0;
@@ -1219,7 +1225,8 @@ namespace Operum.Service.Services.Dashboards
                 EntriesWidgetId = entriesWidget.Id,
                 Config = JsonSerializer.Serialize(new EntriesWidgetConfigDto
                 {
-                    ColumnFieldIds = columns.Data!
+                    ColumnFieldIds = columns.Data!,
+                    ViewId = view.Data
                 }, ConfigJsonOptions),
                 X = 0,
                 Y = nextRow,
@@ -1584,12 +1591,17 @@ namespace Operum.Service.Services.Dashboards
             if (columns.IsFailure)
                 return Result.Failure(columns.StatusCode, columns.Messages);
 
+            var view = await ResolveEntriesView(item.EntriesWidget.TrackerId, dto.ViewId);
+            if (view.IsFailure)
+                return Result.Failure(view.StatusCode, view.Messages);
+
             // Lives on the shared EntriesWidget, not this placement -- see UpdateDashboardItem.
             item.EntriesWidget.Name = dto.Name?.Trim() ?? string.Empty;
 
             item.Config = JsonSerializer.Serialize(new EntriesWidgetConfigDto
             {
-                ColumnFieldIds = columns.Data!
+                ColumnFieldIds = columns.Data!,
+                ViewId = view.Data
             }, ConfigJsonOptions);
             item.DisplayMode = dto.DisplayMode;
             item.MobileDisplayMode = dto.MobileDisplayMode;
@@ -1895,6 +1907,19 @@ namespace Operum.Service.Services.Dashboards
                 return Result.Failure(ResultStatusCodes.BadRequest, Messages.MaxNumberReached("columns", DataLimits.MaxColumns));
 
             return Result.Success(resolved);
+        }
+
+        // Blank in, null out; a view must belong to the widget's tracker.
+        private async Task<Result<string?>> ResolveEntriesView(string trackerId, string? viewId)
+        {
+            if (string.IsNullOrEmpty(viewId))
+                return Result.Success<string?>(null);
+
+            var exists = await db.Views.AnyAsync(v => v.Id == viewId && v.TrackerId == trackerId);
+            if (!exists)
+                return Result.Failure(ResultStatusCodes.NotFound, Messages.ItemNotFound("view"));
+
+            return Result.Success<string?>(viewId);
         }
 
         // Deleting a field cascades its mapping away, so an incomplete map is possible here.
@@ -2254,8 +2279,16 @@ namespace Operum.Service.Services.Dashboards
             IReadOnlyDictionary<string, Query> filterQueriesById,
             IReadOnlyDictionary<string, Field> selectorFieldsById,
             List<Field> trackerFields,
-            EntrySetCache entryCache)
+            EntrySetCache entryCache,
+            IReadOnlyDictionary<string, View> viewsById)
         {
+            // A view that has been deleted, or that no longer belongs to the tracker, is ignored.
+            View? view = null;
+            if (!string.IsNullOrEmpty(config.ViewId) &&
+                viewsById.TryGetValue(config.ViewId, out var configView) &&
+                configView.TrackerId == entriesWidget.TrackerId)
+                view = configView;
+
             // Skips any field the tracker has since lost; falls back to every field when none resolve.
             var fieldsById = trackerFields.ToDictionary(f => f.Id);
             var columnFields = config.ColumnFieldIds
@@ -2271,7 +2304,7 @@ namespace Operum.Service.Services.Dashboards
             // Capped, so this shares an entry set only with another table filtered the same
             // way -- never with a chart, which reads the tracker uncapped.
             var entries = await entryCache.Get(
-                entriesWidget.TrackerId, null, followFilters, followSorts, EntriesWidgetRowLimit);
+                entriesWidget.TrackerId, view, followFilters, followSorts, EntriesWidgetRowLimit);
 
             return new EntriesWidgetDto
             {

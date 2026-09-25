@@ -10,7 +10,7 @@ Flexible data tracking. Define your schema, log entries, build views, assemble d
 
 ### Trackers and fields
 
-A tracker is a container for one kind of data: a reading list, workout log, bug database, whatever. You define its structure with fields, then start logging entries. Each tracker has a name, color, and icon. Create one field by field, step through the guided wizard, or clone a published template.
+A tracker is a container for one kind of data: a reading list, workout log, bug database, whatever. You define its structure with fields, then start logging entries. Each tracker has a name, color, and icon. Create one field by field, step through the guided wizard, or clone a published template. Any tracker you own can also be copied: the copy keeps its fields, constants, and views but none of its entries.
 
 Supported field types: `string`, `number`, `bool`, `date`, `datetime`, `timespan`, `reference`. Each field has a name, an optional description, can be marked required, and `string` fields can carry a fixed list of select options. Which fields show, and in what order, is decided per view.
 
@@ -43,7 +43,7 @@ Build any number of dashboards, each with its own name, color, and icon, and set
 | Widget | What it does |
 |---|---|
 | Chart | A chart built for this dashboard |
-| Entries table | A table showing a tracker's most recent rows, with chosen columns |
+| Entries table | A table showing a tracker's rows, with chosen columns and an optional view for filtering and sorting |
 | Quick-add button | Opens a tracker's quick-add entry dialog straight from the dashboard |
 | Filter | Live controls that narrow the chart and table widgets linked to it |
 | Header / Divider / Note | Layout and annotation |

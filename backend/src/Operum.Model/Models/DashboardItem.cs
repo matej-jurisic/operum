@@ -16,7 +16,7 @@ namespace Operum.Model.Models
 
         public string Type { get; set; } = DashboardWidgetTypes.Analytic;
 
-        // Null for Analytic; for Entries, just the column list (EntriesWidgetConfigDto).
+        // Null for Analytic; for Entries, the column list and view (EntriesWidgetConfigDto).
         public string? Config { get; set; }
 
         // In DashboardGrid.Columns columns. A zero width means the item predates layouts and

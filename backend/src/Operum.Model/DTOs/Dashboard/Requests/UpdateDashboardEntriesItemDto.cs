@@ -14,6 +14,9 @@ namespace Operum.Model.DTOs.Dashboard.Requests
         // Empty shows every field.
         public List<string> ColumnFieldIds { get; set; } = [];
 
+        // Blank clears the view.
+        public string? ViewId { get; set; }
+
         public DashboardItemDisplayMode DisplayMode { get; set; }
         public DashboardItemDisplayMode MobileDisplayMode { get; set; }
     }

@@ -113,6 +113,12 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
         }
     };
 
+    const handleCopy = async (tracker: TrackerDto) => {
+        const response = await trackersController.copyTracker(tracker.id);
+        await navigationStore.refreshTrackers();
+        navigate(`/trackers/${response.data.id}`);
+    };
+
     return (
         <>
             <Stack gap="md" h="100%">
@@ -272,6 +278,7 @@ const Trackers = observer(function Trackers({ isTemplates = false }: Props) {
                                                         OpenDialogType.UpdateTracker,
                                                     );
                                                 }}
+                                                onCopy={handleCopy}
                                                 onDelete={(t) => {
                                                     setSelectedTracker(t);
                                                     setOpenDialogType(

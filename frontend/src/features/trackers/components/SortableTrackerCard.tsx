@@ -13,7 +13,7 @@ import {
 } from "@mantine/core";
 import { createElement, CSSProperties } from "react";
 import { FiMoreVertical, FiPlus } from "react-icons/fi";
-import { MdDelete, MdDragHandle, MdEdit } from "react-icons/md";
+import { MdContentCopy, MdDelete, MdDragHandle, MdEdit } from "react-icons/md";
 import { resolveTrackerIcon } from "../../../shared/constants/TrackerIcons";
 import globalStore from "../../../shared/stores/GlobalStore";
 import { formatRelativeTime } from "../../../shared/utils/formatters/TypeFormatter";
@@ -27,6 +27,7 @@ interface SortableTrackerCardProps {
     onNavigate: (tracker: TrackerDto) => void;
     onQuickAdd: (tracker: TrackerDto) => void;
     onEdit: (tracker: TrackerDto) => void;
+    onCopy: (tracker: TrackerDto) => void;
     onDelete: (tracker: TrackerDto) => void;
 }
 
@@ -41,6 +42,7 @@ export default function SortableTrackerCard({
     onNavigate,
     onQuickAdd,
     onEdit,
+    onCopy,
     onDelete,
 }: SortableTrackerCardProps) {
     const {
@@ -171,6 +173,21 @@ export default function SortableTrackerCard({
                                                 >
                                                     Edit
                                                 </Menu.Item>
+                                                {!isTemplates && (
+                                                    <Menu.Item
+                                                        leftSection={
+                                                            <MdContentCopy
+                                                                size={16}
+                                                            />
+                                                        }
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            onCopy(tracker);
+                                                        }}
+                                                    >
+                                                        Copy
+                                                    </Menu.Item>
+                                                )}
                                                 <Menu.Item
                                                     color="red"
                                                     leftSection={

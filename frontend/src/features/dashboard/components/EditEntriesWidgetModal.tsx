@@ -2,6 +2,8 @@ import { Button, Group, Modal, MultiSelect, Stack, TextInput } from "@mantine/co
 import { useEffect, useMemo, useState } from "react";
 import { fieldsController } from "../../fields/api/fieldsController";
 import { FieldDto } from "../../fields/types/FieldDto";
+import { viewsController } from "../../views/api/viewsController";
+import { ViewDto } from "../../views/types/ViewDto";
 import { useDashboard } from "../context/DashboardContext";
 import {
     DashboardItemDisplayMode,
@@ -11,6 +13,7 @@ import {
 } from "../types/DashboardDto";
 import { FilterFollowChecklist } from "./FilterFollowChecklist";
 import { filterCandidatesFor, followLinksComplete } from "./filterLinkUtils";
+import { SourceViewSelect } from "./SourceViewSelect";
 import { WidgetDisplayModeFields } from "./WidgetDisplayModeFields";
 
 interface Props {
@@ -22,6 +25,7 @@ interface Props {
 
 interface EntriesWidgetConfig {
     columnFieldIds?: string[];
+    viewId?: string | null;
 }
 
 // The tracker isn't part of Config; it's fixed on the shared EntriesWidget definition
@@ -47,6 +51,8 @@ export function EditEntriesWidgetModal({ itemId, color, onClose, onSave }: Props
     const [columnFieldIds, setColumnFieldIds] = useState<string[]>(
         config?.columnFieldIds ?? [],
     );
+    const [views, setViews] = useState<ViewDto[]>([]);
+    const [viewId, setViewId] = useState<string | null>(config?.viewId ?? null);
     const [displayMode, setDisplayMode] = useState(
         widget?.layout.displayMode ?? DashboardItemDisplayMode.Full,
     );
@@ -79,7 +85,13 @@ export function EditEntriesWidgetModal({ itemId, color, onClose, onSave }: Props
             onClose();
             return;
         }
-        fieldsController.getFields(trackerId).then((res) => setFields(res.data ?? []));
+        Promise.all([
+            fieldsController.getFields(trackerId),
+            viewsController.getViewList(trackerId),
+        ]).then(([fieldsRes, viewsRes]) => {
+            setViews(viewsRes.data ?? []);
+            setFields(fieldsRes.data ?? []);
+        });
     }, [trackerId, onClose]);
 
     const canSubmit =
@@ -95,6 +107,7 @@ export function EditEntriesWidgetModal({ itemId, color, onClose, onSave }: Props
             await onSave(itemId, {
                 name: name.trim(),
                 columnFieldIds: columnFieldIds.length ? columnFieldIds : undefined,
+                viewId,
                 displayMode,
                 mobileDisplayMode,
             });
@@ -127,6 +140,12 @@ export function EditEntriesWidgetModal({ itemId, color, onClose, onSave }: Props
                         onChange={setColumnFieldIds}
                         searchable
                         clearable
+                    />
+
+                    <SourceViewSelect
+                        views={views}
+                        value={{ viewId }}
+                        onChange={(selection) => setViewId(selection.viewId)}
                     />
 
                     <FilterFollowChecklist
