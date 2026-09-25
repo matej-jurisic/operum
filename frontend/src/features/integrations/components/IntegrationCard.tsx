@@ -72,8 +72,8 @@ export default function IntegrationCard({
     return (
         <Card p="md" radius="md" withBorder>
             <Stack gap="md">
-                <Group align="flex-start" justify="space-between" wrap="nowrap">
-                    <Stack gap="xs" flex={1} miw={0}>
+                <Stack gap="sm">
+                    <Stack gap="xs" miw={0}>
                         <Group gap="xs" wrap="wrap">
                             <Title
                                 order={4}
@@ -98,12 +98,7 @@ export default function IntegrationCard({
                         </Text>
                     </Stack>
 
-                    <Group
-                        gap="xs"
-                        wrap="nowrap"
-                        align="flex-start"
-                        style={{ flexShrink: 0 }}
-                    >
+                    <Group gap="xs" wrap="nowrap" justify="flex-end">
                         {hasPullTarget && (
                             <Tooltip
                                 label="Check every import for new data"
@@ -144,7 +139,7 @@ export default function IntegrationCard({
                             </ActionIcon>
                         </Tooltip>
                     </Group>
-                </Group>
+                </Stack>
 
                 {integration.targets.length === 0 ? (
                     <Text size="sm" c="dimmed" className="wrapped-text">
@@ -208,8 +203,8 @@ function TargetRow({
 
     return (
         <Paper withBorder radius="sm" p="sm">
-            <Group justify="space-between" align="flex-start" wrap="nowrap">
-                <Stack gap={4} flex={1} miw={0}>
+            <Stack gap="sm">
+                <Stack gap={4} miw={0}>
                     <Group gap="xs" wrap="wrap">
                         <Text
                             size="sm"
@@ -281,12 +276,7 @@ function TargetRow({
                     )}
                 </Stack>
 
-                <Group
-                    gap="xs"
-                    wrap="nowrap"
-                    align="flex-start"
-                    style={{ flexShrink: 0 }}
-                >
+                <Group gap="xs" wrap="nowrap" justify="flex-end">
                     {isPush ? (
                         <Tooltip label={secretTooltip} withArrow>
                             <ActionIcon
@@ -351,7 +341,7 @@ function TargetRow({
                         </ActionIcon>
                     </Tooltip>
                 </Group>
-            </Group>
+            </Stack>
         </Paper>
     );
 }
