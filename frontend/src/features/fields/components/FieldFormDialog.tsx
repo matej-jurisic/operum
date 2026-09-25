@@ -365,7 +365,7 @@ export function FieldFormDialog(props: FieldFormDialogProps) {
                                 {...form.getInputProps("formula")}
                             />
                             <Text size="xs" c="dimmed">
-                                Reference fields and constants as {"{Name}"}, with + - * / %. Timespans also take {"{Name.hours}"}, {"{Name.minutes}"} and {"{Name.seconds}"}.
+                                Reference fields and constants as {"{Name}"}, with + - * / %. Timespans also take {"{Name.hours}"}, {"{Name.minutes}"} and {"{Name.seconds}"}. Subtracting two dates gives seconds.
                             </Text>
                         </Stack>
                     )}

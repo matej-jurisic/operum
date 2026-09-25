@@ -203,5 +203,40 @@ namespace Operum.Tests.Tests.Fields
 
             Assert.Equal(2, await GetNumberValue(client, trackerId, entryId, "HalfHours"));
         }
+
+        [Fact]
+        public async Task CreateEntry_DateTimeSubtraction_YieldsDurationInTimespanField()
+        {
+            var client = await AuthenticatedClient();
+            var trackerId = await CreateTracker(client, "Datetime difference");
+
+            await CreateField(client, trackerId, "Start", DataTypes.DateTime);
+            await CreateField(client, trackerId, "End", DataTypes.DateTime);
+            await CreateCalculatedField(client, trackerId, "Elapsed", "{End} - {Start}", DataTypes.TimeSpan);
+            await CreateCalculatedField(client, trackerId, "ElapsedHours", "{Elapsed.hours}");
+
+            var entry = await Data(await client.PostAsJsonAsync($"trackers/{trackerId}/entries",
+                new CreateEntryDto { FieldValues = new() { ["Start"] = "2026-03-01T08:00:00Z", ["End"] = "2026-03-01T17:30:00Z" } }));
+            var entryId = entry.GetProperty("id").GetString()!;
+
+            Assert.Equal(9.5, await GetNumberValue(client, trackerId, entryId, "ElapsedHours"));
+        }
+
+        [Fact]
+        public async Task CreateEntry_DateSubtraction_YieldsDays()
+        {
+            var client = await AuthenticatedClient();
+            var trackerId = await CreateTracker(client, "Date difference");
+
+            await CreateField(client, trackerId, "Opened", DataTypes.Date);
+            await CreateField(client, trackerId, "Closed", DataTypes.Date);
+            await CreateCalculatedField(client, trackerId, "Days", "({Closed} - {Opened}) / 86400");
+
+            var entry = await Data(await client.PostAsJsonAsync($"trackers/{trackerId}/entries",
+                new CreateEntryDto { FieldValues = new() { ["Opened"] = "2026-03-01T00:00:00Z", ["Closed"] = "2026-03-11T00:00:00Z" } }));
+            var entryId = entry.GetProperty("id").GetString()!;
+
+            Assert.Equal(10, await GetNumberValue(client, trackerId, entryId, "Days"));
+        }
     }
 }

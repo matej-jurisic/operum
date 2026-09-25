@@ -2,7 +2,9 @@
 using Microsoft.Extensions.Logging;
 using NCalc2;
 using Operum.Model;
+using Operum.Model.Constants;
 using Operum.Model.Constants.Fields;
+using Operum.Model.Converters;
 using Operum.Model.Models;
 using Operum.Service.Domain.Constants;
 using Operum.Service.Interfaces;
@@ -242,6 +244,10 @@ namespace Operum.Service.Services.Fields
             }
         }
 
+        // Dates evaluate as Unix seconds so that subtracting two of them yields a duration in seconds.
+        private static double ToUnixSeconds(DateTime value) =>
+            new DateTimeOffset(DateTime.SpecifyKind(value, DateTimeKind.Utc)).ToUnixTimeMilliseconds() / 1000.0;
+
         // Parse "FieldName.property" into (name, property). Property is null if no dot.
         private static (string Name, string? Property) ParseToken(string tokenName)
         {
@@ -285,6 +291,7 @@ namespace Operum.Service.Services.Fields
                 {
                     DataTypes.Number => fv.NumberValue,
                     DataTypes.Bool => fv.BooleanValue.HasValue ? (fv.BooleanValue.Value ? 1.0 : 0.0) : null,
+                    DataTypes.Date or DataTypes.DateTime => fv.DateTimeValue.HasValue ? ToUnixSeconds(fv.DateTimeValue.Value) : null,
                     _ => null
                 };
             }
@@ -301,6 +308,8 @@ namespace Operum.Service.Services.Fields
                     DataTypes.Number => double.TryParse(rawValue, NumberStyles.Any, CultureInfo.InvariantCulture, out var n) ? n : null,
                     DataTypes.Bool => bool.TryParse(rawValue, out var b) ? (b ? 1.0 : 0.0) : null,
                     DataTypes.TimeSpan => TimeSpan.TryParse(rawValue, CultureInfo.InvariantCulture, out var ts) ? ts.TotalSeconds : null,
+                    DataTypes.Date or DataTypes.DateTime =>
+                        (DynamicDateTokens.ResolveValue(rawValue, tz) ?? DataFormatters.StringToDateTime(rawValue)) is { } dt ? ToUnixSeconds(dt) : null,
                     _ => null
                 };
             }
