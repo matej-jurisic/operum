@@ -250,7 +250,7 @@ namespace Operum.Model.Constants.Analytics.Definitions
                         {
                             Label = "None",
                             AllowedAxisTypes = [.. DataTypes.All],
-                            AllowedCodes = [AnalyticCodes.RawValues]
+                            AllowedCodes = [AnalyticCodes.RawValues, AnalyticCodes.CumulativeSum]
                         },
                         [AnalyticGroupings.Exact] = new()
                         {

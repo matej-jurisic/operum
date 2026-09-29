@@ -50,9 +50,12 @@ namespace Operum.Service.Domain.Analytics.Builders
             // query produced, and connecting them unsorted draws a meaningless zig-zag.
             dataPoints = OrderByX(dataPoints, xField.Type);
 
-            ILineChartProcessor processor = code == AnalyticCodes.RawValues
-                ? new LineChartProcessor()
-                : new GroupedLineChartProcessor(grouping, code);
+            ILineChartProcessor processor = (grouping, code) switch
+            {
+                (AnalyticGroupings.None, AnalyticCodes.CumulativeSum) => new CumulativeLineChartProcessor(),
+                (_, AnalyticCodes.RawValues) => new LineChartProcessor(),
+                _ => new GroupedLineChartProcessor(grouping, code)
+            };
 
             result.Points = processor.Process(dataPoints);
 

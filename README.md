@@ -60,7 +60,7 @@ Charts are calculated at query time. Each chart reads from one or more sources; 
 |---|---|---|
 | Single Value | 12 | One headline metric: count, sum, min, max, average, standard deviation, unique count, most/least common, or yes/no counts and percentage. Min and max compare one field but can display another, so the widget leads with what the winning entry holds in that field and shows the compared value beneath it |
 | Goal | 9 | Count, unique count, sum, average, min, max, or yes/no counts and percentage, shown as progress toward a target you set, with a progress bar and percentage. The target can switch based on the values of the dashboard filters the widget follows |
-| Line Chart | grouping x calc | Pick a grouping and a calculation (sum, average, count, min, max, or a cumulative running total). No grouping plots raw values, exact value groups by each distinct value, and day/week/month/year buckets need a date or datetime axis |
+| Line Chart | grouping x calc | Pick a grouping and a calculation (sum, average, count, min, max, or a cumulative running total). No grouping plots each entry as its own point (raw values or a running total), exact value groups by each distinct value, and day/week/month/year buckets need a date or datetime axis |
 | Bar Chart | grouping x calc | Pick a grouping and a calculation (sum, average, count, min, or max). No grouping plots raw values, exact category groups by each distinct value, and day/week/month/year buckets need a date or datetime axis |
 | Scatter Chart | 2 | Numeric X/Y point cloud for spotting correlations: one tracker's two fields, or two trackers paired on a shared match field |
 | Donut Chart | 1 | Groups entries by a category, sums a numeric field per group |
