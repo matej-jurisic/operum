@@ -500,6 +500,40 @@ namespace Operum.Tests.Tests.Dashboards
             Assert.Equal(30, points.Sum(p => p.GetProperty("y").GetDouble()));
         }
 
+        [Theory]
+        [InlineData(DataTypes.Number, AnalyticCodes.Sum, "0.00")]
+        [InlineData(DataTypes.TimeSpan, AnalyticCodes.Sum, "00:00:00")]
+        [InlineData(DataTypes.Number, AnalyticCodes.Average, "N/A")]
+        public async Task SingleValue_WithNoEntries_SumIsZeroOtherwiseNA(string fieldType, string code, string expected)
+        {
+            await _factory.SeedDatabaseAsync();
+            var client = await _factory.NewUserClient($"emptysum{fieldType}{code}".Replace(" ", ""));
+
+            var tracker = await Data(await client.PostAsJsonAsync("trackers", new CreateTrackerDto { Name = "Empty" }));
+            var trackerId = tracker.GetProperty("id").GetString()!;
+            var field = await Data(await client.PostAsJsonAsync($"trackers/{trackerId}/fields",
+                new CreateFieldDto { Name = "Value", Type = fieldType }));
+
+            var dashboardId = await CreateDashboard(client);
+            var addResponse = await client.PostAsJsonAsync($"dashboard/{dashboardId}/items", new CreateAndPlaceWidgetDto
+            {
+                ResultType = AnalyticTypes.SingleValue,
+                Code = code,
+                Sources =
+                [
+                    new CreateAndPlaceWidgetSourceDto
+                    {
+                        TrackerId = trackerId,
+                        AnalyticFields = [new CreateAnalyticFieldDto { FieldId = field.GetProperty("id").GetString()!, Purpose = AnalyticPurposes.Value }]
+                    }
+                ]
+            });
+            Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
+
+            var analytic = Analytic((await Widgets(client, dashboardId))[0]);
+            Assert.Equal(expected, analytic.GetProperty("value").GetString());
+        }
+
         [Fact]
         public async Task SingleValue_NotFollowingADateFilter_HasNoTrend()
         {

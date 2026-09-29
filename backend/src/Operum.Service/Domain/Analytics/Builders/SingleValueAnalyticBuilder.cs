@@ -2,6 +2,7 @@
 using Operum.Model.Constants.Analytics;
 using Operum.Model.Constants.Analytics.Definitions;
 using Operum.Model.Constants.Fields;
+using Operum.Model.Converters;
 using Operum.Model.DTOs.Analytics;
 using Operum.Model.DTOs.Fields;
 using Operum.Model.Enums;
@@ -38,6 +39,16 @@ namespace Operum.Service.Domain.Analytics.Builders
                     $"Unsupported analytic code: {request.Analytic.Code}");
 
             var opResult = calculator.Calculate(allValues);
+
+            // The calculator only sees values, so the empty sum's zero is typed here from the field.
+            if (!opResult.IsSuccess && opResult.StatusCode == ResultStatusCodes.NotFound
+                && request.Analytic.Code == AnalyticCodes.Sum)
+            {
+                var zero = valueField.Type == DataTypes.TimeSpan
+                    ? DataFormatters.TimeSpanToString(TimeSpan.Zero)
+                    : DataFormatters.NumberToString(0);
+                opResult = Result.Success((zero, (string?)null));
+            }
 
             if (!opResult.IsSuccess)
                 return Result.Failure(opResult.StatusCode, opResult.Messages);
